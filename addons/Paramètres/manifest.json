@@ -1,0 +1,32 @@
+{
+    "name": "Gestion des Utilisateurs & Sécurité",
+    "version": "1.1.0",
+    "author": "Fearless",
+    "category": "Configuration / Système",
+    "description": "Cœur du système de sécurité. Gère les comptes employés, l'authentification, les rôles (RBAC) et la journalisation des connexions avec traçabilité IP.",
+    
+    "depends": [
+        "base"
+    ],
+
+    "data": [
+        "models/models.py",
+        "views/loggin_view.py",
+        "views/setup_view.py",
+        "views/user_form.py",
+        "views/dialog_view.py",
+        "security/"
+    ],
+
+    "features": [
+        "Gestion des rôles (Administrateur, Manager, Agent, Comptable)",
+        "Authentification sécurisée et hachage des mots de passe",
+        "Audit des connexions (Date, Heure, Adresse IP)",
+        "Gestion des permissions par module",
+        "Suivi des dernières activités utilisateur"
+    ],
+
+    "installable": true,
+    "auto_install": true,
+    "application": false
+}

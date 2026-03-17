@@ -1,0 +1,2 @@
+from addons.Automobiles.controllers.automobile_controller import VehicleController
+from addons.Automobiles.controllers.contacts_controller import ContactController, ContactAuditLog

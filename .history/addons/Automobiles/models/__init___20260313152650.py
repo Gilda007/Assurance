@@ -1,0 +1,4 @@
+from addons.Automobiles.models.contract_models import Contract
+from addons.Automobiles.models.contact_models import Contact, A
+from addons.Automobiles.models.flottes_models import Fleet
+# Importez tous vos modèles ici pour que SQLAlchemy les enregistre tous en même temps
