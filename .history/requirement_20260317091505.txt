@@ -1,6 +1,0 @@
-opencv-python
-reportlab
-requests
-pandasopenpyxl
-
-psql -h localhost -U ams_admin -d ams_db || sudo -u postgres psql

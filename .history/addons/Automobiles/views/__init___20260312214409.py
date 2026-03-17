@@ -1,4 +1,0 @@
-from addons.Automobiles.views.audit_auto_view import AuditLogDialog
-from addons.Automobiles.views.automobile_form_view import VehicleForm
-from addons.Automobiles.views.automobile_view import VehiculeModuleView
-from addons.Automobiles.views.contact_card_view 
