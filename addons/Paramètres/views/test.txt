@@ -1,0 +1,257 @@
+import sys
+import os
+from PySide6.QtWidgets import *
+from PySide6.QtCore import *
+from PySide6.QtGui import *
+
+class LoginView(QWidget):
+    # Signal pour communiquer avec le contrôleur (MainController)
+    login_requested = Signal(str, str)
+
+    def __init__(self, controller=None):
+        super().__init__()
+        self.controller = controller
+        
+        # --- CONFIGURATION FENÊTRE ---
+        self.setWindowFlags(Qt.FramelessWindowHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setFixedSize(1000, 700) # Légèrement plus grand pour le confort
+        
+        # Pour le drag & drop de la fenêtre
+        self.old_pos = None
+        
+        self.setup_ui()
+
+    def setup_ui(self):
+        # Layout principal avec marges pour l'ombre portée
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(40, 40, 40, 40)
+
+        # --- LE CONTENEUR PRINCIPAL ---
+        self.body = QFrame()
+        self.body.setObjectName("MainBody")
+        self.body.setStyleSheet("""
+            #MainBody {
+                background-color: #ffffff;
+                border-radius: 40px;
+            }
+        """)
+        
+        # Ombre portée ultra-douce et diffuse
+        shadow = QGraphicsDropShadowEffect(blurRadius=80, xOffset=0, yOffset=20, color=QColor(0, 0, 0, 50))
+        self.body.setGraphicsEffect(shadow)
+
+        self.content_layout = QHBoxLayout(self.body)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setSpacing(0)
+
+        # --- SECTION GAUCHE : VISUEL IMMERSIF AVEC IMAGE ---
+        self.left_panel = QFrame()
+        self.left_panel.setFixedWidth(450)
+        
+        # Définition de l'image de fond (Remplacez par votre chemin réel)
+        image_path = "path/to/your/fleet_image.jpg" 
+        
+        # Si l'image n'existe pas, on utilise une image générée pour le test
+        if not os.path.exists(image_path):
+            image_path = self._generate_default_image()
+
+        # Application de l'image de fond avec coins arrondis
+        self.left_panel.setStyleSheet(f"""
+            QFrame {{
+                background-image: url({image_path});
+                background-position: center;
+                background-repeat: no-repeat;
+                border-top-left-radius: 40px;
+                border-bottom-left-radius: 40px;
+            }}
+        """)
+        
+        # --- AJOUT DU FILTRE SOMBRE (OVERLAY) ---
+        # On utilise un layout pour superposer le filtre sur l'image
+        left_main_layout = QVBoxLayout(self.left_panel)
+        left_main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        overlay = QFrame()
+        # C'est ici qu'on règle l'opacité (rgba: 0, 0, 0 est noir, 0.7 est 70% d'opacité)
+        overlay.setStyleSheet("""
+            QFrame {
+                background-color: rgba(2, 44, 34, 0.8); /* Vert très sombre opaque */
+                border-top-left-radius: 40px;
+                border-bottom-left-radius: 40px;
+            }
+        """)
+        
+        # Contenu par-dessus le filtre
+        left_layout = QVBoxLayout(overlay)
+        left_layout.setContentsMargins(60, 80, 60, 80)
+
+        # Badge "Status"
+        status_badge = QLabel("● SYSTEM ONLINE")
+        status_badge.setStyleSheet("color: #10b981; font-weight: bold; font-size: 10px; letter-spacing: 2px; background: none;")
+        
+        # Titre Principal
+        main_title = QLabel("AMS\nPROJECT.")
+        main_title.setStyleSheet("color: white; font-size: 50px; font-weight: 900; line-height: 1; background: none;")
+
+        # Texte descriptif
+        desc = QLabel("Gérez votre parc informatique et automobile avec une précision chirurgicale.")
+        desc.setWordWrap(True)
+        desc.setStyleSheet("color: #a7f3d0; font-size: 16px; font-weight: 300; margin-top: 20px; background: none;")
+
+        left_layout.addWidget(status_badge)
+        left_layout.addSpacing(20)
+        left_layout.addWidget(main_title)
+        left_layout.addWidget(desc)
+        left_layout.addStretch()
+        
+        # On ajoute l'overlay au layout principal de gauche
+        left_main_layout.addWidget(overlay)
+
+        # --- SECTION DROITE : INTERFACE MINIMALISTE ---
+        self.right_panel = QWidget()
+        right_layout = QVBoxLayout(self.right_panel)
+        right_layout.setContentsMargins(80, 50, 80, 50)
+
+        # Header de la colonne droite (Bouton fermer)
+        top_bar = QHBoxLayout()
+        self.btn_close = QPushButton("✕")
+        self.btn_close.setFixedSize(30, 30)
+        self.btn_close.clicked.connect(self.close)
+        self.btn_close.setStyleSheet("QPushButton { border: none; color: #d1d5db; font-size: 16px; } QPushButton:hover { color: #ef4444; }")
+        top_bar.addStretch()
+        top_bar.addWidget(self.btn_close)
+        
+        # Corps du formulaire
+        welcome_label = QLabel("Bienvenue")
+        welcome_label.setStyleSheet("color: #6b7280; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px;")
+        
+        title_label = QLabel("Connexion")
+        title_label.setStyleSheet("color: #111827; font-size: 32px; font-weight: 800;")
+
+        # Inputs stylisés
+        self.edit_user = self._create_styled_input("Identifiant", "👤")
+        self.edit_pass = self._create_styled_input("Mot de passe", "🔒", True)
+
+        # Bouton Action principal
+        self.btn_submit = QPushButton("SE CONNECTER")
+        self.btn_submit.setFixedHeight(60)
+        self.btn_submit.setCursor(Qt.PointingHandCursor)
+        self.btn_submit.clicked.connect(self.process_login)
+        self.btn_submit.setStyleSheet("""
+            QPushButton {
+                background-color: #064e3b;
+                color: white;
+                border-radius: 18px;
+                font-weight: 800;
+                font-size: 13px;
+                letter-spacing: 2px;
+            }
+            QPushButton:hover { background-color: #059669; }
+        """)
+
+        right_layout.addLayout(top_bar)
+        right_layout.addSpacing(20)
+        right_layout.addWidget(welcome_label)
+        right_layout.addWidget(title_label)
+        right_layout.addSpacing(40)
+        right_layout.addWidget(self.edit_user)
+        right_layout.addSpacing(20)
+        right_layout.addWidget(self.edit_pass)
+        right_layout.addSpacing(40)
+        right_layout.addWidget(self.btn_submit)
+        right_layout.addStretch()
+
+        self.content_layout.addWidget(self.left_panel)
+        self.content_layout.addWidget(self.right_panel)
+        self.main_layout.addWidget(self.body)
+
+    def _create_styled_input(self, placeholder, icon, is_password=False):
+        frame = QFrame()
+        frame.setFixedHeight(60)
+        frame.setStyleSheet("""
+            QFrame {
+                background-color: #f9fafb;
+                border: 2px solid #f3f4f6;
+                border-radius: 18px;
+            }
+            QFrame:focus-within {
+                border-color: #10b981;
+                background-color: #ffffff;
+            }
+        """)
+        
+        l = QHBoxLayout(frame)
+        l.setContentsMargins(20, 0, 20, 0)
+        
+        icon_lbl = QLabel(icon)
+        icon_lbl.setStyleSheet("border: none; background: none; font-size: 18px;")
+        
+        edit = QLineEdit()
+        edit.setPlaceholderText(placeholder)
+        if is_password: edit.setEchoMode(QLineEdit.Password)
+        edit.setStyleSheet("border: none; background: none; color: #1f2937; font-size: 15px; font-weight: 500;")
+        
+        l.addWidget(icon_lbl)
+        l.addWidget(edit)
+        
+        frame.field = edit # Référence pour lecture
+        return frame
+
+    def process_login(self):
+        """Logique d'émission du signal vers le contrôleur."""
+        username = self.edit_user.field.text().strip()
+        password = self.edit_pass.field.text().strip()
+        
+        if username and password:
+            self.btn_submit.setText("VÉRIFICATION...")
+            self.btn_submit.setEnabled(False)
+            self.login_requested.emit(username, password)
+        else:
+            self.error_animation()
+
+    def error_animation(self):
+        """Secousse de la fenêtre en cas d'erreur (effet génial)."""
+        anim = QPropertyAnimation(self, b"pos")
+        anim.setDuration(40)
+        anim.setLoopCount(6)
+        pos = self.pos()
+        anim.setKeyValueAt(0, pos)
+        anim.setKeyValueAt(0.5, pos + QPoint(8, 0))
+        anim.setKeyValueAt(1, pos)
+        anim.start()
+
+    # --- LOGIQUE DE DÉPLACEMENT ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton: self.old_pos = event.globalPos()
+
+    def mouseMoveEvent(self, event):
+        if self.old_pos:
+            delta = QPoint(event.globalPos() - self.old_pos)
+            self.move(self.x() + delta.x(), self.y() + delta.y())
+            self.old_pos = event.globalPos()
+
+    def mouseReleaseEvent(self, event): self.old_pos = None
+
+    def _generate_default_image(self):
+        """Génère une image de parc automobile par défaut pour le test."""
+        pixmap = QPixmap(450, 700)
+        pixmap.fill(QColor("#111827")) # Fond sombre
+        
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Dessin abstrait de voitures (simulé)
+        painter.setPen(Qt.NoPen)
+        for i in range(10):
+            painter.setBrush(QColor(255, 255, 255, 20))
+            painter.drawRoundedRect(50 + i*30, 100 + i*50, 200, 100, 10, 10)
+            
+        painter.end()
+        
+        temp_path = os.path.join(os.getcwd(), "default_fleet.jpg")
+        pixmap.save(temp_path)
+        return temp_path
+
+    def emit_login(self):
+        self.login_requested.emit(self.username.text(), self.password.text())

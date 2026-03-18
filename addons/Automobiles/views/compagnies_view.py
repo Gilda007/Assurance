@@ -10,6 +10,7 @@ from core.alerts import AlertManager
 from addons.Automobiles.views.compagnies_form_view import FormulaireCreationCompagnie
 from addons.Automobiles.views.tarif_form_view import CompanyTarifForm
 from datetime import datetime
+from sqlalchemy import or_
 
 class CompanyTariffView(QWidget):
     def __init__(self, controller, current_user):
@@ -49,13 +50,16 @@ class CompanyTariffView(QWidget):
         
         # Barre de recherche rapide compagnies
         self.comp_search = QLineEdit()
-        self.comp_search.setPlaceholderText("Rechercher...")
+        self.comp_search.setPlaceholderText("Rechercher une compagnie (Nom, Code, ou ID)...")
         self.comp_search.setStyleSheet("""
             QLineEdit {
                 background-color: #f1f5f9; border-radius: 8px; padding: 8px 12px; font-size: 13px;
             }
         """)
+        search_element= self.comp_search.text()
         sidebar_layout.addWidget(self.comp_search)
+        self.comp_search.textChanged.connect(self.update_compagnie_table)
+        # self.comp_search.textChanged.connect(self.controller.compagnies.search_compagnies(search_element))
         
         # Liste (Simulée ici)
         self.comp_list_scroll = QScrollArea()
@@ -311,6 +315,7 @@ class CompanyTariffView(QWidget):
         if dialog.exec_():
             # Si l'utilisateur a cliqué sur "ENREGISTRER"
             new_tarif_data = dialog.get_data()
+            print(new_tarif_data)
             
             # Envoyer au contrôleur
             result = self.controller.tarifs.create_tarif(new_tarif_data)
@@ -695,3 +700,49 @@ class CompanyTariffView(QWidget):
                 self.load_sidebar_compagnies() # Rafraîchir la liste
             else:
                 AlertManager.show_error(self, "Erreur d'import", message)
+
+    def update_compagnie_table(self):
+        search_text = self.comp_search.text()
+        compagnies = self.controller.compagnies.search_compagnies(search_text)
+        
+        self.table.setRowCount(0)
+        
+        for cie in compagnies:
+            row_pos = self.table.rowCount()
+            self.table.insertRow(row_pos)
+            
+            # 1. Remplissage des 5 colonnes de données
+            display_data = [
+                str(cie.id),
+                str(cie.code) if cie.code else "",
+                str(cie.nom) if cie.nom else "",
+                str(cie.email) if cie.email else "-",
+                str(cie.telephone) if cie.telephone else "-"
+            ]
+            
+            for col, text in enumerate(display_data):
+                self.table.setItem(row_pos, col, QTableWidgetItem(text))
+
+            # 2. Création de la cellule d'actions (6ème colonne)
+            actions_widget = QWidget()
+            actions_layout = QHBoxLayout(actions_widget)
+            actions_layout.setContentsMargins(5, 2, 5, 2)
+            actions_layout.setSpacing(8)
+
+            # Utilisation de votre méthode _create_action_btn
+            btn_edit = self._create_action_btn("✏️", "#3498db", "Modifier")
+            btn_edit.clicked.connect(lambda checked=False, c_id=cie.id: self.on_edit_click(c_id))
+
+            btn_print = self._create_action_btn("🖨️", "#9b59b6", "Imprimer")
+            btn_print.clicked.connect(lambda checked=False, c_id=cie.id: self.on_print_click(c_id))
+
+            btn_delete = self._create_action_btn("🗑️", "#e74c3c", "Supprimer")
+            btn_delete.clicked.connect(lambda checked=False, c_id=cie.id: self.on_delete_click(c_id))
+
+            actions_layout.addWidget(btn_edit)
+            actions_layout.addWidget(btn_print)
+            actions_layout.addWidget(btn_delete)
+            actions_layout.addStretch()
+
+            # On place le widget contenant les boutons dans la cellule
+            self.table.setCellWidget(row_pos, 5, actions_widget)

@@ -1,7 +1,33 @@
-.history
-.venv
-logs
-uploads
-.vscode
+# Local history and editor artifacts
+.history/
+
+# Python virtual environments
+.venv/
+venv/
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs and runtime data
+logs/
+uploads/
+
+# Editor settings
+.vscode/
+.idea/
+
+# Static content (if generated locally)
 addons/Automobiles/static/contacts
+
+# Environment variables / secrets
 .env
+
+# Distribution / build artifacts
+dist/
+build/
+*.egg-info/
+
+# macOS
+.DS_Store

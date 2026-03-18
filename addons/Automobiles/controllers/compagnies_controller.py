@@ -207,127 +207,34 @@ class CompagnieController:
             self.db.rollback()
             return False, str(e)
 
+    def search_compagnies(self, search_text=""):
+        """
+        Recherche des compagnies par nom ou par ID.
+        Retourne une liste d'objets Compagnie.
+        """
+        try:
+            from addons.Automobiles.controllers.compagnies_controller import Compagnie # Vérifiez l'import
+            
+            query = self.db.query(Compagnie)
 
-    # def import_tarifs_from_file(self, file_path, user_id, progress_callback=None):
-    #     """
-    #     Importation massive avec suivi de progression et validation des colonnes spécifiques.
-    #     """
-    #     try:
-    #         # 1. Lecture du fichier selon l'extension
-    #         if file_path.endswith('.csv'):
-    #             df = pd.read_csv(file_path)
-    #         else:
-    #             engine = 'xlrd' if file_path.endswith('.xls') else 'openpyxl'
-    #             df = pd.read_excel(file_path, engine=engine)
+            if search_text:
+                # On cherche si le texte est dans le nom OU si c'est l'ID exact
+                search_filter = f"%{search_text}%"
+                
+                # Construction du filtre (Nom contient OU ID égal)
+                if search_text.isdigit():
+                    query = query.filter(
+                        (Compagnie.nom.ilike(search_filter)) | 
+                        (Compagnie.id == int(search_text)) |
+                        (Compagnie.code == int(search_filter)) |
+                        (Compagnie.email.ilike(search_filter))
+                    )
+                else:
+                    query = query.filter(Compagnie.nom.ilike(search_filter))
 
-    #         # Nettoyage des noms de colonnes
-    #         df.columns = [c.strip() for c in df.columns]
-    #         total_rows = len(df)
+            # On limite à 50 résultats pour la performance et on trie par nom
+            return query.order_by(Compagnie.nom).limit(50).all()
 
-    #         # 2. Validation des colonnes réelles du fichier 'tarif.xls'
-    #         required_columns = [
-    #             "Cie", "Nom_Cie", "Tarif", "Lib_Tarif", "Categorie", "Zone", 
-    #             "Prime1", "Prime2", "Prime3", "Prime4", "Prime5", "Prime6", "Prime7", "Prime8", "Prime9", "Prime10", 
-    #             "Remorq1", "Remorq2", "Remorq3", "Remorq4", "Remorq5", "Remorq6", 
-    #             "Inflamble1", "Inflamble2", 
-    #             "Essence 1", "Essence 2", "Essence 3", "Essence 4", "Essence 5", "Essence 6", "Essence 7", "Essence 8", "Essence 9", "Essence 10", 
-    #             "Diesel 1", "Diesel 2", "Diesel 3", "Diesel 4", "Diesel 5", "Diesel 6", "Diesel 7", "Diesel 8", "Diesel 9", "Diesel 10", 
-    #             "Max Corpo", "Max_Materiel", "Surprime 1", "Nbre Place", "Surprime 2", "LIBELLE OPTION"
-    #         ]            
-    #         for col in required_columns:
-    #             if col not in df.columns:
-    #                 return False, f"La colonne obligatoire '{col}' est manquante dans le fichier."
-
-    #         success_count = 0
-    #         errors = []
-
-    #         # Fonctions de nettoyage locales
-    #         def to_f(val):
-    #             try:
-    #                 if pd.isna(val) or str(val).strip() == "": return 0.0
-    #                 return float(str(val).replace(',', '.'))
-    #             except: return 0.0
-
-    #         def to_i(val):
-    #             try:
-    #                 if pd.isna(val) or str(val).strip() == "": return 0
-    #                 return int(float(val))
-    #             except: return 0
-
-    #         # 3. Traitement des lignes
-    #         for index, row in df.iterrows():
-    #             try:
-    #                 # Sauter les lignes vides
-    #                 if pd.isna(row.get('Cie')): continue
-
-    #                 new_tarif = AutomobileTarif(
-    #                     cie_id=to_i(row.get('Cie')),
-    #                     tarif_code=str(row.get('Tarif', '')),
-    #                     lib_tarif=str(row.get('Lib_Tarif', '')),
-    #                     categorie=str(row.get('Categorie', '')),
-    #                     zone=str(row.get('Zone', '')),
-    #                     nbre_place=to_i(row.get('Nbre Place')),
-    #                     libelle_option=str(row.get('LIBELLE OPTION', '')),
-
-    #                     # PRIMES RC
-    #                     prime1=to_f(row.get('Prime1')), prime2=to_f(row.get('Prime2')),
-    #                     prime3=to_f(row.get('Prime3')), prime4=to_f(row.get('Prime4')),
-    #                     prime5=to_f(row.get('Prime5')), prime6=to_f(row.get('Prime6')),
-    #                     prime7=to_f(row.get('Prime7')), prime8=to_f(row.get('Prime8')),
-    #                     prime9=to_f(row.get('Prime9')), prime10=to_f(row.get('Prime10')),
-
-    #                     # REMORQUAGE
-    #                     remorq1=to_f(row.get('Remorq1')), remorq2=to_f(row.get('Remorq2')),
-    #                     remorq3=to_f(row.get('Remorq3')), remorq4=to_f(row.get('Remorq4')),
-    #                     remorq5=to_f(row.get('Remorq5')), remorq6=to_f(row.get('Remorq6')),
-
-    #                     # INFLAMMABLE
-    #                     inflamble1=to_f(row.get('Inflamble1')),
-    #                     inflamble2=to_f(row.get('Inflamble2')),
-
-    #                     # ÉNERGIE (Mapping exact avec les espaces du CSV)
-    #                     essence_1=to_f(row.get('Essence 1')), essence_2=to_f(row.get('Essence 2')),
-    #                     essence_3=to_f(row.get('Essence 3')), essence_4=to_f(row.get('Essence 4')),
-    #                     essence_5=to_f(row.get('Essence 5')), essence_6=to_f(row.get('Essence 6')),
-    #                     essence_7=to_f(row.get('Essence 7')), essence_8=to_f(row.get('Essence 8')),
-    #                     essence_9=to_f(row.get('Essence 9')), essence_10=to_f(row.get('Essence 10')),
-
-    #                     diesel_1=to_f(row.get('Diesel 1')), diesel_2=to_f(row.get('Diesel 2')),
-    #                     diesel_3=to_f(row.get('Diesel 3')), diesel_4=to_f(row.get('Diesel 4')),
-    #                     diesel_5=to_f(row.get('Diesel 5')), diesel_6=to_f(row.get('Diesel 6')),
-    #                     diesel_7=to_f(row.get('Diesel 7')), diesel_8=to_f(row.get('Diesel 8')),
-    #                     diesel_9=to_f(row.get('Diesel 9')), diesel_10=to_f(row.get('Diesel 10')),
-
-    #                     # LIMITES
-    #                     max_corpo=str(row.get('Max Corpo', '')),
-    #                     max_materiel=to_f(row.get('Max_Materiel')),
-    #                     surprime_1=to_f(row.get('Surprime 1')),
-    #                     surprime_2=to_f(row.get('Surprime 2')),
-
-    #                     create_by=user_id,
-    #                     create_at=datetime.now(),
-    #                     is_active=True
-    #                 )
-
-    #                 self.db.add(new_tarif)
-    #                 success_count += 1
-
-    #                 # Mise à jour de la progression (toutes les 20 lignes pour fluidité)
-    #                 if progress_callback and index % 20 == 0:
-    #                     progress_callback(index, total_rows)
-
-    #                 # Commit par paquets pour la performance
-    #                 if success_count % 200 == 0:
-    #                     self.db.commit()
-
-    #             except Exception as line_err:
-    #                 errors.append(f"Ligne {index}: {str(line_err)}")
-    #                 continue
-
-    #         self.db.commit()
-    #         return True, f"{success_count} tarifs importés avec succès."
-
-    #     except Exception as e:
-    #         self.db.rollback()
-    #         return False, f"Erreur critique : {str(e)}"
-    
+        except Exception as e:
+            print(f"Erreur recherche compagnie: {e}")
+            return []
