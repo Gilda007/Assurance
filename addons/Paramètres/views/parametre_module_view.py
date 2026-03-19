@@ -99,7 +99,7 @@ class ParametreModuleWidget(QWidget):
 
         self.placeholder = QLabel("Sélectionnez un module pour voir les détails")
         self.placeholder.setAlignment(Qt.AlignCenter)
-        self.placeholder.setStyleSheet("color: #94a3b8; font-size: 16px; font-italic: true;")
+        self.placeholder.setStyleSheet("color: #94a3b8; font-size: 16px;")
 
         self.detail_layout.addWidget(self.placeholder)
         self.detail_layout.addWidget(self.dynamic_widget)
@@ -207,7 +207,7 @@ class ParametreModuleWidget(QWidget):
         footer = QHBoxLayout()
         footer.setContentsMargins(0, 20, 0, 0)
         
-        btn_about = QPushButton("🌐 Visiter le site de l'auteur")
+        btn_about = QPushButton("🌐 Visiter le site du développeur")
         btn_about.setCursor(Qt.PointingHandCursor)
         btn_about.setStyleSheet("background: #f1f5f9; color: #1e293b; padding: 10px 18px; border-radius: 8px; font-weight: 600;")
         btn_about.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(mod.get('website', 'https://universalhouse.org'))))

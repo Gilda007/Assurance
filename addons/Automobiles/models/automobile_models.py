@@ -12,7 +12,8 @@ class Vehicle(Base):
     
     # --- IDENTIFICATION ---
     immatriculation = Column(String(20), unique=True, index=True, nullable=False)
-    chassis = Column(String(50), unique=True, nullable=False)
+    chassis = Column(String(50), unique=False, nullable=False)
+    zone = Column(String(1), unique=False, nullable=False)
     marque = Column(String(50))
     modele = Column(String(50))
     annee = Column(Integer)

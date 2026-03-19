@@ -58,7 +58,7 @@ class AutomobileTarif(Base):
     max_materiel = Column(Float, default=0.0)
     surprime_1 = Column(Float, default=0.0)
     surprime_2 = Column(Float, default=0.0)
-    is_active = Column(Boolean, default=True, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=True)
 
     # --- BLOC DE TRAÇABILITÉ ---
     created_at = Column(DateTime, default=datetime.now)

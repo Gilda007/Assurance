@@ -4,9 +4,11 @@ import socket
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from addons.Automobiles.models.contact_models import Contact
+from addons.Automobiles.models.compagnies_models import Compagnie
 from addons.Automobiles.models.automobile_models import Vehicle, AuditVehicleLog
 from datetime import date, datetime
 import requests
+from addons.Automobiles.models import AutomobileTarif
 
 
 class VehicleController:
@@ -50,10 +52,19 @@ class VehicleController:
     def get_contacts_for_combo(self, text):
         """Récupère les clients/entreprises depuis la table CONTACT."""
 
-        return self.session.query(Contact).filter(
-        (Contact.nom.ilike(f"%{text}%")) | 
-        (Contact.telephone.ilike(f"%{text}%"))
-    ).all()
+        return self.session.query(Compagnie).filter(
+            (Compagnie.nom.ilike(f"%{text}%")) | 
+            (Compagnie.telephone.ilike(f"%{text}%"))
+        ).all()
+
+    def get_compagnies_for_combo(self, text):
+        """Récupère les compagnies (nature 'Morale') depuis la table CONTACT."""
+
+        return self.session.query(Compagnie).filter(
+            Compagnie.is_active == "True",
+            (Compagnie.code.ilike(f"%{text}%")) | 
+            (Compagnie.telephone.ilike(f"%{text}%"))
+        ).all()
 
     # Dans la classe VehicleController
     def get_all_contacts(self):
@@ -64,6 +75,14 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur lors de la récupération des contacts: {e}")
             return []
+
+    def get_contact_by_id(self, contact_id):
+        """Récupère un contact par son ID (utile pour pré-remplir un formulaire)."""
+        try:
+            return self.session.get(Compagnie, contact_id)
+        except Exception as e:
+            print(f"Erreur lors de la récupération du contact {contact_id}: {e}")
+            return None
 
     def get_report_data(self):
         """Méthode requise par ContactListView pour les statistiques et le PDF"""
@@ -270,3 +289,100 @@ class VehicleController:
             'Morale': morale,
             'Total': len(contacts)
         }
+    
+        # Dans votre service ou repository :
+    
+    # def find_premium(energy, cv, places, trailer):
+    #     # Exemple de requête SQLAlchemy
+    #     result = session.query(AutomobileTarif).filter(
+    #         AutomobileTarif.energie == energy,
+    #         AutomobileTarif.puissance_min <= cv,
+    #         AutomobileTarif.puissance_max >= cv,
+    #         AutomobileTarif.nbre_place == places,
+    #         AutomobileTarif.avec_remorque == trailer
+    #     ).first()
+        
+    #     return result.prime if result else None
+    
+    # def get_rc_premium(self, energy, cv, places, trailer):
+    #     """
+    #     Récupère la prime RC depuis la base de données.
+    #     Args:
+    #         energy (str): Type d'énergie (Essence, Diesel, etc.)
+    #         cv (int): Puissance fiscale
+    #         places (int): Nombre de places
+    #         trailer (bool): Avec ou sans remorque
+    #     """
+    #     try:
+    #         # 1. On prépare la session de base de données (dépend de votre architecture)
+    #         # Si vous utilisez SQLAlchemy :
+    #         from models import AutomobileTarif # Import de votre modèle de table
+            
+    #         # 2. Construction de la requête
+    #         # On cherche la ligne qui correspond exactement à l'énergie, aux places et à la remorque
+    #         # Et où les CV tombent dans la tranche [puissance_min, puissance_max]
+    #         query = self.db_session.query(AutomobileTarif).filter(
+    #             AutomobileTarif.energie == energy,
+    #             AutomobileTarif.nbre_place == places,
+    #             AutomobileTarif.avec_remorque == trailer,
+    #             AutomobileTarif.puissance_min <= cv,
+    #             AutomobileTarif.puissance_max >= cv
+    #         )
+
+    #         result = query.first()
+
+    #         if result:
+    #             # On retourne la valeur de la colonne 'prime' (ou 'valeur' selon votre table)
+    #             return result.prime
+            
+    #         return None
+
+    #     except Exception as e:
+    #         print(f"Erreur Database lors de la recherche du tarif RC : {e}")
+    #         return None
+        
+    def get_rc_premium_from_matrix(self, cie_id, zone, categorie, energie, cv_saisi, avec_remorque):
+        """
+        Recherche la prime RC dans la matrice automobile_tarifs.
+        """
+        try:
+            from addons.Automobiles.models.tarif_models import AutomobileTarif
+            
+            # 1. On récupère la ligne de configuration pour ce contexte précis
+            tarif = self.session.query(AutomobileTarif).filter(
+                AutomobileTarif.cie_id == cie_id,
+                AutomobileTarif.zone == zone,
+                AutomobileTarif.categorie == categorie
+            ).first()
+
+            if not tarif:
+                print(f"Aucun tarif trouvé pour Cie:{cie_id}, Zone:{zone}, Cat:{categorie}")
+                return 0.0
+
+            # 2. Trouver l'index de la tranche (1 à 10)
+            tranche_index = 0
+            # On choisit le préfixe des colonnes de seuils selon l'énergie
+            prefix_seuil = "essence_" if energie.lower() == "essence" else "diesel_"
+            
+            for i in range(1, 11):
+                seuil = getattr(tarif, f"{prefix_seuil}{i}")
+                
+                # Si le seuil est défini et que les CV sont inférieurs ou égaux
+                if seuil and seuil > 0:
+                    if cv_saisi <= seuil:
+                        tranche_index = i
+                        break
+            
+            # Si les CV dépassent tous les seuils, on prend la dernière tranche (souvent la 6)
+            if tranche_index == 0:
+                tranche_index = 6 
+
+            # 3. Récupérer le montant final (Prime standard ou Remorque)
+            prefix_prime = "remorq" if avec_remorque else "prime"
+            montant = getattr(tarif, f"{prefix_prime}{tranche_index}", 0.0)
+
+            return montant
+
+        except Exception as e:
+            print(f"Erreur lors de la récupération de la RC : {e}")
+            return 0.0

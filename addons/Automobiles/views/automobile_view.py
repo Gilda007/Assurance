@@ -411,8 +411,8 @@ class VehiculeModuleView(QWidget):
 
     def handle_fleet_action(self, fleet_obj, mode):
         """Gère l'ouverture du formulaire selon le mode choisi."""
-        contacts = self.controller.get_all_contacts_for_combo()
-        compagnies = self.controller.get_all_compagnies_for_combo()
+        contacts = self.controller.contacts.get_contact_by_id(fleet_obj)
+        compagnies = self.controller.compagnies.get_active_compagnies()
         
         dialog = FleetForm(
             parent=self,

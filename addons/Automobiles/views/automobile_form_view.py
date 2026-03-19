@@ -247,11 +247,15 @@ class VehicleForm(QDialog):
         grid_id = QGridLayout()
         
         self.combo_fleet = QComboBox() # fleet_id
+        self.combo_zone = QComboBox()
         # for fid, fname in self.fleets_list: self.combo_fleet.addItem(fname, fid)
+        self.combo_zone.addItems(["A", "B", "C"])
+        self.combo_zone.setStyleSheet("height: 25px;")
         
         self.immat_input = QLineEdit() # Immatriculation
         self.chassis_input = QLineEdit() # Chassis
-        
+        grid_id.addWidget(QLabel("Zone de circulation"), 4, 0)
+        grid_id.addWidget(self.combo_zone, 5, 0)
         grid_id.addWidget(QLabel("Flotte de rattach. (fleet_id)"), 0, 0, 1, 2)
         grid_id.addWidget(self.combo_fleet, 1, 0, 1, 2)
         grid_id.addWidget(QLabel("Immatriculation"), 2, 0); grid_id.addWidget(self.immat_input, 3, 0)
@@ -267,6 +271,7 @@ class VehicleForm(QDialog):
         self.usage_input = QLineEdit() # usage
         self.places_input = QLineEdit() # places
         self.check_remorque = QCheckBox("Véhicule avec Remorque") # remorque
+        self.zone_input = QLineEdit() # Zone
         
         grid_tech.addWidget(QLabel("Marque"), 0, 0); grid_tech.addWidget(self.marque_input, 1, 0)
         grid_tech.addWidget(QLabel("Modèle"), 0, 1); grid_tech.addWidget(self.modele_input, 1, 1)
@@ -398,7 +403,8 @@ class VehicleForm(QDialog):
             grid_gar.addWidget(res_lbl, i, 2)
 
             # Connexion au calcul (lambda pour passer la clé)
-            checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
+            # checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
+            checkbox.stateChanged.connect(lambda state, k=key: self.handle_garantie_click(k, state))
             
 
         form_layout.addLayout(grid_gar)
@@ -466,6 +472,7 @@ class VehicleForm(QDialog):
             "fleet_id": self.combo_fleet.currentData(),
             "immatriculation": self.immat_input.text().strip().upper(),
             "chassis": self.chassis_input.text().strip(),
+            "zone": self.combo_zone.currentText(),
             "marque": self.marque_input.text().strip(),
             "modele": self.modele_input.text().strip(),
             "annee": self.annee_input.text().strip(),
@@ -523,6 +530,7 @@ class VehicleForm(QDialog):
             # --- IDENTIFICATION & PROPRIÉTAIRE ---
             "immatriculation": self.immat_input.text().strip().upper(),
             "chassis": self.chassis_input.text().strip().upper(),
+            "chassis": self.combo_zone.currentData(),
             "fleet_id": self.combo_fleet.currentData(),
             "owner_id": self.client_list_widget.currentItem().data(Qt.UserRole).id if self.client_list_widget.currentItem() else None,
             "marque": self.marque_input.text().strip(),
@@ -871,11 +879,6 @@ class VehicleForm(QDialog):
                 index = self.status_combo.findText(v.statut, Qt.MatchFlag.MatchExactly)
                 if index >= 0:
                     self.status_combo.setCurrentIndex(index)
-            
-            # Pour la flotte (recherche par Data/ID)
-            # if v.fleet_id:
-            #     index = self.combo_fleet.findData(v.fleet_id)
-            #     if index >= 0: self.combo_fleet.setCurrentIndex(index)
 
             # --- 4. DATES (QDateEdit) ---
             if v.date_debut:
@@ -890,7 +893,6 @@ class VehicleForm(QDialog):
                 self.date_fin.setDate(q_date)
 
             # --- 5. FINANCIER (QDoubleSpinBox ou QSpinBox) ---
-            # Note: On utilise float(x or 0) pour éviter les crashs si la valeur est None
             self.val_neuf.setText(float(v.valeur_neuf or 0))
             self.val_venale.setText(float(v.valeur_venale or 0))
             self.prime_brute.setText(float(v.prime_brute or 0))
@@ -928,3 +930,142 @@ class VehicleForm(QDialog):
 
         except Exception as e:
             print(f"Erreur lors du chargement : {str(e)}")
+
+    def calculate_rc_premium(self):
+        # On ne calcule que si la case RC est cochée
+        if not self.check_rc.isChecked():
+            if "rc" in self.result_labels:
+                self.result_labels["rc"].setText("0 FCFA")
+                self.result_labels["rc"].setVisible(False)
+            return
+
+        try:
+            # 1. Récupération des données du formulaire
+            data_query = {
+                "energy": self.combo_energy.currentText(),
+                "cv": self.edit_cv.text().strip(),
+                "places": self.edit_places.text().strip(),
+                "with_trailer": self.check_trailer.isChecked() # Checkbox remorque
+            }
+
+            # Vérification sommaire que les champs numériques ne sont pas vides
+            if not data_query["cv"] or not data_query["places"]:
+                return
+
+            # 2. Appel au contrôleur (qui fera le lien avec automobile_tarif)
+            # On suppose que votre contrôleur a une méthode dédiée
+            if self.controller and hasattr(self.controller, 'get_rc_premium'):
+                premium = self.controller.get_rc_premium(
+                    energy=data_query["energy"],
+                    cv=int(data_query["cv"]),
+                    places=int(data_query["places"]),
+                    trailer=data_query["with_trailer"]
+                )
+
+                # 3. Mise à jour de l'affichage du prix
+                if premium is not None:
+                    display_text = f"{premium:,.0f} FCFA".replace(",", " ")
+                    self.result_labels["rc"].setText(display_text)
+                    self.result_labels["rc"].setVisible(True)
+                    
+                    # Optionnel : Recalculer le total général si vous avez une fonction update_total()
+                    if hasattr(self, 'update_total_premium'):
+                        self.update_total_premium()
+                else:
+                    self.result_labels["rc"].setText("Tarif non trouvé")
+
+        except ValueError:
+            # Gestion au cas où l'utilisateur saisit autre chose que des chiffres
+            pass
+        except Exception as e:
+            print(f"Erreur calcul RC: {e}")
+
+    def handle_garantie_click(self, key, state):
+        """Gère l'affichage et le calcul lors du clic sur une garantie."""
+        is_checked = (state == Qt.Checked or state == 2)
+        res_label = self.result_labels.get(key)
+
+        if is_checked:
+            res_label.setVisible(True)
+            if key == "rc":
+                # Déclenche le calcul immédiat de la RC
+                self.update_rc_calculation()
+        else:
+            res_label.setVisible(False)
+            res_label.setText("0 FCFA")
+
+    def update_rc_calculation(self):
+        """Récupère les données du formulaire et interroge le contrôleur pour la RC."""
+        try:
+            # 1. Récupération des informations du formulaire
+            # Note: Assurez-vous que ces noms d'attributs correspondent à vos widgets
+            cie_id = self.combo_cie.currentData() 
+            zone = self.combo_zone.currentText()
+            categorie = self.combo_cat.currentText() # ex: '01'
+            energie = self.combo_energie.currentText() # 'Essence' ou 'Diesel'
+            
+            cv_text = self.input_cv.text().strip()
+            cv = int(cv_text) if cv_text else 0
+            
+            # Vérification si la checkbox remorque globale est cochée
+            avec_remorque = self.check_remorque.isChecked() 
+
+            # 2. Appel de la méthode de matrice via le contrôleur
+            if self.controller:
+                montant_rc = self.controller.get_rc_premium_from_matrix(
+                    cie_id=cie_id,
+                    zone=zone,
+                    categorie=categorie,
+                    energie=energie,
+                    cv_saisi=cv,
+                    avec_remorque=avec_remorque
+                )
+
+                # 3. Mise à jour du label de résultat
+                if montant_rc > 0:
+                    self.result_labels["rc"].setText(f"{montant_rc:,.0f} FCFA")
+                else:
+                    self.result_labels["rc"].setText("Tarif introuvable")
+
+        except Exception as e:
+            print(f"Erreur lors du calcul RC : {e}")
+            self.result_labels["rc"].setText("Erreur calcul")
+
+    def trigger_rc_calculation(self):
+        """Récupère les données et interroge le contrôleur pour le tarif RC."""
+        # On ne calcule que si la case RC est cochée
+        if not hasattr(self, "check_rc") or not self.check_rc.isChecked():
+            return
+
+        try:
+            # Récupération des critères
+            energy = self.combo_energy.currentText()
+            cv = self.edit_cv.text().strip()
+            places = self.edit_places.text().strip()
+            
+            # Vérifier si une checkbox remorque existe, sinon False
+            trailer = self.check_trailer.isChecked() if hasattr(self, "check_trailer") else False
+
+            if not cv or not places:
+                return # On attend que l'utilisateur remplisse les champs
+
+            # Appel au contrôleur (à implémenter dans votre controller)
+            if self.controller and hasattr(self.controller, "get_rc_premium"):
+                premium = self.controller.get_rc_premium(
+                    energy=energy,
+                    cv=int(cv),
+                    places=int(places),
+                    trailer=trailer
+                )
+
+                if premium:
+                    # Formatage : 50 000 FCFA
+                    text = f"{premium:,.0f} FCFA".replace(",", " ")
+                    self.result_labels["rc"].setText(text)
+                else:
+                    self.result_labels["rc"].setText("Non trouvé")
+
+        except Exception as e:
+            print(f"Erreur calcul RC: {e}")
+    
+    
