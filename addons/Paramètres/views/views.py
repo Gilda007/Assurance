@@ -15,7 +15,7 @@ class ParametreMainView(QWidget):
     def __init__(self, controller=None, user=None):
         super().__init__()
         self.controller = controller
-        print(self.controller)
+        # print(self.controller)
         self.user = user
         self.pages_cache = {} # Stocke les pages déjà créées
 

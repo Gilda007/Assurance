@@ -9,6 +9,7 @@ from addons.Automobiles.views.flotte_form_view import FleetForm
 from addons.Automobiles.views.automobile_form_view import VehicleForm
 from addons.Automobiles.controllers.flotte_controller import FleetController
 from addons.Automobiles.controllers.automobile_controller import VehicleController
+from core.logger import logger
 
 class VehiculeModuleView(QWidget):
     def __init__(self, controller, current_user):
@@ -242,7 +243,6 @@ class VehiculeModuleView(QWidget):
                 self.table_vehicules.setItem(row_idx, 1, QTableWidgetItem(str(vehicle.marque)))
                 self.table_vehicules.setItem(row_idx, 2, QTableWidgetItem(str(vehicle.owner.nom if vehicle.owner else "N/A")))
                 self.table_vehicules.setItem(row_idx, 3, QTableWidgetItem(str(vehicle.prime_emise)))
-                print(type(vehicle.prime_emise))
                 self.table_vehicules.setItem(row_idx, 4, QTableWidgetItem(str(vehicle.valeur_neuf)))
                 self.table_vehicules.setItem(row_idx, 5, QTableWidgetItem(str(vehicle.valeur_venale)))
                 
@@ -262,7 +262,7 @@ class VehiculeModuleView(QWidget):
                 self.set_action_buttons(row_idx, vehicle)
 
         except Exception as e:
-            print(f"Erreur lors du rafraîchissement des données : {e}")
+            logger.error(f"Erreur lors du rafraîchissement des données : {e}")
 
     def set_action_buttons(self, row, vehicle): # Ajout de 'row' ici
         container = QWidget()
@@ -369,18 +369,17 @@ class VehiculeModuleView(QWidget):
                 self.table_flottes.setCellWidget(row, 5, container) # Colonne 5 ou 6 selon votre setup
                 
         except Exception as e:
-            print(f"Erreur lors du rafraîchissement des flottes : {e}")
+            logger.error(f"Erreur lors du rafraîchissement des flottes : {e}")
 
     def on_add_vehicle_click(self):
         # ICI : Assure-toi d'utiliser l'instance du VehicleController
         # et non celle du FleetController
         contacts = self.fleet_service.get_all_contacts_for_combo()
         dialog = VehicleForm(
-            controller=self.vehicle_service,
+            controller=self.controller,
             contacts_list=contacts,
             current_user=getattr(self, 'current_user', None),
             mode="add"
-            # L'argument 'parent' a été supprimé ici car il cause l'erreur
         )
         if dialog.exec():
             self.vehicle_service.get_all_vehicles()
@@ -461,15 +460,17 @@ class VehiculeModuleView(QWidget):
             if success:
                 QMessageBox.information(self, "Succès", message)
                 self.refresh_data() # On rafraîchit le tableau
+                logger.info(f"Activation: {message}")
             else:
                 QMessageBox.critical(self, "Erreur", message)
+                logger.error(f"Erreur: {message}")
 
     def on_delete_vehicle(self, vehicle):
         """Désactivation logique du véhicule (Soft Delete)."""
 
         if isinstance(vehicle, int):
             # On pourrait ici récupérer l'objet via le controller si besoin
-            print("Erreur: reçu un ID au lieu d'un objet")
+            logger.error("Erreur: reçu un ID au lieu d'un objet")
             return
         
         # 1. Demander confirmation (Sécurité)

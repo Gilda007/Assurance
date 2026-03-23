@@ -13,6 +13,7 @@ from core.alerts import AlertManager
 from PySide6.QtCharts import QChartView, QPieSeries, QChart, QLegend
 from PySide6.QtGui import QPainter, QColor, QFont
 from addons.Automobiles.reports.pdf_generator import generate_contact_pdf
+from core.logger import logger
 
 
 # --- LA VUE PRINCIPALE ---
@@ -21,7 +22,6 @@ class ContactListView(QWidget):
         super().__init__()
         self.controller = controller
         self.current_user = current_user
-        print(self.controller, self.current_user)
         self.setup_ui()
 
     def setup_ui(self):
@@ -206,7 +206,7 @@ class ContactListView(QWidget):
     def on_edit_click(self, contact_obj):
         # 1. Vérification de sécurité immédiate
         if contact_obj is None:
-            print("ERREUR : L'objet contact reçu est None !")
+            logger.error("ERREUR : L'objet contact reçu est None !")
             return
 
         # 2. Utilise les données de l'objet reçu pour le nom (avant tout appel DB)
@@ -215,7 +215,7 @@ class ContactListView(QWidget):
         prenom = getattr(contact_obj, 'prenom', '')
         old_name = f"{nom} {prenom}"
         
-        print(f"DEBUG : Début édition pour {old_name}")
+        logger.info(f"DEBUG : Début édition pour {old_name}")
 
         # 3. Si tu as besoin de rafraîchir les données depuis la DB
         # Assure-toi de NE PAS écraser la variable contact_obj si le résultat est None
@@ -233,7 +233,7 @@ class ContactListView(QWidget):
     def on_delete_click(self, contact):
         # Sécurité : Si l'objet est None suite à un plantage précédent
         if contact is None:
-            print("Erreur : L'objet contact est inexistant (None).")
+            logger.error("Erreur : L'objet contact est inexistant (None).")
             return
 
         # On extrait les infos AVANT de risquer une opération DB qui pourrait expirer l'objet
@@ -265,7 +265,7 @@ class ContactListView(QWidget):
             else:
                 subprocess.run(["xdg-open", folder_path])
         else:
-            print(f"Dossier introuvable pour {contact.nom}")
+            logger.error(f"Dossier introuvable pour {contact.nom}")
 
     def show_audit_logs(self):
         logs = self.controller.contacts.get_audit_logs() 
@@ -545,7 +545,7 @@ class ContactListView(QWidget):
                 search_text in (c.nom or "").lower() or 
                 search_text in (c.prenom or "").lower() or
                 search_text in (c.telephone or "").lower() or
-                search_text in (c.type_contact or "").lower()
+                search_text in (c.charge_clientele or "").lower()
             )
             if match_found:
                 filtered_contacts.append(c)

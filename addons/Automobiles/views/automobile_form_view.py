@@ -10,7 +10,7 @@ import platform
 import requests
 
 class VehicleForm(QDialog):
-    def __init__(self, controller=None, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
+    def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
         super().__init__()
       
         self.style_scroll_bar = """
@@ -47,6 +47,7 @@ class VehicleForm(QDialog):
         self.setAttribute(Qt.WA_TranslucentBackground) # Nécessaire pour les coins arrondis et l'ombre
         
         self.controller = controller
+        print(self.controller)
         self.contacts = contacts_list or []
         # self.compagnies = compagnies_list or []
         self.current_user = current_user
@@ -670,14 +671,15 @@ class VehicleForm(QDialog):
         self.client_list_widget.clear()
         if len(text) < 2: return
         
-        clients = self.controller.get_contacts_for_combo(text)
+        # Si 'self.controller' est le MainController :
+        clients = self.controller.compagnies.get_contacts_for_combo(text)
         
         for client in clients:
             # Sécurité : Si c'est un tuple (nom, prenom, ...) au lieu d'un objet
             if isinstance(client, tuple):
                 name_display = f"{client[0]} {client[1] if len(client) > 1 else ''}"
             else:
-                name_display = f"{client.nom} {client.prenom or ''}"
+                name_display = f"{client.nom} {client.code or ''}"
                 
             item = QListWidgetItem(name_display)
             item.setData(Qt.UserRole, client) # On stocke l'objet (ou le tuple) pour la suite
@@ -691,11 +693,11 @@ class VehicleForm(QDialog):
         client = item.data(Qt.UserRole)
         
         # Mise à jour des textes
-        self.lbl_card_name.setText(f"{client.nom.upper()} {client.prenom or ''}")
+        self.lbl_card_name.setText(f"{client.nom.upper()} {client.code or ''}")
         info_text = (
-            f"<b>Nature:</b> {client.nature}<br>"
-            f"<b>Tel:</b> {client.telephone or 'N/A'}<br>"
-            f"<b>Adresse:</b> {client.adresse or 'N/A'}"
+            f"<b>Nature:</b> {client.telephone}<br>"
+            f"<b>Tel:</b> {client.email or 'N/A'}<br>"
+            f"<b>Adresse:</b> {client.id or 'N/A'}"
         )
         self.lbl_card_info.setText(info_text)
 
@@ -1068,4 +1070,11 @@ class VehicleForm(QDialog):
         except Exception as e:
             print(f"Erreur calcul RC: {e}")
     
-    
+    # Dans la méthode de chargement des données de votre Vue (ex: load_initial_data)
+    def fill_compagnies(self):
+        self.combo_cie.clear()
+        compagnies = self.controller.get_all_compagnies()
+        
+        for cie in compagnies:
+            # On affiche le nom, mais on stocke l'ID en donnée cachée (UserRole)
+            self.combo_cie.addItem(cie.nom, cie.id)

@@ -15,11 +15,10 @@ from PySide6.QtWidgets import QPushButton
 from PySide6.QtCore import Qt
 from core.alerts import AlertManager
 from addons.Automobiles.views.view import VehicleMainView
+from addons.Automobiles.controllers import AutomobileMainController
 # Imports centralisés depuis les répertoires du module
 # from addons.Automobiles.views import VehicleMainView
 # from addons.Automobiles.controllers import VehicleController
-
-from addons.Automobiles.controllers import AutomobileMainController
 
 class AutomobileModule(BaseModule):
     def setup(self):
@@ -85,6 +84,7 @@ class AutomobileModule(BaseModule):
             
             # 2. On crée la vue EN LUI PASSANT le contrôleur (Le visuel)
             self.view = VehicleMainView(self.main_controller, current_user)
+            
             
             # 3. On ajoute la VUE (pas le contrôleur) au stack
             stack.addWidget(self.view)

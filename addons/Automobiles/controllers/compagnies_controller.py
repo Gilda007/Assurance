@@ -128,9 +128,12 @@ class CompagnieController:
             self.db.rollback()
             return False, str(e)
 
-    def get_active_compagnies(self):
-        """Retourne la liste des compagnies non archivées."""
-        return self.db.query(Compagnie).filter(Compagnie.is_active == True).order_by(Compagnie.nom).all()
+    def get_contacts_for_combo(self, text=""):
+        """Récupère les compagnies pour le combo de filtrage."""
+        query = self.db.query(Compagnie).filter(Compagnie.is_active == True)
+        if text:
+            query = query.filter(Compagnie.nom.ilike(f"%{text}%"))
+        return query.all()
     
     def get_all_active_compagnies(self):
         """Retourne la liste des objets Compagnie actifs."""

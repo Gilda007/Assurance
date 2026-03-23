@@ -83,9 +83,6 @@ class ContactCard(QFrame):
             # Si perm est None, c'est autorisé pour tous. Sinon on demande au SecurityManager
             role_str = str(user_role.role) if hasattr(user_role, 'role') else str(user_role)
             is_allowed = (perm is None) or SecurityManager.has_permission(role_str, perm)
-            
-            # DEBUG : Décommente la ligne suivante pour voir pourquoi ça bloque en console
-            # print(f"DEBUG: Role={user_role} | Perm={perm} | Allowed={is_allowed}")
 
             if is_allowed:
                 btn = QPushButton(icon)

@@ -9,13 +9,13 @@ from addons.Automobiles.controllers.automobile_tarif_controller import TarifCont
 
 class AutomobileMainController:
     def __init__(self, session, current_user_id):
-        # On centralise tous les sous-contrôleurs ici
-        self.vehicles = VehicleController(session)
-        self.contacts = ContactController(session, current_user_id)
-        self.fleets = FleetController(session, current_user_id)
-        self.compagnies = CompagnieController(session, current_user_id)
-        self.contracts = ContractController()
-        self.tarifs = TarifController(session)
-        # self.compagnies = FleetController(session, current_user_id)
-        # On garde la session accessible au cas où
         self.session = session
+        self.user_id = current_user_id
+        # On centralise tous les sous-contrôleurs ici
+        self.vehicles = VehicleController(self.session)
+        self.contacts = ContactController(self.session, current_user_id)
+        self.fleets = FleetController(self.session, current_user_id)
+        self.compagnies = CompagnieController(self.session, current_user_id)
+        self.contracts = ContractController()
+        self.tarifs = TarifController(self.session)
+        # self.compagnies = FleetController(session, current_user_id)

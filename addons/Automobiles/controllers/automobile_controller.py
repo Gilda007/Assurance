@@ -49,20 +49,11 @@ class VehicleController:
             self.session.rollback()
             return False, str(e)
         
-    def get_contacts_for_combo(self, text):
+    def get_compgnies_for_combo(self, text):
         """Récupère les clients/entreprises depuis la table CONTACT."""
 
         return self.session.query(Compagnie).filter(
             (Compagnie.nom.ilike(f"%{text}%")) | 
-            (Compagnie.telephone.ilike(f"%{text}%"))
-        ).all()
-
-    def get_compagnies_for_combo(self, text):
-        """Récupère les compagnies (nature 'Morale') depuis la table CONTACT."""
-
-        return self.session.query(Compagnie).filter(
-            Compagnie.is_active == "True",
-            (Compagnie.code.ilike(f"%{text}%")) | 
             (Compagnie.telephone.ilike(f"%{text}%"))
         ).all()
 
@@ -76,12 +67,12 @@ class VehicleController:
             print(f"Erreur lors de la récupération des contacts: {e}")
             return []
 
-    def get_contact_by_id(self, contact_id):
+    def get_contact_by_id(self, compagnie_id):
         """Récupère un contact par son ID (utile pour pré-remplir un formulaire)."""
         try:
-            return self.session.get(Compagnie, contact_id)
+            return self.session.get(Compagnie, compagnie_id)
         except Exception as e:
-            print(f"Erreur lors de la récupération du contact {contact_id}: {e}")
+            print(f"Erreur lors de la récupération du contact {compagnie_id}: {e}")
             return None
 
     def get_report_data(self):
@@ -289,57 +280,6 @@ class VehicleController:
             'Morale': morale,
             'Total': len(contacts)
         }
-    
-        # Dans votre service ou repository :
-    
-    # def find_premium(energy, cv, places, trailer):
-    #     # Exemple de requête SQLAlchemy
-    #     result = session.query(AutomobileTarif).filter(
-    #         AutomobileTarif.energie == energy,
-    #         AutomobileTarif.puissance_min <= cv,
-    #         AutomobileTarif.puissance_max >= cv,
-    #         AutomobileTarif.nbre_place == places,
-    #         AutomobileTarif.avec_remorque == trailer
-    #     ).first()
-        
-    #     return result.prime if result else None
-    
-    # def get_rc_premium(self, energy, cv, places, trailer):
-    #     """
-    #     Récupère la prime RC depuis la base de données.
-    #     Args:
-    #         energy (str): Type d'énergie (Essence, Diesel, etc.)
-    #         cv (int): Puissance fiscale
-    #         places (int): Nombre de places
-    #         trailer (bool): Avec ou sans remorque
-    #     """
-    #     try:
-    #         # 1. On prépare la session de base de données (dépend de votre architecture)
-    #         # Si vous utilisez SQLAlchemy :
-    #         from models import AutomobileTarif # Import de votre modèle de table
-            
-    #         # 2. Construction de la requête
-    #         # On cherche la ligne qui correspond exactement à l'énergie, aux places et à la remorque
-    #         # Et où les CV tombent dans la tranche [puissance_min, puissance_max]
-    #         query = self.db_session.query(AutomobileTarif).filter(
-    #             AutomobileTarif.energie == energy,
-    #             AutomobileTarif.nbre_place == places,
-    #             AutomobileTarif.avec_remorque == trailer,
-    #             AutomobileTarif.puissance_min <= cv,
-    #             AutomobileTarif.puissance_max >= cv
-    #         )
-
-    #         result = query.first()
-
-    #         if result:
-    #             # On retourne la valeur de la colonne 'prime' (ou 'valeur' selon votre table)
-    #             return result.prime
-            
-    #         return None
-
-    #     except Exception as e:
-    #         print(f"Erreur Database lors de la recherche du tarif RC : {e}")
-    #         return None
         
     def get_rc_premium_from_matrix(self, cie_id, zone, categorie, energie, cv_saisi, avec_remorque):
         """
@@ -386,3 +326,26 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur lors de la récupération de la RC : {e}")
             return 0.0
+        
+    def get_all_compagnies(self):
+        """
+        Récupère la liste de toutes les compagnies d'assurance actives.
+        Utile pour remplir le QComboBox dans le formulaire.
+        """
+        try:
+            from addons.Automobiles.models.compagnies_models import Compagnie
+            return self.session.query(Compagnie).filter(Compagnie.is_active == True).all()
+        except Exception as e:
+            print(f"Erreur lors de la récupération des compagnies : {e}")
+            return []
+
+    def get_compagnie_by_id(self, cie_id):
+        """
+        Récupère les détails d'une compagnie spécifique.
+        """
+        try:
+            from addons.Automobiles.models.compagnies_models import Compagnie
+            return self.session.query(Compagnie).filter(Compagnie.id == cie_id).first()
+        except Exception as e:
+            print(f"Erreur lors de la récupération de la compagnie {cie_id} : {e}")
+            return None
