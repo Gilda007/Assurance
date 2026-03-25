@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (QDialog, QMessageBox, QWidget, QVBoxLayout, QHBoxLayout, QPushButton, 
-                             QLabel, QTableWidget, QTableWidgetItem, QHeaderView, 
+                             QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFileDialog,
                              QLineEdit, QFrame, QTabWidget, QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QFont, QPainter
@@ -7,8 +7,7 @@ from PySide6.QtCharts import QChart, QChartView, QPieSeries
 from addons.Automobiles.views.audit_auto_view import AuditLogDialog
 from addons.Automobiles.views.flotte_form_view import FleetForm
 from addons.Automobiles.views.automobile_form_view import VehicleForm
-from addons.Automobiles.controllers.flotte_controller import FleetController
-from addons.Automobiles.controllers.automobile_controller import VehicleController
+import os
 from core.logger import logger
 
 class VehiculeModuleView(QWidget):
@@ -338,10 +337,6 @@ class VehiculeModuleView(QWidget):
                 date_str = f.created_at.strftime("%d/%m/%Y") if f.created_at else "---"
                 self.table_fleets.setItem(row, 5, QTableWidgetItem(date_str))
                 
-                # 6. Bouton Actions
-                # btn_details = QPushButton("Voir")
-                # btn_details.setStyleSheet("background-color: #ecf0f1; border-radius: 3px;")
-                # self.table_fleets.setCellWidget(row, 6, btn_details)
 
                 # À l'intérieur de la boucle 'for f in fleets:' de refresh_fleets
                 container = QWidget()
@@ -359,14 +354,21 @@ class VehiculeModuleView(QWidget):
                 btn_edit.setStyleSheet("background: #f39c12; color: white; padding: 4px;")
                 btn_edit.clicked.connect(lambda _, f=f: self.handle_fleet_action(f, "edit"))
 
+                # Bouton d'Impression
+                btn_print = QPushButton("📄 Imprimer l'État")
+                btn_print.setStyleSheet("background: #f39c12; color: white; padding: 4px;")
+                btn_print.setCursor(Qt.PointingHandCursor)
+                btn_print.clicked.connect(lambda _, fleet=f: self.on_print_fleet_click(fleet))
+
                 # Bouton Bloquer (Rouge)
                 btn_lock = QPushButton("🔒")
                 btn_lock.setStyleSheet("background: #e74c3c; color: white; border-radius: 50px; padding: 4px;")
-                btn_lock.clicked.connect(lambda _, f=f: self.toggle_fleet_status(f))
+                
 
                 layout.addWidget(btn_view)
                 layout.addWidget(btn_edit)
                 layout.addWidget(btn_lock)
+                layout.addWidget(btn_print)
                 self.table_flottes.setCellWidget(row, 5, container) # Colonne 5 ou 6 selon votre setup
                 
         except Exception as e:
@@ -528,3 +530,78 @@ class VehiculeModuleView(QWidget):
         # On passe le contrôleur qui a accès à la session BD
         dialog = AuditLogDialog(controller=self.controller.vehicles, parent=self)
         dialog.exec()
+
+    # --- AJOUTER À LA FIN DE LA CLASSE VehiculeModuleView dans automobile_view.py ---
+
+    def on_print_fleet_click(self, fleet_obj):
+        """
+        Réagit au clic sur le bouton 'Imprimer l'État' d'une flotte.
+        Gère le dialogue de sauvegarde et l'ouverture du PDF généré.
+        """
+        if not fleet_obj:
+            return
+
+        # 1. Préparation du nom de fichier par défaut
+        from datetime import datetime
+        now = datetime.now()
+        timestamp = now.strftime("%Y%m%d_%H%M")
+
+        # Nettoyage du nom de la flotte pour le nom de fichier (on enlève les caractères spéciaux)
+        safe_name = "".join([c for c in fleet_obj.nom_flotte if c.isalpha() or c.isdigit() or c==' ']).rstrip()
+        default_filename = f"ETAT_COUVERTURE_{safe_name}_{timestamp}.pdf".replace(' ', '_')
+
+        # 2. Dialogue de sauvegarde de fichier (QFileDialog)
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Enregistrer l'État de Couverture de Flotte",
+            default_filename,
+            "Documents PDF (*.pdf)"
+        )
+
+        if not path:
+            # L'utilisateur a annulé
+            return
+
+        # 3. Affichage d'un curseur d'attente (car la génération peut prendre du temps)
+        from PySide6.QtGui import QCursor
+        from PySide6.QtCore import Qt
+        self.setCursor(QCursor(Qt.WaitCursor))
+        self.btn_audit.setText("⏳ Génération PDF...") # Feedback visuel temporaire
+        self.setEnabled(False) # Désactive l'UI pendant le calcul
+
+        try:
+            # 4. Appel au contrôleur pour la génération réelle
+            success, message = self.controller.fleets.generate_fleet_pdf(fleet_obj.id, path)
+
+            if success:
+                # 5. Ouverture automatique du PDF (si l'OS le permet)
+                QMessageBox.information(self, "PDF Généré", "L'état de couverture a été généré avec succès.")
+
+                #os.startfile(path) # Uniquement sous Windows
+                # Solution multiplateforme (Windows, macOS, Linux)
+                import platform
+                import subprocess
+
+                if platform.system() == 'Windows':
+                    os.startfile(path)
+                elif platform.system() == 'Darwin': # macOS
+                    subprocess.call(('open', path))
+                else: # Linux
+                    subprocess.call(('xdg-open', path))
+
+                logger.info(f"PDF Flotte '{fleet_obj.nom_flotte}' généré: {path}")
+            else:
+                # Échec
+                QMessageBox.critical(self, "Erreur PDF", f"Échec de la génération du document : {message}")
+                logger.error(f"Échec PDF Flotte '{fleet_obj.nom_flotte}': {message}")
+
+        except Exception as e:
+            # Erreur inattendue
+            QMessageBox.critical(self, "Erreur Critique", f"Une erreur inattendue est survenue : {e}")
+            logger.critical(f"Crash lors de la génération PDF Flotte '{fleet_obj.nom_flotte}': {e}")
+
+        finally:
+            # 6. Rétablissement de l'UI
+            self.setCursor(QCursor(Qt.ArrowCursor))
+            self.btn_audit.setText("📋 Audit")
+            self.setEnabled(True)

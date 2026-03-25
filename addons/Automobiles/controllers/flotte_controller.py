@@ -9,6 +9,12 @@ from addons.Automobiles.models.contact_models import Contact
 from addons.Automobiles.models.flottes_models import Fleet
 from datetime import date, datetime, timezone
 import json
+import os
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import cm
 
 class FleetController:
     def __init__(self, session: Session, current_user_id):
@@ -18,51 +24,88 @@ class FleetController:
         self.vehicle_service = VehicleController(session)
 
     def create_fleet(self, data, user_id):
+        """
+        Crée une nouvelle flotte en incluant les totaux financiers 
+        issus de la dernière ligne du tableau et gère l'audit.
+        """
         try:
+            # 1. Récupération des informations réseau pour l'audit
             local_ip, public_ip = self.get_network_info()
 
-            data['created_by'] = user_id
-            data['created_ip'] = public_ip
-            data['last_ip'] = local_ip # On peut stocker la locale ici pour savoir quel PC a touché en dernier
-            # On utilise les clés du dictionnaire 'data' pour remplir le modèle 'Fleet'
+            # Fonction utilitaire pour sécuriser les montants (force le float)
+            def to_f(key):
+                val = data.get(key)
+                try:
+                    return float(val) if val is not None else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+
+            # 2. Création de l'instance Fleet avec les nouveaux champs de totaux
             new_fleet = Fleet(
-                nom_flotte=data.get('nom_flotte'), # <-- CORRECTION ICI
-                code_flotte=data.get('code_flotte'),
+                nom_flotte=data.get('nom_flotte'),
+                code_flotte=str(data.get('code_flotte', '')).strip().upper(),
                 owner_id=data.get('owner_id'),
                 assureur=data.get('assureur'),
                 type_gestion=data.get('type_gestion'),
-                remise_flotte=data.get('remise_flotte'),
-                statut=data.get('statut'),
-                is_active=data.get('is_active'),
+                remise_flotte=to_f('remise_flotte'),
+                
+                # --- NOUVEAUX CHAMPS : TOTAUX DES GARANTIES ---
+                total_rc=to_f('total_rc'),
+                total_dr=to_f('total_dr'),
+                total_vol=to_f('total_vol'),
+                total_vb=to_f('total_vb'),
+                total_in=to_f('total_in'),
+                total_bris=to_f('total_bris'),
+                total_ar=to_f('total_ar'),
+                total_dta=to_f('total_dta'),
+                total_prime_nette=to_f('total_prime_nette'), # Cumul Col 11
+                
+                # Statut et Dates
+                statut=data.get('statut', 'Actif'),
+                is_active=data.get('is_active', True),
                 date_debut=data.get('date_debut'),
                 date_fin=data.get('date_fin'),
-                observations=data.get('observations')
+                observations=data.get('observations'),
+
+                # Audit direct sur la ligne Fleet
+                created_by=user_id,
+                created_ip=public_ip,
+                last_ip=local_ip
             )
+
+            # 3. Pré-sauvegarde pour obtenir l'ID
             self.session.add(new_fleet)
             self.session.flush()
 
+            # 4. Préparation des données pour le JSON d'Audit (Gestion des dates)
             serializable_data = data.copy()
             for key, value in serializable_data.items():
                 if isinstance(value, (date, datetime)):
-                    serializable_data[key] = value.isoformat() # Transforme en "2023-10-27"
-            # LOG D'AUDIT POUR LA TRAÇABILITÉ
+                    serializable_data[key] = value.isoformat()
+
+            # 5. Création du Log d'Audit détaillé
             log = AuditVehicleLog(
                 user_id=user_id,
-                action="CREATION",
-                module="VEHICULE_MANAGEMENT", # Nom de votre module pour le filtrage
+                action="CREATION_FLOTTE_COMPLETE",
+                module="FLEET_MANAGEMENT",
                 item_id=new_fleet.id,
                 old_values=None,
-                new_values=json.dumps(serializable_data), # On transforme le dictionnaire en texte
-                ip_local=local_ip,   # Doit correspondre au nom dans models.py
-                ip_public=public_ip, # Doit correspondre au nom dans models.py
-                # timestamp est géré par défaut par la base de données (server_default)
+                new_values=json.dumps(serializable_data),
+                ip_local=local_ip,
+                ip_public=public_ip
             )
             self.session.add(log)
             
+            # 6. Validation finale
             self.session.commit()
             return True, new_fleet.id
+
         except Exception as e:
             self.session.rollback()
+            print(f"❌ Erreur SQL create_fleet: {e}")
+            # Gestion d'erreur spécifique pour le code unique
+            if "unique constraint" in str(e).lower():
+                return False, f"Le code flotte '{data.get('code_flotte')}' est déjà utilisé."
             return False, str(e)
 
     def get_fleet_stats(self, fleet_id):
@@ -197,7 +240,7 @@ class FleetController:
                 return False, "Données de véhicules invalides"
 
             # On convertit en liste d'entiers propre
-            clean_ids = [int(i) for i in selected_vehicle_ids if str(i).isdigit()]
+            clean_ids = [i for i in selected_vehicle_ids if str(i).isdigit()]
 
             # 1. Détacher les véhicules qui étaient dans cette flotte mais ne sont plus sélectionnés
             self.session.query(Vehicle).filter(
@@ -230,52 +273,99 @@ class FleetController:
             print(f"Erreur SQL Relation : {e}")
             return False, str(e)
     
-    def update_fleet_data(self, fleet_id, data):
+    def update_fleet_data(self, fleet_id, data, user_id):
+        """
+        Met à jour une flotte existante avec les totaux financiers et l'audit.
+        """
         try:
+            # 1. Récupération des informations réseau pour l'audit
+            local_ip, public_ip = self.get_network_info()
 
+            # Fonction utilitaire pour sécuriser les montants (force le float)
+            def to_f(key):
+                val = data.get(key)
+                try:
+                    return float(val) if val is not None and val != '' else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+
+            # 2. Nettoyage du code flotte et de l'owner_id
             code_flotte = data.get('code_flotte')
             if isinstance(code_flotte, str):
-                code_flotte = code_flotte.strip()
+                code_flotte = code_flotte.strip().upper()
                 if not code_flotte:
                     code_flotte = None
-            # Nettoyage des données numériques avant envoi à SQL
-            remise = data.get('remise_flotte')
-            try:
-                remise = float(remise) if remise not in [None, ''] else 0.0
-            except:
-                remise = 0.0
 
-            # Vérification de l'owner_id (doit être un entier ou None)
             owner_id = data.get('owner_id')
             if isinstance(owner_id, str) and not owner_id.isdigit():
-                # Si c'est du texte (comme 'dil'), on cherche l'ID correspondant 
-                # ou on met None pour éviter le crash
-                owner_id = None 
+                owner_id = None
 
+            # 3. Exécution de la mise à jour
+            # On récupère d'abord l'ancienne version pour le log d'audit (optionnel mais recommandé)
+            old_fleet = self.session.query(Fleet).filter(Fleet.id == fleet_id).first()
+            if not old_fleet:
+                return False, "Flotte introuvable."
+
+            # Mise à jour des champs
             self.session.query(Fleet).filter(Fleet.id == fleet_id).update({
                 "nom_flotte": data.get('nom_flotte'),
-                "code_flotte": data.get('code_flotte'),
+                "code_flotte": code_flotte,
                 "owner_id": owner_id,
                 "assureur": data.get('assureur'),
                 "type_gestion": data.get('type_gestion'),
-                "remise_flotte": remise, # <--- Garanti comme float
+                "remise_flotte": to_f('remise_flotte'),
+                
+                # --- NOUVEAUX CHAMPS FINANCIERS (MIS À JOUR) ---
+                "total_rc": to_f('total_rc'),
+                "total_dr": to_f('total_dr'),
+                "total_vol": to_f('total_vol'),
+                "total_vb": to_f('total_vb'),
+                "total_in": to_f('total_in'),
+                "total_bris": to_f('total_bris'),
+                "total_ar": to_f('total_ar'),
+                "total_dta": to_f('total_dta'),
+                "total_prime_nette": to_f('total_prime_nette'),
+                
                 "statut": data.get('statut'),
                 "is_active": data.get('is_active'),
                 "date_debut": data.get('date_debut'),
                 "date_fin": data.get('date_fin'),
                 "observations": data.get('observations'),
-                "updated_at": datetime.now(timezone.utc)
+                
+                # Audit direct sur la table Fleet
+                "updated_at": datetime.now(timezone.utc),
+                "updated_by": user_id,
+                "last_ip": local_ip
             }, synchronize_session=False)
 
+            # 4. Création du Log d'Audit détaillé
+            serializable_data = data.copy()
+            for key, value in serializable_data.items():
+                if isinstance(value, (date, datetime)):
+                    serializable_data[key] = value.isoformat()
+
+            audit_log = AuditVehicleLog(
+                user_id=user_id,
+                action="UPDATE_FLOTTE_COMPLETE",
+                module="FLEET_MANAGEMENT",
+                item_id=fleet_id,
+                old_values=None, # On pourrait stocker old_fleet ici en JSON si besoin
+                new_values=json.dumps(serializable_data),
+                ip_local=local_ip,
+                ip_public=public_ip
+            )
+            self.session.add(audit_log)
+
             self.session.commit()
-            return True, "Succès"
+            return True, "Flotte mise à jour avec succès."
+
         except Exception as e:
             self.session.rollback()
-            # On attrape l'erreur d'unicité pour renvoyer un message clair à l'utilisateur
+            print(f"❌ Erreur SQL update_fleet_data: {e}")
             if "unique constraint" in str(e).lower():
-                return False, f"Le code flotte '{data.get('code_flotte')}' est déjà utilisé par une autre flotte."
+                return False, f"Le code flotte '{data.get('code_flotte')}' est déjà utilisé."
             return False, str(e)
-    
+        
     def get_network_info(self):
         """Récupère simultanément l'IP Locale et l'IP Publique."""
         # 1. IP Locale (Rapide)
@@ -352,4 +442,176 @@ class FleetController:
             print(f"Erreur Update Fleet Relation: {str(e)}")
             return False, f"Erreur base de données : {str(e)}"
 
-    
+
+    # RAPPORTS EN PDF DE CHAQUE FLOTTE
+
+    def generate_fleet_pdf(self, fleet_id, output_path):
+        """
+        Génère un état de couverture PDF professionnel pour une flotte donnée.
+        Inclut l'en-tête de l'agence, les infos flotte, la liste des véhicules
+        et les totaux financiers cumulés.
+        """
+        try:
+            # 1. Récupération des données (joinedload pour optimiser la requête)
+            from sqlalchemy.orm import joinedload
+            fleet = self.session.query(Fleet).options(
+                joinedload(Fleet.owner),
+                joinedload(Fleet.vehicles)
+            ).filter(Fleet.id == fleet_id).first()
+
+            if not fleet:
+                return False, "Flotte introuvable en base de données."
+
+            # 2. Configuration du document (Mode Paysage pour faire tenir toutes les colonnes)
+            doc = SimpleDocTemplate(output_path, pagesize=landscape(A4), 
+                                    rightMargin=1*cm, leftMargin=1*cm, 
+                                    topMargin=1*cm, bottomMargin=1*cm)
+            elements = []
+            styles = getSampleStyleSheet()
+
+            # --- 3. EN-TÊTE PROFESSIONNEL (Logo + Infos Agence) ---
+            # Si vous avez un logo, décommentez les lignes suivantes :
+            # logo_path = os.path.join(os.getcwd(), "assets", "logo_agence.png")
+            # if os.path.exists(logo_path):
+            #     im = Image(logo_path, width=4*cm, height=2*cm)
+            #     im.hAlign = 'LEFT'
+            #     elements.append(im)
+            
+            agency_style = ParagraphStyle('AgencyStyle', parent=styles['Normal'], fontSize=9, color=colors.grey)
+            agency_info = Paragraph("VOTRE AGENCE D'ASSURANCES<br/>BP 1234, Douala - Cameroun<br/>Tél: (+237) 6xx xx xx xx", agency_style)
+            elements.append(agency_info)
+            elements.append(Spacer(1, 0.5*cm))
+
+            # --- 4. TITRE DU DOCUMENT ET INFOS FLOTTE ---
+            title_style = ParagraphStyle('TitleStyle', parent=styles['Heading1'], alignment=1, fontSize=18, spaceAfter=20)
+            elements.append(Paragraph(f"ÉTAT DE COUVERTURE FLOTTE : {fleet.nom_flotte.upper()}", title_style))
+            
+            # Grille d'informations Fleet (2 colonnes)
+            info_data = [
+                [Paragraph(f"<b>Code Flotte :</b> {fleet.code_flotte}", styles['Normal']),
+                 Paragraph(f"<b>Période :</b> Du {fleet.date_debut.strftime('%d/%m/%Y')} au {fleet.date_fin.strftime('%d/%m/%Y')}", styles['Normal'])],
+                [Paragraph(f"<b>Assureur :</b> {fleet.assureur or 'N/A'}", styles['Normal']),
+                 Paragraph(f"<b>Souscripteur :</b> {fleet.owner.nom if fleet.owner else 'N/A'}", styles['Normal'])]
+            ]
+            info_table = Table(info_data, colWidths=[13*cm, 13*cm])
+            info_table.setStyle(TableStyle([('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+            elements.append(info_table)
+            elements.append(Spacer(1, 1*cm))
+
+            # --- 5. TABLEAU DES VÉHICULES (Corps du PDF) ---
+            # En-têtes (Texte blanc sur fond gris foncé)
+            headers = ["Immat.", "Marque", "R.Civile", "D.Recours", "TC", "Incendie", "Bris G.", "Dommages", "IPT", "PRIME NETTE"]
+            data = [headers]
+
+            # Audit interne des sommes (pour vérification)
+            sum_prime = 0.0
+
+            # Remplissage des lignes véhicules
+            vehicle_row_style = ParagraphStyle('VehRow', parent=styles['Normal'], fontSize=8)
+            num_v = 0
+            
+            # Tri des véhicules par immatriculation
+            sorted_vehicles = sorted(fleet.vehicles, key=lambda x: x.immatriculation)
+
+            for v in sorted_vehicles:
+                num_v += 1
+                # Formatage monétaire : 150 000 (sans virgule mais avec espace)
+                def fmt(val):
+                    f_val = float(val or 0.0)
+                    return f"{f_val:,.0f}".replace(",", " ")
+
+                line_total = float(v.prime_emise or 0.0)
+                sum_prime += line_total
+
+                data.append([
+                    Paragraph(v.immatriculation, vehicle_row_style),
+                    Paragraph(v.marque or "N/A", vehicle_row_style),
+                    fmt(v.amt_rc),
+                    fmt(v.amt_dr),
+                    fmt(v.amt_vol), # Ou TC selon votre modèle
+                    fmt(v.amt_vb),
+                    fmt(v.amt_in),
+                    fmt(v.amt_ar),
+                    fmt(v.amt_dta),
+                    fmt(v.amt_bris), # Dommages Tous Accidents
+                    fmt(v.amt_ipt), # Individuelle Pilote
+                    fmt(line_total) # Prime nette totale de la ligne
+                ])
+
+            # --- 6. LIGNE DE TOTALISATION (FOOTER DU TABLEAU) ---
+            total_style = ParagraphStyle('TotalStyle', parent=styles['Normal'], fontSize=9, fontName='Helvetica-Bold')
+            
+            def fmt_total(val):
+                return f"{val:,.0f}".replace(",", " ")
+
+            data.append([
+                Paragraph(f"<b>TOTAL ({num_v} Véhs)</b>", total_style),
+                "",
+                fmt_total(fleet.total_rc),
+                fmt_total(fleet.total_dr),
+                fmt_total(fleet.total_vol),
+                fmt_total(fleet.total_in),
+                fmt_total(fleet.total_bris),
+                fmt_total(fleet.total_dta),
+                fmt_total(fleet.total_ar),
+                fmt_total(fleet.total_prime_nette)
+            ])
+
+            # --- 7. STYLISATION DU TABLEAU (Le plus complexe) ---
+            # Définition des largeurs de colonnes (total A4 Paysage utile approx 27.7cm)
+            t = Table(data, colWidths=[2.5*cm, 3.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3*cm])
+            
+            t_style = TableStyle([
+                # En-tête
+                ('BACKGROUND', (0, 0), (-1, 0), colors.Color(0.1, 0.2, 0.3)),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                
+                # Alignement du contenu
+                ('ALIGN', (0, 1), (1, -1), 'LEFT'),   # Immat/Marque gauche
+                ('ALIGN', (2, 1), (-1, -1), 'RIGHT'), # Chiffres droite
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                
+                # Ligne de totalisation (dernière ligne)
+                ('BACKGROUND', (0, -1), (-1, -1), colors.Color(0.9, 0.9, 0.9)),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('TEXTCOLOR', (0, -1), (-1, -1), colors.black),
+                ('ALIGN', (0, -1), (1, -1), 'LEFT'), # Label total gauche
+                ('ALIGN', (2, -1), (-1, -1), 'RIGHT'), # Totaux droite
+                ('SPAN', (0, -1), (1, -1)), # Fusion Immat + Marque pour le label total
+                
+                # Bordures
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('BOX', (0, 0), (-1, -1), 1, colors.black),
+            ])
+            t.setStyle(t_style)
+            elements.append(t)
+            
+            # --- 8. BAS DE PAGE (Date d'impression et Audit) ---
+            elements.append(Spacer(1, 1.5*cm))
+            now = datetime.now()
+            footer_data = [
+                [Paragraph(f"Imprimé le : {now.strftime('%d/%m/%Y à %H:%M:%S')}", styles['Normal']),
+                 Paragraph(f"Signature et Cachet de l'Agence : ______________________", styles['Normal'])]
+            ]
+            footer_table = Table(footer_data, colWidths=[10*cm, 16*cm])
+            elements.append(footer_table)
+
+            # --- 9. GÉNÉRATION FINALE DU PDF ---
+            doc.build(elements)
+            
+            # Audit de cohérence (optionnel, écrit dans la console)
+            # if abs(sum_prime - fleet.total_prime_nette) > 1:
+            #     print(f"⚠️ Alerte Audit PDF Flotte {fleet_id}: La somme des véhicules ({sum_prime}) diffère du total enregistré ({fleet.total_prime_nette})")
+
+            return True, f"PDF généré avec succès : {output_path}"
+
+        except Exception as e:
+            # Log détaillé de l'erreur pour la maintenance
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"❌ Erreur critique lors de la génération PDF : {e}\nDetails:\n{error_details}")
+            return False, f"Erreur technique : {str(e)}"  

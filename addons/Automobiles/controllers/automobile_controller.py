@@ -307,59 +307,87 @@ class VehicleController:
 
      
     #GESTION DES TARIFS ET GARANTIES POUR AFFICHAGE    
-    def get_rc_premium_from_matrix(self, cie_id, zone_saisie, categorie, energie, cv_saisi, avec_remorque=False):
+    def get_rc_premium_from_matrix(self, cie_id, zone_saisie, categorie, energie, cv_saisi, avec_remorque=False, code_tarif=None):
+        """
+        Calcule la prime RC et la vignette Cameroun.
+        La recherche est affinée par le code_tarif s'il est présent.
+        """
         try:
             from addons.Automobiles.models.tarif_models import AutomobileTarif
             from addons.Automobiles.models.automobile_tranche import AutomobileTranche
-            
-            # 1. Nettoyage strict pour la correspondance DB
-            # Extrait 'A', 'B' ou 'C' de "Zone A"
             import re
-            match = re.search(r'[A-C]', zone_saisie.upper())
-            clean_zone = match.group(0) if match else zone_saisie.upper().strip()
-            
-            # Normalisation de l'énergie et catégorie
-            clean_energie = str(energie).lower().strip() # 'essence' ou 'diesel'
-            clean_cat = str(categorie).strip().zfill(2)
 
-            # 2. Requête sur la table tarifs
-            tarif = self.session.query(AutomobileTarif).filter(
+            # --- 1. NORMALISATION ---
+            zone_match = re.search(r'[A-C]', str(zone_saisie).upper())
+            clean_zone = zone_match.group(0) if zone_match else str(zone_saisie).strip()
+            
+            clean_energie = str(energie).lower().strip()
+            # On extrait uniquement les chiffres pour la catégorie (ex: "Cat 01" -> "01")
+            clean_cat = "".join(filter(str.isdigit, str(categorie))).zfill(2)
+
+            # --- 2. RECHERCHE SQL DYNAMIQUE ---
+            query = self.session.query(AutomobileTarif).filter(
                 AutomobileTarif.cie_id == cie_id,
-                AutomobileTarif.zone == clean_zone,
-                AutomobileTarif.categorie == clean_cat
-            ).first()
+                AutomobileTarif.zone == clean_zone
+            )
+            
+            # Si un code_tarif est saisi, on l'utilise en priorité
+            if code_tarif and str(code_tarif).strip():
+                query = query.filter(AutomobileTarif.tarif_code == str(code_tarif).strip())
+            else:
+                # Sinon on se rabat sur la catégorie classique
+                query = query.filter(AutomobileTarif.categorie == clean_cat)
+
+            tarif = query.first()
 
             if not tarif:
-                print(f"⚠️ Aucun tarif trouvé pour Zone:{clean_zone}, Cat:{clean_cat}")
-                return 0.0
+                print(f"⚠️ Aucun tarif pour Cie:{cie_id}, Zone:{clean_zone}, Code:{code_tarif}, Cat:{clean_cat}")
+                return {"rc": 0.0, "vignette": 0.0}
 
-            # 3. Détermination de la tranche de puissance
+            # --- 3. TRANCHE DE PUISSANCE ---
+            cv_val = int(cv_saisi or 0)
             tranches = self.session.query(AutomobileTranche).order_by(AutomobileTranche.max_cv).all()
-            tranche_id = 1
-            for t in tranches:
-                if cv_saisi <= t.max_cv:
-                    tranche_id = t.id
-                    break
-            else:
-                if tranches: tranche_id = tranches[-1].id
+            
+            tranche_num = 1
+            if tranches:
+                for t in tranches:
+                    if cv_val <= t.max_cv:
+                        tranche_num = t.id 
+                        break
+                else:
+                    tranche_num = tranches[-1].id
 
-            # 4. Sélection de la colonne dynamique
-            # Selon ton modèle : prime1..10, essence_1..10, diesel_1..10
+            # --- 4. SÉLECTION DE LA COLONNE ---
             if avec_remorque:
-                column_name = f"remorq{tranche_id}" # Vérifie si tu as remorq1..10 en DB
+                col_name = f"remorq{tranche_num}"
             elif "essence" in clean_energie:
-                column_name = f"essence_{tranche_id}"
+                col_name = f"essence_{tranche_num}"
             elif "diesel" in clean_energie:
-                column_name = f"diesel_{tranche_id}"
+                col_name = f"diesel_{tranche_num}"
             else:
-                column_name = f"prime{tranche_id}"
+                col_name = f"prime{tranche_num}"
 
-            return getattr(tarif, column_name, 0.0)
+            prime_rc = float(getattr(tarif, col_name, 0.0))
+
+            # --- 5. CALCUL VIGNETTE CAMEROUN ---
+            vignette = 0
+            if 2 <= cv_val <= 7: vignette = 30000
+            elif 8 <= cv_val <= 13: vignette = 50000
+            elif 14 <= cv_val <= 20: vignette = 75000
+            elif cv_val > 20: vignette = 200000
+
+            # On retourne un dictionnaire pour mettre à jour plusieurs champs dans la Vue
+            return {
+                "rc": prime_rc,
+                "vignette": vignette,
+                "libelle": getattr(tarif, 'libelle_tarif', ''),
+                "categorie": getattr(tarif, 'categorie', clean_cat)
+            }
 
         except Exception as e:
-            print(f"❌ Erreur SQL Tarifs: {e}")
-            return 0.0 
-        
+            print(f"❌ Erreur critique get_rc_premium: {e}")
+            return {"rc": 0.0, "vignette": 0.0}       
+    
     def add_tranche(self, libelle, max_cv, user_id, local_ip, network_ip):
         from addons.Automobiles.models.tarif_models import AutomobileTarif
         new_tranche = AutomobileTarif(

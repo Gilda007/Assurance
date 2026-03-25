@@ -727,7 +727,7 @@ class FleetForm(QDialog):
             user_id = getattr(self.parent(), 'current_user_id', 1) 
 
             if self.mode == "update":
-                success, msg = self.controller.fleets.update_fleet_data(self.current_fleet.id, data)
+                success, msg = self.controller.fleets.update_fleet_data(self.current_fleet.id, data, user_id)
                 
                 if success:
                     self.controller.fleets.update_fleet_vehicles(self.current_fleet.id, vehicle_ids, user_id)
@@ -752,19 +752,43 @@ class FleetForm(QDialog):
         except ValueError:
             remise_val = 0.0
 
-        return {
+        owner_id = getattr(self, 'selected_client_id', None)
+        last_row = self.vehicle_table.rowCount() - 1
+
+        def get_total_col(col_idx):
+            if last_row < 0: return 0.0
+            item = self.vehicle_table.item(last_row, col_idx)
+            # On utilise UserRole pour avoir le chiffre brut (float) et non le texte formaté
+            return item.data(Qt.UserRole) if item else 0.0
+        data = {
+            # Informations Générales
             "nom_flotte": self.name_input.text().strip(),
             "code_flotte": self.code_input.text().strip(),
-            "owner_id": self.owner_search.text().strip(),
-            "assureur": self.assureur_input.currentData(),
+            "owner_id": owner_id,
+            "assureur": self.assureur_input.currentText(), # Ou currentData() si vous stockez des IDs
             "type_gestion": self.combo_mgmt.currentText(),
             "remise_flotte": remise_val,
             "statut": self.status_combo.currentText(),
             "is_active": self.status_combo.currentText() == "Actif",
             "date_debut": self.date_debut.date().toPython(),
             "date_fin": self.date_fin.date().toPython(),
-            "observations": self.obs_input.toPlainText().strip()
+            "observations": self.obs_input.toPlainText().strip(),
+            
+            # --- TOTAUX FINANCIERS (Colonnes 3 à 11) ---
+            "total_rc": get_total_col(3),
+            "total_dr": get_total_col(4),
+            "total_vol": get_total_col(5),
+            "total_vb": get_total_col(6),
+            "total_in": get_total_col(7),
+            "total_bris": get_total_col(8),
+            "total_ar": get_total_col(9),
+            "total_dta": get_total_col(10),
+            
+            # Prime Totale de la Flotte (Colonne 11)
+            "total_prime_nette": get_total_col(11)
         }
+
+        return data
     
     def filter_contacts(self, text):
         """Filtre les contacts selon la recherche"""

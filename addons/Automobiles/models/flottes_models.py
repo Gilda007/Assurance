@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Boolean, Column, Integer, String, Date, ForeignKey, Float, JSON, DateTime, func, Text, Enum
+from sqlalchemy import Boolean, Column, Integer, String, Date, ForeignKey, Integer, JSON, DateTime, func, Text, Enum
 from sqlalchemy.orm import relationship
 from core.database import Base
 from datetime import datetime, timezone
@@ -17,9 +17,20 @@ class Fleet(Base):
     # Gestion & Assureur
     assureur = Column(String(100))
     type_gestion = Column(String(50))  # GLOBAL ou PAR_VEHICULE
-    remise_flotte = Column(Float, default=0.0)
+    remise_flotte = Column(Integer, default=0.0)
     statut = Column(String(50), default="Actif") # Actif, Bloqué, Résilié
     is_active = Column(Boolean, default=True)
+
+    total_rc = Column(Integer, default=0.0)
+    total_dr = Column(Integer, default=0.0)
+    total_vol = Column(Integer, default=0.0)
+    total_vb = Column(Integer, default=0.0)
+    total_in = Column(Integer, default=0.0)
+    total_bris = Column(Integer, default=0.0)
+    total_ar = Column(Integer, default=0.0)
+    total_dta = Column(Integer, default=0.0)
+
+    total_prime_nette = Column(Integer, default=0.0)
     
     # Calendrier du contrat
     date_debut = Column(Date)
