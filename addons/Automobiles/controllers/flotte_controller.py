@@ -351,3 +351,5 @@ class FleetController:
             self.session.rollback()
             print(f"Erreur Update Fleet Relation: {str(e)}")
             return False, f"Erreur base de données : {str(e)}"
+
+    

@@ -440,15 +440,18 @@ class FleetForm(QDialog):
                 color: #4a5568;
             }
         """)
-        self.vehicle_table.setColumnCount(4)
-        self.vehicle_table.setHorizontalHeaderLabels(["Sélection", "Immatriculation", "Marque", "Prime (FCFA)"])
+        self.vehicle_table.setColumnCount(10)
+        self.vehicle_table.setHorizontalHeaderLabels(["Sélection", "Immatriculation", " 💰 R.Civile", "⚖️ Déf.Recours", "🚗 V.partie", 
+                                                      "🔫 V.Braquage", "🔥 Incendie", "🪟 B.Glace", "🔧 A.Réparation", "💥 D.Accidents", "👥 IPT"])
         self.vehicle_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.vehicle_table.setAlternatingRowColors(True)
         self.vehicle_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.vehicle_table.setMinimumHeight(300)
         self.vehicle_table.itemChanged.connect(self.calculate_totals)
         
         vehicles_layout.addWidget(self.vehicle_table)
         form_layout.addWidget(group_vehicles)
+        self.vehicle_table.itemChanged.connect(self.calculate_totals_on_change)
         
         # === SECTION 5: OBSERVATIONS ===
         group_obs = QGroupBox("📝 Observations")
@@ -543,53 +546,146 @@ class FleetForm(QDialog):
 
     # ... (toutes les autres méthodes existantes restent identiques)
     def populate_vehicles(self):
-        """Remplit le tableau avec les véhicules et leurs montants."""
+        """
+        Remplit le tableau, calcule les totaux par ligne et ajoute 
+        une ligne de pied de page avec les totaux par colonne.
+        """
         try:
+            # 1. Préparation de la table
             self.vehicle_table.blockSignals(True)
+            self.vehicle_table.clearSpans() # Important pour réinitialiser les fusions
             self.vehicle_table.setRowCount(0)
             
+            # Récupération des données depuis le contrôleur
             vehicles = self.controller.fleets.get_all_vehicles()
-            self.vehicle_table.setRowCount(len(vehicles))
+            num_v = len(vehicles)
+            
+            # On définit le nombre de lignes : Véhicules + 1 ligne pour le TOTAL
+            self.vehicle_table.setRowCount(num_v + 1)
 
+            # Dictionnaire pour stocker les sommes verticales (Colonnes 3 à 11)
+            col_totals = {i: 0.0 for i in range(3, 12)}
+
+            # 2. Remplissage des lignes de véhicules
             for row, v in enumerate(vehicles):
-                # Colonne 0 : Checkbox
+                # --- Colonne 0 : Checkbox ---
                 check_item = QTableWidgetItem()
                 check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                # On vérifie si le véhicule appartient déjà à la flotte actuelle
                 state = Qt.Checked if (self.current_fleet and v.fleet_id == self.current_fleet.id) else Qt.Unchecked
                 check_item.setCheckState(state)
-                check_item.setData(Qt.UserRole, v.id)
+                check_item.setData(Qt.UserRole, v.id) # Stocke l'ID du véhicule
                 self.vehicle_table.setItem(row, 0, check_item)
 
-                # Colonne 1, 2, 3 : Infos et Montant
-                self.vehicle_table.setItem(row, 1, QTableWidgetItem(v.immatriculation))
-                self.vehicle_table.setItem(row, 2, QTableWidgetItem(v.marque or "N/A"))
-                
-                total_amt = (v.amt_rc or 0) + (v.amt_dr or 0) + (v.amt_vol or 0) + \
-                            (v.amt_bris or 0) + (v.amt_in or 0) + (v.amt_ar or 0)
-                
-                amt_item = QTableWidgetItem(f"{total_amt:,.0f}")
-                amt_item.setData(Qt.UserRole, total_amt)
-                amt_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.vehicle_table.setItem(row, 3, amt_item)
+                # --- Colonnes 1 & 2 : Infos ---
+                self.vehicle_table.setItem(row, 1, QTableWidgetItem(str(v.immatriculation)))
+                self.vehicle_table.setItem(row, 2, QTableWidgetItem(str(v.marque or "N/A")))
+
+                # --- Colonnes 3 à 10 : Garanties ---
+                # Mapping pour simplifier la boucle (Index Col : Valeur)
+                guarantees = {
+                    3: v.amt_rc, 4: v.amt_dr, 5: v.amt_vol, 6: v.amt_vb,
+                    7: v.amt_in, 8: v.amt_bris, 9: v.amt_ar, 10: v.amt_dta
+                }
+
+                row_sum = 0.0
+                for col_idx, val in guarantees.items():
+                    amt = float(val or 0)
+                    self.vehicle_table.setItem(row, col_idx, self.create_num_item(amt))
+                    row_sum += amt
+                    # On cumule pour le total vertical si coché (optionnel au chargement)
+                    if state == Qt.Checked:
+                        col_totals[col_idx] += amt
+
+                # --- Colonne 11 : Total par Véhicule ---
+                total_item = self.create_num_item(row_sum)
+                total_item.setFont(QFont("Arial", 9, QFont.Bold))
+                self.vehicle_table.setItem(row, 11, total_item)
+                if state == Qt.Checked:
+                    col_totals[11] += row_sum
+
+            # --- 3. CONFIGURATION DE LA LIGNE DE PIED DE PAGE (FOOTER) ---
+            last_row = num_v
+            
+            # Fusion des colonnes 0 et 1 pour le design
+            self.vehicle_table.setSpan(last_row, 0, 1, 2)
+            
+            # Cellule vide fusionnée (style)
+            empty_item = QTableWidgetItem("")
+            empty_item.setBackground(QColor("#f8fafc"))
+            empty_item.setFlags(Qt.NoItemFlags)
+            self.vehicle_table.setItem(last_row, 0, empty_item)
+
+            # Label "TOTAL FLOTTE" en colonne 2
+            lbl_footer = QTableWidgetItem("TOTAL SÉLECTION")
+            lbl_footer.setFont(QFont("Arial", 10, QFont.Bold))
+            lbl_footer.setTextAlignment(Qt.AlignCenter)
+            lbl_footer.setBackground(QColor("#f1f5f9"))
+            self.vehicle_table.setItem(last_row, 2, lbl_footer)
+
+            # Remplissage des totaux verticaux (Colonnes 3 à 11)
+            for col_idx, total_val in col_totals.items():
+                footer_item = self.create_num_item(total_val)
+                footer_item.setBackground(QColor("#e2e8f0")) # Fond plus sombre pour le pied
+                footer_item.setFont(QFont("Arial", 10, QFont.Bold))
+                footer_item.setForeground(QColor("#1e293b"))
+                self.vehicle_table.setItem(last_row, col_idx, footer_item)
 
             self.vehicle_table.blockSignals(False)
-            self.calculate_totals()
-        except Exception as e:
-            print(f"Erreur populate_vehicles: {e}")
+            
+            # Mise à jour du résumé textuel externe
+            self.calculate_totals_on_change(None) 
 
+        except Exception as e:
+            print(f"❌ Erreur critique populate_vehicles : {e}")
+            if hasattr(self, 'vehicle_table'):
+                self.vehicle_table.blockSignals(False)
+
+    def create_num_item(self, val):
+        """
+        Méthode utilitaire pour créer un item de tableau formaté pour la monnaie.
+        """
+        # On formate avec séparateur de milliers (espace)
+        formatted_val = f"{val:,.0f}".replace(",", " ")
+        item = QTableWidgetItem(formatted_val)
+        
+        # Alignement à droite pour les chiffres
+        item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        
+        # Stockage de la valeur brute pour les calculs (évite les erreurs NoneType)
+        item.setData(Qt.UserRole, float(val or 0))
+        
+        return item
+    
     def calculate_totals(self, item=None):
-        """Additionne les montants des véhicules cochés."""
+        """Additionne les montants des véhicules cochés sans crasher sur None."""
         total_global = 0
         count = 0
         
         for row in range(self.vehicle_table.rowCount()):
             check_item = self.vehicle_table.item(row, 0)
+            
+            # On vérifie si la ligne est cochée
             if check_item and check_item.checkState() == Qt.Checked:
-                amt_value = self.vehicle_table.item(row, 3).data(Qt.UserRole)
-                total_global += amt_value
-                count += 1
+                # On récupère l'item du montant (colonne 3)
+                amt_item = self.vehicle_table.item(row, 3)
+                
+                if amt_item:
+                    # On récupère la donnée brute stockée dans UserRole
+                    raw_data = amt_item.data(Qt.UserRole)
+                    
+                    # Sécurité : si la donnée est None ou invalide, on prend 0
+                    try:
+                        amt_value = int(raw_data) if raw_data is not None else 0
+                    except (ValueError, TypeError):
+                        amt_value = 0
+                    
+                    total_global += amt_value
+                    count += 1
         
-        self.total_prime_lbl.setText(f"Total Primes ({count}) : {total_global:,.0f} FCFA")
+        # Affichage formaté
+        formatted_total = f"{total_global:,.0f}".replace(",", " ")
+        self.total_prime_lbl.setText(f"Total Primes ({count}) : {formatted_total} FCFA")
 
     def filter_vehicles(self, text):
         """Filtre les véhicules dans le tableau"""
@@ -748,3 +844,99 @@ class FleetForm(QDialog):
         for widget in self.findChildren((QLineEdit, QComboBox, QTextEdit, QDateEdit, QTableWidget)):
             widget.setEnabled(False)
         self.btn_save.setEnabled(False)
+
+    def calculate_totals_on_change(self, item):
+        """Réagit au cochage/décochage d'une ligne."""
+        # On ne réagit que si c'est la colonne 0 (la checkbox) qui change
+        if item is None or item.column() != 0:
+            return
+
+        try:
+            self.vehicle_table.blockSignals(True) # Évite les boucles infinies
+            
+            num_rows = self.vehicle_table.rowCount()
+            if num_rows <= 1: return # Pas de données ou juste le footer
+            
+            last_row = num_rows - 1
+            # Initialisation des compteurs pour les colonnes 3 à 11
+            new_totals = {i: 0.0 for i in range(3, 12)}
+            selected_count = 0
+
+            # Parcourir toutes les lignes sauf la dernière (le footer)
+            for row in range(last_row):
+                check_item = self.vehicle_table.item(row, 0)
+                if check_item and check_item.checkState() == Qt.Checked:
+                    selected_count += 1
+                    # Sommer les valeurs de chaque colonne de montant
+                    for col in range(3, 12):
+                        cell = self.vehicle_table.item(row, col)
+                        if cell:
+                            # On récupère la valeur brute stockée dans UserRole
+                            val = float(cell.data(Qt.UserRole) or 0)
+                            new_totals[col] += val
+
+            # Mettre à jour la ligne de Pied de Page (Footer)
+            for col, total_val in new_totals.items():
+                footer_item = self.vehicle_table.item(last_row, col)
+                if footer_item:
+                    formatted_val = f"{total_val:,.0f}".replace(",", " ")
+                    footer_item.setText(formatted_val)
+                    footer_item.setData(Qt.UserRole, total_val)
+
+            # Mettre à jour le label de résumé global en bas de l'écran
+            total_global = new_totals[11]
+            self.total_prime_lbl.setText(
+                f"Total Primes ({selected_count} véhicules) : {total_global:,.0f} FCFA".replace(",", " ")
+            )
+
+            self.vehicle_table.blockSignals(False)
+
+            self.refresh_footer_totals()
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'actualisation : {e}")
+            self.vehicle_table.blockSignals(False)
+
+    def refresh_footer_totals(self):
+        """Calcule les sommes de la table et met à jour la ligne de pied de page."""
+        try:
+            self.vehicle_table.blockSignals(True)
+            
+            num_rows = self.vehicle_table.rowCount()
+            if num_rows <= 1: 
+                self.vehicle_table.blockSignals(False)
+                return
+            
+            last_row = num_rows - 1
+            new_totals = {i: 0.0 for i in range(3, 12)}
+            selected_count = 0
+
+            # Boucle sur les véhicules (on ignore la dernière ligne qui est le total)
+            for row in range(last_row):
+                check_item = self.vehicle_table.item(row, 0)
+                if check_item and check_item.checkState() == Qt.Checked:
+                    selected_count += 1
+                    for col in range(3, 12):
+                        cell = self.vehicle_table.item(row, col)
+                        if cell:
+                            val = float(cell.data(Qt.UserRole) or 0)
+                            new_totals[col] += val
+
+            # Mise à jour graphique de la dernière ligne (Footer)
+            for col, total_val in new_totals.items():
+                footer_item = self.vehicle_table.item(last_row, col)
+                if footer_item:
+                    txt = f"{total_val:,.0f}".replace(",", " ")
+                    footer_item.setText(txt)
+                    footer_item.setData(Qt.UserRole, total_val)
+
+            # Mise à jour du label externe
+            total_global = new_totals[11]
+            self.total_prime_lbl.setText(
+                f"Total Primes ({selected_count} véhicules) : {total_global:,.0f} FCFA".replace(",", " ")
+            )
+
+            self.vehicle_table.blockSignals(False)
+        except Exception as e:
+            print(f"Erreur refresh_footer: {e}")
+            self.vehicle_table.blockSignals(False)

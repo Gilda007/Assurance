@@ -16,7 +16,7 @@ class VehicleController:
 
     def get_all_vehicles(self):
         """Récupère uniquement les véhicules actifs."""
-        return self.session.query(Vehicle).filter(Vehicle.is_active == True).all()
+        return self.session.query(Vehicle).filter(Vehicle.owner_id == None).filter(Vehicle.is_active == True).all()
 
     def get_dashboard_stats(self, fleet_id=None):
         """Calcule les KPI pour les widgets du haut de l'interface."""
