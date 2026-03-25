@@ -1,1028 +1,147 @@
-import os
-
-from PySide6.QtWidgets import (QCheckBox, QDialog, QListWidget, QListWidgetItem, QVBoxLayout, QHBoxLayout, QGridLayout, QProgressBar,
-                             QLabel, QLineEdit, QComboBox, QPushButton, QFrame, 
-                             QGraphicsDropShadowEffect, QWidget, QScrollArea, QTextEdit, QDateEdit, QMessageBox, QApplication)
-from PySide6.QtCore import Qt, QPoint, QDate
-from PySide6.QtGui import QColor, QPixmap
-import socket
-import platform
-import requests
-
-class VehicleForm(QDialog):
-    def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
-        super().__init__()
-      
-        self.style_scroll_bar = """
-            /* La barre verticale */
-            QScrollBar:vertical {
-                border-radius: 20px;
-                background: #f1f2f6;
-                width: 8px;
-                margin: 0px;
-            }
-
-            /* Le curseur (handle) */
-            QScrollBar::handle:vertical {
-                background: #ced4da;
-                min-height: 20px;
-                border-radius: 4px;
-            }
-
-            QScrollBar::handle:vertical:hover {
-                background: #3498db;
-            }
-
-            /* Supprimer les boutons fléchés */
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                border: none;
-                background: none;
-                height: 0px;
-            }
-        """
-
-        # --- CONFIGURATION SANS BORDURES (FRAMELESS) ---
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setAttribute(Qt.WA_TranslucentBackground) # Nécessaire pour les coins arrondis et l'ombre
+def update_rc_calculation(self):
+    """Récupère les données du formulaire et interroge le contrôleur pour la RC."""
+    try:
+        # 1. Récupération des informations du formulaire
+        # Note: Assurez-vous que ces noms d'attributs correspondent à vos widgets
+        cie_id = self.selected_cie_id 
+        zone = self.combo_zone.currentText()
+        categorie = self.combo_cat.text() # ex: '01'
+        energie = self.energie_combo.currentText() # 'Essence' ou 'Diesel'
         
-        self.controller = controller
-        self.contacts = contacts_list or []
-        # self.compagnies = compagnies_list or []
-        self.current_user = current_user
-        # self.fleets = fleets_list or []
-        self.mode = mode
-        self.initial_data = data  # L'objet Fleet ou Vehicle à modifier/voir
-        self.vehicle_to_edit = vehicle_to_edit
-
-        self.vehicle_id = vehicle_to_edit.id if hasattr(vehicle_to_edit, 'id') else None
-
-        self.selected_cie_id = None
+        cv_text = self.usage_input.text().strip()
+        cv = int(cv_text) if cv_text else 0
         
-        # Variable pour gérer le déplacement de la fenêtre
-        self.old_pos = None
-        
-        self.setup_ui()
+        # Vérification si la checkbox remorque globale est cochée
+        avec_remorque = self.check_remorque.isChecked() 
 
-        if vehicle_to_edit:
-            self.load_existing_data(vehicle_to_edit)
+        # 2. Appel de la méthode de matrice via le contrôleur
+        if self.controller:
+            montant_rc = self.controller.vehicles.get_rc_premium_from_matrix(
+                cie_id=cie_id,
+                zone=zone,
+                categorie=categorie,
+                energie=energie,
+                cv_saisi=cv,
+                avec_remorque=avec_remorque
+            )
 
-        if self.initial_data:
-            self.fill_form(self.initial_data)
-        
-        if self.mode == "view":
-            self.freeze_ui()
+            # 3. Mise à jour du label de résultat
+            if montant_rc > 0:
+                self.result_labels["rc"].setText(f"{montant_rc:,.0f} FCFA")
+            else:
+                self.result_labels["rc"].setText("Tarif introuvable")
 
-    def freeze_ui(self):
-        """Désactive tous les champs de saisie."""
-        for widget in self.findChildren((QLineEdit, QComboBox, QTextEdit, QCheckBox)):
-            widget.setEnabled(False)
-        if hasattr(self, 'btn_save'):
-            self.btn_save.hide()
-        self.setWindowTitle("Consultation des données")
+    except Exception as e:
+        print(f"Erreur lors du calcul RC : {e}")
+        self.result_labels["rc"].setText("Erreur calcul")
 
-    def setup_ui(self):
-        self.setFixedSize(750, 850)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        
-        main_layout = QVBoxLayout(self)
-        self.card = QFrame()
-        self.card.setObjectName("MainCard")
-        self.card.setStyleSheet("""
-            QFrame#MainCard { background-color: white; border-radius: 20px; }
-            QLabel { color: #2f3640; font-weight: bold; font-size: 11px; text-transform: uppercase; }
-            QLineEdit, QComboBox, QDateEdit {
-                border: 2px solid #f1f2f6; border-radius: 10px; padding: 8px;
-                background-color: #f8f9fa; color: #2f3542;
-            }
-            QLineEdit:focus, QComboBox:focus { border: 2px solid #3498db; background-color: white; }
-            QCheckBox { font-size: 12px; color: #2f3640; font-weight: bold; }
-            QListWidget {
-                border: 1px solid #f1f2f6;
-                border-radius: 10px;
-                background-color: white;
-            }
-            QListWidget::item { padding: 8px; border-bottom: 1px solid #f8f9fa; }
-            QListWidget::item:selected { background-color: #3498db; color: white; border-radius: 5px; }
-
-            #ClientCard {
-                background-color: #f8f9fa;
-                border-radius: 15px;
-                border: 1px dashed #dcdde1;
-            }
-            #PhotoLabel {
-                background-color: #dcdde1;
-                border-radius: 40px; /* Pour une photo ronde */
-                border: 2px solid white;
-            }
-            QScrollBar:vertical {
-                border: none;
-                background: #f1f2f6;
-                width: 10px;
-                border-radius: 5px;
-            }
-            QScrollBar::handle:vertical {
-                background: #ced6e0;
-                min-height: 20px;
-                border-radius: 5px;
-            }
-            QScrollBar::handle:vertical:hover { background: #747d8c; }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
-
-            /* Style des ComboBox */
-            QComboBox {
-                border: 2px solid #f1f2f6;
-                border-radius: 10px;
-                padding: 8px;
-                background-color: #f8f9fa;
-            }
-            QComboBox::drop-down {
-                border: none;
-                padding-right: 10px;
-            }
-            QComboBox::down-arrow {
-                image: url(assets/icons/chevron-down.png); /* Si vous avez une icône */
-                width: 12px;
-                height: 12px;
-            }
-            
-            /* Style des listes de résultats */
-            QListWidget {
-                border: 1px solid #f1f2f6;
-                border-radius: 10px;
-                outline: none;
-            }
-            QListWidget::item {
-                padding: 10px;
-                border-bottom: 1px solid #f1f2f6;
-            }
-            QListWidget::item:selected {
-                background: #3498db;
-                color: white;
-            }
-        """)
-        
-        card_layout = QVBoxLayout(self.card)
-        card_layout.setContentsMargins(0, 0, 0, 0)
-
-        # --- HEADER ---
-        header = QFrame()
-        header.setFixedHeight(60)
-        header.setStyleSheet("background: #f8f9fa; border-top-left-radius: 20px; border-top-right-radius: 20px;")
-        h_layout = QHBoxLayout(header)
-        title_lbl = QLabel("📋 FICHE COMPLÈTE DU VÉHICULE")
-        title_lbl.setStyleSheet("font-size: 15px; color: #2c3e50;")
-        self.btn_close = QPushButton("✕")
-        self.btn_close.clicked.connect(self.reject)
-        self.btn_close.setFixedSize(30, 30)
-        self.btn_close.setStyleSheet("background: #ff7675; color: white; border-radius: 15px; border: none;")
-        h_layout.addWidget(title_lbl); h_layout.addStretch(); h_layout.addWidget(self.btn_close)
-        card_layout.addWidget(header)
-
-        # --- SCROLL AREA ---
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        content = QWidget()
-        form_layout = QVBoxLayout(content)
-        form_layout.setContentsMargins(25, 15, 25, 15)
-        form_layout.setSpacing(12)
-
-        # --- SECTION : PROPRIÉTAIRE DU VÉHICULE ---
-        form_layout.addWidget(self.create_section_title("👤 SÉLECTION DU PROPRIÉTAIRE"))
-        
-        # 1. Barre de recherche
-        search_layout = QHBoxLayout()
-        self.owner_search = QLineEdit()
-        self.owner_search.setPlaceholderText("🔍 Rechercher un client (Nom, téléphone, ou n° de pièce)...")
-        self.owner_search.textChanged.connect(self.filter_clients) # Logique de recherche
-        search_layout.addWidget(self.owner_search)
-        form_layout.addLayout(search_layout)
-
-        # 2. Zone de sélection (Splitter horizontal)
-        selection_widget = QWidget()
-        selection_layout = QHBoxLayout(selection_widget)
-        selection_layout.setContentsMargins(0, 0, 0, 0)
-        selection_layout.setSpacing(15)
-
-        # --- Partie Gauche : Liste des résultats ---
-        self.client_list_widget = QListWidget()
-        self.client_list_widget.setFixedHeight(180)
-        self.client_list_widget.currentRowChanged.connect(self.display_client_details)
-        selection_layout.addWidget(self.client_list_widget, 2) # Ratio 2
-
-        # --- Partie Droite : Carte du client ---
-        self.client_card = QFrame()
-        self.client_card.setObjectName("ClientCard")
-        self.client_card.setFixedHeight(180)
-        card_info_layout = QHBoxLayout(self.client_card)
-
-        # Photo à gauche dans la carte
-        self.client_photo = QLabel()
-        self.client_photo.setObjectName("PhotoLabel")
-        self.client_photo.setFixedSize(80, 80)
-        self.client_photo.setScaledContents(True)
-        self.client_photo.setAlignment(Qt.AlignCenter)
-        card_info_layout.addWidget(self.client_photo)
-
-        # Détails à droite dans la carte
-        details_layout = QVBoxLayout()
-        self.lbl_card_name = QLabel("SÉLECTIONNEZ UN CLIENT")
-        self.lbl_card_name.setStyleSheet("font-size: 13px; color: #2980b9;")
-        
-        self.lbl_card_info = QLabel("Détails : ---\nTel : ---\nAdresse : ---")
-        self.lbl_card_info.setStyleSheet("font-weight: normal; text-transform: none; color: #7f8c8d;")
-        self.lbl_card_info.setWordWrap(True)
-        
-        details_layout.addWidget(self.lbl_card_name)
-        details_layout.addWidget(self.lbl_card_info)
-        details_layout.addStretch()
-        
-        card_info_layout.addLayout(details_layout)
-        selection_layout.addWidget(self.client_card, 3) # Ratio 3
-
-        form_layout.addWidget(selection_widget)
-
-        # --- SECTION 1 : IDENTIFICATION & FLOTTE ---
-        form_layout.addWidget(self.create_section_title("🔍 IDENTIFICATION & RATTACHEMENT"))
-        grid_id = QGridLayout()
-        
-        self.combo_fleet = QLineEdit() # fleet_id
-        self.combo_zone = QComboBox()
-        self.combo_cat = QLineEdit()
-        # self.combo_cat.addItems(["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"])
-        # for fid, fname in self.fleets_list: self.combo_fleet.addItem(fname, fid)
-        self.combo_zone.addItems(["A", "B", "C"])
-        self.combo_zone.setStyleSheet("height: 25px;")
-        
-        self.immat_input = QLineEdit() # Immatriculation
-        self.chassis_input = QLineEdit() # Chassis
-        self.lib_tarif_input = QLineEdit() # Chassis
-        grid_id.addWidget(QLabel("Zone de circulation"), 4, 0)
-        grid_id.addWidget(self.combo_zone, 5, 0)
-        grid_id.addWidget(QLabel("Catégorie"), 4, 1)
-        grid_id.addWidget(self.combo_cat, 5, 1)
-        grid_id.addWidget(QLabel("Libellé du tarif"), 0, 0, 1, 2)
-        grid_id.addWidget(self.combo_fleet, 1, 0, 1, 2)
-        grid_id.addWidget(QLabel("Immatriculation"), 2, 0); grid_id.addWidget(self.immat_input, 3, 0)
-        grid_id.addWidget(QLabel("N° Châssis"), 2, 1); grid_id.addWidget(self.chassis_input, 3, 1)
-        form_layout.addLayout(grid_id)
-
-        # --- SECTION 2 : TECHNIQUE & USAGE ---
-        form_layout.addWidget(self.create_section_title("⚙️ TECHNIQUE & USAGE"))
-        grid_tech = QGridLayout()
-        
-        self.marque_input = QLineEdit(); self.modele_input = QLineEdit(); self.annee_input = QLineEdit()
-        self.energie_combo = QComboBox(); self.energie_combo.addItems(["Essence", "Diesel", "Hybride", "Electrique"])
-        self.usage_input = QLineEdit() # usage
-        self.places_input = QLineEdit() # places
-        self.check_remorque = QCheckBox("Véhicule avec Remorque") # remorque
-        self.zone_input = QLineEdit() # Zone
-        
-        grid_tech.addWidget(QLabel("Marque"), 0, 0); grid_tech.addWidget(self.marque_input, 1, 0)
-        grid_tech.addWidget(QLabel("Modèle"), 0, 1); grid_tech.addWidget(self.modele_input, 1, 1)
-        grid_tech.addWidget(QLabel("Année"), 0, 2); grid_tech.addWidget(self.annee_input, 1, 2)
-        grid_tech.addWidget(QLabel("Énergie"), 2, 0); grid_tech.addWidget(self.energie_combo, 3, 0)
-        grid_tech.addWidget(QLabel("Nombre de chevaux"), 2, 1); grid_tech.addWidget(self.usage_input, 3, 1)
-        grid_tech.addWidget(QLabel("Places"), 2, 2); grid_tech.addWidget(self.places_input, 3, 2)
-        grid_tech.addWidget(self.check_remorque, 4, 0, 1, 3)
-        grid_tech.addWidget(QLabel("Libellé du tarif"), 5, 0, 0, 0); grid_tech.addWidget(self.combo_fleet, 5, 1, 0, 0)
-        form_layout.addLayout(grid_tech)
-
-        # --- SECTION 3 : FINANCIER ---
-        grid_fin = QGridLayout()
-        self.date_debut = QDateEdit()
-        self.date_debut.setDisplayFormat("dd/MM/yyyy")
-        self.date_debut.dateChanged.connect(self.refresh_all_garanties)
-        self.date_fin = QDateEdit()
-        self.date_fin.setDisplayFormat("dd/MM/yyyy")
-        self.date_fin.dateChanged.connect(self.refresh_all_garanties)
-        self.val_neuf = QLineEdit(); self.val_venale = QLineEdit(); self.prime_emise = QLineEdit()
-        self.val_venale.textChanged.connect(self.refresh_all_garanties)
-        self.prime_emise.setReadOnly(True)
-        self.prime_emise.setPlaceholderText("Total calculé...")
-        self.status_combo = QComboBox(); self.status_combo.addItems(["En Circulation", "En Panne", "Vendu", "Saisi"])
-        
-        # --- SECTION 3 : FINANCIER & PÉRIODE ---
-        form_layout.addWidget(self.create_section_title("💰 VALEURS, STATUT & PÉRIODE"))
-        grid_fin = QGridLayout()
-        grid_fin.setSpacing(15)
-
-        # Ligne 0 : Les titres
-        grid_fin.addWidget(QLabel("Val. à Neuf"), 0, 0)
-        grid_fin.addWidget(QLabel("Statut du Véhicule"), 0, 1)
-        grid_fin.addWidget(QLabel("Date de début"), 0, 2)
-
-        # Ligne 1 : Les inputs correspondants
-        grid_fin.addWidget(self.val_neuf, 1, 0)
-        grid_fin.addWidget(self.status_combo, 1, 1)
-        grid_fin.addWidget(self.date_debut, 1, 2)
-
-        # Ligne 2 : Les titres (suite)
-        grid_fin.addWidget(QLabel("Val. Vénale"), 2, 0)
-        grid_fin.addWidget(QLabel("Prime Brute (Totale)"), 2, 1)
-        grid_fin.addWidget(QLabel("Date de fin"), 2, 2)
-
-        # Ligne 3 : Les inputs (suite)
-        grid_fin.addWidget(self.val_venale, 3, 0)
-        grid_fin.addWidget(self.prime_emise, 3, 1)
-        grid_fin.addWidget(self.date_fin, 3, 2)
-
-        form_layout.addLayout(grid_fin)
-        form_layout.addLayout(grid_fin)
-
-        # --- SECTION : RÉCAPITULATIF DES CALCULS (AUTOMATIQUE) ---
-        form_layout.addWidget(self.create_section_title("🧮 RÉCAPITULATIF DES CALCULS"))
-        grid_calc = QGridLayout()
-        grid_calc.setSpacing(15)
-
-        # Style pour les champs calculés
-        style_auto = "background-color: #f1f2f6; color: #2f3542; font-weight: bold; border: 1px solid #dcdde1;"
-
-        # Prime Brute (Somme des garanties) 
-        self.prime_brute = QLineEdit("0")
-        self.prime_brute.setReadOnly(True)
-        self.prime_brute.setStyleSheet(style_auto)
-        
-        # Réduction (ex: Bonus/Malus ou remise commerciale)
-        self.reduction = QLineEdit("0")
-        self.reduction.setReadOnly(True)
-        self.reduction.setStyleSheet(style_auto)
-
-        # Prime Nette (Brute - Réduction)
-        self.prime_nette = QLineEdit("0")
-        self.prime_nette.setReadOnly(True)
-        self.prime_nette.setStyleSheet("background-color: #e1f5fe; color: #0288d1; font-weight: bold; border: 1px solid #b3e5fc;")
-
-        grid_calc.addWidget(QLabel("Total Prime Brute"), 0, 0)
-        grid_calc.addWidget(self.prime_brute, 1, 0)
-        
-        grid_calc.addWidget(QLabel("Réduction Accordée"), 0, 1)
-        grid_calc.addWidget(self.reduction, 1, 1)
-        
-        grid_calc.addWidget(QLabel("Prime Nette à Payer"), 0, 2)
-        grid_calc.addWidget(self.prime_nette, 1, 2)
-
-        form_layout.addLayout(grid_calc)
-
-        # --- SECTION 4 : GARANTIES ---
-        form_layout.addWidget(self.create_section_title("🛡️ GARANTIES & COTISATIONS"))
-        grid_gar = QGridLayout()
-        grid_gar.setSpacing(10)
-
-        # Dictionnaire pour stocker nos labels de calcul
-        self.result_labels = {}
-
-        # Liste des garanties (Clé, Libellé, Label Affichage)
-        garanties = [
-            ("rc", "RC (Resp. Civile)", "Valeur RC"),
-            ("df", "Defense Recours (Resp. Civile)", "Valeur DF"),
-            ("vol", "Vol/Vol partie", "Valeur VOL"),
-            ("vb", "Vol / Braquage", "Valeur Vol/Br"),
-            ("in", "Incendie", "Valeur In"),
-            ("bris", "Bris de Glace", "Valeur BG"),
-            ("ar", "Assistance Reparation", "Valeur AR"),
-            ("dta", "Dommages Tous Accidents", "Valeur DTA"),
-            ("ipt", "Individuelle Personnes Transportées", "Valeur IPT"),
-            ("dom", "Dommages Collision", "Valeur DC"),
-            ("dr", "Défense Recours", "Valeur DR")
-        ]
-
-        for i, (key, label, title) in enumerate(garanties):
-            # 1. Checkbox
-            checkbox = QCheckBox(label)
-            setattr(self, f"check_{key}", checkbox) # ex: self.check_rc
-            
-            # 2. Label Titre
-            title_lbl = QLineEdit(title)
-            title_lbl.setReadOnly(True)
-            title_lbl.setStyleSheet("color: #7f8c8d; font-size: 10px;")
-            
-            # 3. Label de Résultat (Le calcul)
-            res_lbl = QLabel("0 FCFA")
-            res_lbl.setStyleSheet("font-weight: bold; color: #2ecc71; font-size: 12px;")
-            res_lbl.setVisible(False) # Caché par défaut
-            self.result_labels[key] = res_lbl
-            
-            # Ajout au grid
-            grid_gar.addWidget(checkbox, i, 0)
-            grid_gar.addWidget(title_lbl, i, 1)
-            grid_gar.addWidget(res_lbl, i, 2)
-
-            # Connexion au calcul (lambda pour passer la clé)
-            checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
-            checkbox.stateChanged.connect(lambda state, k=key: self.handle_garantie_click(k, state))
-            
-
-        form_layout.addLayout(grid_gar)
-
-        scroll.setWidget(content); card_layout.addWidget(scroll)
-
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 2px solid #E0E0E0;
-                border-radius: 10px;
-                text-align: center;
-                background-color: #F8F9FA;
-                height: 25px;
-                font-weight: bold;
-                color: #333;
-            }
-
-            QProgressBar::chunk {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                    stop:0 #2ECC71, stop:1 #27AE60);
-                border-radius: 8px;
-            }
-        """)
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("%p% - %v") # Affiche le pourcentage et l'étape
-        self.progress_bar.setVisible(False) # Cachée par défaut
-
-        # Ajoutez-la à votre layout vertical principal
-
-        # --- FOOTER ---
-        footer = QHBoxLayout(); footer.setContentsMargins(20, 10, 20, 20)
-        self.btn_save = QPushButton("💾 ENREGISTRER LE VÉHICULE")
-        self.btn_save.setFixedSize(300, 45)
-        self.btn_save.setStyleSheet("background: #2ecc71; color: white; border-radius: 22px; font-weight: bold;")
-        self.btn_save.clicked.connect(self.validate_and_save)
-        footer.addStretch(); footer.addWidget(self.btn_save); footer.addStretch()
-        footer.addWidget(self.progress_bar)
-        card_layout.addLayout(footer)
-
-        main_layout.addWidget(self.card)
-
-        self.val_neuf.textChanged.connect(self.refresh_all_garanties)
-
-    def create_section_title(self, text):
-        lbl = QLabel(text)
-        lbl.setStyleSheet("color: #3498db; font-size: 13px; font-weight: 900; margin-top: 10px; border-bottom: 2px solid #f1f2f6; padding-bottom: 5px;")
-        return lbl
-
-    # On ajoute la possibilité de déplacer la fenêtre à la souris (vu qu'on est en Frameless)
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
-            event.accept()
-
-    def get_data(self):
-        data = {
-            "libele_tarif": self.combo_fleet.text().strip().upper(),
-            "immatriculation": self.immat_input.text().strip().upper(),
-            "chassis": self.chassis_input.text().strip(),
-            "zone": self.combo_zone.currentText(),
-            "categorie": self.combo_cat.text(),
-            "marque": self.marque_input.text().strip(),
-            "modele": self.modele_input.text().strip(),
-            "annee": self.annee_input.text().strip(),
-            "places": int(self.places_input.text() or 0),
-            "energie": self.energie_combo.currentText(),
-            "remorque": self.check_remorque.isChecked(),
-            "val_neuf": float(self.val_neuf.text() or 0),
-            "val_venale": float(self.val_venale.text() or 0),
-            "usage": self.usage_input.text().strip(),
-            "prime_emise": float(self.prime_emise.text() or 0),
-            "statut": self.status_combo.currentText(),
-            # Garanties (Booléens)
-            "garantie_rc": self.check_rc.isChecked(),
-            "garantie_tc": self.check_tc.isChecked(),
-            "garantie_vol": self.check_vol.isChecked(),
-            "garantie_bris": self.check_bris.isChecked(),
-            "garantie_dom": self.check_dom.isChecked(),
-            "garantie_dr": self.check_dr.isChecked(),
-            "proprietaire_nom": self.owner_name.text().strip(),
-            "proprietaire_type": self.owner_type.currentText(),
-            "proprietaire_tel": self.owner_phone.text().strip(),
-            "proprietaire_adresse": self.owner_address.text().strip(),
-        }
-        return data
-    
-    # --- LOGIQUE DE DÉPLACEMENT DE LA FENÊTRE ---
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.old_pos = event.globalPosition().toPoint()
-
-    def mouseMoveEvent(self, event):
-        if self.old_pos is not None:
-            delta = event.globalPosition().toPoint() - self.old_pos
-            self.move(self.x() + delta.x(), self.y() + delta.y())
-            self.old_pos = event.globalPosition().toPoint()
-
-    def mouseReleaseEvent(self, event):
-        self.old_pos = None
-    
-    def get_form_data(self):
-        # Fonction utilitaire pour extraire le montant d'un label de résultat
-        def clean_amt(key):
+def calculate_total_premium(self):
+    """Calcule le total des primes"""
+    try:
+        def get_amt(key):
             label = self.result_labels.get(key)
             if label and label.isVisible():
-                # On retire "FCFA" et les espaces pour convertir en float
                 txt = label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
                 return float(txt) if txt else 0.0
-            return 0.0
+            return label
+        
+        amt_rc = get_amt("rc")
+        amt_dr = get_amt("dr")
+        amt_vol = get_amt("vol")
+        amt_vb = get_amt("vb")
+        amt_in = get_amt("in")
+        amt_bris = get_amt("bris")
+        amt_dta = get_amt("dta")
+        amt_ar = get_amt("ar")
+        amt_ipt = get_amt("ipt")
+        
+        total_brut = amt_rc + amt_dr + amt_vol + amt_vb + amt_in + amt_bris + amt_dta + amt_ar + amt_ipt
+        
+        partie_A = (amt_rc + amt_dr) * 0.10
+        partie_B = (amt_vol + amt_vb + amt_in + amt_bris + amt_dta) * 0.50
+        
+        total_reduction = partie_A + partie_B
+        total_net = total_brut - total_reduction
+        
+        self.prime_brute.setText(f"{total_brut:,.0f}".replace(",", " "))
+        self.reduction.setText(f"{total_reduction:,.0f}".replace(",", " "))
+        self.prime_nette.setText(f"{total_net:,.0f}".replace(",", " "))
+        self.prime_emise.setText(f"{total_net:.0f}")
+        
+    except Exception as e:
+        print(f"Erreur dans le récapitulatif financier : {e}")
 
-        # Fonction utilitaire pour les QLineEdit numériques
-        def clean_input(widget):
-            txt = widget.text().replace(" ", "").replace(",", ".")
-            return float(txt) if txt else 0.0
+def refresh_all_garanties(self):
+    """Rafraîchit toutes les garanties"""
+    for key in self.result_labels.keys():
+        checkbox = getattr(self, f"check_{key}")
+        if checkbox.isChecked():
+            self.update_garantie_price(key, 2)
 
-        data = {
-            # --- IDENTIFICATION & PROPRIÉTAIRE ---
-            "immatriculation": self.immat_input.text().strip().upper(),
-            "chassis": self.chassis_input.text().strip().upper(),
-            "zone": self.combo_zone.currentText(),
-            "libele_tarif": self.combo_fleet.text().strip().upper(),
-            "categorie": self.combo_cat.text(),
-            "compagny_id": self.client_list_widget.currentItem().data(Qt.UserRole).id if self.client_list_widget.currentItem() else None,
-            "marque": self.marque_input.text().strip(),
-            "modele": self.modele_input.text().strip(),
-            "annee": int(self.annee_input.text()) if self.annee_input.text().isdigit() else None,
-            "energie": self.energie_combo.currentText(),
-            "usage": self.usage_input.text().strip(),
-            "places": int(self.places_input.text()) if self.places_input.text().isdigit() else 5,
-            "has_remorque": self.check_remorque.isChecked(),
-            "statut": self.status_combo.currentText(),
-
-            # --- DATES (Conversion QDate -> Python Date) ---
-            "date_debut": self.date_debut.date().toPython(),
-            "date_fin": self.date_fin.date().toPython(),
-
-            # --- RÉCAPITULATIF FINANCIER ---
-            "valeur_neuf": clean_input(self.val_neuf),
-            "valeur_venale": clean_input(self.val_venale),
-            "prime_brute": clean_input(self.prime_brute),
-            "reduction": clean_input(self.reduction),
-            "prime_nette": clean_input(self.prime_nette),
-            "prime_emise": clean_input(self.prime_nette), # prime_emise = prime_nette
-
-            # --- ÉTAT DES GARANTIES (Booleans) ---
-            "check_rc": self.check_rc.isChecked(),
-            "check_dr": self.check_dr.isChecked(),
-            "check_vol": self.check_vol.isChecked(),
-            "check_vb": self.check_vb.isChecked(),
-            "check_in": self.check_in.isChecked(),
-            "check_bris": self.check_bris.isChecked(),
-            "check_ar": self.check_ar.isChecked(),
-            "check_dta": self.check_dta.isChecked(),
-            "check_ipt": self.check_ipt.isChecked(),
-
-            # --- MONTANTS DES GARANTIES (Valeurs calculées) ---
-            "amt_rc": clean_amt("rc"),
-            "amt_dr": clean_amt("dr"),
-            "amt_vol": clean_amt("vol"),
-            "amt_vb": clean_amt("vb"),
-            "amt_in": clean_amt("in"),
-            "amt_bris": clean_amt("bris"),
-            "amt_ar": clean_amt("ar"),
-            "amt_dta": clean_amt("dta"),
-            "amt_ipt": clean_amt("ipt")
-        }
-        return data
-
-    def get_system_info(self):
-        """Récupère l'IP locale et le nom de la machine."""
+def update_garantie_price(self, key, state):
+    """Met à jour le prix d'une garantie"""
+    label = self.result_labels.get(key)
+    
+    if state:
         try:
-            hostname = socket.gethostname()
-            ip_address = socket.gethostbyname(hostname)
-            os_info = f"{platform.system()} {platform.release()}"
-            print(os_info)
-            return {
-                "ip_address": ip_address,
-                "hostname": hostname,
-                "os_info": os_info
-            }
-        except Exception:
-            return {"ip_address": "127.0.0.1", "hostname": "unknown", "os_info": "N/A"}
-
-    def validate_and_save(self):
-        """Gère la création ou la mise à jour avec Audit et IP."""
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        self.btn_save.setEnabled(False)
-        self.btn_save.setText("Traitement en cours...")
-
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(10)
-        self.progress_bar.setFormat("🚀 Préparation des données...")
-        QApplication.processEvents()
-
-        try:
-            # 1. Récupération des données du formulaire
-            data = self.get_form_data()
+            d_debut = self.date_debut.date().toPython()
+            d_fin = self.date_fin.date().toPython()
+            nbr_jr = max(0, (d_fin - d_debut).days)
             
-            # 2. Récupération des adresses IP
-            ip_local = socket.gethostbyname(socket.gethostname())
-            ip_public = None
+            def get_val(line_edit):
+                txt = line_edit.text().replace(" ", "").replace(",", ".")
+                return float(txt) if txt else 0.0
+            
+            val_venale = get_val(self.val_venale)
+            val_neuf = get_val(self.val_neuf)
+            
             try:
-                # On tente de récupérer l'IP publique via un service externe
-                ip_public = requests.get('https://api.ipify.org', timeout=1).text
+                places = int(self.places_input.text()) if self.places_input.text() else 1
             except:
-                ip_public = "Non disponible"
-
-            self.progress_bar.setValue(30)
-            self.progress_bar.setFormat("🔍 Analyse du contexte...")
+                places = 1
             
-            # 3. Récupération de l'ID utilisateur
-            current_user_id = getattr(self, "current_user_id", 1)
+            montant = 0.0
 
-            # 4. CHOIX DE L'ACTION : UPDATE ou CREATE
-            # On vérifie si self.vehicle_to_edit existe et contient un ID
-            if hasattr(self, 'vehicle_to_edit') and self.vehicle_to_edit and hasattr(self.vehicle_to_edit, 'id'):
-                self.progress_bar.setFormat("📝 Mise à jour en cours...")
-                # On appelle update_vehicle
-                success, message = self.controller.vehicles.update_vehicle(
-                    vehicle_id=self.vehicle_to_edit.id, 
-                    new_data=data, 
-                    user_id=current_user_id,
-                    local_ip=ip_local,    # <--- Correction ici
-                    public_ip=ip_public   # <--- Correction ici
-                )
-            else:
-                self.progress_bar.setFormat("🆕 Création en cours...")
-                # On appelle create_vehicle
-                success, message = self.controller.vehicles.create_vehicle(
-                    data=data, 
-                    user_id=current_user_id,
-                    local_ip=ip_local,    # <--- Correction ici
-                    public_ip=ip_public   # <--- Correction ici
-                )
-
-            self.progress_bar.setValue(70)
-            QApplication.processEvents()
-
-            if success:
-                self.progress_bar.setValue(100)
-                self.progress_bar.setFormat("✅ Opération réussie !")
-                QApplication.restoreOverrideCursor()
-                
-                import time
-                time.sleep(0.5)
-                self.accept() # Ferme le dialogue
-            else:
-                raise Exception(message)
-
-        except Exception as e:
-            QApplication.restoreOverrideCursor()
-            self.btn_save.setEnabled(True)
-            self.btn_save.setText("ENREGISTRER")
-            self.progress_bar.setVisible(False)
-            QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {str(e)}")
-
-    def filter_clients(self, text):
-        self.client_list_widget.clear()
-        if len(text) < 2: return
-        
-        # Si 'self.controller' est le MainController :
-        clients = self.controller.compagnies.get_contacts_for_combo(text)
-        
-        for client in clients:
-            # Sécurité : Si c'est un tuple (nom, prenom, ...) au lieu d'un objet
-            if isinstance(client, tuple):
-                name_display = f"{client[0]} {client[1] if len(client) > 1 else ''}"
-            else:
-                name_display = f"{client.nom} {client.code or ''}"
-                
-            item = QListWidgetItem(name_display)
-            item.setData(Qt.UserRole, client) # On stocke l'objet (ou le tuple) pour la suite
-            self.client_list_widget.addItem(item)
-
-    def display_client_details(self, row):
-        """ Affiche les infos du client sélectionné avec un style moderne """
-        if row < 0: return
-        
-        item = self.client_list_widget.currentItem()
-        if not item: return
-        client = item.data(Qt.UserRole)
-        
-        self.selected_cie_id = client.id
-        # --- NOM ET TITRE ---
-        # On sépare le nom et le code pour jouer sur les tailles de police
-        name_html = (
-            f"<div style='color: #2c3e50; font-size: 18px; font-weight: bold;'>"
-            f"{client.nom.upper()}</div>"
-            f"<div style='color: #7f8c8d; font-size: 12px;'>ID: {client.code or 'N/A'}</div>"
-        )
-        self.lbl_card_name.setText(name_html)
-
-        # --- CORPS DE LA CARTE (Infos détaillées) ---
-        # Utilisation d'icônes Emoji ou FontAwesome (si dispo) pour le visuel
-        info_text = f"""
-            <table width="100%" style="margin-top: 10px;">
-                <tr>
-                    <td style="color: #95a5a6; font-size: 11px;">📌 NATURE</td>
-                    <td style="color: #34495e; font-weight: 500;">{getattr(client, 'nature', 'Compagnie')}</td>
-                </tr>
-                <tr>
-                    <td style="color: #95a5a6; font-size: 11px; padding-top: 5px;">📞 TÉLÉPHONE</td>
-                    <td style="color: #34495e; font-weight: 500; padding-top: 5px;">{client.telephone or 'N/A'}</td>
-                </tr>
-                <tr>
-                    <td style="color: #95a5a6; font-size: 11px; padding-top: 5px;">📧 EMAIL</td>
-                    <td style="color: #34495e; font-weight: 500; padding-top: 5px;">{client.email or 'N/A'}</td>
-                </tr>
-                <tr>
-                    <td style="color: #95a5a6; font-size: 11px; padding-top: 5px;">📍 ADRESSE</td>
-                    <td style="color: #34495e; font-weight: 500; padding-top: 5px;">{client.adresse or 'N/A'}</td>
-                </tr>
-            </table>
-        """
-        self.lbl_card_info.setText(info_text)
-
-        # --- PHOTO DE PROFIL ---
-        if client.photo_path and os.path.exists(client.photo_path):
-            pixmap = QPixmap(client.photo_path)
-            # On redimensionne proprement la photo pour garder le ratio
-            self.client_photo.setPixmap(pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        else:
-            self.client_photo.setAlignment(Qt.AlignCenter)
-            self.client_photo.setStyleSheet("""
-                background-color: #ecf0f1; 
-                border-radius: 60px; 
-                color: #bdc3c7; 
-                font-size: 50px;
-                border: 2px solid #dfe6e9;
-            """)
-            self.client_photo.setText("👤")
-
-    def update_garantie_price(self, key, state):
-        label = self.result_labels.get(key)
-        
-        if state:
-            try:
-                # 1. Préparation des dates
-                d_debut = self.date_debut.date().toPython()
-                d_fin = self.date_fin.date().toPython()
-                nbr_jr = max(0, (d_fin - d_debut).days)
-
-                # 2. Conversion sécurisée des champs de saisie en nombres (float)
-                def get_val(line_edit):
-                    txt = line_edit.text().replace(" ", "").replace(",", ".")
-                    return float(txt) if txt else 0.0
-
-                val_venale = get_val(self.val_venale)
-                val_neuf = get_val(self.val_neuf)
-                # Pour les places, on évite la division par zéro
-                try:
-                    places = int(self.places_input.text()) if self.places_input.text() else 1
-                except:
-                    places = 1
-
-                montant = 0.0
-
-                # 3. Application des formules corrigées
-                if key == "vol":
-                    montant = (val_venale * 0.02 * nbr_jr) / 365
-
-                elif key == "vb":
-                    montant = nbr_jr * (val_venale * 0.02) / 365
-
-                elif key == "in":
-                    # 0.25% s'écrit 0.0025
-                    montant = nbr_jr * (val_venale * 0.0025) / 365
-                    
-                elif key == "bris":
-                    # 0.5% s'écrit 0.005
-                    montant = nbr_jr * (val_neuf * 0.005) / 365
-                
-                elif key == "ar":
-                    # Note: 'car' n'existait pas, j'utilise val_venale par défaut ou remplacez par la bonne variable
-                    montant = nbr_jr * (val_venale * 0.03) / 365
-
-                elif key == "dta":
-                    montant = nbr_jr * (val_neuf * 0.05) / 365
-
-                elif key == "ipt":
-                    # Votre formule : ((nbr_jr * 0) / (5 * places)) / 365
-                    # Note: multiplier par 0 donnera toujours 0, j'ai gardé la structure
-                    montant = ((nbr_jr * 0) / (5 * places)) / 365
-
-                # 4. Affichage formaté
-                label.setText(f"{montant:,.0f} FCFA".replace(",", " "))
-                label.setVisible(True)
-
-            except Exception as e:
-                print(f"Erreur de calcul pour {key} : {e}")
-                label.setText("0 FCFA")
-        else:
-            label.setVisible(False)
-            label.setText("0 FCFA")
-                
-        self.calculate_total_premium()
-
-    def refresh_all_garanties(self):
-        """Parcourt les garanties et relance le calcul pour celles qui sont cochées"""
-        for key in self.result_labels.keys():
-            checkbox = getattr(self, f"check_{key}")
-            if checkbox.isChecked():
-                # On force l'appel à la fonction de calcul
-                self.update_garantie_price(key, 2)
-
-    def calculate_total_premium(self):
-        """ Calcule la Prime Brute et la Réduction selon la formule spécifique """
-        try:
-            # Fonction utilitaire pour extraire le nombre d'un label (ex: "50 000 FCFA" -> 50000)
-            def get_amt(key):
-                label = self.result_labels.get(key)
-                if label and label.isVisible():
-                    txt = label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
-                    return float(txt) if txt else 0.0
-                return 0.0
-
-            # 1. Récupération des montants individuels calculés
-            amt_rc   = get_amt("rc")
-            amt_dr   = get_amt("dr")
-            amt_vol  = get_amt("vol")
-            amt_vb   = get_amt("vb")
-            amt_in   = get_amt("in")
-            amt_bris = get_amt("bris")
-            amt_dta  = get_amt("dta")
-            amt_ar   = get_amt("ar")
-            amt_ipt  = get_amt("ipt")
-
-            # 2. Calcul de la Prime Brute (Somme de TOUTES les garanties cochées)
-            total_brut = amt_rc + amt_dr + amt_vol + amt_vb + amt_in + amt_bris + amt_dta + amt_ar + amt_ipt
-
-            # 3. Application de votre formule de RÉDUCTION :
-            # Formule : (RC + DR) * 10% + (Vol + VB + In + Bris + DTA) * 50%
-            partie_A = (amt_rc + amt_dr) * 0.10
-            partie_B = (amt_vol + amt_vb + amt_in + amt_bris + amt_dta) * 0.50
-            
-            total_reduction = partie_A + partie_B
-
-            # 4. Calcul de la Prime Nette
-            total_net = total_brut - total_reduction
-
-            # 5. Affichage dans les champs de la section "Calcul Automatique"
-            self.prime_brute.setText(f"{total_brut:,.0f}".replace(",", " "))
-            self.reduction.setText(f"{total_reduction:,.0f}".replace(",", " "))
-            self.prime_nette.setText(f"{total_net:,.0f}".replace(",", " "))
-            
-            # Mise à jour du champ prime_emise pour la base de données
-            self.prime_emise.setText(f"{total_net:.0f}")
-
-        except Exception as e:
-            print(f"Erreur dans le récapitulatif financier : {e}")
-
-    def load_existing_data(self, v):
-        """
-        Remplit le formulaire en utilisant les mêmes clés que get_form_data.
-        """
-        try:
-            # --- 1. TEXTES (QLineEdit / QTextEdit) ---
-            # Format: (attribut_objet, widget)
-            text_fields = [
-                ('immatriculation', self.immat_input),
-                ('chassis', self.chassis_input),
-                ('marque', self.marque_input),
-                ('modele', self.modele_input),
-                ('usage', self.usage_input),
-                ('valeur_neuf', self.val_neuf),
-                ('valeur_venale', self.val_venale),
-                ('prime_brute', self.prime_brute),
-                ('reduction', self.reduction),
-                ('prime_nette', self.prime_nette),
-            ]
-            for attr, widget in text_fields:
-                widget.setText(str(getattr(v, attr, "")) if getattr(v, attr, None) else "")
-
-            # --- 2. NOMBRES SIMPLES (QLineEdit avec chiffres) ---
-            if hasattr(v, 'annee') and v.annee:
-                self.annee_input.setText(str(v.annee))
-
-            if hasattr(v, 'places') and v.places:
-                self.places_input.setText(str(v.places))
-
-            if hasattr(self, 'val_neuf'):
-                if isinstance(self.val_neuf, QLineEdit):
-                    self.val_neuf.setText(int(v.valeur_neuf or 0))
-                else:
-                    self.val_neuf.setText(float(v.valeur_neuf or 0))
-
-            # --- 3. COMBOBOXES ---
-            # Pour l'énergie et le statut (recherche par texte)
-            if v.energie:
-                # On cherche l'index du texte (MatchExact pour éviter les erreurs)
-                index = self.energie_combo.findText(v.energie, Qt.MatchFlag.MatchExactly)
-                if index >= 0:
-                    self.energie_combo.setCurrentIndex(index)
-                else:
-                    # Si la valeur en BD n'est pas dans la liste, on l'ajoute temporairement
-                    self.energie_combo.addItem(v.energie)
-                    self.energie_combo.setCurrentText(v.energie)
-
-            if v.statut:
-                index = self.status_combo.findText(v.statut, Qt.MatchFlag.MatchExactly)
-                if index >= 0:
-                    self.status_combo.setCurrentIndex(index)
-
-            # --- 4. DATES (QDateEdit) ---
-            if v.date_debut:
-                # Si v.date_debut est un objet datetime.date (SQLAlchemy)
-                d = v.date_debut
-                q_date = QDate(d.year, d.month, d.day)
-                self.date_debut.setDate(q_date)
-
-            if v.date_fin:
-                d = v.date_fin
-                q_date = QDate(d.year, d.month, d.day)
-                self.date_fin.setDate(q_date)
-
-            # --- 5. FINANCIER (QDoubleSpinBox ou QSpinBox) ---
-            self.val_neuf.setText(float(v.valeur_neuf or 0))
-            self.val_venale.setText(float(v.valeur_venale or 0))
-            self.prime_brute.setText(float(v.prime_brute or 0))
-            self.reduction.setText(float(v.reduction or 0))
-            self.prime_nette.setText(float(v.prime_nette or 0))
-
-            # --- 6. CHECKBOXES (Garanties & Remorque) ---
-            # On fait correspondre exactement vos clés "check_xx"
-            cles_garanties = ["rc", "df", "vol", "vb", "in", "bris", "ar", "dta", "ipt", "dom", "dr"]
-
-            for key in cles_garanties:
-                # 1. On retrouve le widget dynamiquement (ex: self.check_rc)
-                checkbox_widget = getattr(self, f"check_{key}", None)
-                
-                if checkbox_widget:
-                    # 2. On récupère la valeur en base de données
-                    # ATTENTION : vérifiez que le nom en BD est bien 'check_rc' etc.
-                    valeur_bd = getattr(v, f"check_{key}", False)
-                    
-                    # 3. On force la conversion en booléen et on applique
-                    checkbox_widget.setChecked(bool(valeur_bd))
-                    
-                    # 4. Forcer l'affichage du label de prix si coché
-                    if self.result_labels.get(key):
-                        self.result_labels[key].setVisible(bool(valeur_bd))
-
-            # --- 7. PROPRIÉTAIRE (Cas particulier : QListWidget) ---
-            # Si vous avez l'ID du client, on peut essayer de le sélectionner dans la liste
-            if v.owner_id:
-                for i in range(self.client_list_widget.count()):
-                    item = self.client_list_widget.item(i)
-                    if item.data(Qt.UserRole).id == v.owner_id:
-                        self.client_list_widget.setCurrentItem(item)
-                        break
-
-        except Exception as e:
-            print(f"Erreur lors du chargement : {str(e)}")
-
-    def handle_garantie_click(self, key, state):
-        """Gère l'affichage et le calcul lors du clic sur une garantie."""
-        is_checked = (state == Qt.Checked or state == 2)
-        res_label = self.result_labels.get(key)
-
-        if is_checked:
-            res_label.setVisible(True)
             if key == "rc":
-                # Déclenche le calcul immédiat de la RC
-                self.update_rc_calculation()
-        else:
-            res_label.setVisible(False)
-            res_label.setText("0 FCFA")
-
-    def update_rc_calculation(self):
-        """Récupère les données du formulaire et interroge le contrôleur pour la RC."""
-        try:
-            # 1. Récupération des informations du formulaire
-            # Note: Assurez-vous que ces noms d'attributs correspondent à vos widgets
-            cie_id = self.selected_cie_id 
-            zone = self.combo_zone.currentText()
-            categorie = self.combo_cat.text() # ex: '01'
-            energie = self.energie_combo.currentText() # 'Essence' ou 'Diesel'
+                # Formule : ((Valeur Vénale * Nbr_jr) * Nbr_jr) / 365
+                montant = ((0 * nbr_jr) * nbr_jr) / 365
+            elif key == "vol":
+                montant = (val_venale * 0.02 * nbr_jr) / 365
+            elif key == "vb":
+                montant = nbr_jr * (val_venale * 0.02) / 365
+            elif key == "in":
+                montant = nbr_jr * (val_venale * 0.0025) / 365
+            elif key == "bris":
+                montant = nbr_jr * (val_neuf * 0.005) / 365
+            elif key == "ar":
+                montant = nbr_jr * (val_venale * 0.03) / 365
+            elif key == "dta":
+                montant = nbr_jr * (val_neuf * 0.05) / 365
+            elif key == "ipt":
+                montant = ((nbr_jr * 0) / (5 * places)) / 365
             
-            cv_text = self.usage_input.text().strip()
-            cv = int(cv_text) if cv_text else 0
+            label.setText(f"{montant:,.0f} FCFA".replace(",", " "))
+            label.setVisible(True)
             
-            # Vérification si la checkbox remorque globale est cochée
-            avec_remorque = self.check_remorque.isChecked() 
-
-            # 2. Appel de la méthode de matrice via le contrôleur
-            if self.controller:
-                montant_rc = self.controller.vehicles.get_rc_premium_from_matrix(
-                    cie_id=cie_id,
-                    zone=zone,
-                    categorie=categorie,
-                    energie=energie,
-                    cv_saisi=cv,
-                    avec_remorque=avec_remorque
-                )
-
-                # 3. Mise à jour du label de résultat
-                if montant_rc > 0:
-                    self.result_labels["rc"].setText(f"{montant_rc:,.0f} FCFA")
-                else:
-                    self.result_labels["rc"].setText("Tarif introuvable")
-
         except Exception as e:
-            print(f"Erreur lors du calcul RC : {e}")
-            self.result_labels["rc"].setText("Erreur calcul")
-  
+            print(f"Erreur de calcul pour {key} : {e}")
+            label.setText("0 FCFA")
+    else:
+        label.setVisible(False)
+        label.setText("0 FPCFA")
+    
+    self.calculate_total_premium()
+
+def handle_garantie_click(self, key, state):
+    """Gère l'affichage et le calcul lors du clic sur une garantie."""
+    is_checked = (state == Qt.Checked or state == 2)
+    res_label = self.result_labels.get(key)
+
+    if is_checked:
+        res_label.setVisible(True)
+        if key == "rc":
+            # Déclenche le calcul immédiat de la RC
+            self.update_rc_calculation()
+    else:
+        res_label.setVisible(False)
+        res_label.setText("0 FCFA")

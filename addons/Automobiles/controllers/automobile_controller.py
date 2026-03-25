@@ -281,53 +281,7 @@ class VehicleController:
             'Morale': morale,
             'Total': len(contacts)
         }
-        
-    def get_rc_premium_from_matrix(self, cie_id, zone, categorie, energie, cv_saisi, avec_remorque):
-        """
-        Recherche la prime RC dans la matrice automobile_tarifs.
-        """
-        try:
-            from addons.Automobiles.models.tarif_models import AutomobileTarif
-            
-            # 1. On récupère la ligne de configuration pour ce contexte précis
-            tarif = self.session.query(AutomobileTarif).filter(
-                AutomobileTarif.cie_id == cie_id,
-                AutomobileTarif.zone == zone,
-                AutomobileTarif.categorie == categorie
-            ).first()
-
-            if not tarif:
-                print(f"Aucun tarif trouvé pour Cie:{cie_id}, Zone:{zone}, Cat:{categorie}, energie:{energie}, nombre de chevaux: {cv_saisi}")
-                return 0.0
-
-            # 2. Trouver l'index de la tranche (1 à 10)
-            tranche_index = 0
-            # On choisit le préfixe des colonnes de seuils selon l'énergie
-            prefix_seuil = "essence_" if energie.lower() == "essence" else "diesel_"
-            
-            for i in range(1, 11):
-                seuil = getattr(tarif, f"{prefix_seuil}{i}")
-                
-                # Si le seuil est défini et que les CV sont inférieurs ou égaux
-                if seuil and seuil > 0:
-                    if cv_saisi <= seuil:
-                        tranche_index = i
-                        break
-            
-            # Si les CV dépassent tous les seuils, on prend la dernière tranche (souvent la 6)
-            if tranche_index == 0:
-                tranche_index = 6 
-
-            # 3. Récupérer le montant final (Prime standard ou Remorque)
-            prefix_prime = "remorq" if avec_remorque else "prime"
-            montant = getattr(tarif, f"{prefix_prime}{tranche_index}", 0.0)
-
-            return montant
-
-        except Exception as e:
-            print(f"Erreur lors de la récupération de la RC : {e}")
-            return 0.0
-        
+          
     def get_all_compagnies(self):
         """
         Récupère la liste de toutes les compagnies d'assurance actives.
@@ -350,3 +304,70 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur lors de la récupération de la compagnie {cie_id} : {e}")
             return None
+
+     
+    #GESTION DES TARIFS ET GARANTIES POUR AFFICHAGE    
+    def get_rc_premium_from_matrix(self, cie_id, zone_saisie, categorie, energie, cv_saisi, avec_remorque=False):
+        try:
+            from addons.Automobiles.models.tarif_models import AutomobileTarif
+            from addons.Automobiles.models.automobile_tranche import AutomobileTranche
+            
+            # 1. Nettoyage strict pour la correspondance DB
+            # Extrait 'A', 'B' ou 'C' de "Zone A"
+            import re
+            match = re.search(r'[A-C]', zone_saisie.upper())
+            clean_zone = match.group(0) if match else zone_saisie.upper().strip()
+            
+            # Normalisation de l'énergie et catégorie
+            clean_energie = str(energie).lower().strip() # 'essence' ou 'diesel'
+            clean_cat = str(categorie).strip().zfill(2)
+
+            # 2. Requête sur la table tarifs
+            tarif = self.session.query(AutomobileTarif).filter(
+                AutomobileTarif.cie_id == cie_id,
+                AutomobileTarif.zone == clean_zone,
+                AutomobileTarif.categorie == clean_cat
+            ).first()
+
+            if not tarif:
+                print(f"⚠️ Aucun tarif trouvé pour Zone:{clean_zone}, Cat:{clean_cat}")
+                return 0.0
+
+            # 3. Détermination de la tranche de puissance
+            tranches = self.session.query(AutomobileTranche).order_by(AutomobileTranche.max_cv).all()
+            tranche_id = 1
+            for t in tranches:
+                if cv_saisi <= t.max_cv:
+                    tranche_id = t.id
+                    break
+            else:
+                if tranches: tranche_id = tranches[-1].id
+
+            # 4. Sélection de la colonne dynamique
+            # Selon ton modèle : prime1..10, essence_1..10, diesel_1..10
+            if avec_remorque:
+                column_name = f"remorq{tranche_id}" # Vérifie si tu as remorq1..10 en DB
+            elif "essence" in clean_energie:
+                column_name = f"essence_{tranche_id}"
+            elif "diesel" in clean_energie:
+                column_name = f"diesel_{tranche_id}"
+            else:
+                column_name = f"prime{tranche_id}"
+
+            return getattr(tarif, column_name, 0.0)
+
+        except Exception as e:
+            print(f"❌ Erreur SQL Tarifs: {e}")
+            return 0.0 
+        
+    def add_tranche(self, libelle, max_cv, user_id, local_ip, network_ip):
+        from addons.Automobiles.models.tarif_models import AutomobileTarif
+        new_tranche = AutomobileTarif(
+            libelle=libelle,
+            max_cv=max_cv,
+            created_by=user_id,
+            local=local_ip,
+            network=network_ip
+        )
+        self.session.add(new_tranche)
+        self.session.commit()

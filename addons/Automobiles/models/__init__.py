@@ -4,4 +4,5 @@ from addons.Automobiles.models.flottes_models import Fleet, AuditFlotteLog
 from addons.Automobiles.models.automobile_models import AuditVehicleLog, Vehicle
 from addons.Automobiles.models.compagnies_models import Compagnie
 from addons.Automobiles.models.tarif_models import AutomobileTarif
+from addons.Automobiles.models.automobile_tranche import AutomobileTranche
 # Importez tous vos modèles ici pour que SQLAlchemy les enregistre tous en même temps
