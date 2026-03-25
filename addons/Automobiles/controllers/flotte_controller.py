@@ -6,7 +6,7 @@ from sqlalchemy import func, or_
 from addons.Automobiles.controllers.automobile_controller import VehicleController
 from addons.Automobiles.models.automobile_models import AuditVehicleLog, Vehicle
 from addons.Automobiles.models.contact_models import Contact
-from addons.Automobiles.models.flottes_models import Fleet, AuditFlotteLog
+from addons.Automobiles.models.flottes_models import Fleet
 from datetime import date, datetime, timezone
 import json
 
@@ -183,22 +183,34 @@ class FleetController:
             self.session.rollback()
             return False
 
-    def update_fleet_vehicles(self, fleet_id, selected_vehicle_ids, user_id, ip_local=None, ip_public=None):
+    def get_all_vehicles(self):
+        # On délègue le travail au service véhicule
+        return self.vehicle_service.get_all_vehicles()
+
+    def update_fleet_relation(self, fleet_id, selected_vehicle_ids, user_id, ip_local=None, ip_public=None):
+        """Met à jour les véhicules appartenant à cette flotte."""
         try:
-            # --- 1. Logique métier : Mise à jour des véhicules ---
-            # On détache ceux qui ne sont plus sélectionnés
+            # SÉCURITÉ : On s'assure que selected_vehicle_ids est une liste d'entiers
+            # Si c'est un dictionnaire, on ne traite rien pour éviter le crash SQL
+            if isinstance(selected_vehicle_ids, dict):
+                print("ERREUR : Le contrôleur a reçu un dictionnaire au lieu d'une liste d'IDs")
+                return False, "Données de véhicules invalides"
+
+            # On convertit en liste d'entiers propre
+            clean_ids = [int(i) for i in selected_vehicle_ids if str(i).isdigit()]
+
+            # 1. Détacher les véhicules qui étaient dans cette flotte mais ne sont plus sélectionnés
             self.session.query(Vehicle).filter(
                 Vehicle.fleet_id == fleet_id,
-                ~Vehicle.id.in_(selected_vehicle_ids)
-            ).update({Vehicle.fleet_id: None}, synchronize_session=False)
+                ~Vehicle.id.in_(clean_ids)
+            ).update({"fleet_id": None}, synchronize_session=False)
 
-            # On attache les nouveaux sélectionnés
-            if selected_vehicle_ids:
+            # 2. Attacher les nouveaux véhicules sélectionnés
+            if clean_ids:
                 self.session.query(Vehicle).filter(
-                    Vehicle.id.in_(selected_vehicle_ids)
-                ).update({Vehicle.fleet_id: fleet_id}, synchronize_session=False)
+                    Vehicle.id.in_(clean_ids)
+                ).update({"fleet_id": fleet_id}, synchronize_session=False)
 
-            # --- 2. LOG D'AUDIT (C'est ici que vous insérez le code) ---
             audit = AuditVehicleLog(
                 user_id=user_id,
                 action="UPDATE_RELATION",
@@ -211,19 +223,59 @@ class FleetController:
             )
             self.session.add(audit)
 
-            # --- 3. Validation finale ---
             self.session.commit()
-            return True, "Relation Flotte-Véhicules mise à jour."
-
+            return True, "Véhicules mis à jour"
         except Exception as e:
             self.session.rollback()
-            print(f"Erreur Update Fleet Relation: {e}")
+            print(f"Erreur SQL Relation : {e}")
             return False, str(e)
+    
+    def update_fleet_data(self, fleet_id, data):
+        try:
 
-    def get_all_vehicles(self):
-        # On délègue le travail au service véhicule
-        return self.vehicle_service.get_all_vehicles()
+            code_flotte = data.get('code_flotte')
+            if isinstance(code_flotte, str):
+                code_flotte = code_flotte.strip()
+                if not code_flotte:
+                    code_flotte = None
+            # Nettoyage des données numériques avant envoi à SQL
+            remise = data.get('remise_flotte')
+            try:
+                remise = float(remise) if remise not in [None, ''] else 0.0
+            except:
+                remise = 0.0
 
+            # Vérification de l'owner_id (doit être un entier ou None)
+            owner_id = data.get('owner_id')
+            if isinstance(owner_id, str) and not owner_id.isdigit():
+                # Si c'est du texte (comme 'dil'), on cherche l'ID correspondant 
+                # ou on met None pour éviter le crash
+                owner_id = None 
+
+            self.session.query(Fleet).filter(Fleet.id == fleet_id).update({
+                "nom_flotte": data.get('nom_flotte'),
+                "code_flotte": data.get('code_flotte'),
+                "owner_id": owner_id,
+                "assureur": data.get('assureur'),
+                "type_gestion": data.get('type_gestion'),
+                "remise_flotte": remise, # <--- Garanti comme float
+                "statut": data.get('statut'),
+                "is_active": data.get('is_active'),
+                "date_debut": data.get('date_debut'),
+                "date_fin": data.get('date_fin'),
+                "observations": data.get('observations'),
+                "updated_at": datetime.now(timezone.utc)
+            }, synchronize_session=False)
+
+            self.session.commit()
+            return True, "Succès"
+        except Exception as e:
+            self.session.rollback()
+            # On attrape l'erreur d'unicité pour renvoyer un message clair à l'utilisateur
+            if "unique constraint" in str(e).lower():
+                return False, f"Le code flotte '{data.get('code_flotte')}' est déjà utilisé par une autre flotte."
+            return False, str(e)
+    
     def get_network_info(self):
         """Récupère simultanément l'IP Locale et l'IP Publique."""
         # 1. IP Locale (Rapide)
@@ -242,4 +294,60 @@ class FleetController:
             public_ip = "Offline"
 
         return local_ip, public_ip
+    
+    # ... (le reste de votre code actuel est correct pour gérer les IDs) ...
+    def update_fleet_vehicles(self, fleet_id, selected_vehicle_ids, user_id):
+        """
+        Met à jour la relation entre une flotte et ses véhicules.
+        """
+        try:
+            # --- SÉCURITÉ CRUCIALE ---
+            # Si selected_vehicle_ids est un dictionnaire (erreur de vue), 
+            # on ne fait rien pour éviter le crash SQL "InvalidTextRepresentation"
+            if isinstance(selected_vehicle_ids, dict):
+                print("ERREUR : Le contrôleur a reçu un dictionnaire au lieu d'une liste d'IDs.")
+                return False, "Format de données invalide (attendu: liste d'IDs)."
 
+            # Nettoyage de la liste pour s'assurer qu'on n'a que des entiers
+            clean_ids = [int(i) for i in selected_vehicle_ids if str(i).isdigit() or isinstance(i, int)]
+
+            # Récupération des infos réseau pour l'audit
+            local_ip, public_ip = self.get_network_info()
+
+            # --- 1. DÉTACHEMENT ---
+            # On met à None le fleet_id de tous les véhicules qui pointaient sur cette flotte 
+            # mais qui ne sont plus dans la nouvelle sélection.
+            self.session.query(Vehicle).filter(
+                Vehicle.fleet_id == fleet_id,
+                ~Vehicle.id.in_(clean_ids)
+            ).update({"fleet_id": None}, synchronize_session=False)
+
+            # --- 2. ATTACHEMENT ---
+            # On lie les véhicules de la nouvelle sélection à cette flotte
+            if clean_ids:
+                self.session.query(Vehicle).filter(
+                    Vehicle.id.in_(clean_ids)
+                ).update({"fleet_id": fleet_id}, synchronize_session=False)
+
+            # --- 3. LOG D'AUDIT ---
+            audit = AuditVehicleLog(
+                user_id=user_id,
+                action="UPDATE_RELATION_FLEET",
+                module="FLEETS",
+                item_id=fleet_id,
+                # On stocke la liste des IDs sélectionnés pour l'historique
+                new_values=json.dumps({"vehicle_ids": clean_ids}), 
+                ip_local=local_ip,
+                ip_public=public_ip,
+                timestamp=datetime.now(timezone.utc)
+            )
+            self.session.add(audit)
+
+            # --- 4. VALIDATION ---
+            self.session.commit()
+            return True, "Relation Flotte-Véhicules mise à jour avec succès."
+
+        except Exception as e:
+            self.session.rollback()
+            print(f"Erreur Update Fleet Relation: {str(e)}")
+            return False, f"Erreur base de données : {str(e)}"

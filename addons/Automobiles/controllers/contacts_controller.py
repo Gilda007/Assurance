@@ -1,7 +1,7 @@
 from addons.Automobiles.models.contact_models import Contact, ContactAuditLog
 from addons.Automobiles.models import Fleet
 import socket
-from sqlalchemy import func  # <--- C'est cette ligne qui manque
+from sqlalchemy import func, or_  # <--- C'est cette ligne qui manque
 from datetime import datetime
 import os
 
@@ -167,6 +167,25 @@ class ContactController:
         # 3. Rafraîchir l'affichage des cartes et des stats
         self.display_contacts(filtered_contacts)
 
+    def get_contacts_for_combo(self, text=""):
+        """Récupère les compagnies pour le combo de filtrage."""
+        query = self.db.query(Contact)
+        if text:
+            query = query.filter(Contact.nom.ilike(f"%{text}%"))
+        return query.all()
+
+    def search_contacts(self, search_text):
+        if not self.db:
+            print("Erreur : Aucune session DB dans ContactController")
+            return []
+            
+        # On sécurise le pattern de recherche
+        pattern = f"%{search_text}%"
+        
+        return self.db.query(Contact).filter(
+            Contact.nom.ilike(pattern) | Contact.nature.ilike(pattern)
+        ).limit(10).all()
+    
     def get_report_data(self):
         """Prépare les données groupées pour le PDF."""
         contacts = self.get_all_contacts()

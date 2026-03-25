@@ -17,8 +17,9 @@ class VehiculeModuleView(QWidget):
         self.controller = controller
         self.session = controller.session
         self.current_user = current_user
-        self.vehicle_service = VehicleController(self.session)
-        self.fleet_service = FleetController(self.session, current_user_id=None)
+        self.controller=controller
+        # self.vehicle_service = VehicleController(self.session)
+        # self.fleet_service = FleetController(self.session, current_user_id=None)
         # self.vehicle_id = self.on_delete_vehicle if self.on_delete_vehicle else None
         
         # Style réutilisable pour les tableaux
@@ -232,7 +233,7 @@ class VehiculeModuleView(QWidget):
     def refresh_data(self):
         """Récupère et affiche les données avec boutons d'action groupés."""
         try:
-            vehicles = self.vehicle_service.get_all_vehicles()
+            vehicles = self.controller.vehicles.get_all_vehicles()
             self.table_vehicules.setRowCount(0)
             
             for row_idx, vehicle in enumerate(vehicles):
@@ -309,7 +310,7 @@ class VehiculeModuleView(QWidget):
     
     def refresh_fleets(self):
         try:
-            fleets = self.fleet_service.get_all_fleets()
+            fleets = self.controller.fleets.get_all_fleets()
             self.table_fleets.setRowCount(0)
             
             for f in fleets:
@@ -374,7 +375,7 @@ class VehiculeModuleView(QWidget):
     def on_add_vehicle_click(self):
         # ICI : Assure-toi d'utiliser l'instance du VehicleController
         # et non celle du FleetController
-        contacts = self.fleet_service.get_all_contacts_for_combo()
+        contacts = self.controller.fleets.get_all_contacts_for_combo()
         dialog = VehicleForm(
             controller=self.controller,
             contacts_list=contacts,
@@ -382,7 +383,7 @@ class VehiculeModuleView(QWidget):
             mode="add"
         )
         if dialog.exec():
-            self.vehicle_service.get_all_vehicles()
+            self.controller.vehicles.get_all_vehicles()
 
     def filter_vehicles(self):
         text = self.search_vehicule.text().lower()
@@ -393,14 +394,13 @@ class VehiculeModuleView(QWidget):
     def on_add_fleet_click(self):
     # Récupérer la liste des clients pour le combo
     
-        contacts = self.fleet_service.get_all_contacts_for_combo()
-        compagnies = self.fleet_service.get_all_compagnies_for_combo()
+        contacts = self.controller.fleets.get_all_contacts_for_combo()
+        compagnies = self.controller.fleets.get_all_compagnies_for_combo()
         # Dans view.py (on_add_fleet_click)
         dialog = FleetForm(
-            fleet_controller=self.fleet_service,
-            vehicle_controller=self.vehicle_service, # Cet argument posait problème
-            current_fleet=None, # ou la flotte sélectionnée
-            parent=self,
+            controller=self.controller, # On utilise le contrôleur principal ou fleet_service
+            current_fleet=None,
+            mode="add",
             contacts_list=contacts,
             compagnies_list=compagnies
         )
@@ -410,18 +410,25 @@ class VehiculeModuleView(QWidget):
 
     def handle_fleet_action(self, fleet_obj, mode):
         """Gère l'ouverture du formulaire selon le mode choisi."""
-        contacts = self.controller.contacts.get_contact_by_id(fleet_obj)
-        compagnies = self.controller.compagnies.get_active_compagnies()
+        # 1. Sécurité : on s'assure que fleet_obj existe
+        if not fleet_obj:
+            return
+
+        # 2. Correction du Mapping SQL : On passe l'ID (int) et non l'objet complet
+        # L'erreur "SQL expression element expected" venait du fait qu'on passait l'objet à get_contact_by_id
+        contacts = self.controller.contacts.get_contact_by_id(fleet_obj.id)
+        compagnies = self.controller.compagnies.get_all_active_compagnies()
         
+        # 3. Ouverture du dialogue avec les bons arguments
+        # Note : Vérifiez bien que FleetForm.__init__ accepte 'controller' ou 'fleet_service'
         dialog = FleetForm(
-            parent=self,
-            controller=self.fleet_service,
-            current_user=self.current_user,
-            data=fleet_obj,
+            controller=self.controller, # On utilise le contrôleur principal ou fleet_service
+            current_fleet=fleet_obj,
             mode=mode,
             contacts_list=contacts,
-            compagnies_list= compagnies
+            compagnies_list=compagnies
         )
+        # (self, fleet_controller, controller, current_fleet=None, parent=None, contacts_list=None, compagnies_list=None, mode="add"):
         
         if dialog.exec():
             self.refresh_fleets()
@@ -436,7 +443,7 @@ class VehiculeModuleView(QWidget):
         confirm = QMessageBox.question(self, "Confirmation", f"Voulez-vous vraiment {msg} cette flotte ?")
         
         if confirm == QMessageBox.Yes:
-            success = self.fleet_service.update_status(fleet_obj.id, new_status)
+            success = self.controller.fleets.update_status(fleet_obj.id, new_status)
             if success:
                 self.refresh_fleets()
 
@@ -444,7 +451,7 @@ class VehiculeModuleView(QWidget):
         """Gère l'ouverture du formulaire et la sauvegarde des modifications."""
         
         # On passe l'objet complet au formulaire
-        dialog = VehicleForm(controller=self.vehicle_service, vehicle_to_edit=vehicle)
+        dialog = VehicleForm(controller=self.controller, vehicle_to_edit=vehicle)
         dialog.setWindowTitle(f"Modifier le véhicule : {vehicle.immatriculation}")
         
         if dialog.exec() == QDialog.Accepted:
@@ -455,7 +462,7 @@ class VehiculeModuleView(QWidget):
             user_id = getattr(self.current_user, 'id', 1)
             
             # Appel au service de mise à jour
-            success, message = self.vehicle_service.update_vehicle(vehicle.id, updated_info, user_id)
+            success, message = self.controller.vehicles.update_vehicle(vehicle.id, updated_info, user_id)
             
             if success:
                 QMessageBox.information(self, "Succès", message)
@@ -483,7 +490,7 @@ class VehiculeModuleView(QWidget):
         if confirm == QMessageBox.StandardButton.Yes:
             # 2. Appeler le contrôleur (on passe juste l'ID)
             user_id = getattr(self, "current_user_id", 1)
-            success, message = self.vehicle_service.deactivate_vehicle(vehicle.id, user_id)
+            success, message = self.controller.vehicles.deactivate_vehicle(vehicle.id, user_id)
             
             if success:
                 # 3. RAFRAÎCHIR le tableau
@@ -519,5 +526,5 @@ class VehiculeModuleView(QWidget):
 
     def on_audit_clicked(self):
         # On passe le contrôleur qui a accès à la session BD
-        dialog = AuditLogDialog(controller=self.vehicle_service, parent=self)
+        dialog = AuditLogDialog(controller=self.controller.vehicles, parent=self)
         dialog.exec()

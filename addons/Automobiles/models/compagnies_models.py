@@ -26,4 +26,5 @@ class Compagnie(Base):
     network_ip = Column(String(45))     # IP Publique/Réseau
 
     # Relation vers les tarifs
+    vehicles = relationship("Vehicle", back_populates="compagny")
     tarifs = relationship("AutomobileTarif", back_populates="compagnie", cascade="all, delete-orphan")

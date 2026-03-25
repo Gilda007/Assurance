@@ -216,7 +216,6 @@ class CompagnieController:
         Retourne une liste d'objets Compagnie.
         """
         try:
-            from addons.Automobiles.controllers.compagnies_controller import Compagnie # Vérifiez l'import
             
             query = self.db.query(Compagnie)
 
@@ -233,7 +232,8 @@ class CompagnieController:
                         (Compagnie.email.ilike(search_filter))
                     )
                 else:
-                    query = query.filter(Compagnie.nom.ilike(search_filter))
+                    print(Compagnie.id)
+                    query = query.filter(Compagnie.id.ilike(search_filter))
 
             # On limite à 50 résultats pour la performance et on trie par nom
             return query.order_by(Compagnie.nom).limit(50).all()

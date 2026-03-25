@@ -13,18 +13,22 @@ class Vehicle(Base):
     # --- IDENTIFICATION ---
     immatriculation = Column(String(20), unique=True, index=True, nullable=False)
     chassis = Column(String(50), unique=False, nullable=False)
-    zone = Column(String(1), unique=False, nullable=False)
-    marque = Column(String(50))
-    modele = Column(String(50))
-    annee = Column(Integer)
+    zone = Column(String(1), nullable=False)
+    marque = Column(String(50), nullable=False)
+    categorie = Column(Integer, nullable=False)
+    modele = Column(String(50), nullable=False)
+    annee = Column(Integer, nullable=False)
     energie = Column(String(20))
-    usage = Column(String(50))
+    usage = Column(String(50), nullable=False)
     places = Column(Integer, default=5)
     has_remorque = Column(Boolean, default=False)
+    libele_tarif = Column(String(50), nullable=False)
 
     # --- PROPRIÉTAIRE & FLOTTE ---
     owner_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)
+    compagny_id = Column(Integer, ForeignKey('automobile_compagnies.id'), nullable=True)
     fleet_id = Column(Integer, ForeignKey('fleets.id'), nullable=True)
+    tarif_id = Column(Integer, ForeignKey('automobile_tarifs.id')) # Si vous liez le véhicule à un tarif fixe
     
     # --- DATES & STATUT ---
     date_debut = Column(Date)
@@ -83,11 +87,22 @@ class Vehicle(Base):
     # Relation vers la flotte
     fleet = relationship("Fleet", back_populates="vehicles")
     owner = relationship("Contact", back_populates="vehicles")
+    compagny = relationship("Compagnie", back_populates="vehicles")
     contracts = relationship("Contract", back_populates="vehicle")
+    tarif = relationship("AutomobileTarif", back_populates="vehicles")
     
 
     def __repr__(self):
         return f"<Vehicle(Immat={self.immatriculation}, Marque={self.marque})>"
+    
+    # Dans automobile_models.py, classe Vehicle
+    @property
+    def total_guarantees_amount(self):
+        return sum([
+            self.amt_rc or 0, self.amt_dr or 0, self.amt_vol or 0,
+            self.amt_vb or 0, self.amt_in or 0, self.amt_bris or 0,
+            self.amt_ar or 0, self.amt_dta or 0, self.amt_ipt or 0
+        ])
     
 class AuditVehicleLog(Base):
     __tablename__ = "audit_vehicle_logs"

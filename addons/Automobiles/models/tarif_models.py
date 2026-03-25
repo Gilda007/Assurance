@@ -70,3 +70,4 @@ class AutomobileTarif(Base):
 
     # Relation inverse
     compagnie = relationship("Compagnie", back_populates="tarifs")
+    vehicles = relationship("Vehicle", back_populates="tarif")

@@ -8,7 +8,6 @@ from addons.Automobiles.models.compagnies_models import Compagnie
 from addons.Automobiles.models.automobile_models import Vehicle, AuditVehicleLog
 from datetime import date, datetime
 import requests
-from addons.Automobiles.models import AutomobileTarif
 
 
 class VehicleController:
@@ -195,45 +194,53 @@ class VehicleController:
 
         return local_ip, public_ip
 
-    def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None):
+    def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None, **kwargs):
+        # Récupération flexible de l'IP (si la vue envoie 'local_ip' au lieu de 'ip_local')
+        local_ip = ip_local or kwargs.get('local_ip')
+        
+        if not local_ip:
+            try:
+                import socket
+                local_ip = socket.gethostbyname(socket.gethostname())
+            except:
+                local_ip = "127.0.0.1"
+
         try:
             vehicle = self.session.query(Vehicle).get(vehicle_id)
             if not vehicle:
                 return False, "Véhicule introuvable."
 
-            # Fonction interne pour transformer les dates en texte pour le JSON
             def date_encoder(obj):
                 if isinstance(obj, (datetime, date)):
                     return obj.isoformat()
                 raise TypeError(f"Type {type(obj)} non sérialisable")
 
-            # 1. Capturer l'ancien état proprement
+            # 1. Capture de l'ancien état pour l'audit
             old_values = {
                 "immatriculation": vehicle.immatriculation,
                 "chassis": vehicle.chassis,
-                "date_debut": vehicle.date_debut,
-                "date_fin": vehicle.date_fin
+                "zone": vehicle.zone,
+                "categorie": vehicle.categorie
             }
 
-            # 2. Appliquer les modifications sur l'objet SQL
+            # 2. Mise à jour de l'objet SQL
             for key, value in new_data.items():
                 if hasattr(vehicle, key):
                     setattr(vehicle, key, value)
 
             vehicle.updated_at = datetime.now()
             vehicle.updated_by = user_id
-            vehicle.last_ip = ip_local
+            vehicle.last_ip = local_ip
 
-            # 3. Audit avec l'argument 'default' pour gérer les dates
+            # 3. Création du log d'audit
             audit = AuditVehicleLog(
                 user_id=user_id,
                 action="UPDATE",
                 module="VEHICLES",
                 item_id=vehicle_id,
-                # 'default=date_encoder' règle le problème du JSON
                 old_values=json.dumps(old_values, default=date_encoder),
                 new_values=json.dumps(new_data, default=date_encoder),
-                ip_local=ip_local,
+                ip_local=local_ip,
                 ip_public=ip_public,
                 timestamp=datetime.now()
             )
@@ -243,10 +250,9 @@ class VehicleController:
             return True, "Mise à jour réussie"
         except Exception as e:
             self.session.rollback()
-            # On affiche l'erreur exacte dans la console pour débugger
             print(f"ERREUR DEBUG: {str(e)}")
             return False, str(e)
-
+        
     def get_audit_logs(self, module_name):
         """
         Récupère les logs d'audit pour un module spécifique.
@@ -261,11 +267,6 @@ class VehicleController:
             print(f"Erreur lors de la récupération des audits : {e}")
             return []
         
-    def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None):
-        vehicle = self.session.query(Vehicle).get(vehicle_id)
-        if not vehicle:
-            return False, "Véhicule introuvable."
-
     def get_contact_stats(self):
         """Calcule les statistiques pour le camembert (Pie Chart) des contacts"""
         contacts = self.get_all_contacts()
@@ -296,7 +297,7 @@ class VehicleController:
             ).first()
 
             if not tarif:
-                print(f"Aucun tarif trouvé pour Cie:{cie_id}, Zone:{zone}, Cat:{categorie}")
+                print(f"Aucun tarif trouvé pour Cie:{cie_id}, Zone:{zone}, Cat:{categorie}, energie:{energie}, nombre de chevaux: {cv_saisi}")
                 return 0.0
 
             # 2. Trouver l'index de la tranche (1 à 10)
