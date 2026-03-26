@@ -326,6 +326,7 @@ class VehicleController:
             clean_cat = "".join(filter(str.isdigit, str(categorie))).zfill(2)
 
             # --- 2. RECHERCHE SQL DYNAMIQUE ---
+            # On commence par les filtres de base
             query = self.session.query(AutomobileTarif).filter(
                 AutomobileTarif.cie_id == cie_id,
                 AutomobileTarif.zone == clean_zone
@@ -360,33 +361,54 @@ class VehicleController:
             # --- 4. SÉLECTION DE LA COLONNE ---
             if avec_remorque:
                 col_name = f"remorq{tranche_num}"
-            elif "essence" in clean_energie:
-                col_name = f"essence_{tranche_num}"
-            elif "diesel" in clean_energie:
-                col_name = f"diesel_{tranche_num}"
             else:
+                # Sans remorque : utiliser primeX (c'est la colonne qui contient les primes RC)
                 col_name = f"prime{tranche_num}"
 
             prime_rc = float(getattr(tarif, col_name, 0.0))
 
             # --- 5. CALCUL VIGNETTE CAMEROUN ---
             vignette = 0
-            if 2 <= cv_val <= 7: vignette = 30000
-            elif 8 <= cv_val <= 13: vignette = 50000
-            elif 14 <= cv_val <= 20: vignette = 75000
-            elif cv_val > 20: vignette = 200000
+            if 2 <= cv_val <= 7:
+                vignette = 30000
+            elif 8 <= cv_val <= 13:
+                vignette = 50000
+            elif 14 <= cv_val <= 20:
+                vignette = 75000
+            elif cv_val > 20:
+                vignette = 200000
 
             # On retourne un dictionnaire pour mettre à jour plusieurs champs dans la Vue
             return {
                 "rc": prime_rc,
                 "vignette": vignette,
-                "libelle": getattr(tarif, 'libelle_tarif', ''),
+                "libelle": getattr(tarif, 'lib_tarif', ''),  # Note: lib_tarif, pas libelle_tarif
                 "categorie": getattr(tarif, 'categorie', clean_cat)
             }
 
         except Exception as e:
             print(f"❌ Erreur critique get_rc_premium: {e}")
-            return {"rc": 0.0, "vignette": 0.0}       
+            return {"rc": 0.0, "vignette": 0.0}
+               
+    def get_tarif_codes_by_compagnie(self, cie_id):
+        """
+        Récupère la liste des codes tarif disponibles pour une compagnie donnée.
+        Retourne une liste de tuples (code, libelle) pour le QComboBox.
+        """
+        try:
+            from addons.Automobiles.models.tarif_models import AutomobileTarif
+            
+            # Récupérer tous les tarifs distincts pour cette compagnie
+            tarifs = self.session.query(AutomobileTarif.tarif_code, AutomobileTarif.lib_tarif)\
+                .filter(AutomobileTarif.cie_id == cie_id)\
+                .distinct()\
+                .all()
+            
+            # Retourner une liste de tuples (code, libelle)
+            return [(t.tarif_code, f"{t.tarif_code} - {t.lib_tarif}") for t in tarifs if t.tarif_code]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des codes tarif : {e}")
+            return []
     
     def add_tranche(self, libelle, max_cv, user_id, local_ip, network_ip):
         from addons.Automobiles.models.tarif_models import AutomobileTarif

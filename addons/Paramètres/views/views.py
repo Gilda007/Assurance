@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, 
-                             QTableWidgetItem, QHeaderView, QLabel, QPushButton, QListWidgetItem, QStackedWidget, QListWidget, QFrame, QMessageBox, QDialog)
+                             QTableWidgetItem, QHeaderView, QLabel, QPushButton, QListWidgetItem, QStackedWidget, QListWidget, QFrame, QMessageBox, QDialog, QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QColor, QIcon, QFont
 from addons.Paramètres.controllers import controller
@@ -15,68 +15,112 @@ class ParametreMainView(QWidget):
     def __init__(self, controller=None, user=None):
         super().__init__()
         self.controller = controller
-        # print(self.controller)
         self.user = user
-        self.pages_cache = {} # Stocke les pages déjà créées
+        self.pages_cache = {}
+
+        # Style Global du Widget Principal
+        self.setObjectName("MainSettingsWindow")
+        self.setStyleSheet("background-color: #f8fafc;")
 
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        # --- Sidebar de navigation ---
+        self.setup_sidebar()
+        self.setup_content_area()
+        
+        # Sélectionner la première page par défaut
+        self.sidebar.setCurrentRow(0)
+
+    def setup_sidebar(self):
+        """Configuration de la barre de navigation latérale"""
+        self.sidebar_container = QFrame()
+        self.sidebar_container.setFixedWidth(250)
+        self.sidebar_container.setStyleSheet("background-color: #1e293b; border: none;")
+        
+        sidebar_layout = QVBoxLayout(self.sidebar_container)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+
+        # Header de la Sidebar (Titre)
+        header = QLabel("  PARAMÈTRES")
+        header.setFixedHeight(70)
+        header.setStyleSheet("""
+            color: #3b82f6; 
+            font-weight: 800; 
+            font-size: 14px; 
+            letter-spacing: 1px;
+            padding-left: 20px;
+            background-color: #0f172a;
+        """)
+        sidebar_layout.addWidget(header)
+
         self.sidebar = QListWidget()
-        self.sidebar.setFixedWidth(220)
         self.sidebar.setObjectName("ParamNav")
+        self.sidebar.setFocusPolicy(Qt.NoFocus)
         self.sidebar.setStyleSheet("""
             QListWidget {
-                background-color: #1e293b;  /* Bleu nuit moderne */
+                background-color: transparent;
                 border: none;
-                padding-top: 20px;
-                outline: none;
+                padding-top: 15px;
             }
             QListWidget::item {
                 color: #94a3b8;
-                padding: 12px 20px;
-                margin: 4px 10px;
-                border-radius: 8px;
-                font-weight: 500;
+                padding: 15px 25px;
+                margin: 4px 15px;
+                border-radius: 10px;
                 font-size: 13px;
+                font-weight: 500;
             }
             QListWidget::item:hover {
                 background-color: #334155;
-                color: white;
+                color: #f8fafc;
             }
             QListWidget::item:selected {
-                background-color: #3b82f6; /* Bleu vif pour l'onglet actif */
+                background-color: #3b82f6;
                 color: white;
             }
         """)
-        # ... (votre style CSS ici) ...
 
-        # --- Stack d'affichage ---
-        self.container = QStackedWidget()
-
-        # Définition des menus
-        self.menu_items = [
-            ("👥 Utilisateurs", "users"),
-            ("📦 Modules", "modules"),
-            ("👤 Mon Compte", "account"),
-            ("ℹ️ À propos", "about")
+        menu_items = [
+            ("👥  Utilisateurs", "users"),
+            ("📦  Modules", "modules"),
+            ("👤  Mon Compte", "account"),
+            ("ℹ️   À propos", "about")
         ]
 
-        for text, key in self.menu_items:
+        for text, key in menu_items:
             item = QListWidgetItem(text)
-            item.setData(Qt.UserRole, key) # On stocke la clé technique
+            item.setData(Qt.UserRole, key)
             self.sidebar.addItem(item)
 
-        self.sidebar.currentRowChanged.connect(self.display_page)
+        sidebar_layout.addWidget(self.sidebar)
+        sidebar_layout.addStretch() # Pousse les éléments vers le haut
         
-        self.layout.addWidget(self.sidebar)
-        self.layout.addWidget(self.container)
+        self.layout.addWidget(self.sidebar_container)
+        self.sidebar.currentRowChanged.connect(self.display_page)
 
-        # Charger la première page
-        self.sidebar.setCurrentRow(0)
-    
+    def setup_content_area(self):
+        """Zone de contenu avec effet d'ombre interne"""
+        self.content_container = QFrame()
+        self.content_layout = QVBoxLayout(self.content_container)
+        self.content_layout.setContentsMargins(30, 30, 30, 30)
+
+        # Stack d'affichage (Pages)
+        self.container = QStackedWidget()
+        self.container.setStyleSheet("background-color: white; border-radius: 20px; border: 1px solid #e2e8f0;")
+        
+        # Ajout d'une ombre portée douce au conteneur de contenu
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        self.container.setGraphicsEffect(shadow)
+
+        self.content_layout.addWidget(self.container)
+        self.layout.addWidget(self.content_container)
+
     def display_page(self, row):
         item = self.sidebar.item(row)
         if not item: return
