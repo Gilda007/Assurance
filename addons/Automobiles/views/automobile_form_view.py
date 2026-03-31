@@ -478,10 +478,10 @@ class VehicleForm(QDialog):
         garanties_layout = QGridLayout(group_garanties)
         garanties_layout.setSpacing(15)
         garanties_layout.setContentsMargins(25, 25, 25, 25)
-        
+
         # Dictionnaire pour stocker les labels de résultat
         self.result_labels = {}
-        
+
         # Liste des garanties
         garanties = [
             ("rc", "RC (Resp. Civile)", "💰 RC"),
@@ -491,13 +491,13 @@ class VehicleForm(QDialog):
             ("in", "Incendie", "🔥 INC"),
             ("bris", "Bris de Glace", "🪟 BG"),
             ("ar", "Assistance Réparation", "🔧 AR"),
-            ("dta", "Dommages Tous Accidents", "💥 DTA"),
+            ("dta", "Dommages", "💥 DTA"),
             ("ipt", "Indiv. Personnes Transportées", "👥 IPT")
         ]
-        
-        for i, (key, label, short_label) in enumerate(garanties):
+
+        for i, (key, label_text, short_label) in enumerate(garanties):
             # Checkbox
-            checkbox = QCheckBox(label)
+            checkbox = QCheckBox(label_text)
             checkbox.setStyleSheet("""
                 QCheckBox {
                     font-size: 12px;
@@ -518,9 +518,9 @@ class VehicleForm(QDialog):
             """)
             setattr(self, f"check_{key}", checkbox)
             
-            # Label de résultat
-            res_lbl = QLabel("0 FCFA")
-            res_lbl.setStyleSheet("""
+            # Label du montant brut
+            montant_brut_label = QLabel("0 FCFA")
+            montant_brut_label.setStyleSheet("""
                 font-weight: bold;
                 color: #27ae60;
                 font-size: 13px;
@@ -528,16 +528,54 @@ class VehicleForm(QDialog):
                 padding: 6px 12px;
                 border-radius: 8px;
             """)
-            res_lbl.setVisible(False)
-            self.result_labels[key] = res_lbl
+            montant_brut_label.setVisible(False)
             
-            # Ajout au grid
+            # Champ taux de réduction
+            taux_input = QLineEdit()
+            taux_input.setPlaceholderText("Taux %")
+            taux_input.setStyleSheet("""
+                QLineEdit {
+                    border: 2px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 6px 10px;
+                    font-size: 12px;
+                    max-width: 80px;
+                }
+                QLineEdit:focus {
+                    border-color: #3498db;
+                }
+            """)
+            taux_input.setVisible(False)
+            
+            # Label du montant net (après réduction)
+            montant_net_label = QLabel("0 FCFA")
+            montant_net_label.setStyleSheet("""
+                font-weight: bold;
+                color: #e67e22;
+                font-size: 13px;
+                background: #fff3e0;
+                padding: 6px 12px;
+                border-radius: 8px;
+            """)
+            montant_net_label.setVisible(False)
+            
+            # Stocker dans le dictionnaire
+            self.result_labels[key] = {
+                'montant_brut': montant_brut_label,
+                'taux': taux_input,
+                'montant_net': montant_net_label
+            }
+            
+            # Ajout au grid - CORRECTION ICI !
             garanties_layout.addWidget(checkbox, i, 0)
             garanties_layout.addWidget(QLabel(short_label), i, 1)
-            garanties_layout.addWidget(res_lbl, i, 2)
+            garanties_layout.addWidget(montant_brut_label, i, 2)  # Utilisez la variable
+            garanties_layout.addWidget(taux_input, i, 3)          # Utilisez la variable
+            garanties_layout.addWidget(montant_net_label, i, 4)   # Utilisez la variable, PAS QLabel()
             
+            # Connexion des signaux
             checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
-        
+
         form_layout.addWidget(group_garanties)
         
         # === SECTION 5: RÉCAPITULATIF FINANCIER ===
@@ -568,16 +606,21 @@ class VehicleForm(QDialog):
             font-size: 16px;
         """
         
-        recap_layout.addWidget(QLabel("💰 Prime Brute"), 0, 0)
+        recap_layout.addWidget(QLabel("💰 PTTC"), 0, 0)
         recap_layout.addWidget(QLabel("🎁 Réduction"), 0, 1)
         recap_layout.addWidget(QLabel("✨ Prime Nette"), 0, 2)
+        recap_layout.addWidget(QLabel("✨ Carte Rose"), 2, 0)
+        recap_layout.addWidget(QLabel("✨ Accessoires"), 2, 1)
+        recap_layout.addWidget(QLabel("✨ TVA"), 2, 2)
+        recap_layout.addWidget(QLabel("✨ Fichier ASAC"), 4, 1)
+        recap_layout.addWidget(QLabel("✨ Montant de la Vignette"), 4, 0)
         
         self.prime_brute = QLineEdit("0")
         self.prime_brute.setReadOnly(True)
         self.prime_brute.setStyleSheet(style_auto)
         recap_layout.addWidget(self.prime_brute, 1, 0)
         
-        self.reduction = QLineEdit("0")
+        self.reduction = QLineEdit("00")
         self.reduction.setReadOnly(True)
         self.reduction.setStyleSheet(style_auto)
         recap_layout.addWidget(self.reduction, 1, 1)
@@ -590,6 +633,30 @@ class VehicleForm(QDialog):
         self.prime_emise = QLineEdit()
         self.prime_emise.setReadOnly(True)
         self.prime_emise.setVisible(False)  # Champ caché pour la BD
+
+        self.carte_rose = QLineEdit("0")
+        self.carte_rose.setStyleSheet(style_nette)
+        recap_layout.addWidget(self.carte_rose, 3, 0)
+
+        self.accessoire = QLineEdit("0")
+        self.accessoire.setReadOnly(True)
+        self.accessoire.setStyleSheet(style_nette)
+        recap_layout.addWidget(self.accessoire, 3, 1)
+
+        self.tva = QLineEdit("0")
+        self.tva.setReadOnly(True)
+        self.tva.setStyleSheet(style_nette)
+        recap_layout.addWidget(self.tva, 3, 2)
+        
+        self.asac = QLineEdit("0")
+        self.asac.setReadOnly(True)
+        self.asac.setStyleSheet(style_nette)
+        recap_layout.addWidget(self.asac, 5, 1)
+
+        self.vignette = QLineEdit("0")
+        self.vignette.setReadOnly(False)
+        self.vignette.setStyleSheet(style_nette)
+        recap_layout.addWidget(self.vignette, 5, 0)
         checkbox.stateChanged.connect(lambda state, k=key: self.handle_garantie_click(k, state))
         checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
         
@@ -700,6 +767,7 @@ class VehicleForm(QDialog):
         if hasattr(self, 'drag_position'):
             delattr(self, 'drag_position')
 
+    
     # ... (toutes les autres méthodes existantes restent identiques)
     def filter_clients(self, text):
         """Filtre les clients selon la recherche"""
@@ -830,11 +898,41 @@ class VehicleForm(QDialog):
             
             # --- CHECKBOXES DES GARANTIES ---
             garanties_keys = ["rc", "dr", "vol", "vb", "in", "bris", "ar", "dta", "ipt"]
+            # --- AFFICHAGE DES MONTANTS DES GARANTIES DEPUIS LA BASE ---
             for key in garanties_keys:
-                checkbox = getattr(self, f"check_{key}", None)
-                if checkbox:
-                    valeur_bd = getattr(v, f"check_{key}", False)
-                    checkbox.setChecked(bool(valeur_bd))
+                amt_field = f"amt_{key}"
+                garantie_data = self.result_labels.get(key)  # C'est maintenant un dictionnaire
+                
+                if garantie_data and hasattr(v, amt_field) and getattr(v, amt_field):
+                    montant = float(getattr(v, amt_field))
+                    montant_brut_label = garantie_data['montant_brut']  # Récupérer le label brut
+                    montant_brut_label.setText(f"{montant:,.0f} FCFA".replace(",", " "))
+                    montant_brut_label.setVisible(True)
+                    
+                    # Appliquer le style adapté
+                    if montant > 0:
+                        montant_brut_label.setStyleSheet("""
+                            color: #27ae60;
+                            font-weight: bold;
+                            background-color: #e8f5e9;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                        """)
+                    else:
+                        montant_brut_label.setStyleSheet("""
+                            color: #95a5a6;
+                            font-weight: normal;
+                            background-color: #f8f9fa;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                        """)
+                elif garantie_data:
+                    # Si la garantie n'est pas cochée, on cache le label
+                    checkbox = getattr(self, f"check_{key}", None)
+                    if checkbox and not checkbox.isChecked():
+                        montant_brut_label = garantie_data['montant_brut']
+                        montant_brut_label.setVisible(False)
+                        montant_brut_label.setText("0 FCFA")
             
             # --- CHECKBOX REMORQUE ---
             if hasattr(v, 'has_remorque'):
@@ -942,9 +1040,12 @@ class VehicleForm(QDialog):
             # S'assurer que seules les garanties cochées sont visibles
             for key in garanties_keys:
                 checkbox = getattr(self, f"check_{key}", None)
-                label = self.result_labels.get(key)
-                if checkbox and label:
-                    label.setVisible(checkbox.isChecked())
+                garantie_data = self.result_labels.get(key)
+                if checkbox and garantie_data:
+                    is_checked = checkbox.isChecked()
+                    garantie_data['montant_brut'].setVisible(is_checked)
+                    garantie_data['taux'].setVisible(is_checked)
+                    garantie_data['montant_net'].setVisible(is_checked)
             
             # --- NE PAS RECALCULER AUTOMATIQUEMENT ---
             # On affiche simplement les données existantes sans déclencher de recalcul
@@ -957,11 +1058,25 @@ class VehicleForm(QDialog):
     def get_form_data(self):
         """Récupère les données du formulaire"""
         def clean_amt(key):
-            label = self.result_labels.get(key)
-            if label and label.isVisible():
-                txt = label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
-                return float(txt) if txt else 0.0
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                montant_net_label = garantie_data['montant_net']  # Utiliser le montant net
+                if montant_net_label and montant_net_label.isVisible():
+                    txt = montant_net_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    return float(txt) if txt else 0.0
             return 0.0
+        
+        def get_red_amt(key):
+                garantie_data = self.result_labels.get(key)
+                if garantie_data:
+                    montant_net_label = garantie_data['montant_net']
+                    if montant_net_label and montant_net_label.isVisible():
+                        txt = montant_net_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                        try:
+                            return float(txt) if txt and "Erreur" not in txt else 0.0
+                        except ValueError:
+                            return 0.0
+                return 0.0
         
         def clean_input(widget):
             txt = widget.text().replace(" ", "").replace(",", ".")
@@ -1030,7 +1145,17 @@ class VehicleForm(QDialog):
             "amt_bris": clean_amt("bris"),
             "amt_ar": clean_amt("ar"),
             "amt_dta": clean_amt("dta"),
-            "amt_ipt": clean_amt("ipt")
+            "amt_ipt": clean_amt("ipt"),
+
+            "amt_red_rc": get_red_amt("rc"),
+            "amt_red_dr": get_red_amt("dr"),
+            "amt_red_vol": get_red_amt("vol"),
+            "amt_red_vb": get_red_amt("vb"),
+            "amt_red_in": get_red_amt("in"),
+            "amt_red_bris": get_red_amt("bris"),
+            "amt_red_ar": get_red_amt("ar"),
+            "amt_red_dta": get_red_amt("dta"),
+            "amt_red_ipt": get_red_amt("ipt")
         }
         return data
 
@@ -1153,20 +1278,17 @@ class VehicleForm(QDialog):
     def update_rc_calculation(self):
         """Récupère les données du formulaire et interroge le contrôleur pour la RC."""
         try:
-            # 1. Récupération des informations du formulaire
-            # Note: Assurez-vous que ces noms d'attributs correspondent à vos widgets
+            # Récupération des informations du formulaire
             cie_id = self.selected_cie_id 
             zone = self.combo_zone.currentText()
-            categorie = self.combo_cat.text() # ex: '01'
-            energie = self.energie_combo.currentText() # 'Essence' ou 'Diesel'
+            categorie = self.combo_cat.text()
+            energie = self.energie_combo.currentText()
             
             cv_text = self.usage_input.text().strip()
             cv = int(cv_text) if cv_text else 0
             
-            # Vérification si la checkbox remorque globale est cochée
             avec_remorque = self.check_remorque.isChecked() 
 
-            # 2. Appel de la méthode de matrice via le contrôleur
             if self.controller:
                 montant_rc = self.controller.vehicles.get_rc_premium_from_matrix(
                     cie_id=cie_id,
@@ -1177,30 +1299,48 @@ class VehicleForm(QDialog):
                     avec_remorque=avec_remorque
                 )
 
-                # 3. Mise à jour du label de résultat
-                if montant_rc > 0:
-                    self.result_labels["rc"].setText(f"{montant_rc:,.0f} FCFA")
-                else:
-                    self.result_labels["rc"].setText("Tarif introuvable")
+                # Mise à jour du label de résultat
+                garantie_data = self.result_labels.get("rc")
+                if garantie_data and montant_rc > 0:
+                    garantie_data['montant_brut'].setText(f"{montant_rc:,.0f} FCFA")
+                    garantie_data['montant_net'].setText(f"{montant_rc:,.0f} FCFA")
+                elif garantie_data:
+                    garantie_data['montant_brut'].setText("Tarif introuvable")
+                    garantie_data['montant_net'].setText("Tarif introuvable")
 
         except Exception as e:
             print(f"Erreur lors du calcul RC : {e}")
-            self.result_labels["rc"].setText("Erreur calcul")
+            garantie_data = self.result_labels.get("rc")
+            if garantie_data:
+                garantie_data['montant_brut'].setText("Erreur calcul")
+                garantie_data['montant_net'].setText("Erreur calcul")
   
     def calculate_total_premium(self):
         """Calcule le total des primes avec gestion sécurisée des types"""
         try:
             def get_amt(key):
-                label = self.result_labels.get(key)
-                # Vérifie si le label existe, est visible et n'est pas un message d'erreur
-                if label and label.isVisible():
-                    txt = label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
-                    # Protection contre les textes non numériques (ex: "⚠️Erreur")
-                    try:
-                        return float(txt) if txt and "Erreur" not in txt else 0.0
-                    except ValueError:
-                        return 0.0
-                return 0.0  # <--- CORRECTION : Retourne toujours un float, jamais le label
+                garantie_data = self.result_labels.get(key)
+                if garantie_data:
+                    montant_brut_label = garantie_data['montant_brut']
+                    if montant_brut_label and montant_brut_label.isVisible():
+                        txt = montant_brut_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                        try:
+                            return float(txt) if txt and "Erreur" not in txt else 0.0
+                        except ValueError:
+                            return 0.0
+                return 0.0
+
+            def get_red_amt(key):
+                garantie_data = self.result_labels.get(key)
+                if garantie_data:
+                    montant_net_label = garantie_data['montant_net']
+                    if montant_net_label and montant_net_label.isVisible():
+                        txt = montant_net_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                        try:
+                            return float(txt) if txt and "Erreur" not in txt else 0.0
+                        except ValueError:
+                            return 0.0
+                return 0.0
             
             # Récupération sécurisée (tous seront des floats)
             amt_rc = get_amt("rc")
@@ -1212,17 +1352,26 @@ class VehicleForm(QDialog):
             amt_dta = get_amt("dta")
             amt_ar = get_amt("ar")
             amt_ipt = get_amt("ipt")
+
+            amt_red_rc = get_red_amt("rc")
+            amt_red_dr = get_red_amt("dr")
+            amt_red_vol = get_red_amt("vol")
+            amt_red_vb = get_red_amt("vb")
+            amt_red_in = get_red_amt("in")
+            amt_red_bris = get_red_amt("bris")
+            amt_red_dta = get_red_amt("dta")
+            amt_red_ar = get_red_amt("ar")
+            amt_red_ipt = get_red_amt("ipt")
             
             # 1. Total Brut
-            total_brut = amt_rc + amt_dr + amt_vol + amt_vb + amt_in + amt_bris + amt_dta + amt_ar + amt_ipt
+            total_net = amt_rc + amt_dr + amt_vol + amt_vb +  amt_in + amt_bris + amt_dta + amt_ar + amt_ipt
+            total_reduction = amt_red_rc + amt_red_dr + amt_red_vol + amt_red_vb + amt_red_in + amt_red_bris + amt_red_dta + amt_red_ar + amt_red_ipt
             
             # 2. Calcul des Réductions (Exemple de logique commerciale)
-            # Note : Vérifie si amt_dr doit vraiment être dans la partie A à 10%
-            partie_A = (amt_rc + amt_dr) * 0.10
-            partie_B = (amt_vol + amt_vb + amt_in + amt_bris + amt_dta) * 0.50
+            # partie_A = (amt_rc + amt_dr) * 0.10
+            # partie_B = (amt_vol + amt_vb + amt_in + amt_bris + amt_dta) * 0.50
             
-            total_reduction = partie_A + partie_B
-            total_net = total_brut - total_reduction
+            total_brut = total_net + total_reduction
             
             # 3. Mise à jour de l'affichage
             self.prime_brute.setText(f"{total_brut:,.0f}".replace(",", " "))
@@ -1234,7 +1383,7 @@ class VehicleForm(QDialog):
             
         except Exception as e:
             print(f"Erreur dans le récapitulatif financier : {e}")
-    
+
     def refresh_all_garanties(self):
         """Rafraîchit toutes les garanties"""
         for key in self.result_labels.keys():
@@ -1280,193 +1429,73 @@ class VehicleForm(QDialog):
 
     def update_garantie_price(self, key, state):
         """
-        Met à jour le prix d'une garantie avec audit et matrice de tarifs
-        
-        Args:
-            key (str): Identifiant de la garantie ('rc', 'vol', 'in', etc.)
-            state (int): État de la checkbox (0=non coché, 2=coché)
+        Met à jour le prix d'une garantie
         """
-        label = self.result_labels.get(key)
-        if not label:
+        garantie_data = self.result_labels.get(key)
+        if not garantie_data:
             return
+        
+        montant_brut_label = garantie_data['montant_brut']
+        taux_widget = garantie_data['taux']
+        montant_net_label = garantie_data['montant_net']
 
         try:
             if state:  # Garantie activée
-                # 1. Calcul du prorata (période de validité)
+                # Calcul du prorata
                 d_debut = self.date_debut.date().toPython()
                 d_fin = self.date_fin.date().toPython()
                 nbr_jr = max(0, (d_fin - d_debut).days)
-                prorata = nbr_jr / 365.0 if nbr_jr > 0 else 0
-
-                # creation de champs nombre de jour pour le calcul de la RC
+                prorata = nbr_jr / 365.0 if nbr_jr > 0 else 1
                 
-                # 2. Fonction sécurisée de récupération des valeurs numériques
-                def safe_float(widget, default=0.0):
-                    try:
-                        if not widget or not widget.text():
-                            return default
-                        txt = widget.text().strip().replace(" ", "").replace(",", ".")
-                        return float(txt) if txt and txt != "." else default
-                    except (ValueError, AttributeError):
-                        return default
+                # Calcul du montant brut selon le type de garantie
+                montant_brut = self.calculate_garantie_amount(key, prorata)
                 
-                # 3. Récupération des valeurs nécessaires
-                v_venale = safe_float(self.val_venale)
-                v_neuf = safe_float(self.val_neuf)
-                
-                # Récupération du nombre de places
-                try:
-                    places = int(self.places_input.text()) if self.places_input.text().strip() else 1
-                except (ValueError, AttributeError):
-                    places = 1
-                    
-                # Récupération de la puissance fiscale (CV)
-                try:
-                    cv = int(self.usage_input.text()) if self.usage_input.text().strip().isdigit() else 0
-                except (ValueError, AttributeError):
-                    cv = 0
-                
-                montant = 0
-                base_annuelle = 0
-
-                if key == "rc":  # Responsabilité Civile
-                    if self.selected_cie_id:
-                        # Récupérer le code tarif
-                        if hasattr(self.code_tarif, 'currentText'):
-                            code_tarif = self.code_tarif.currentText().strip()
-                        else:
-                            code_tarif = self.code_tarif.currentText().strip()
-                        
-                        # Récupérer la catégorie
-                        categorie = self.combo_cat.text().strip()
-                        
-                        # ⭐⭐⭐ POINT CRITIQUE - Récupérer l'état ACTUEL de la checkbox remorque ⭐⭐⭐
-                        avec_remorque = self.check_remorque.isChecked()  # <-- C'est ici qu'il faut prendre la valeur
-                        
-                        # Récupérer la zone
-                        zone = self.combo_zone.currentText()
-                        
-                        # Récupérer l'énergie
-                        energie = self.energie_combo.currentText()
-                        
-                        # Afficher pour déboguer
-                        print(f"🔍 Clique sur RC - avec_remorque = {avec_remorque}")
-                        
-                        # Appeler la méthode du contrôleur
-                        res_rc = self.controller.vehicles.get_rc_premium_from_matrix(
-                            cie_id=self.selected_cie_id,
-                            zone_saisie=zone,
-                            categorie=categorie,
-                            energie=energie,
-                            cv_saisi=cv,
-                            avec_remorque=avec_remorque,  # <-- Utilise la valeur réelle
-                            code_tarif=code_tarif if code_tarif else None
-                        )
-                        
-                        # Récupérer les résultats
-                        base_annuelle = res_rc.get('rc', 0.0)
-                        libelle = res_rc.get('libelle', '')
-                        categorie_retournee = res_rc.get('categorie', '')
-                        
-                        print(f"💰 Résultat RC = {base_annuelle}")
-                        
-                        # Mettre à jour le libellé si nécessaire
-                        if libelle and self.combo_fleet.currentText() != libelle:
-                            self.combo_fleet.setCurrentText(libelle)
-                        
-                        # Mettre à jour la catégorie si nécessaire
-                        if categorie_retournee and self.combo_cat.text() != categorie_retournee:
-                            self.combo_cat.setText(categorie_retournee)
-                        
-                        montant = base_annuelle
-                        
-                elif key == "dr":  # Défense Recours
-                    # 10% de la RC 
-                    montant = self.get_rc_base_amount() * 0.03 * prorata
-                    
-                elif key == "vol":  # Vol
-                    montant = v_venale * 0.02 / prorata
-                    
-                elif key == "vb":  # Vol / Braquage
-                    montant = v_venale * 0.02 / prorata
-                    
-                elif key == "in":  # Incendie
-                    montant = v_venale * 0.0025 * prorata
-                    
-                elif key == "bris":  # Bris de Glace
-                    montant = v_neuf * 0.005 *prorata
-                    
-                elif key == "ar":  # Assistance Réparation
-                    montant = v_venale * 0.03 * prorata
-                    
-                elif key == "dta":  # Individuelle Personnes Transportées. enlever la DTA dans la formule de la prime
-                    # dommmage 4% val_neuv. sur la Dommage tout risque. renommer la ckeckbox DTA en DTA
-                    # TVA, accessoires , Carte rose, TVA *0.19, Fichier ASAC (TVA)
-                    if cv < 2:
-                        montant = 0
-                    elif 2 <= cv <= 7:
-                        montant = 30000 * prorata
-                    elif 8 <= cv <= 13:
-                        montant = 50000 * prorata
-                    elif 14 <= cv <= 20:
-                        montant = 75000 * prorata
-                    elif cv > 20:
-                        montant = 200000 * prorata
-                        
-                elif key == "ipt":  # Dommages Tous Accidents
-                    montant = v_neuf * 0.05 * prorata
-
-                    
-                # Appliquer le prorata si nécessaire (sauf pour la RC qui est annuelle)
-                if key != "rc":
-                    montant = montant / prorata
-                
-                # Affichage
-                if montant > 0:
-                    label.setText(f"{montant:,.0f} FCFA".replace(",", " "))
-                    label.setStyleSheet("""
+                # Afficher le montant brut
+                if montant_brut > 0:
+                    montant_brut_label.setText(f"{montant_brut:,.0f} FCFA".replace(",", " "))
+                    montant_brut_label.setStyleSheet("""
                         color: #27ae60;
                         font-weight: bold;
                         background-color: #e8f5e9;
                         padding: 4px 8px;
                         border-radius: 6px;
                     """)
-                    if key == "rc":
-                        label.setToolTip(f"RC {'avec' if avec_remorque else 'sans'} remorque")
                 else:
-                    label.setText("0 FCFA")
-                    label.setStyleSheet("""
-                        color: #95a5a6;
-                        font-weight: normal;
-                        background-color: #f8f9fa;
-                        padding: 4px 8px;
-                        border-radius: 6px;
-                    """)
+                    montant_brut_label.setText("0 FCFA")
                 
-                label.setVisible(True)
+                # Afficher les widgets
+                montant_brut_label.setVisible(True)
+                taux_widget.setVisible(True)
+                montant_net_label.setVisible(True)
+                
+                # Connecter le signal du taux si ce n'est pas déjà fait
+                try:
+                    taux_widget.textChanged.disconnect()
+                except:
+                    pass
+                taux_widget.textChanged.connect(lambda: self.update_net_amount(key))
+                
+                # Calculer le montant net initial
+                self.update_net_amount(key)
                 
             else:  # Garantie désactivée
-                label.setText("0 FCFA")
-                label.setVisible(False)
+                # Cacher tous les widgets
+                montant_brut_label.setVisible(False)
+                taux_widget.setVisible(False)
+                montant_net_label.setVisible(False)
                 
+                # Réinitialiser
+                montant_brut_label.setText("0 FCFA")
+                montant_net_label.setText("0 FCFA")
+                taux_widget.setText("")
+            
+            self.calculate_total_premium()
+            
         except Exception as e:
-            print(f"❌ Erreur de calcul pour la garantie '{key}': {str(e)}")
+            print(f"❌ Erreur pour la garantie '{key}': {str(e)}")
             import traceback
             traceback.print_exc()
-            
-            label.setText("⚠️ Erreur")
-            label.setStyleSheet("""
-                color: #e74c3c;
-                font-weight: bold;
-                background-color: #fee;
-                padding: 4px 8px;
-                border-radius: 6px;
-            """)
-            label.setVisible(True)
-        
-        finally:
-            self.calculate_total_premium()
-    
+  
     def get_rc_base_amount(self):
         """
         Récupère le montant de base de la RC (utile pour les garanties dépendantes)
@@ -1475,24 +1504,185 @@ class VehicleForm(QDialog):
             float: Montant de la RC (0 si non calculée)
         """
         try:
-            label_rc = self.result_labels.get("rc")
-            if label_rc and label_rc.isVisible():
-                txt = label_rc.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
-                return float(txt) if txt else 0.0
+            garantie_data = self.result_labels.get("rc")
+            if garantie_data:
+                montant_brut_label = garantie_data['montant_brut']
+                if montant_brut_label and montant_brut_label.isVisible():
+                    txt = montant_brut_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    return float(txt) if txt else 0.0
             return 0.0
         except (ValueError, AttributeError):
             return 0.0
         
     def handle_garantie_click(self, key, state):
-        """Gère l'affichage et le calcul lors du clic sur une garantie."""
+        """Gère l'affichage et le calcul lors du clic sur une garantie"""
         is_checked = (state == Qt.Checked or state == 2)
-        res_label = self.result_labels.get(key)
+        garantie_data = self.result_labels.get(key)
+        
+        if garantie_data:
+            if is_checked:
+                garantie_data['montant_brut'].setVisible(True)
+                garantie_data['taux'].setVisible(True)
+                garantie_data['montant_net'].setVisible(True)
+                if key == "rc":
+                    self.update_rc_calculation()
+            else:
+                garantie_data['montant_brut'].setVisible(False)
+                garantie_data['taux'].setVisible(False)
+                garantie_data['montant_net'].setVisible(False)
+                garantie_data['montant_brut'].setText("0 FCFA")
+                garantie_data['montant_net'].setText("0 FCFA")
 
-        if is_checked:
-            res_label.setVisible(True)
-            if key == "rc":
-                # Déclenche le calcul immédiat de la RC
-                self.update_rc_calculation()
-        else:
-            res_label.setVisible(False)
-            res_label.setText("0 FCFA")
+    def calculate_garantie_amount(self, key, prorata):
+        """Calcule le montant brut de la garantie"""
+        # Récupérer les valeurs nécessaires
+        v_venale = self.get_float_value(self.val_venale)
+        v_neuf = self.get_float_value(self.val_neuf)
+        
+        if key == "rc":
+            return self.calculate_rc_brut()
+        elif key == "dr":
+            return self.get_rc_base_amount() * 0.03
+        elif key == "vol":
+            return v_venale * 0.02 * prorata
+        elif key == "vb":
+            return v_venale * 0.02 * prorata
+        elif key == "in":
+            return v_venale * 0.0025 * prorata
+        elif key == "bris":
+            return v_neuf * 0.005 * prorata
+        elif key == "ar":
+            return v_venale * 0.03 * prorata
+        elif key == "dta":
+            cv = self.get_int_value(self.usage_input)
+            if cv < 2:
+                return 0
+            elif 2 <= cv <= 7:
+                return 30000 * prorata
+            elif 8 <= cv <= 13:
+                return 50000 * prorata
+            elif 14 <= cv <= 20:
+                return 75000 * prorata
+            else:
+                return 200000 * prorata
+        elif key == "ipt":
+            return v_neuf * 0.05 * prorata
+        return 0
+
+    def update_net_amount(self, key):
+        """Met à jour le montant net après application du taux"""
+        garantie_data = self.result_labels.get(key)
+        if not garantie_data:
+            return
+        
+        try:
+            # Récupérer le montant brut
+            brut_text = garantie_data['montant_brut'].text()
+            brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+            montant_brut = float(brut_text) if brut_text else 0
+            
+            # Récupérer le taux
+            taux_text = garantie_data['taux'].text().strip()
+            if taux_text.endswith('%'):
+                taux_text = taux_text[:-1]
+            
+            taux = float(taux_text) if taux_text else 0
+            
+            # Calculer le montant net
+            if taux > 0:
+                reduction = montant_brut * (taux / 100)
+                montant_net = montant_brut - reduction
+            else:
+                montant_net = montant_brut
+            
+            # Afficher le montant net
+            montant_net_label = garantie_data['montant_net']
+            montant_net_label.setText(f"{montant_net:,.0f} FCFA".replace(",", " "))
+            
+            # Appliquer un style différent selon le taux
+            if taux > 0:
+                montant_net_label.setStyleSheet("""
+                    color: #e67e22;
+                    font-weight: bold;
+                    background-color: #fff3e0;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    border-left: 2px solid #e67e22;
+                """)
+            else:
+                montant_net_label.setStyleSheet("""
+                    color: #27ae60;
+                    font-weight: bold;
+                    background-color: #e8f5e9;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                """)
+            
+            # Mettre à jour le total
+            self.calculate_total_premium()
+            
+        except Exception as e:
+            print(f"Erreur lors du calcul du montant net pour {key}: {e}")
+
+    def get_float_value(self, widget):
+        """Récupère une valeur float d'un widget"""
+        try:
+            if not widget or not widget.text():
+                return 0.0
+            txt = widget.text().strip().replace(" ", "").replace(",", ".")
+            return float(txt) if txt else 0.0
+        except:
+            return 0.0
+
+    def get_int_value(self, widget):
+        """Récupère une valeur int d'un widget"""
+        try:
+            if not widget or not widget.text():
+                return 0
+            return int(widget.text())
+        except:
+            return 0
+
+    def calculate_rc_brut(self):
+        """Calcule le montant brut de la RC"""
+        try:
+            if not self.selected_cie_id:
+                return 0
+                
+            # Récupérer les paramètres
+            code_tarif = self.code_tarif.currentText().strip() if hasattr(self.code_tarif, 'currentText') else ""
+            categorie = self.combo_cat.text().strip()
+            avec_remorque = self.check_remorque.isChecked()
+            zone = self.combo_zone.currentText()
+            energie = self.energie_combo.currentText()
+            cv = self.get_int_value(self.usage_input)
+            
+            # Appeler la méthode du contrôleur
+            res_rc = self.controller.vehicles.get_rc_premium_from_matrix(
+                cie_id=self.selected_cie_id,
+                zone_saisie=zone,
+                categorie=categorie,
+                energie=energie,
+                cv_saisi=cv,
+                avec_remorque=avec_remorque,
+                code_tarif=code_tarif if code_tarif else None
+            )
+            
+            # Récupérer le montant
+            montant_rc = res_rc.get('rc', 0.0)
+            
+            # Mettre à jour le libellé et la catégorie si nécessaire
+            libelle = res_rc.get('libelle', '')
+            categorie_retournee = res_rc.get('categorie', '')
+            
+            if libelle and self.combo_fleet.currentText() != libelle:
+                self.combo_fleet.setCurrentText(libelle)
+            
+            if categorie_retournee and self.combo_cat.text() != categorie_retournee:
+                self.combo_cat.setText(categorie_retournee)
+            
+            return montant_rc
+            
+        except Exception as e:
+            print(f"Erreur lors du calcul RC : {e}")
+            return 0

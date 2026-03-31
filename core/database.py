@@ -11,14 +11,32 @@ from sqlalchemy.exc import SQLAlchemyError
 load_dotenv()
 
 # Création de l'URL de manière structurée
-url_object = URL.create(
-    drivername=os.getenv("DRIVERNAME"),
-    username=os.getenv("DB_USER"),
-    password=os.getenv("DB_PASS"),
-    host=os.getenv("DB_HOST"), # Valeur par défaut si vide
-    port=os.getenv("DB_PORT", 5432),
-    database=os.getenv("DB_NAME")
-)
+# Priorité à DATABASE_URL (par exemple pour PyInstaller/onefile), sinon variables séparées
+database_url = os.getenv("DATABASE_URL")
+if database_url:
+    url_object = database_url
+else:
+    drivername = os.getenv("DRIVERNAME", "postgresql")
+    if not isinstance(drivername, str) or not drivername.strip():
+        raise RuntimeError("DRIVERNAME doit être défini et une chaîne non vide")
+
+    username = os.getenv("DB_USER")
+    password = os.getenv("DB_PASS")
+    host = os.getenv("DB_HOST", "localhost")
+    port = os.getenv("DB_PORT", "5432")
+    database = os.getenv("DB_NAME", "")
+
+    if not database:
+        raise RuntimeError("DB_NAME doit être défini")
+
+    url_object = URL.create(
+        drivername=drivername,
+        username=username,
+        password=password,
+        host=host,
+        port=port,
+        database=database,
+    )
 
 # On ajoute explicitement le paramètre client_encoding
 try:

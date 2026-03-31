@@ -59,7 +59,6 @@ class LoginController(QObject):
         print(f"Username saisi: '{username}'")
         if user:
             print(f"User trouvé en BDD: '{user.username}'")
-            print(f"Hash stocké: {user.password_hash}")
             # Test direct de bcrypt ici
             import bcrypt
             is_ok = bcrypt.checkpw(password.encode('utf-8'), user.password_hash.encode('utf-8'))
