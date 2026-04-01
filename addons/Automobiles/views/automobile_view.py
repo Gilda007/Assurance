@@ -7,6 +7,7 @@ from PySide6.QtCharts import QChart, QChartView, QPieSeries
 from addons.Automobiles.views.audit_auto_view import AuditLogDialog
 from addons.Automobiles.views.flotte_form_view import FleetForm
 from addons.Automobiles.views.automobile_form_view import VehicleForm
+from addons.Automobiles.views.vehicle_detail_view import VehicleDetailView
 import os
 from core.logger import logger
 
@@ -301,6 +302,8 @@ class VehiculeModuleView(QWidget):
                 btn.clicked.connect(lambda checked, v=vehicle: self.on_delete_vehicle(v))
             elif key == "edit":
                 btn.clicked.connect(lambda checked, v=vehicle: self.on_edit_vehicle(v))
+            elif key == "view":
+                btn.clicked.connect(lambda checked, v=vehicle: self.show_detail_vehicle(v))
             
             layout.addWidget(btn)
 
@@ -473,6 +476,109 @@ class VehiculeModuleView(QWidget):
             else:
                 QMessageBox.critical(self, "Erreur", message)
                 logger.error(f"Erreur: {message}")
+
+    def show_detail_vehicle(self, vehicle):
+        """
+        Prépare et affiche l'interface de détails pour un objet Vehicle du modèle SQLAlchemy.
+        """
+        try:
+            # 1. Extraction et formatage des données depuis le modèle SQLAlchemy (automobile_models.py)
+            # On utilise getattr par sécurité pour éviter les AttributeError si un champ est None
+            
+            # Récupération du nom du propriétaire (Contact)
+            owner_name = "N/A"
+            if hasattr(vehicle, 'owner') and vehicle.owner:
+                owner_name = f"{getattr(vehicle.owner, 'nom', '')} {getattr(vehicle.owner, 'prenom', '')}".strip()
+            
+            # Récupération du nom de la compagnie d'assurance
+            compagny_name = "Non définie"
+            if hasattr(vehicle, 'compagny') and vehicle.compagny:
+                compagny_name = getattr(vehicle.compagny, 'nom', 'N/A')
+
+            vehicle_data = {
+                # Identification
+                'immatriculation': getattr(vehicle, 'immatriculation', 'N/A'),
+                'chassis': getattr(vehicle, 'chassis', 'N/A'),
+                'marque': getattr(vehicle, 'marque', 'N/A'),
+                'modele': getattr(vehicle, 'modele', 'N/A'),
+                'annee': str(getattr(vehicle, 'annee', 'N/A')),
+                
+                'date_debut': vehicle.date_debut.strftime('%d/%m/%Y') if vehicle.date_debut else "",
+                'date_fin': vehicle.date_fin.strftime('%d/%m/%Y') if vehicle.date_fin else "",
+                
+                # Technique
+                'energy': getattr(vehicle, 'energie', 'N/A'),
+                'usage': getattr(vehicle, 'usage', '0'), # Dans votre code, usage semble porter la puissance
+                'places': str(getattr(vehicle, 'places', '5')),
+                'zone': getattr(vehicle, 'zone', 'N/A'),
+                'categorie': getattr(vehicle, 'categorie', 'N/A'),
+                'code_tarif': getattr(vehicle, 'code_tarif', 'N/A'),
+                
+                # Propriétaire & Assurance
+                'owner': owner_name,
+                'compagny': compagny_name,
+                'phone': getattr(vehicle.owner, 'telephone', 'N/A') if vehicle.owner else "N/A",
+                'city': getattr(vehicle.owner, 'ville', 'Yaoundé') if vehicle.owner else "Yaoundé",
+                
+                # Montants des garanties (pour affichage dans les détails)
+                'amt_rc': getattr(vehicle, 'amt_rc', 0),
+                'amt_dr': getattr(vehicle, 'amt_dr', 0),
+                'amt_vb': getattr(vehicle, 'amt_vb', 0),
+                'amt_vol': getattr(vehicle, 'amt_vol', 0),
+                'amt_in': getattr(vehicle, 'amt_in', 0),
+                'amt_bris': getattr(vehicle, 'amt_bris', 0),
+                'amt_ar': getattr(vehicle, 'amt_ar', 0),
+                'amt_dta': getattr(vehicle, 'amt_dta', 0),
+                'amt_ipt': getattr(vehicle, 'amt_ipt', 0),
+                'amt_attest': getattr(vehicle, 'prime_nette', 0),
+
+                # Montants des garanties (pour affichage dans les détails)
+                'amt_red_rc': getattr(vehicle, 'amt_red_rc', 0),
+                'amt_red_dr': getattr(vehicle, 'amt_red_dr', 0),
+                'amt_red_vol': getattr(vehicle, 'amt_red_vol', 0),
+                'amt_red_vb': getattr(vehicle, 'amt_red_vb', 0),
+                'amt_red_in': getattr(vehicle, 'amt_red_in', 0),
+                'amt_red_bris': getattr(vehicle, 'amt_red_bris', 0),
+                'amt_red_ar': getattr(vehicle, 'amt_red_ar', 0),
+                'amt_red_dta': getattr(vehicle, 'amt_red_dta', 0),
+                'amt_red_ipt': getattr(vehicle, 'amt_red_ipt', 0)
+            }
+
+            # 2. Importation de la vue de détails
+            # (Assurez-vous que le nom du fichier est correct : vehicle_detail_view.py)
+            from .vehicle_detail_view import VehicleDetailView
+            
+            # 3. Création et configuration du dialogue
+            from PySide6.QtWidgets import QDialog, QVBoxLayout
+            
+            detail_dialog = QDialog(self)
+            detail_dialog.setWindowTitle(f"Fiche Véhicule : {vehicle_data['immatriculation']}")
+            detail_dialog.setMinimumSize(950, 750)
+            
+            # Design sans bordure ou avec style si nécessaire
+            # detail_dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog) 
+
+            layout = QVBoxLayout(detail_dialog)
+            layout.setContentsMargins(0, 0, 0, 0)
+
+            # Instanciation de la vue avec le contrôleur pour les impressions
+            self.view_details = VehicleDetailView(vehicle_data=vehicle_data, controller=self.controller)
+            layout.addWidget(self.view_details)
+
+            # Connexion du bouton retour (btn_back) pour fermer le dialogue
+            if hasattr(self.view_details, 'btn_back'):
+                self.view_details.btn_back.clicked.connect(detail_dialog.close)
+
+            # 4. Exécution du dialogue
+            detail_dialog.exec()
+
+        except Exception as e:
+            print(f"❌ Erreur show_detail_vehicle : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Erreur", f"Impossible d'afficher les détails du véhicule : {e}")
+    
 
     def on_delete_vehicle(self, vehicle):
         """Désactivation logique du véhicule (Soft Delete)."""

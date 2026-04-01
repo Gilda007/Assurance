@@ -17,6 +17,10 @@ class VehicleController:
     def get_all_vehicles(self):
         """Récupère uniquement les véhicules actifs."""
         return self.session.query(Vehicle).filter(Vehicle.owner_id == None).filter(Vehicle.is_active == True).all()
+    
+    def get_vehicles_by_id(self, vehicle_id):
+        """Récupère un véhicule par son ID."""
+        return self.session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
 
     def get_dashboard_stats(self, fleet_id=None):
         """Calcule les KPI pour les widgets du haut de l'interface."""
@@ -421,3 +425,112 @@ class VehicleController:
         )
         self.session.add(new_tranche)
         self.session.commit()
+        
+    def print_carte_rose(self, vehicle_data):
+        """Lance l'impression de la carte rose avec les données reçues"""
+        try:
+            from addons.Automobiles.views.carte_rose_printer import CarteRosePrinter
+            printer_tool = CarteRosePrinter(vehicle_data)
+            printer_tool.print(None) # Remplacez None par self.view si vous avez accès à la vue
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            print(f"Erreur impression : {e}")
+            QMessageBox.warning(self, "Impression", f"Erreur lors de l'impression : {str(e)}")
+
+    def print_vignette(self, vehicle_data, parent_widget=None):
+        """
+        Gère la génération et l'impression de l'Attestation de Timbre (Vignette).
+        
+        Args:
+            vehicle_data (dict): Données du véhicule
+            parent_widget (QWidget, optional): Widget parent pour les dialogues
+        """
+        try:
+            # 1. Vérification des données essentielles
+            required_fields = ['immatriculation', 'marque', 'modele', 'owner']
+            missing_fields = [field for field in required_fields if not vehicle_data.get(field)]
+            
+            if missing_fields:
+                from PySide6.QtWidgets import QMessageBox
+                if parent_widget:
+                    QMessageBox.warning(
+                        parent_widget,
+                        "Données manquantes",
+                        f"Impossible de générer l'attestation.\n\n"
+                        f"Champs manquants : {', '.join(missing_fields)}"
+                    )
+                print(f"Erreur : Données manquantes - {missing_fields}")
+                return
+            
+            # 2. Vérification du montant du timbre
+            montant_timbre = vehicle_data.get('amt_dta', 0)
+            if not montant_timbre or float(montant_timbre) == 0:
+                print("Avertissement : Le montant du droit de timbre est à 0.")
+                if parent_widget:
+                    from PySide6.QtWidgets import QMessageBox
+                    reply = QMessageBox.question(
+                        parent_widget,
+                        "Montant nul",
+                        "Le montant du droit de timbre est à 0.\n\n"
+                        "Voulez-vous continuer quand même ?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    if reply == QMessageBox.No:
+                        return
+            
+            # 3. Importation de l'outil d'impression
+            try:
+                from addons.Automobiles.views.vignette_printer import VignettePrinter
+            except ImportError as e:
+                print(f"Erreur d'import : {e}")
+                if parent_widget:
+                    from PySide6.QtWidgets import QMessageBox
+                    QMessageBox.critical(
+                        parent_widget,
+                        "Erreur d'import",
+                        "Impossible de charger le module d'impression.\n\n"
+                        "Vérifiez que le fichier vignette_printer.py est présent."
+                    )
+                return
+            
+            # 4. Création du dossier d'export si nécessaire
+            import os
+            export_dir = os.path.join(os.path.expanduser("~"), "Documents", "Attestations_Assurance")
+            if not os.path.exists(export_dir):
+                try:
+                    os.makedirs(export_dir)
+                    print(f"Dossier créé : {export_dir}")
+                except Exception as e:
+                    print(f"Impossible de créer le dossier d'export : {e}")
+            
+            # 5. Initialisation de l'imprimeur
+            printer_tool = VignettePrinter(vehicle_data, export_dir=export_dir)
+            
+            # 6. Lancement de l'impression
+            # Le parent widget est passé pour centrer les dialogues
+            printer_tool.print(parent_widget)
+            
+        except ImportError:
+            print("Erreur : Le fichier vignette_printer.py est introuvable dans le dossier.")
+            if parent_widget:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    parent_widget,
+                    "Erreur",
+                    "Le module d'impression est introuvable.\n\n"
+                    "Vérifiez l'installation de l'application."
+                )
+                
+        except Exception as e:
+            print(f"Erreur lors de l'exécution de l'impression : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            if parent_widget:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    parent_widget,
+                    "Erreur d'impression",
+                    f"Une erreur est survenue lors de la génération du document :\n\n{str(e)}"
+                )

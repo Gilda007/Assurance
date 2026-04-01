@@ -214,27 +214,27 @@ class VehicleForm(QDialog):
             }
         """
         
-        # === SECTION 1: PROPRIÉTAIRE ===
-        group_owner = QGroupBox("👤 Selection de la compagnie d'assurance")
-        group_owner.setStyleSheet(group_style)
-        owner_layout = QVBoxLayout(group_owner)
-        owner_layout.setSpacing(15)
-        owner_layout.setContentsMargins(25, 25, 25, 25)
-        
-        # Barre de recherche
-        self.owner_search = QLineEdit()
-        self.owner_search.setPlaceholderText("🔍 Recherche par (Nom, téléphone, ou n° de pièce)...")
-        self.owner_search.setStyleSheet(field_style)
-        self.owner_search.textChanged.connect(self.filter_clients)
-        owner_layout.addWidget(self.owner_search)
-        
-        # Splitter
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.setStyleSheet("QSplitter::handle { background: #e2e8f0; width: 2px; margin: 10px 0; }")
-        
-        # Liste des clients
-        self.client_list_widget = QListWidget()
-        self.client_list_widget.setStyleSheet("""
+                # === SECTION 1: COMPAGNIE D'ASSURANCE ===
+        group_compagny = QGroupBox("🏢 Compagnie d'assurance")
+        group_compagny.setStyleSheet(group_style)
+        compagny_layout = QVBoxLayout(group_compagny)
+        compagny_layout.setSpacing(15)
+        compagny_layout.setContentsMargins(25, 25, 25, 25)
+
+        # Barre de recherche compagnie
+        self.search_compagny = QLineEdit()
+        self.search_compagny.setPlaceholderText("🔍 Rechercher une compagnie d'assurance...")
+        self.search_compagny.setStyleSheet(field_style)
+        self.search_compagny.textChanged.connect(self.filter_compagnies)
+        compagny_layout.addWidget(self.search_compagny)
+
+        # Splitter pour compagnie
+        compagny_splitter = QSplitter(Qt.Horizontal)
+        compagny_splitter.setStyleSheet("QSplitter::handle { background: #e2e8f0; width: 2px; margin: 10px 0; }")
+
+        # Liste des compagnies
+        self.compagny_list = QListWidget()
+        self.compagny_list.setStyleSheet("""
             QListWidget {
                 border: 2px solid #e2e8f0;
                 border-radius: 12px;
@@ -256,59 +256,160 @@ class VehicleForm(QDialog):
                 color: white;
             }
         """)
-        self.client_list_widget.currentRowChanged.connect(self.display_client_details)
-        splitter.addWidget(self.client_list_widget)
-        
-        # Carte client
-        self.client_card = QFrame()
-        self.client_card.setObjectName("ClientCard")
-        self.client_card.setStyleSheet("""
-            QFrame#ClientCard {
+        self.compagny_list.currentRowChanged.connect(self.display_compagny_details)
+        compagny_splitter.addWidget(self.compagny_list)
+
+        # Carte de la compagnie sélectionnée
+        self.compagny_card = QFrame()
+        self.compagny_card.setObjectName("CompagnyCard")
+        self.compagny_card.setStyleSheet("""
+            QFrame#CompagnyCard {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 #fef9e7, stop:1 #f0f9ff);
                 border-radius: 16px;
                 border: 2px solid #e2e8f0;
             }
         """)
-        card_layout_client = QHBoxLayout(self.client_card)
-        card_layout_client.setContentsMargins(20, 20, 20, 20)
-        card_layout_client.setSpacing(15)
-        
-        # Photo
-        self.client_photo = QLabel()
-        self.client_photo.setObjectName("PhotoLabel")
-        self.client_photo.setFixedSize(90, 90)
-        self.client_photo.setStyleSheet("""
+        compagny_card_layout = QHBoxLayout(self.compagny_card)
+        compagny_card_layout.setContentsMargins(20, 20, 20, 20)
+        compagny_card_layout.setSpacing(15)
+
+        # Logo/Photo compagnie
+        self.compagny_photo = QLabel()
+        self.compagny_photo.setObjectName("CompagnyPhoto")
+        self.compagny_photo.setFixedSize(80, 80)
+        self.compagny_photo.setStyleSheet("""
             QLabel {
                 background: white;
-                border-radius: 45px;
+                border-radius: 40px;
                 border: 3px solid #e2e8f0;
             }
         """)
-        self.client_photo.setAlignment(Qt.AlignCenter)
-        card_layout_client.addWidget(self.client_photo)
-        
-        # Détails
-        details_widget = QWidget()
-        details_layout = QVBoxLayout(details_widget)
-        details_layout.setSpacing(8)
-        
-        self.lbl_card_name = QLabel("SÉLECTIONNEZ LA COMPAGNIE")
-        self.lbl_card_name.setStyleSheet("font-size: 16px; font-weight: 800; color: #2c3e50;")
-        
-        self.lbl_card_info = QLabel("Détails : ---\nTel : ---\nAdresse : ---")
-        self.lbl_card_info.setStyleSheet("font-size: 12px; color: #718096; line-height: 1.5;")
-        self.lbl_card_info.setWordWrap(True)
-        
-        details_layout.addWidget(self.lbl_card_name)
-        details_layout.addWidget(self.lbl_card_info)
-        details_layout.addStretch()
-        
-        card_layout_client.addWidget(details_widget, 1)
-        splitter.addWidget(self.client_card)
-        splitter.setSizes([350, 450])
-        
-        owner_layout.addWidget(splitter)
+        self.compagny_photo.setAlignment(Qt.AlignCenter)
+        self.compagny_photo.setText("🏢")
+        self.compagny_photo.setStyleSheet("font-size: 32px;")
+        compagny_card_layout.addWidget(self.compagny_photo)
+
+        # Détails compagnie
+        compagny_details = QWidget()
+        compagny_details_layout = QVBoxLayout(compagny_details)
+        compagny_details_layout.setSpacing(8)
+
+        self.lbl_compagny_name = QLabel("Aucune compagnie sélectionnée")
+        self.lbl_compagny_name.setStyleSheet("font-size: 16px; font-weight: 800; color: #2c3e50;")
+
+        self.lbl_compagny_info = QLabel("Sélectionnez une compagnie d'assurance dans la liste")
+        self.lbl_compagny_info.setStyleSheet("font-size: 12px; color: #718096; line-height: 1.5;")
+        self.lbl_compagny_info.setWordWrap(True)
+
+        compagny_details_layout.addWidget(self.lbl_compagny_name)
+        compagny_details_layout.addWidget(self.lbl_compagny_info)
+        compagny_details_layout.addStretch()
+
+        compagny_card_layout.addWidget(compagny_details, 1)
+        compagny_splitter.addWidget(self.compagny_card)
+        compagny_splitter.setSizes([350, 450])
+
+        compagny_layout.addWidget(compagny_splitter)
+        form_layout.addWidget(group_compagny)
+
+        # === SECTION 2: PROPRIÉTAIRE DU VÉHICULE ===
+        group_owner = QGroupBox("👤 Propriétaire du véhicule")
+        group_owner.setStyleSheet(group_style)
+        owner_layout = QVBoxLayout(group_owner)
+        owner_layout.setSpacing(15)
+        owner_layout.setContentsMargins(25, 25, 25, 25)
+
+        # Barre de recherche propriétaire
+        self.search_owner = QLineEdit()
+        self.search_owner.setPlaceholderText("🔍 Rechercher un propriétaire (nom, téléphone, CNI)...")
+        self.search_owner.setStyleSheet(field_style)
+        self.search_owner.textChanged.connect(self.filter_owners)
+        owner_layout.addWidget(self.search_owner)
+
+        # Splitter pour propriétaire
+        owner_splitter = QSplitter(Qt.Horizontal)
+        owner_splitter.setStyleSheet("QSplitter::handle { background: #e2e8f0; width: 2px; margin: 10px 0; }")
+
+        # Liste des propriétaires
+        self.owner_list = QListWidget()
+        self.owner_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                background: white;
+                outline: none;
+                padding: 5px;
+            }
+            QListWidget::item {
+                padding: 12px;
+                border-radius: 8px;
+                margin: 2px;
+            }
+            QListWidget::item:hover {
+                background: #f7fafc;
+            }
+            QListWidget::item:selected {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #3498db, stop:1 #2c3e50);
+                color: white;
+            }
+        """)
+        self.owner_list.currentRowChanged.connect(self.display_owner_details)
+        owner_splitter.addWidget(self.owner_list)
+
+        # Carte du propriétaire sélectionné
+        self.owner_card = QFrame()
+        self.owner_card.setObjectName("OwnerCard")
+        self.owner_card.setStyleSheet("""
+            QFrame#OwnerCard {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #fef9e7, stop:1 #f0f9ff);
+                border-radius: 16px;
+                border: 2px solid #e2e8f0;
+            }
+        """)
+        owner_card_layout = QHBoxLayout(self.owner_card)
+        owner_card_layout.setContentsMargins(20, 20, 20, 20)
+        owner_card_layout.setSpacing(15)
+
+        # Photo/avatar propriétaire
+        self.owner_photo = QLabel()
+        self.owner_photo.setObjectName("OwnerPhoto")
+        self.owner_photo.setFixedSize(80, 80)
+        self.owner_photo.setStyleSheet("""
+            QLabel {
+                background: white;
+                border-radius: 40px;
+                border: 3px solid #e2e8f0;
+            }
+        """)
+        self.owner_photo.setAlignment(Qt.AlignCenter)
+        self.owner_photo.setText("👤")
+        self.owner_photo.setStyleSheet("font-size: 32px;")
+        owner_card_layout.addWidget(self.owner_photo)
+
+        # Détails propriétaire
+        owner_details_widget = QWidget()
+        owner_details_layout = QVBoxLayout(owner_details_widget)
+        owner_details_layout.setSpacing(8)
+
+        self.lbl_owner_name = QLabel("Aucun propriétaire sélectionné")
+        self.lbl_owner_name.setStyleSheet("font-size: 16px; font-weight: 800; color: #2c3e50;")
+
+        self.lbl_owner_info = QLabel("Sélectionnez le propriétaire du véhicule dans la liste")
+        self.lbl_owner_info.setStyleSheet("font-size: 12px; color: #718096; line-height: 1.5;")
+        self.lbl_owner_info.setWordWrap(True)
+
+        owner_details_layout.addWidget(self.lbl_owner_name)
+        owner_details_layout.addWidget(self.lbl_owner_info)
+        owner_details_layout.addStretch()
+
+        owner_card_layout.addWidget(owner_details_widget, 1)
+        owner_splitter.addWidget(self.owner_card)
+        owner_splitter.setSizes([350, 450])
+
+        owner_layout.addWidget(owner_splitter)
         form_layout.addWidget(group_owner)
         
         # === SECTION 2: IDENTIFICATION & TECHNIQUE ===
@@ -771,11 +872,11 @@ class VehicleForm(QDialog):
     # ... (toutes les autres méthodes existantes restent identiques)
     def filter_clients(self, text):
         """Filtre les clients selon la recherche"""
-        self.client_list_widget.clear()
+        self.owner_list.clear()
         if len(text) < 2:
             return
         
-        clients = self.controller.compagnies.get_contacts_for_combo(text)
+        clients = self.controller.contacts.get_contacts_for_combo(text)
         
         for client in clients:
             if isinstance(client, tuple):
@@ -785,14 +886,121 @@ class VehicleForm(QDialog):
                 
             item = QListWidgetItem(name_display)
             item.setData(Qt.UserRole, client)
-            self.client_list_widget.addItem(item)
+            self.owner_list.addItem(item)
 
-    def display_client_details(self, row):
+    def filter_compagnies(self, text):
+        """Filtre les compagnies selon la recherche"""
+        self.compagny_list.clear()
+        if len(text) < 2:
+            return
+        
+        compagnies = self.controller.compagnies.get_contacts_for_combo(text)
+        
+        for compagny in compagnies:
+            name_display = f"{compagny.nom} - {compagny.code or ''}"
+            item = QListWidgetItem(name_display)
+            item.setData(Qt.UserRole, compagny)
+            self.compagny_list.addItem(item)
+
+    def display_compagny_details(self, row):
+        """Affiche les détails de la compagnie sélectionnée"""
+        if row < 0:
+            return
+        
+        item = self.compagny_list.currentItem()
+        if not item:
+            return
+        
+        compagny = item.data(Qt.UserRole)
+        self.selected_cie_id = compagny.id
+        
+        # Mettre à jour l'affichage
+        self.lbl_compagny_name.setText(compagny.nom.upper())
+        
+        info_text = f"""
+            📌 Code: {compagny.code or 'N/A'}
+            📞 Tél: {compagny.telephone or 'N/A'}
+            📧 Email: {compagny.email or 'N/A'}
+            📍 Adresse: {compagny.adresse or 'N/A'}
+        """
+        self.lbl_compagny_info.setText(info_text)
+        
+        # Charger les logos si disponibles
+        if hasattr(compagny, 'logo') and compagny.logo:
+            pixmap = QPixmap()
+            pixmap.loadFromData(compagny.logo)
+            self.compagny_photo.setPixmap(pixmap.scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else:
+            self.compagny_photo.setText("🏢")
+            self.compagny_photo.setStyleSheet("font-size: 32px;")
+        
+        self.load_tarif_codes()
+
+    def filter_owners(self, text):
+        """Filtre les propriétaires selon la recherche"""
+        self.owner_list.clear()
+        if len(text) < 2:
+            return
+        
+        owners = self.controller.contacts.search_contacts(text)
+        
+        for owner in owners:
+            name_display = f"{owner.nom} {owner.prenom or ''} - {owner.telephone or ''}"
+            item = QListWidgetItem(name_display)
+            item.setData(Qt.UserRole, owner)
+            self.owner_list.addItem(item)
+
+    def display_owner_details(self, row):
+        """Affiche les détails du propriétaire sélectionné"""
+        if row < 0:
+            return
+        
+        item = self.owner_list.currentItem()
+        if not item:
+            return
+        
+        owner = item.data(Qt.UserRole)
+        self.selected_owner_id = owner.id
+        
+        # Mettre à jour l'affichage
+        owner_name = f"{owner.nom} {owner.prenom or ''}".upper()
+        self.lbl_owner_name.setText(owner_name)
+        
+        info_text = f"""
+            📌 Type: {owner.nature or 'Particulier'}
+            📞 Tél: {owner.telephone or 'N/A'}
+            📧 Email: {owner.email or 'N/A'}
+            🆔 Code client: {owner.code_client or 'N/A'}
+            📍 Charge Clientèle: {owner.charge_clientele or 'N/A'}
+        """
+        self.lbl_owner_info.setText(info_text)
+        
+        # Photo/avatar
+        if hasattr(owner, 'photo') and owner.photo:
+            pixmap = QPixmap()
+            pixmap.loadFromData(owner.photo)
+            self.owner_photo.setPixmap(pixmap.scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        else:
+            # Initiales
+            initials = f"{owner.nom[0]}{owner.prenom[0] if owner.prenom else ''}".upper()
+            self.owner_photo.setText(initials)
+            self.owner_photo.setStyleSheet("""
+                QLabel {
+                    background: #3498db;
+                    color: white;
+                    font-size: 28px;
+                    font-weight: bold;
+                    border-radius: 40px;
+                    border: 3px solid #e2e8f0;
+                }
+            """)
+
+    def display_client(self, row):
         """Affiche les détails du client sélectionné"""
         if row < 0:
             return
         
-        item = self.client_list_widget.currentItem()
+        item = self.owner_list.currentItem()
         if not item:
             return
         client = item.data(Qt.UserRole)
@@ -802,7 +1010,7 @@ class VehicleForm(QDialog):
         name_html = (
             f"<div style='color: #2c3e50; font-size: 16px; font-weight: bold;'>"
             f"{client.nom.upper()}</div>"
-            f"<div style='color: #7f8c8d; font-size: 11px;'>ID: {client.code or 'N/A'}</div>"
+            f"<div style='color: #7f8c8d; font-size: 11px;'>ID: {client.id or 'N/A'}</div>"
         )
         self.lbl_card_name.setText(name_html)
         
@@ -948,11 +1156,11 @@ class VehicleForm(QDialog):
                 self.selected_cie_id = v.owner_id
                 
                 # Parcourir la liste des clients pour sélectionner le bon
-                for i in range(self.client_list_widget.count()):
-                    item = self.client_list_widget.item(i)
+                for i in range(self.compagny_list.count()):
+                    item = self.compagny_list.item(i)
                     if item and item.data(Qt.UserRole) and item.data(Qt.UserRole).id == v.owner_id:
-                        self.client_list_widget.setCurrentItem(item)
-                        self.display_client_details(i)
+                        self.compagny_list.setCurrentItem(item)
+                        self.display_compagny_details(i)
                         break
                 
                 # CHARGER LES CODES TARIF APRÈS AVOIR SÉLECTIONNÉ LA COMPAGNIE
@@ -1102,7 +1310,8 @@ class VehicleForm(QDialog):
             "zone": self.combo_zone.currentText(),
             "libele_tarif": libele_tarif_value,  # <-- Utiliser la valeur corrigée
             "categorie": self.combo_cat.text().strip(),
-            "compagny_id": self.client_list_widget.currentItem().data(Qt.UserRole).id if self.client_list_widget.currentItem() else None,
+            "compagny_id": self.compagny_list.currentItem().data(Qt.UserRole).id if self.compagny_list.currentItem() else None,
+            "owner_id": self.owner_list.currentItem().data(Qt.UserRole).id if self.owner_list.currentItem() else None,
             "marque": self.marque_input.text().strip(),
             "modele": self.modele_input.text().strip(),
             "annee": int(self.annee_input.text()) if self.annee_input.text().isdigit() else None,

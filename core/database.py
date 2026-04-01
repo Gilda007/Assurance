@@ -22,9 +22,9 @@ else:
 
     username = os.getenv("DB_USER")
     password = os.getenv("DB_PASS")
-    host = os.getenv("DB_HOST", "localhost")
+    host = os.getenv("DB_HOST", "192.168.100.17")
     port = os.getenv("DB_PORT", "5432")
-    database = os.getenv("DB_NAME", "")
+    database = os.getenv("DB_NAME", "ams_db")
 
     if not database:
         raise RuntimeError("DB_NAME doit être défini")

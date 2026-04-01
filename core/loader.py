@@ -27,7 +27,27 @@ class AddonLoader:
             if not os.path.isdir(folder_path) or folder.startswith("__"):
                 continue
 
-            logger.info(f"Module détecté : [{folder}]")
+            manifest_path = os.path.join(folder_path, "manifest.json")
+            if not os.path.exists(manifest_path):
+                logger.warning(f"  ! Manquant : manifest.json dans {folder} -> module ignoré")
+                continue
+
+            try:
+                with open(manifest_path, "r", encoding="utf-8") as f:
+                    manifest = json.load(f)
+            except Exception as e:
+                logger.error(f"  ! Impossible de lire manifest.json dans {folder} : {e}")
+                continue
+
+            if not manifest.get("enabled", True):
+                logger.info(f"  - Module {folder} désactivé dans manifest, passage")
+                continue
+
+            if not manifest.get("version"):
+                logger.warning(f"  ! module {folder} sans version dans manifest (requis). Ignoré")
+                continue
+
+            logger.info(f"Module détecté : [{folder}] version={manifest.get('version')}")
             
             try:
                 # 1. Vérification du fichier main_ui.py
@@ -67,7 +87,48 @@ class AddonLoader:
                 logger.error(traceback.format_exc())
 
         logger.info(f"--- FIN DU CHARGEMENT DES MODULES ({len(loaded_instances)} chargés) ---")
-        return loaded_instances # <--- TRÈS IMPORTANT : Évite l'erreur 'NoneType' object is not iterable
+        return loaded_instances # <--- TRÈS IMPORTANT : Évite l'erreur 'NoneType' object est pas iterable
+
+    def get_manifest(self, folder_name):
+        manifest_path = os.path.join(self.addons_path, folder_name, "manifest.json")
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            logger.warning(f"Manifest non trouvé pour module {folder_name}")
+            return None
+        except Exception as e:
+            logger.error(f"Erreur lecture manifest {folder_name} : {e}")
+            return None
+
+    def set_manifest(self, folder_name, data):
+        manifest_path = os.path.join(self.addons_path, folder_name, "manifest.json")
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+    def enable_module(self, folder_name):
+        manifest = self.get_manifest(folder_name)
+        if not manifest:
+            return False
+        manifest["enabled"] = True
+        self.set_manifest(folder_name, manifest)
+        return True
+
+    def disable_module(self, folder_name):
+        manifest = self.get_manifest(folder_name)
+        if not manifest:
+            return False
+        manifest["enabled"] = False
+        self.set_manifest(folder_name, manifest)
+        return True
+
+    def update_module_version(self, folder_name, new_version):
+        manifest = self.get_manifest(folder_name)
+        if not manifest:
+            return False
+        manifest["version"] = str(new_version)
+        self.set_manifest(folder_name, manifest)
+        return True
 
     def _load_addon(self, module_name, main_window):
         try:

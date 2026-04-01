@@ -183,7 +183,11 @@ class ContactController:
         pattern = f"%{search_text}%"
         
         return self.db.query(Contact).filter(
-            Contact.nom.ilike(pattern) | Contact.nature.ilike(pattern)
+            Contact.nom.ilike(pattern) | 
+            Contact.prenom.ilike(pattern) | 
+            Contact.telephone.ilike(pattern) | 
+            Contact.email.ilike(pattern) | 
+            Contact.nature.ilike(pattern)
         ).limit(10).all()
     
     def get_report_data(self):

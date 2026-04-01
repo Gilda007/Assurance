@@ -28,6 +28,8 @@ addons/Automobiles/static/contacts
 dist/
 build/
 *.egg-info/
+test
+
 
 # macOS
 .DS_Store
