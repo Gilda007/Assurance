@@ -375,6 +375,7 @@ class VehicleDetailView(QWidget):
         tech_title = QLabel("Caractéristiques techniques")
         tech_title.setStyleSheet("font-weight: 700; font-size: 14px; color: #0f172a;")
         info_layout.addWidget(tech_title, 0, 0, 1, 2)
+        print(self.data)
         
         tech_info = [
             ("Châssis (VIN)", self.data.get('chassis', ''), 1, 0),
@@ -401,12 +402,13 @@ class VehicleDetailView(QWidget):
         owner_title = QLabel("Propriétaire du véhicule")
         owner_title.setStyleSheet("font-weight: 700; font-size: 14px; color: #0f172a; margin-top: 8px;")
         info_layout.addWidget(owner_title, 5, 0, 1, 2)
+        # print(self.data)
         
         owner_info = [
-            ("Nom complet", self.data.get('owner', 'N/A'), 6, 0),
-            ("Téléphone", self.data.get('phone', 'N/A'), 6, 1),
-            ("Email", self.data.get('email', 'N/A'), 7, 0),
-            ("Adresse", self.data.get('address', 'N/A'), 7, 1),
+            ("Nom complet", self.data.get('owner', ''), 6, 0),
+            ("Téléphone", self.data.get('phone', ''), 6, 1),
+            ("Email", self.data.get('email', ''), 7, 0),
+            ("Adresse", self.data.get('city', ''), 7, 1),
         ]
         
         for label, value, row, col in owner_info:
@@ -421,48 +423,6 @@ class VehicleDetailView(QWidget):
             info_layout.addLayout(vbox, row, col)
         
         return info_card
-
-    def create_stats_section(self):
-        """Crée la section des statistiques"""
-        stats_card = QFrame()
-        stats_card.setProperty("class", "InfoCard")
-        layout = QGridLayout(stats_card)
-        layout.setSpacing(20)
-        
-        # Calculer les stats à partir des données
-        prime_nette = float(self.data.get('reduction', 0))
-        prime_brute = float(self.data.get('prime_brute', 0))
-        reduction = float(self.data.get('reduction', 0))
-        reduction_percent = (reduction )
-        
-        stats = [
-            ("📊 Années d'assurance", self.calculate_years_insured(), "#3b82f6"),
-            ("🛡️ Sinistres déclarés", str(self.data.get('sinistres', 0)), "#10b981"),
-            ("💰 Total primes versées", self.calculate_total_premiums_paid(), "#f59e0b"),
-            ("⭐ Niveau de bonus", f"{reduction_percent:.0f}%", "#8b5cf6")
-        ]
-        
-        for i, (label, value, color) in enumerate(stats):
-            stat_widget = QFrame()
-            stat_widget.setStyleSheet(f"""
-                background: {color}10;
-                border-radius: 12px;
-                padding: 12px;
-            """)
-            stat_layout = QVBoxLayout(stat_widget)
-            
-            label_lbl = QLabel(label)
-            label_lbl.setStyleSheet("color: #64748b; font-size: 11px;")
-            
-            value_lbl = QLabel(str(value))
-            value_lbl.setStyleSheet(f"color: {color}; font-size: 20px; font-weight: 700;")
-            
-            stat_layout.addWidget(label_lbl)
-            stat_layout.addWidget(value_lbl)
-            
-            layout.addWidget(stat_widget, i // 2, i % 2)
-        
-        return stats_card
 
     def create_garanties_table(self):
         """Crée le tableau des garanties"""
@@ -1105,3 +1065,527 @@ class VehicleDetailView(QWidget):
     def close_window(self):
         """Ferme la fenêtre"""
         self.close()
+
+    # gestion de la statistque de chaque contrat
+
+    def create_stats_section(self):
+        """Crée une section de statistiques premium avec design moderne"""
+        stats_card = QFrame()
+        stats_card.setProperty("class", "InfoCard")
+        stats_card.setStyleSheet("""
+            QFrame#InfoCard {
+                background: white;
+                border-radius: 24px;
+                padding: 0px;
+            }
+        """)
+        
+        # Layout principal avec padding interne
+        main_layout = QVBoxLayout(stats_card)
+        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(20)
+        
+        # === EN-TÊTE DE SECTION AVEC DÉCORATION ===
+        header_widget = QFrame()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Titre avec effet
+        title_container = QFrame()
+        title_container.setStyleSheet("""
+            background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                stop:0 #f0f9ff, stop:1 #ffffff);
+            border-radius: 40px;
+            padding: 8px 20px;
+        """)
+        title_layout = QHBoxLayout(title_container)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(10)
+        
+        title_icon = QLabel("⚡")
+        title_icon.setStyleSheet("font-size: 22px;")
+        title_text = QLabel("TABLEAU DE BORD")
+        title_text.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b; letter-spacing: 1px;")
+        
+        title_layout.addWidget(title_icon)
+        title_layout.addWidget(title_text)
+        
+        # Date du jour
+        from datetime import datetime
+        date_lbl = QLabel(datetime.now().strftime("%d/%m/%Y"))
+        date_lbl.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: 500;")
+        
+        header_layout.addWidget(title_container)
+        header_layout.addStretch()
+        header_layout.addWidget(date_lbl)
+        
+        main_layout.addWidget(header_widget)
+        
+        # === CARTE PRINCIPALE DE PRIME ===
+        prime_card = self.create_premium_prime_card()
+        main_layout.addWidget(prime_card)
+        
+        # === GRILLE DES STATS ===
+        stats_grid = QGridLayout()
+        stats_grid.setSpacing(16)
+        stats_grid.setContentsMargins(0, 0, 0, 0)
+        
+        # Calcul des données
+        prime_nette = float(self.data.get('prime_nette', 0))
+        prime_brute = float(self.data.get('prime_brute', 0))
+        reduction = prime_brute - prime_nette
+        reduction_percent = (reduction / prime_brute * 100) if prime_brute > 0 else 0
+        
+        stats_data = [
+            {
+                "icon": "📅",
+                "icon_color": "#3b82f6",
+                "label": "Ancienneté",
+                "value": self.calculate_years_insured(),
+                "unit": "",
+                "bg_color": "#eff6ff",
+                "border_color": "#3b82f6"
+            },
+            {
+                "icon": "🛡️",
+                "icon_color": "#10b981",
+                "label": "Sinistres",
+                "value": str(self.data.get('sinistres', 0)),
+                "unit": "déclaré(s)",
+                "bg_color": "#ecfdf5",
+                "border_color": "#10b981"
+            },
+            {
+                "icon": "💰",
+                "icon_color": "#f59e0b",
+                "label": "Total versé",
+                "value": self.calculate_total_premiums_paid(),
+                "unit": "FCFA",
+                "bg_color": "#fffbeb",
+                "border_color": "#f59e0b"
+            },
+            {
+                "icon": "🎯",
+                "icon_color": "#8b5cf6",
+                "label": "Bonus",
+                "value": f"{self.calculate_bonus_malus()}",
+                "unit": "%",
+                "bg_color": "#f5f3ff",
+                "border_color": "#8b5cf6"
+            }
+        ]
+        
+        for i, stat in enumerate(stats_data):
+            stat_widget = self.create_modern_stat_card(stat)
+            stats_grid.addWidget(stat_widget, i // 2, i % 2)
+        
+        main_layout.addLayout(stats_grid)
+        
+        # === SECTION ÉVOLUTION ET RISQUE ===
+        bottom_grid = QGridLayout()
+        bottom_grid.setSpacing(16)
+        bottom_grid.setContentsMargins(0, 0, 0, 0)
+        
+        # Graphique d'évolution
+        evolution_widget = self.create_modern_evolution_chart()
+        bottom_grid.addWidget(evolution_widget, 0, 0)
+        
+        # Indicateurs de risque
+        risk_widget = self.create_modern_risk_indicator()
+        bottom_grid.addWidget(risk_widget, 0, 1)
+        
+        main_layout.addLayout(bottom_grid)
+        
+        return stats_card
+
+    def create_premium_prime_card(self):
+        """Crée une carte premium pour la prime principale"""
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1e293b, stop:1 #0f172a);
+                border-radius: 20px;
+            }
+        """)
+        card.setFixedHeight(140)
+        
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(24, 20, 24, 20)
+        
+        # Partie gauche - Prime
+        left_widget = QFrame()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setSpacing(8)
+        
+        prime_label = QLabel("PRIME NETTE ANNUELLE")
+        prime_label.setStyleSheet("color: #94a3b8; font-size: 11px; font-weight: 600; letter-spacing: 1px;")
+        
+        prime_nette = float(self.data.get('prime_nette', 0))
+        prime_value = QLabel(f"{prime_nette:,.0f}".replace(",", " "))
+        prime_value.setStyleSheet("color: white; font-size: 36px; font-weight: 800;")
+        
+        prime_sub = QLabel("FCFA TTC")
+        prime_sub.setStyleSheet("color: #64748b; font-size: 11px;")
+        
+        left_layout.addWidget(prime_label)
+        left_layout.addWidget(prime_value)
+        left_layout.addWidget(prime_sub)
+        
+        # Partie droite - Badge de réduction
+        prime_brute = float(self.data.get('prime_brute', 0))
+        reduction = prime_brute - prime_nette
+        reduction_percent = (reduction / prime_brute * 100) if prime_brute > 0 else 0
+        
+        right_widget = QFrame()
+        right_widget.setStyleSheet("""
+            QFrame {
+                background: rgba(255,255,255,0.1);
+                border-radius: 16px;
+            }
+        """)
+        right_widget.setFixedWidth(120)
+        right_layout = QVBoxLayout(right_widget)
+        right_layout.setAlignment(Qt.AlignCenter)
+        right_layout.setSpacing(4)
+        
+        if reduction > 0:
+            reduction_badge = QLabel("ÉCONOMIE")
+            reduction_badge.setStyleSheet("color: #fbbf24; font-size: 10px; font-weight: 600;")
+            
+            reduction_value = QLabel(f"{reduction:,.0f}".replace(",", " "))
+            reduction_value.setStyleSheet("color: white; font-size: 18px; font-weight: 700;")
+            
+            reduction_percent_label = QLabel(f"-{reduction_percent:.0f}%")
+            reduction_percent_label.setStyleSheet("color: #fbbf24; font-size: 20px; font-weight: 800;")
+            
+            right_layout.addWidget(reduction_badge)
+            right_layout.addWidget(reduction_percent_label)
+            right_layout.addWidget(reduction_value)
+        else:
+            no_reduction = QLabel("AUCUNE\nRÉDUCTION")
+            no_reduction.setAlignment(Qt.AlignCenter)
+            no_reduction.setStyleSheet("color: #94a3b8; font-size: 12px; font-weight: 600;")
+            right_layout.addWidget(no_reduction)
+        
+        layout.addWidget(left_widget)
+        layout.addStretch()
+        layout.addWidget(right_widget)
+        
+        return card
+
+    def create_modern_stat_card(self, stat):
+        """Crée une carte statistique moderne"""
+        card = QFrame()
+        card.setStyleSheet(f"""
+            QFrame {{
+                background: {stat['bg_color']};
+                border-radius: 16px;
+                border-left: 4px solid {stat['border_color']};
+            }}
+        """)
+        card.setMinimumHeight(100)
+        
+        layout = QHBoxLayout(card)
+        layout.setContentsMargins(16, 12, 16, 12)
+        
+        # Icône
+        icon_container = QFrame()
+        icon_container.setFixedSize(48, 48)
+        icon_container.setStyleSheet(f"""
+            QFrame {{
+                background: {stat['icon_color']}20;
+                border-radius: 24px;
+            }}
+        """)
+        icon_layout = QVBoxLayout(icon_container)
+        icon_layout.setAlignment(Qt.AlignCenter)
+        
+        icon_lbl = QLabel(stat['icon'])
+        icon_lbl.setStyleSheet(f"font-size: 24px; background: transparent;")
+        icon_layout.addWidget(icon_lbl)
+        
+        # Contenu
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(4)
+        
+        label_lbl = QLabel(stat['label'])
+        label_lbl.setStyleSheet("color: #64748b; font-size: 11px; font-weight: 500; text-transform: uppercase;")
+        
+        value_lbl = QLabel(stat['value'])
+        value_lbl.setStyleSheet(f"color: {stat['icon_color']}; font-size: 24px; font-weight: 800;")
+        
+        unit_lbl = QLabel(stat['unit'])
+        unit_lbl.setStyleSheet("color: #94a3b8; font-size: 10px;")
+        
+        content_layout.addWidget(label_lbl)
+        content_layout.addWidget(value_lbl)
+        content_layout.addWidget(unit_lbl)
+        
+        layout.addWidget(icon_container)
+        layout.addSpacing(12)
+        layout.addWidget(content_widget)
+        layout.addStretch()
+        
+        return card
+
+    def create_modern_evolution_chart(self):
+        """Crée un graphique d'évolution moderne"""
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background: #f8fafc;
+                border-radius: 16px;
+                padding: 16px;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        layout.setSpacing(12)
+        
+        # En-tête
+        header_layout = QHBoxLayout()
+        title_lbl = QLabel("📈 Évolution des primes")
+        title_lbl.setStyleSheet("font-weight: 700; font-size: 13px; color: #1e293b;")
+        
+        trend_value = self.calculate_trend()
+        trend_lbl = QLabel(f"{trend_value}")
+        trend_lbl.setStyleSheet("color: #10b981; font-size: 12px; font-weight: 600;")
+        
+        header_layout.addWidget(title_lbl)
+        header_layout.addStretch()
+        header_layout.addWidget(trend_lbl)
+        layout.addLayout(header_layout)
+        
+        # Graphique
+        chart_widget = self.create_animated_chart()
+        layout.addWidget(chart_widget)
+        
+        return card
+
+    def create_animated_chart(self):
+        """Crée un graphique à barres animé"""
+        widget = QFrame()
+        widget.setFixedHeight(120)
+        
+        layout = QHBoxLayout(widget)
+        layout.setSpacing(12)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Données
+        years = [2023, 2024, 2025]
+        premiums = [125000, 138000, int(self.data.get('prime_nette', 150000))]
+        max_premium = max(premiums) if premiums else 100000
+        
+        for year, premium in zip(years, premiums):
+            bar_container = QWidget()
+            bar_layout = QVBoxLayout(bar_container)
+            bar_layout.setSpacing(6)
+            bar_layout.setAlignment(Qt.AlignBottom)
+            
+            # Barre
+            height = max(30, int((premium / max_premium) * 70))
+            bar = QFrame()
+            bar.setFixedSize(36, height)
+            
+            # Couleur dégradée
+            if premium >= max_premium:
+                bar.setStyleSheet("""
+                    QFrame {
+                        background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
+                            stop:0 #3b82f6, stop:1 #60a5fa);
+                        border-radius: 6px;
+                    }
+                """)
+            else:
+                bar.setStyleSheet("""
+                    QFrame {
+                        background: qlineargradient(x1:0, y1:1, x2:0, y2:0,
+                            stop:0 #94a3b8, stop:1 #cbd5e1);
+                        border-radius: 6px;
+                    }
+                """)
+            
+            # Valeur
+            value_lbl = QLabel(f"{premium/1000:.0f}k")
+            value_lbl.setStyleSheet("font-size: 9px; font-weight: 600; color: #475569;")
+            value_lbl.setAlignment(Qt.AlignCenter)
+            
+            # Année
+            year_lbl = QLabel(str(year))
+            year_lbl.setStyleSheet("font-size: 10px; font-weight: 500; color: #64748b;")
+            year_lbl.setAlignment(Qt.AlignCenter)
+            
+            bar_layout.addStretch()
+            bar_layout.addWidget(bar)
+            bar_layout.addWidget(value_lbl)
+            bar_layout.addWidget(year_lbl)
+            
+            layout.addWidget(bar_container)
+            layout.addStretch()
+        
+        return widget
+
+    def create_modern_risk_indicator(self):
+        """Crée un indicateur de risque moderne"""
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background: #f8fafc;
+                border-radius: 16px;
+                padding: 16px;
+            }
+        """)
+        
+        layout = QVBoxLayout(card)
+        layout.setSpacing(12)
+        
+        # Titre
+        title_lbl = QLabel("🎯 Niveau de risque")
+        title_lbl.setStyleSheet("font-weight: 700; font-size: 13px; color: #1e293b;")
+        layout.addWidget(title_lbl)
+        
+        # Jauge de risque
+        sinistres = int(self.data.get('sinistres', 0))
+        risk_score = min(100, sinistres * 25)
+        risk_color = "#10b981" if risk_score <= 25 else "#f59e0b" if risk_score <= 50 else "#ef4444"
+        
+        gauge_widget = self.create_risk_gauge(risk_score, risk_color)
+        layout.addWidget(gauge_widget)
+        
+        # Indicateurs
+        indicators_layout = QHBoxLayout()
+        indicators_layout.setSpacing(8)
+        
+        indicators = [
+            ("Profil", "Bon conducteur" if sinistres == 0 else "Standard", "#3b82f6"),
+            ("Classe", f"{self.calculate_bonus_malus()}%", "#8b5cf6")
+        ]
+        
+        for label, value, color in indicators:
+            indicator = QFrame()
+            indicator.setStyleSheet(f"""
+                QFrame {{
+                    background: {color}10;
+                    border-radius: 12px;
+                    padding: 8px;
+                }}
+            """)
+            indicator_layout = QVBoxLayout(indicator)
+            
+            label_lbl = QLabel(label)
+            label_lbl.setStyleSheet("color: #64748b; font-size: 10px;")
+            
+            value_lbl = QLabel(value)
+            value_lbl.setStyleSheet(f"color: {color}; font-size: 14px; font-weight: 700;")
+            
+            indicator_layout.addWidget(label_lbl)
+            indicator_layout.addWidget(value_lbl)
+            
+            indicators_layout.addWidget(indicator)
+        
+        layout.addLayout(indicators_layout)
+        
+        return card
+
+    def create_risk_gauge(self, score, color):
+        """Crée une jauge de risque circulaire"""
+        widget = QFrame()
+        widget.setFixedHeight(60)
+        
+        layout = QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Barre de progression horizontale
+        bar_container = QFrame()
+        bar_container.setStyleSheet("""
+            QFrame {
+                background: #e2e8f0;
+                border-radius: 10px;
+            }
+        """)
+        bar_container.setFixedHeight(20)
+        
+        bar = QFrame()
+        bar.setFixedWidth(int(score * 3))
+        bar.setFixedHeight(20)
+        bar.setStyleSheet(f"""
+            QFrame {{
+                background: {color};
+                border-radius: 10px;
+            }}
+        """)
+        
+        bar_layout = QHBoxLayout(bar_container)
+        bar_layout.setContentsMargins(0, 0, 0, 0)
+        bar_layout.addWidget(bar)
+        bar_layout.addStretch()
+        
+        # Score
+        score_lbl = QLabel(f"{score}%")
+        score_lbl.setStyleSheet(f"color: {color}; font-size: 18px; font-weight: 800;")
+        score_lbl.setMinimumWidth(50)
+        
+        layout.addWidget(bar_container)
+        layout.addWidget(score_lbl)
+        
+        return widget
+
+    def calculate_trend(self):
+        """Calcule la tendance d'évolution"""
+        prime_actuelle = float(self.data.get('prime_nette', 0))
+        prime_2024 = 138000  # À remplacer par donnée réelle
+        
+        if prime_actuelle > prime_2024:
+            variation = ((prime_actuelle - prime_2024) / prime_2024) * 100
+            return f"▲ +{variation:.1f}%"
+        elif prime_actuelle < prime_2024:
+            variation = ((prime_2024 - prime_actuelle) / prime_2024) * 100
+            return f"▼ -{variation:.1f}%"
+        else:
+            return "► Stable"
+
+    def get_years_count(self):
+        """Retourne le nombre d'années d'assurance"""
+        try:
+            date_debut = self.data.get('date_debut')
+            if date_debut:
+                from datetime import date
+                if isinstance(date_debut, date):
+                    years = date.today().year - date_debut.year
+                    return max(0, years)
+        except:
+            pass
+        return 0
+
+    def calculate_years_insured(self):
+        """Calcule le nombre d'années d'assurance"""
+        years = self.get_years_count()
+        if years == 0:
+            return "< 1 an"
+        return f"{years} an{'s' if years > 1 else ''}"
+
+    def calculate_total_premiums_paid(self):
+        """Calcule le total des primes versées"""
+        try:
+            prime_nette = float(self.data.get('prime_nette', 0))
+            years = max(1, self.get_years_count())
+            total = prime_nette * years
+            return f"{total/1000000:.1f}M" if total > 1000000 else f"{total/1000:.0f}k"
+        except:
+            return "0"
+
+    def calculate_bonus_malus(self):
+        """Calcule le bonus/malus"""
+        sinistres = int(self.data.get('sinistres', 0))
+        years = self.get_years_count()
+        
+        if years == 0:
+            return 100
+        
+        bonus = min(50, years * 5) if sinistres == 0 else 0
+        malus = min(50, sinistres * 25)
+        result = max(50, min(150, 100 - bonus + malus))
+        
+        return result

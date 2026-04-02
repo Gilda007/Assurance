@@ -518,6 +518,7 @@ class VehiculeModuleView(QWidget):
                 'owner': owner_name,
                 'compagny': compagny_name,
                 'phone': getattr(vehicle.owner, 'telephone', 'N/A') if vehicle.owner else "N/A",
+                'email': getattr(vehicle.owner, 'email', 'N/A') if vehicle.owner else "N/A",
                 'city': getattr(vehicle.owner, 'ville', 'Yaoundé') if vehicle.owner else "Yaoundé",
                 
                 # Montants des garanties (pour affichage dans les détails)
@@ -579,7 +580,6 @@ class VehiculeModuleView(QWidget):
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(self, "Erreur", f"Impossible d'afficher les détails du véhicule : {e}")
     
-
     def on_delete_vehicle(self, vehicle):
         """Désactivation logique du véhicule (Soft Delete)."""
 
@@ -636,8 +636,6 @@ class VehiculeModuleView(QWidget):
         # On passe le contrôleur qui a accès à la session BD
         dialog = AuditLogDialog(controller=self.controller.vehicles, parent=self)
         dialog.exec()
-
-    # --- AJOUTER À LA FIN DE LA CLASSE VehiculeModuleView dans automobile_view.py ---
 
     def on_print_fleet_click(self, fleet_obj):
         """
