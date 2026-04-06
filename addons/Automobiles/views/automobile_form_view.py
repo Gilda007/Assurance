@@ -9,6 +9,8 @@ import socket
 import platform
 import requests
 
+from main import AppColors
+
 class VehicleForm(QDialog):
     def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
         super().__init__()
@@ -212,6 +214,27 @@ class VehicleForm(QDialog):
                 font-size: 12px;
                 margin-bottom: 4px;
             }
+        """
+
+        # Style pour les champs calculés
+        style_auto = """
+            background-color: #f8f9fa;
+            color: #2c3e50;
+            font-weight: bold;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 14px;
+        """
+        
+        style_nette = """
+            background-color: #e3f2fd;
+            color: #1976d2;
+            font-weight: bold;
+            border: 2px solid #bbdef5;
+            border-radius: 12px;
+            padding: 12px;
+            font-size: 16px;
         """
         
                 # === SECTION 1: COMPAGNIE D'ASSURANCE ===
@@ -554,6 +577,7 @@ class VehicleForm(QDialog):
         # Dates
         values_layout.addWidget(self.create_label_with_icon("📅", "Date Début"), 2, 0)
         values_layout.addWidget(self.create_label_with_icon("📅", "Date Fin"), 2, 1)
+        values_layout.addWidget(self.create_label_with_icon("📅", "Nombre de Jours"), 2, 2)
         
         self.date_debut = QDateEdit()
         self.date_debut.setDisplayFormat("dd/MM/yyyy")
@@ -570,6 +594,12 @@ class VehicleForm(QDialog):
         self.date_fin.setStyleSheet(field_style)
         self.date_fin.dateChanged.connect(self.refresh_all_garanties)
         values_layout.addWidget(self.date_fin, 3, 1)
+
+        self.nbr_jour = QLineEdit()
+        self.nbr_jour.setStyleSheet(field_style)
+        self.nbr_jour.setPlaceholderText("0")
+        self.nbr_jour.textChanged.connect(self.refresh_all_garanties)
+        values_layout.addWidget(self.nbr_jour, 3, 2)
         
         form_layout.addWidget(group_values)
         
@@ -592,7 +622,7 @@ class VehicleForm(QDialog):
             ("in", "Incendie", "🔥 INC"),
             ("bris", "Bris de Glace", "🪟 BG"),
             ("ar", "Assistance Réparation", "🔧 AR"),
-            ("dta", "Dommages", "💥 DTA"),
+            ("dta", "Dommages", "💥 DT Risque"),
             ("ipt", "Indiv. Personnes Transportées", "👥 IPT")
         ]
 
@@ -647,6 +677,10 @@ class VehicleForm(QDialog):
                 }
             """)
             taux_input.setVisible(False)
+
+            montant_taux = QLabel("0 FCFA")
+            montant_taux.setStyleSheet(style_nette)
+            montant_taux.setVisible(False)
             
             # Label du montant net (après réduction)
             montant_net_label = QLabel("0 FCFA")
@@ -664,6 +698,7 @@ class VehicleForm(QDialog):
             self.result_labels[key] = {
                 'montant_brut': montant_brut_label,
                 'taux': taux_input,
+                'montant_taux': montant_taux,
                 'montant_net': montant_net_label
             }
             
@@ -672,7 +707,8 @@ class VehicleForm(QDialog):
             garanties_layout.addWidget(QLabel(short_label), i, 1)
             garanties_layout.addWidget(montant_brut_label, i, 2)  # Utilisez la variable
             garanties_layout.addWidget(taux_input, i, 3)          # Utilisez la variable
-            garanties_layout.addWidget(montant_net_label, i, 4)   # Utilisez la variable, PAS QLabel()
+            garanties_layout.addWidget(montant_taux, i, 4)  
+            garanties_layout.addWidget(montant_net_label, i, 5)   # Utilisez la variable, PAS QLabel()
             
             # Connexion des signaux
             checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
@@ -683,102 +719,163 @@ class VehicleForm(QDialog):
         group_recap = QGroupBox("🧮 RÉCAPITULATIF FINANCIER")
         group_recap.setStyleSheet(group_style)
         recap_layout = QGridLayout(group_recap)
-        recap_layout.setSpacing(20)
+        recap_layout.setSpacing(15)
         recap_layout.setContentsMargins(25, 25, 25, 25)
-        
-        # Style pour les champs calculés
-        style_auto = """
-            background-color: #f8f9fa;
-            color: #2c3e50;
-            font-weight: bold;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 12px;
+
+        # Styles
+        style_primary = """
+            QLineEdit {
+                background-color: #eff6ff;
+                color: #1e40af;
+                font-weight: bold;
+                border: 2px solid #bfdbfe;
+                border-radius: 12px;
+                padding: 12px;
+                font-size: 14px;
+            }
+        """
+
+        style_success = """
+            QLineEdit {
+                background-color: #f0fdf4;
+                color: #166534;
+                font-weight: bold;
+                border: 2px solid #bbf7d0;
+                border-radius: 12px;
+                padding: 12px;
+                font-size: 16px;
+            }
+        """
+
+        style_warning = """
+            QLineEdit {
+                background-color: #fffbeb;
+                color: #b45309;
+                font-weight: bold;
+                border: 2px solid #fde68a;
+                border-radius: 12px;
+                padding: 12px;
+                font-size: 14px;
+            }
+        """
+
+        style_info = """
+            QLineEdit {
+                background-color: #f8fafc;
+                color: #334155;
+                font-weight: 500;
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 12px;
+                font-size: 13px;
+            }
+        """
+
+        # Titre de section
+        title_lbl = QLabel("💰 DÉTAIL DES MONTANTS")
+        title_lbl.setStyleSheet("""
             font-size: 14px;
-        """
-        
-        style_nette = """
-            background-color: #e3f2fd;
-            color: #1976d2;
-            font-weight: bold;
-            border: 2px solid #bbdef5;
-            border-radius: 12px;
-            padding: 12px;
-            font-size: 16px;
-        """
-        
-        recap_layout.addWidget(QLabel("💰 PTTC"), 0, 0)
-        recap_layout.addWidget(QLabel("🎁 Réduction"), 0, 1)
-        recap_layout.addWidget(QLabel("✨ Prime Nette"), 0, 2)
-        recap_layout.addWidget(QLabel("✨ Carte Rose"), 2, 0)
-        recap_layout.addWidget(QLabel("✨ Accessoires"), 2, 1)
-        recap_layout.addWidget(QLabel("✨ TVA"), 2, 2)
-        recap_layout.addWidget(QLabel("✨ Fichier ASAC"), 4, 1)
-        recap_layout.addWidget(QLabel("✨ Montant de la Vignette"), 4, 0)
-        
+            font-weight: 700;
+            color: #1e293b;
+            padding: 5px 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        """)
+        recap_layout.addWidget(title_lbl, 0, 0, 1, 3)
+
+        # Ligne 1 - Montants principaux
         self.prime_brute = QLineEdit("0")
         self.prime_brute.setReadOnly(True)
-        self.prime_brute.setStyleSheet(style_auto)
-        recap_layout.addWidget(self.prime_brute, 1, 0)
-        
-        self.reduction = QLineEdit("00")
-        self.reduction.setReadOnly(True)
-        self.reduction.setStyleSheet(style_auto)
-        recap_layout.addWidget(self.reduction, 1, 1)
-        
+        self.prime_brute.setStyleSheet(style_info)
+        self.prime_brute.setAlignment(Qt.AlignRight)
+        recap_layout.addWidget(self.create_labeled_field("Montant Brut", self.prime_brute), 1, 0)
+
         self.prime_nette = QLineEdit("0")
         self.prime_nette.setReadOnly(True)
-        self.prime_nette.setStyleSheet(style_nette)
-        recap_layout.addWidget(self.prime_nette, 1, 2)
-        
-        self.prime_emise = QLineEdit()
-        self.prime_emise.setReadOnly(True)
-        self.prime_emise.setVisible(False)  # Champ caché pour la BD
+        self.prime_nette.setStyleSheet(style_success)
+        self.prime_nette.setAlignment(Qt.AlignRight)
+        recap_layout.addWidget(self.create_labeled_field("Prime Nette", self.prime_nette), 1, 1)
 
+        self.reduction = QLineEdit("0")
+        self.reduction.setReadOnly(True)
+        self.reduction.setStyleSheet(style_warning)
+        self.reduction.setAlignment(Qt.AlignRight)
+        recap_layout.addWidget(self.create_labeled_field("Réduction", self.reduction), 1, 2)
+
+        # Ligne 2 - Séparateur
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+        recap_layout.addWidget(sep, 2, 0, 1, 3)
+
+        # Ligne 3 - Taxes et frais
         self.carte_rose = QLineEdit("0")
-        self.carte_rose.setStyleSheet(style_nette)
-        recap_layout.addWidget(self.carte_rose, 3, 0)
+        self.carte_rose.setStyleSheet(style_info)
+        self.carte_rose.setAlignment(Qt.AlignRight)
+        recap_layout.addWidget(self.create_labeled_field("Carte Rose", self.carte_rose), 3, 0)
 
         self.accessoire = QLineEdit("0")
-        self.accessoire.setReadOnly(True)
-        self.accessoire.setStyleSheet(style_nette)
-        recap_layout.addWidget(self.accessoire, 3, 1)
+        self.accessoire.setReadOnly(False)
+        self.accessoire.setStyleSheet(style_info)
+        self.accessoire.setAlignment(Qt.AlignRight)
+        self.accessoire.textChanged.connect(self.calculate_tva)
+        recap_layout.addWidget(self.create_labeled_field("Accessoires", self.accessoire), 3, 1)
 
         self.tva = QLineEdit("0")
         self.tva.setReadOnly(True)
-        self.tva.setStyleSheet(style_nette)
-        recap_layout.addWidget(self.tva, 3, 2)
-        
+        self.tva.setStyleSheet(style_info)
+        self.tva.setAlignment(Qt.AlignRight)
+        recap_layout.addWidget(self.create_labeled_field("TVA (19.25%)", self.tva), 3, 2)
+
+        # Ligne 4 - Séparateur
+        sep2 = QFrame()
+        sep2.setFrameShape(QFrame.HLine)
+        sep2.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+        recap_layout.addWidget(sep2, 4, 0, 1, 3)
+
+        # Ligne 5 - Autres frais
         self.asac = QLineEdit("0")
-        self.asac.setReadOnly(True)
-        self.asac.setStyleSheet(style_nette)
-        recap_layout.addWidget(self.asac, 5, 1)
+        self.asac.setReadOnly(False)
+        self.asac.setStyleSheet(style_info)
+        self.asac.setAlignment(Qt.AlignRight)
+        self.asac.textChanged.connect(self.calculate_tva)
+        recap_layout.addWidget(self.create_labeled_field("Fichier ASAC", self.asac), 5, 1)
 
         self.vignette = QLineEdit("0")
-        self.vignette.setReadOnly(False)
-        self.vignette.setStyleSheet(style_nette)
-        recap_layout.addWidget(self.vignette, 5, 0)
-        checkbox.stateChanged.connect(lambda state, k=key: self.handle_garantie_click(k, state))
-        checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
-        
+        self.vignette.setStyleSheet(style_info)
+        self.vignette.setAlignment(Qt.AlignRight)
+        recap_layout.addWidget(self.create_labeled_field("Vignette", self.vignette), 5, 0)
+
+        self.pttc = QLineEdit("0")
+        self.pttc.setReadOnly(True)
+        self.pttc.setStyleSheet(style_primary)
+        self.pttc.setAlignment(Qt.AlignRight)
+        recap_layout.addWidget(self.create_labeled_field("PTTC", self.pttc), 5, 2)
+
+        # Champ caché
+        self.prime_emise = QLineEdit()
+        self.prime_emise.setReadOnly(True)
+        self.prime_emise.setVisible(False)
+
         form_layout.addWidget(group_recap)
         
         # --- PROGRESS BAR ---
         self.progress_bar = QProgressBar()
         self.progress_bar.setStyleSheet("""
             QProgressBar {
-                border: 2px solid #e2e8f0;
-                border-radius: 10px;
+                border: none;
+                border-radius: 6px;
+                background-color: #f1f5f9;
+                height: 8px;
                 text-align: center;
-                background-color: #F8F9FA;
-                height: 30px;
-                font-weight: bold;
-                color: #333;
+                font-size: 10px;
+                font-weight: 500;
+                color: #1e293b;
             }
             QProgressBar::chunk {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                    stop:0 #2ECC71, stop:1 #27AE60);
-                border-radius: 8px;
+                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #3b82f6, stop:1 #2563eb);
+                border-radius: 6px;
             }
         """)
         self.progress_bar.setRange(0, 100)
@@ -824,6 +921,26 @@ class VehicleForm(QDialog):
         card_layout.addLayout(footer)
         
         main_layout.addWidget(self.card)
+
+    def create_labeled_field(self, label_text, field_widget):
+        """Crée un widget contenant un label et un champ"""
+        container = QWidget()
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        
+        label = QLabel(label_text)
+        label.setStyleSheet("""
+            font-size: 11px;
+            font-weight: 600;
+            color: #64748b;
+            letter-spacing: 0.3px;
+        """)
+        
+        layout.addWidget(label)
+        layout.addWidget(field_widget)
+        
+        return container
 
     def create_label_with_icon(self, icon, text):
         """Crée un label avec icône et texte"""
@@ -1239,7 +1356,7 @@ class VehicleForm(QDialog):
                 # Prime nette
                 if hasattr(v, 'prime_nette') and v.prime_nette:
                     self.prime_nette.setText(f"{float(v.prime_nette):,.0f}".replace(",", " "))
-                    self.prime_emise.setText(f"{float(v.prime_nette):.0f}")
+                    self.reduction.setText(f"{float(v.prime_nette):.0f}")
                     
             except Exception as e:
                 print(f"Erreur lors du chargement des primes : {e}")
@@ -1253,6 +1370,7 @@ class VehicleForm(QDialog):
                     is_checked = checkbox.isChecked()
                     garantie_data['montant_brut'].setVisible(is_checked)
                     garantie_data['taux'].setVisible(is_checked)
+                    garantie_data['montant_taux'].setVisible(is_checked)
                     garantie_data['montant_net'].setVisible(is_checked)
             
             # --- NE PAS RECALCULER AUTOMATIQUEMENT ---
@@ -1268,47 +1386,54 @@ class VehicleForm(QDialog):
         def clean_amt(key):
             garantie_data = self.result_labels.get(key)
             if garantie_data:
-                montant_net_label = garantie_data['montant_net']  # Utiliser le montant net
+                montant_net_label = garantie_data['montant_net']
                 if montant_net_label and montant_net_label.isVisible():
                     txt = montant_net_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
                     return float(txt) if txt else 0.0
             return 0.0
         
+        def get_brut_amt(key):
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                montant_brut_label = garantie_data['montant_brut']
+                if montant_brut_label and montant_brut_label.isVisible():
+                    txt = montant_brut_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    return float(txt) if txt else 0.0
+            return 0.0
+        
         def get_red_amt(key):
-                garantie_data = self.result_labels.get(key)
-                if garantie_data:
-                    montant_net_label = garantie_data['montant_net']
-                    if montant_net_label and montant_net_label.isVisible():
-                        txt = montant_net_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
-                        try:
-                            return float(txt) if txt and "Erreur" not in txt else 0.0
-                        except ValueError:
-                            return 0.0
-                return 0.0
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                montant_taux_label = garantie_data.get('montant_taux')
+                if montant_taux_label and montant_taux_label.isVisible():
+                    txt = montant_taux_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    return float(txt) if txt else 0.0
+            return 0.0
+        
+        def get_taux(key):
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                taux_widget = garantie_data.get('taux')
+                if taux_widget and taux_widget.isVisible():
+                    txt = taux_widget.text().strip()
+                    if txt.endswith('%'):
+                        txt = txt[:-1]
+                    try:
+                        return float(txt) if txt else 0.0
+                    except ValueError:
+                        return 0.0
+            return 0.0
         
         def clean_input(widget):
             txt = widget.text().replace(" ", "").replace(",", ".")
             return float(txt) if txt else 0.0
-        
-        # --- CORRECTION POUR code_tarif (QComboBox) ---
-        # Vérifier le type du widget et récupérer la valeur correctement
-        if hasattr(self.code_tarif, 'currentText'):
-            code_tarif_value = self.code_tarif.currentText().strip()
-        else:
-            code_tarif_value = self.code_tarif.text().strip()
-        
-        # --- CORRECTION POUR combo_fleet (QComboBox) ---
-        if hasattr(self.combo_fleet, 'currentText'):
-            libele_tarif_value = self.combo_fleet.currentText().strip().upper()
-        else:
-            libele_tarif_value = self.combo_fleet.text().strip().upper()
         
         data = {
             # --- IDENTIFICATION & PROPRIÉTAIRE ---
             "immatriculation": self.immat_input.text().strip().upper(),
             "chassis": self.chassis_input.text().strip().upper(),
             "zone": self.combo_zone.currentText(),
-            "libele_tarif": libele_tarif_value,  # <-- Utiliser la valeur corrigée
+            "libele_tarif": self.combo_fleet.currentText().strip().upper(),
             "categorie": self.combo_cat.text().strip(),
             "compagny_id": self.compagny_list.currentItem().data(Qt.UserRole).id if self.compagny_list.currentItem() else None,
             "owner_id": self.owner_list.currentItem().data(Qt.UserRole).id if self.owner_list.currentItem() else None,
@@ -1320,21 +1445,32 @@ class VehicleForm(QDialog):
             "places": int(self.places_input.text()) if self.places_input.text().isdigit() else 5,
             "has_remorque": self.check_remorque.isChecked(),
             "statut": self.status_combo.currentText(),
-            "code_tarif": code_tarif_value,  # <-- Utiliser la valeur corrigée
+            "code_tarif": self.code_tarif.currentText().strip(),
 
-            # --- DATES (Conversion QDate -> Python Date) ---
+            # --- DATES ---
             "date_debut": self.date_debut.date().toPython(),
             "date_fin": self.date_fin.date().toPython(),
+            "nbr_jour": int(self.nbr_jour.text()) if self.nbr_jour.text().isdigit() else 0,
 
-            # --- RÉCAPITULATIF FINANCIER ---
+            # --- VALEURS ---
             "valeur_neuf": clean_input(self.val_neuf),
             "valeur_venale": clean_input(self.val_venale),
+
+            # --- RÉCAPITULATIF FINANCIER ---
             "prime_brute": clean_input(self.prime_brute),
             "reduction": clean_input(self.reduction),
             "prime_nette": clean_input(self.prime_nette),
             "prime_emise": clean_input(self.prime_nette),
 
-            # --- ÉTAT DES GARANTIES (Booleans) ---
+            # --- FRAIS SUPPLÉMENTAIRES ---
+            "carte_rose": clean_input(self.carte_rose),
+            "accessoires": clean_input(self.accessoire),
+            "tva": clean_input(self.tva),
+            "fichier_asac": clean_input(self.asac),
+            "vignette": clean_input(self.vignette),
+            "pttc": clean_input(self.pttc),
+
+            # --- ÉTAT DES GARANTIES ---
             "check_rc": self.check_rc.isChecked(),
             "check_dr": self.check_dr.isChecked(),
             "check_vol": self.check_vol.isChecked(),
@@ -1345,27 +1481,58 @@ class VehicleForm(QDialog):
             "check_dta": self.check_dta.isChecked(),
             "check_ipt": self.check_ipt.isChecked(),
 
-            # --- MONTANTS DES GARANTIES (Valeurs calculées) ---
-            "amt_rc": clean_amt("rc"),
-            "amt_dr": clean_amt("dr"),
-            "amt_vol": clean_amt("vol"),
-            "amt_vb": clean_amt("vb"),
-            "amt_in": clean_amt("in"),
-            "amt_bris": clean_amt("bris"),
-            "amt_ar": clean_amt("ar"),
-            "amt_dta": clean_amt("dta"),
-            "amt_ipt": clean_amt("ipt"),
+            # --- MONTANTS BRUTS ---
+            "amt_rc": get_brut_amt("rc"),
+            "amt_dr": get_brut_amt("dr"),
+            "amt_vol": get_brut_amt("vol"),
+            "amt_vb": get_brut_amt("vb"),
+            "amt_in": get_brut_amt("in"),
+            "amt_bris": get_brut_amt("bris"),
+            "amt_ar": get_brut_amt("ar"),
+            "amt_dta": get_brut_amt("dta"),
+            "amt_ipt": get_brut_amt("ipt"),
 
-            "amt_red_rc": get_red_amt("rc"),
-            "amt_red_dr": get_red_amt("dr"),
-            "amt_red_vol": get_red_amt("vol"),
-            "amt_red_vb": get_red_amt("vb"),
-            "amt_red_in": get_red_amt("in"),
-            "amt_red_bris": get_red_amt("bris"),
-            "amt_red_ar": get_red_amt("ar"),
-            "amt_red_dta": get_red_amt("dta"),
-            "amt_red_ipt": get_red_amt("ipt")
+            # --- MONTANTS NETS ---
+            "amt_red_rc": clean_amt("rc"),
+            "amt_red_dr": clean_amt("dr"),
+            "amt_red_vol": clean_amt("vol"),
+            "amt_red_vb": clean_amt("vb"),
+            "amt_red_in": clean_amt("in"),
+            "amt_red_bris": clean_amt("bris"),
+            "amt_red_ar": clean_amt("ar"),
+            "amt_red_dta": clean_amt("dta"),
+            "amt_red_ipt": clean_amt("ipt"),
+
+            # --- VALEURS DES RÉDUCTIONS ---
+            "amt_val_red_rc": get_red_amt("rc"),
+            "amt_val_red_dr": get_red_amt("dr"),
+            "amt_val_red_vol": get_red_amt("vol"),
+            "amt_val_red_vb": get_red_amt("vb"),
+            "amt_val_red_in": get_red_amt("in"),
+            "amt_val_red_bris": get_red_amt("bris"),
+            "amt_val_red_ar": get_red_amt("ar"),
+            "amt_val_red_dta": get_red_amt("dta"),
+            "amt_val_red_ipt": get_red_amt("ipt"),
+
+            # --- TAUX DE RÉDUCTION ---
+            "red_rc": get_taux("rc"),
+            "red_dr": get_taux("dr"),
+            "red_vol": get_taux("vol"),
+            "red_vb": get_taux("vb"),
+            "red_in": get_taux("in"),
+            "red_bris": get_taux("bris"),
+            "red_ar": get_taux("ar"),
+            "red_dta": get_taux("dta"),
+            "red_ipt": get_taux("ipt"),
         }
+        
+        # DEBUG: Afficher les données avant sauvegarde
+        print("=== DONNÉES SAUVEGARDÉES ===")
+        for key, value in data.items():
+            if key.startswith(('amt', 'prime', 'reduction', 'carte', 'accessoires', 'tva', 'asac', 'vignette', 'pttc')):
+                print(f"{key}: {value}")
+        print("============================")
+        
         return data
 
     def validate_and_save(self):
@@ -1428,35 +1595,148 @@ class VehicleForm(QDialog):
             QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {str(e)}")
 
     def get_data(self):
+        """Récupère les données du formulaire pour la sauvegarde"""
+        def clean_amt(key):
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                montant_net_label = garantie_data['montant_net']
+                if montant_net_label and montant_net_label.isVisible():
+                    txt = montant_net_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    print(f"clean_amt({key}) = {txt}")  # ← DEBUG
+                    return float(txt) if txt else 0.0
+            return 0.0
+        
+        def get_brut_amt(key):
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                montant_brut_label = garantie_data['montant_brut']
+                if montant_brut_label and montant_brut_label.isVisible():
+                    txt = montant_brut_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    print(f"get_brut_amt({key}) = {txt}")  # ← DEBUG
+                    return float(txt) if txt else 0.0
+            return 0.0
+        
+        def get_red_amt(key):
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                montant_taux_label = garantie_data.get('montant_taux')
+                if montant_taux_label and montant_taux_label.isVisible():
+                    txt = montant_taux_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    return float(txt) if txt else 0.0
+            return 0.0
+        
+        def get_taux(key):
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                taux_widget = garantie_data.get('taux')
+                if taux_widget and taux_widget.isVisible():
+                    txt = taux_widget.text().strip()
+                    if txt.endswith('%'):
+                        txt = txt[:-1]
+                    try:
+                        return float(txt) if txt else 0.0
+                    except ValueError:
+                        return 0.0
+            return 0.0
+        
         data = {
-            "libele_tarif": self.combo_fleet.currentText(),
+            # --- IDENTIFICATION & PROPRIÉTAIRE ---
             "immatriculation": self.immat_input.text().strip().upper(),
             "chassis": self.chassis_input.text().strip(),
             "zone": self.combo_zone.currentText(),
+            "libele_tarif": self.combo_fleet.currentText(),
             "categorie": self.combo_cat.text(),
             "marque": self.marque_input.text().strip(),
             "modele": self.modele_input.text().strip(),
-            "annee": self.annee_input.text().strip(),
-            "places": int(self.places_input.text() or 0),
+            "annee": int(self.annee_input.text()) if self.annee_input.text().isdigit() else None,
             "energie": self.energie_combo.currentText(),
-            "remorque": self.check_remorque.isChecked(),
-            "val_neuf": float(self.val_neuf.text() or 0),
-            "val_venale": float(self.val_venale.text() or 0),
             "usage": self.usage_input.text().strip(),
-            "prime_emise": float(self.prime_emise.text() or 0),
+            "places": int(self.places_input.text()) if self.places_input.text().isdigit() else 5,
+            "has_remorque": self.check_remorque.isChecked(),
             "statut": self.status_combo.currentText(),
             "code_tarif": self.code_tarif.currentText(),
-            # Garanties (Booléens)
-            "garantie_rc": self.check_rc.isChecked(),
-            "garantie_tc": self.check_tc.isChecked(),
-            "garantie_vol": self.check_vol.isChecked(),
-            "garantie_bris": self.check_bris.isChecked(),
-            "garantie_dom": self.check_dom.isChecked(),
-            "garantie_dr": self.check_dr.isChecked(),
-            "proprietaire_nom": self.owner_name.text().strip(),
-            "proprietaire_type": self.owner_type.currentText(),
-            "proprietaire_tel": self.owner_phone.text().strip(),
-            "proprietaire_adresse": self.owner_address.text().strip(),
+            
+            # --- PROPRIÉTAIRES ---
+            "compagny_id": self.compagny_list.currentItem().data(Qt.UserRole).id if self.compagny_list.currentItem() else None,
+            "owner_id": self.owner_list.currentItem().data(Qt.UserRole).id if self.owner_list.currentItem() else None,
+            
+            # --- DATES ---
+            "date_debut": self.date_debut.date().toPython(),
+            "date_fin": self.date_fin.date().toPython(),
+            "nbr_jour": int(self.nbr_jour.text()) if self.nbr_jour.text().isdigit() else 0,
+            
+            # --- VALEURS FINANCIÈRES ---
+            "valeur_neuf": float(self.val_neuf.text().replace(" ", "").replace(",", ".") or 0),
+            "valeur_venale": float(self.val_venale.text().replace(" ", "").replace(",", ".") or 0),
+            
+            # --- RÉCAPITULATIF FINANCIER ---
+            "prime_brute": float(self.prime_brute.text().replace(" ", "").replace(",", ".") or 0),
+            "reduction": float(self.reduction.text().replace(" ", "").replace(",", ".") or 0),
+            "prime_nette": float(self.prime_nette.text().replace(" ", "").replace(",", ".") or 0),
+            "prime_emise": float(self.prime_nette.text().replace(" ", "").replace(",", ".") or 0),
+            
+            # --- FRAIS SUPPLÉMENTAIRES ---
+            "carte_rose": float(self.carte_rose.text().replace(" ", "").replace(",", ".") or 0),
+            "accessoires": float(self.accessoire.text().replace(" ", "").replace(",", ".") or 0),
+            "tva": float(self.tva.text().replace(" ", "").replace(",", ".") or 0),
+            "fichier_asac": float(self.asac.text().replace(" ", "").replace(",", ".") or 0),
+            "vignette": float(self.vignette.text().replace(" ", "").replace(",", ".") or 0),
+            "pttc": float(self.pttc.text().replace(" ", "").replace(",", ".") or 0),
+            
+            # --- ÉTAT DES GARANTIES (Booléens) ---
+            "check_rc": self.check_rc.isChecked(),
+            "check_dr": self.check_dr.isChecked(),
+            "check_vol": self.check_vol.isChecked(),
+            "check_vb": self.check_vb.isChecked(),
+            "check_in": self.check_in.isChecked(),
+            "check_bris": self.check_bris.isChecked(),
+            "check_ar": self.check_ar.isChecked(),
+            "check_dta": self.check_dta.isChecked(),
+            "check_ipt": self.check_ipt.isChecked(),
+            
+            # --- MONTANTS BRUTS DES GARANTIES ---
+            "amt_rc": get_brut_amt("rc"),
+            "amt_dr": get_brut_amt("dr"),
+            "amt_vol": get_brut_amt("vol"),
+            "amt_vb": get_brut_amt("vb"),
+            "amt_in": get_brut_amt("in"),
+            "amt_bris": get_brut_amt("bris"),
+            "amt_ar": get_brut_amt("ar"),
+            "amt_dta": get_brut_amt("dta"),
+            "amt_ipt": get_brut_amt("ipt"),
+            
+            # --- MONTANTS NETS APRÈS RÉDUCTION ---
+            "amt_red_rc": clean_amt("rc"),
+            "amt_red_dr": clean_amt("dr"),
+            "amt_red_vol": clean_amt("vol"),
+            "amt_red_vb": clean_amt("vb"),
+            "amt_red_in": clean_amt("in"),
+            "amt_red_bris": clean_amt("bris"),
+            "amt_red_ar": clean_amt("ar"),
+            "amt_red_dta": clean_amt("dta"),
+            "amt_red_ipt": clean_amt("ipt"),
+            
+            # --- VALEURS DES RÉDUCTIONS (en FCFA) ---
+            "amt_val_red_rc": get_red_amt("rc"),
+            "amt_val_red_dr": get_red_amt("dr"),
+            "amt_val_red_vol": get_red_amt("vol"),
+            "amt_val_red_vb": get_red_amt("vb"),
+            "amt_val_red_in": get_red_amt("in"),
+            "amt_val_red_bris": get_red_amt("bris"),
+            "amt_val_red_ar": get_red_amt("ar"),
+            "amt_val_red_dta": get_red_amt("dta"),
+            "amt_val_red_ipt": get_red_amt("ipt"),
+            
+            # --- TAUX DE RÉDUCTION ---
+            "red_rc": get_taux("rc"),
+            "red_dr": get_taux("dr"),
+            "red_vol": get_taux("vol"),
+            "red_vb": get_taux("vb"),
+            "red_in": get_taux("in"),
+            "red_bris": get_taux("bris"),
+            "red_ar": get_taux("ar"),
+            "red_dta": get_taux("dta"),
+            "red_ipt": get_taux("ipt"),
         }
         return data
     
@@ -1551,6 +1831,19 @@ class VehicleForm(QDialog):
                             return 0.0
                 return 0.0
             
+            def get_reduction_amt(key):
+                """Récupère le montant de la réduction (amt_val_red_xx)"""
+                garantie_data = self.result_labels.get(key)
+                if garantie_data:
+                    montant_taux_label = garantie_data.get('montant_taux')
+                    if montant_taux_label and montant_taux_label.isVisible():
+                        txt = montant_taux_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                        try:
+                            return float(txt) if txt and "Erreur" not in txt else 0.0
+                        except ValueError:
+                            return 0.0
+                return 0.0
+            
             # Récupération sécurisée (tous seront des floats)
             amt_rc = get_amt("rc")
             amt_dr = get_amt("dr")
@@ -1571,27 +1864,58 @@ class VehicleForm(QDialog):
             amt_red_dta = get_red_amt("dta")
             amt_red_ar = get_red_amt("ar")
             amt_red_ipt = get_red_amt("ipt")
+
+            amt_val_red_rc = get_reduction_amt("rc")
+            amt_val_red_dr = get_reduction_amt("dr")
+            amt_val_red_vol = get_reduction_amt("vol")
+            amt_val_red_vb = get_reduction_amt("vb")
+            amt_val_red_in = get_reduction_amt("in")
+            amt_val_red_bris = get_reduction_amt("bris")
+            amt_val_red_dta = get_reduction_amt("dta")
+            amt_val_red_ar = get_reduction_amt("ar")
+            amt_val_red_ipt = get_reduction_amt("ipt")
             
             # 1. Total Brut
-            total_net = amt_rc + amt_dr + amt_vol + amt_vb +  amt_in + amt_bris + amt_dta + amt_ar + amt_ipt
-            total_reduction = amt_red_rc + amt_red_dr + amt_red_vol + amt_red_vb + amt_red_in + amt_red_bris + amt_red_dta + amt_red_ar + amt_red_ipt
+            total_brut = amt_rc + amt_dr + amt_vol + amt_vb +  amt_in + amt_bris + amt_dta + amt_ar + amt_ipt
+            total_net = amt_red_rc + amt_red_dr + amt_red_vol + amt_red_vb + amt_red_in + amt_red_bris + amt_red_dta + amt_red_ar + amt_red_ipt
+            reduction = amt_val_red_rc + amt_val_red_dr + amt_val_red_vol + amt_val_red_vb + amt_val_red_in + amt_val_red_bris + amt_val_red_dta + amt_val_red_ar + amt_val_red_ipt
             
-            # 2. Calcul des Réductions (Exemple de logique commerciale)
-            # partie_A = (amt_rc + amt_dr) * 0.10
-            # partie_B = (amt_vol + amt_vb + amt_in + amt_bris + amt_dta) * 0.50
-            
-            total_brut = total_net + total_reduction
-            
+            print(reduction)
             # 3. Mise à jour de l'affichage
             self.prime_brute.setText(f"{total_brut:,.0f}".replace(",", " "))
-            self.reduction.setText(f"{total_reduction:,.0f}".replace(",", " "))
             self.prime_nette.setText(f"{total_net:,.0f}".replace(",", " "))
+            self.reduction.setText(f"{reduction:,.0f}".replace(",", " "))
+
+            # Calcul de la TVA
+            self.calculate_tva()
             
-            # Pour la base de données (sans espaces)
-            self.prime_emise.setText(f"{total_net:.0f}")
+            # Calcul du PTTC (Prime Toute Taxe Comprise)
+            self.calculate_pttc()
+            
+            # # Pour la base de données (sans espaces)
+            # self.prime_emise.setText(f"{reduction:.0f}")
             
         except Exception as e:
             print(f"Erreur dans le récapitulatif financier : {e}")
+
+    def calculate_pttc(self):
+        """Calcule le PTTC (Prime Toute Taxe Comprise)"""
+        try:
+            prime_nette = self.get_float_value(self.prime_nette)
+            accessoires = self.get_float_value(self.accessoire)
+            asac = self.get_float_value(self.asac)
+            tva = self.get_float_value(self.tva)
+            vignette = self.get_float_value(self.vignette)
+            carte_rose = self.get_float_value(self.carte_rose)
+            
+            pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
+            
+            self.pttc.setText(f"{pttc:,.0f}".replace(",", " "))
+            
+            return pttc
+        except Exception as e:
+            print(f"Erreur calcul PTTC: {e}")
+            return 0
 
     def refresh_all_garanties(self):
         """Rafraîchit toutes les garanties"""
@@ -1646,6 +1970,7 @@ class VehicleForm(QDialog):
         
         montant_brut_label = garantie_data['montant_brut']
         taux_widget = garantie_data['taux']
+        montant_taux_label = garantie_data['montant_taux']
         montant_net_label = garantie_data['montant_net']
 
         try:
@@ -1654,6 +1979,7 @@ class VehicleForm(QDialog):
                 d_debut = self.date_debut.date().toPython()
                 d_fin = self.date_fin.date().toPython()
                 nbr_jr = max(0, (d_fin - d_debut).days)
+                self.nbr_jour.setText(str(nbr_jr))
                 prorata = nbr_jr / 365.0 if nbr_jr > 0 else 1
                 
                 # Calcul du montant brut selon le type de garantie
@@ -1669,12 +1995,24 @@ class VehicleForm(QDialog):
                         padding: 4px 8px;
                         border-radius: 6px;
                     """)
+
+                    # Afficher le montant du taux (même valeur que brut initialement)
+                    montant_taux_label.setText(f"{montant_brut:,.0f} FCFA".replace(",", " "))
+                    montant_taux_label.setStyleSheet("""
+                        color: #27ae60;
+                        font-weight: bold;
+                        background-color: #e8f5e9;
+                        padding: 4px 8px;
+                        border-radius: 6px;
+                    """)
                 else:
                     montant_brut_label.setText("0 FCFA")
+                    montant_taux_label.setText("0 FCFA")
                 
-                # Afficher les widgets
+                # Afficher les widgets (AJOUTER montant_taux_label ici)
                 montant_brut_label.setVisible(True)
                 taux_widget.setVisible(True)
+                montant_taux_label.setVisible(True)  # ← AJOUTER CETTE LIGNE
                 montant_net_label.setVisible(True)
                 
                 # Connecter le signal du taux si ce n'est pas déjà fait
@@ -1691,11 +2029,13 @@ class VehicleForm(QDialog):
                 # Cacher tous les widgets
                 montant_brut_label.setVisible(False)
                 taux_widget.setVisible(False)
+                montant_taux_label.setVisible(False)  # ← AJOUTER CETTE LIGNE
                 montant_net_label.setVisible(False)
                 
                 # Réinitialiser
                 montant_brut_label.setText("0 FCFA")
                 montant_net_label.setText("0 FCFA")
+                montant_taux_label.setText("0 FCFA")
                 taux_widget.setText("")
             
             self.calculate_total_premium()
@@ -1704,7 +2044,7 @@ class VehicleForm(QDialog):
             print(f"❌ Erreur pour la garantie '{key}': {str(e)}")
             import traceback
             traceback.print_exc()
-  
+            
     def get_rc_base_amount(self):
         """
         Récupère le montant de base de la RC (utile pour les garanties dépendantes)
@@ -1732,16 +2072,39 @@ class VehicleForm(QDialog):
             if is_checked:
                 garantie_data['montant_brut'].setVisible(True)
                 garantie_data['taux'].setVisible(True)
+                garantie_data['montant_taux'].setVisible(True)
                 garantie_data['montant_net'].setVisible(True)
                 if key == "rc":
                     self.update_rc_calculation()
             else:
                 garantie_data['montant_brut'].setVisible(False)
                 garantie_data['taux'].setVisible(False)
+                garantie_data['montant_taux'].setVisible(False)
                 garantie_data['montant_net'].setVisible(False)
                 garantie_data['montant_brut'].setText("0 FCFA")
                 garantie_data['montant_net'].setText("0 FCFA")
+                garantie_data['montant_taux'].setText("0 FCFA")
 
+    def calculate_tva(self):
+        """Calcule la TVA selon la formule: TVA = (Prime_net + Accessoires + Fichier ASAC) * 19.25%"""
+        try:
+            # Récupérer les valeurs
+            prime_nette = self.get_float_value(self.prime_nette)
+            accessoires = self.get_float_value(self.accessoire)
+            asac = self.get_float_value(self.asac)
+            
+            # Calcul de la TVA
+            base_tva = prime_nette + accessoires + asac
+            tva = base_tva * 0.1925  # 19.25%
+            
+            # Mettre à jour le champ TVA
+            self.tva.setText(f"{tva:,.0f}".replace(",", " "))
+            
+            return tva
+        except Exception as e:
+            print(f"Erreur calcul TVA: {e}")
+            return 0
+        
     def calculate_garantie_amount(self, key, prorata):
         """Calcule le montant brut de la garantie"""
         # Récupérer les valeurs nécessaires
@@ -1761,7 +2124,7 @@ class VehicleForm(QDialog):
         elif key == "bris":
             return v_neuf * 0.005 * prorata
         elif key == "ar":
-            return v_venale * 0.03 * prorata
+            return v_venale * 0.75 * 0.03 * prorata
         elif key == "dta":
             cv = self.get_int_value(self.usage_input)
             if cv < 2:
@@ -1775,7 +2138,10 @@ class VehicleForm(QDialog):
             else:
                 return 200000 * prorata
         elif key == "ipt":
-            return v_neuf * 0.05 * prorata
+            if int(self.places_input.text()) == 5:
+                return 7500
+            elif int(self.places_input.text()) == 7:
+                return (7500 * 7) / 5
         return 0
 
     def update_net_amount(self, key):
@@ -1788,25 +2154,38 @@ class VehicleForm(QDialog):
             # Récupérer le montant brut
             brut_text = garantie_data['montant_brut'].text()
             brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
-            montant_brut = float(brut_text) if brut_text else 0
+            
+            try:
+                montant_brut = float(brut_text) if brut_text else 0
+            except ValueError:
+                montant_brut = 0
             
             # Récupérer le taux
             taux_text = garantie_data['taux'].text().strip()
             if taux_text.endswith('%'):
                 taux_text = taux_text[:-1]
             
-            taux = float(taux_text) if taux_text else 0
+            try:
+                taux = float(taux_text) if taux_text else 0
+            except ValueError:
+                taux = 0
             
-            # Calculer le montant net
+            # Calculer le montant net et la réduction
             if taux > 0:
                 reduction = montant_brut * (taux / 100)
                 montant_net = montant_brut - reduction
             else:
+                reduction = 0
                 montant_net = montant_brut
             
             # Afficher le montant net
             montant_net_label = garantie_data['montant_net']
             montant_net_label.setText(f"{montant_net:,.0f} FCFA".replace(",", " "))
+            
+            # Afficher le montant de la réduction si le widget existe
+            montant_taux = garantie_data.get('montant_taux')
+            if montant_taux:
+                montant_taux.setText(f"{reduction:,.0f} FCFA".replace(",", " "))
             
             # Appliquer un style différent selon le taux
             if taux > 0:
@@ -1832,6 +2211,8 @@ class VehicleForm(QDialog):
             
         except Exception as e:
             print(f"Erreur lors du calcul du montant net pour {key}: {e}")
+            import traceback
+            traceback.print_exc()
 
     def get_float_value(self, widget):
         """Récupère une valeur float d'un widget"""

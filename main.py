@@ -1271,8 +1271,6 @@ class AnimatedSidebar(QFrame):
             # Animation de sortie
             pass
 
-        
-
     def toggle_sidebar(self):
         self.collapsed = not self.collapsed
         target_width = self.collapsed_width if self.collapsed else self.expanded_width
@@ -1387,7 +1385,6 @@ class AnimatedSidebar(QFrame):
         # Tooltip avec email
         if email:
             self.user_card.setToolTip(f"📧 {email}")
-
 
     def set_user_info(self, username):
         self.user_name.setText(username)

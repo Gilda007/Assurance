@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QFrame, QGridLayout, QScrollArea, 
-                             QTableWidget, QTableWidgetItem, QHeaderView, QSizePolicy,
-                             QTabWidget, QMessageBox)
+                             QTableWidget, QTableWidgetItem, QHeaderView, QLineEdit,
+                             QComboBox, QMessageBox)
 from PySide6.QtCore import Qt, QDate
 from PySide6.QtGui import QFont, QColor, QPixmap
 import qrcode
@@ -562,73 +562,446 @@ class VehicleDetailView(QWidget):
         return container
 
     def create_recap_card(self):
-        """Crée la carte récapitulative"""
+        """Crée la carte récapitulative avec validation de paiement"""
         recap_frame = QFrame()
         recap_frame.setObjectName("RecapCard")
-        recap_layout = QHBoxLayout(recap_frame)
-        recap_layout.setContentsMargins(32, 28, 32, 28)
+        recap_frame.setStyleSheet("""
+            QFrame#RecapCard {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #667eea, stop:1 #764ba2);
+                border-radius: 20px;
+            }
+        """)
         
+        main_layout = QVBoxLayout(recap_frame)
+        main_layout.setContentsMargins(32, 28, 32, 28)
+        main_layout.setSpacing(20)
+        
+        # ========== LIGNE 1: TITRE ==========
+        title_layout = QHBoxLayout()
+        title_icon = QLabel("💰")
+        title_icon.setStyleSheet("font-size: 20px; background: transparent;")
+        title_text = QLabel("RÉCAPITULATIF FINANCIER")
+        title_text.setStyleSheet("""
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: transparent;
+        """)
+        title_layout.addWidget(title_icon)
+        title_layout.addWidget(title_text)
+        title_layout.addStretch()
+        main_layout.addLayout(title_layout)
+        
+        # ========== LIGNE 2: MONTANT PRINCIPAL ==========
         prime_nette = float(self.data.get('prime_nette', 0))
         prime_brute = float(self.data.get('prime_brute', 0))
         reduction = prime_brute - prime_nette
         reduction_percent = (reduction / prime_brute * 100) if prime_brute > 0 else 0
         
-        # Left side - Stats
-        stats_layout = QVBoxLayout()
-        stats_layout.setSpacing(8)
+        amount_layout = QHBoxLayout()
+        amount_layout.setSpacing(30)
         
-        total_lbl = QLabel("PRIME NETTE À PAYER")
-        total_lbl.setStyleSheet("color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 500;")
+        # Montant à payer
+        left_amount = QVBoxLayout()
+        left_amount.setSpacing(8)
+        total_lbl = QLabel("MONTANT TOTAL À PAYER")
+        total_lbl.setStyleSheet("""
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            background: transparent;
+        """)
+        amount_lbl = QLabel(f"{prime_nette:,.0f}".replace(",", " "))
+        amount_lbl.setStyleSheet("""
+            color: white;
+            font-size: 42px;
+            font-weight: 800;
+            background: transparent;
+        """)
+        currency_lbl = QLabel("FCFA")
+        currency_lbl.setStyleSheet("""
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            background: transparent;
+        """)
+        left_amount.addWidget(total_lbl)
+        left_amount.addWidget(amount_lbl)
+        left_amount.addWidget(currency_lbl)
         
-        amount_lbl = QLabel(f"{prime_nette:,.0f} FCFA".replace(",", " "))
-        amount_lbl.setStyleSheet("color: white; font-size: 36px; font-weight: 800;")
-        
-        stats_layout.addWidget(total_lbl)
-        stats_layout.addWidget(amount_lbl)
-        
-        # Middle - Stats card
-        middle_layout = QHBoxLayout()
-        middle_layout.setSpacing(24)
+        # Détails
+        right_details = QVBoxLayout()
+        right_details.setSpacing(10)
         
         # Prime brute
-        brut_card = QFrame()
-        brut_card.setStyleSheet("background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 20px;")
-        brut_layout = QVBoxLayout(brut_card)
-        brut_layout.setSpacing(4)
-        
-        brut_title = QLabel("Prime brute")
-        brut_title.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 11px;")
-        brut_value = QLabel(f"{prime_brute:,.0f} FCFA".replace(",", " "))
-        brut_value.setStyleSheet("color: white; font-size: 16px; font-weight: 600;")
-        
-        brut_layout.addWidget(brut_title)
-        brut_layout.addWidget(brut_value)
+        brut_widget = self.create_detail_row("Prime brute", f"{prime_brute:,.0f}".replace(",", " "), "#ffffff")
+        right_details.addLayout(brut_widget)
         
         # Réduction
-        red_card = QFrame()
-        red_card.setStyleSheet("background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px 20px;")
-        red_layout = QVBoxLayout(red_card)
-        red_layout.setSpacing(4)
+        reduction_color = "#fbbf24" if reduction > 0 else "#94a3b8"
+        reduction_text = f"- {reduction:,.0f}".replace(",", " ") if reduction > 0 else "0"
+        reduction_percent_text = f"({reduction_percent:.1f}%)" if reduction > 0 else ""
+        red_widget = self.create_detail_row("Réduction", reduction_text, reduction_color, reduction_percent_text)
+        right_details.addLayout(red_widget)
         
-        red_title = QLabel("Réduction")
-        red_title.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 11px;")
-        red_value = QLabel(f"- {reduction:,.0f} FCFA".replace(",", " "))
-        red_value.setStyleSheet("color: #fbbf24; font-size: 16px; font-weight: 600;")
-        red_percent = QLabel(f"({reduction_percent:.1f}%)")
-        red_percent.setStyleSheet("color: rgba(255,255,255,0.6); font-size: 11px;")
+        # Séparateur
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setStyleSheet("background: rgba(255,255,255,0.2); max-height: 1px; margin: 5px 0;")
+        right_details.addWidget(sep)
         
-        red_layout.addWidget(red_title)
-        red_layout.addWidget(red_value)
-        red_layout.addWidget(red_percent)
+        # Net à payer
+        net_widget = self.create_detail_row("Net à payer", f"{prime_nette:,.0f}".replace(",", " "), "#fbbf24", bold=True)
+        right_details.addLayout(net_widget)
         
-        middle_layout.addWidget(brut_card)
-        middle_layout.addWidget(red_card)
+        amount_layout.addLayout(left_amount, 1)
+        amount_layout.addLayout(right_details, 1)
+        main_layout.addLayout(amount_layout)
         
-        recap_layout.addLayout(stats_layout, 2)
-        recap_layout.addLayout(middle_layout, 2)
-        recap_layout.addStretch()
+        # ========== LIGNE 3: FRAIS SUPPLÉMENTAIRES ==========
+        frais_title = QLabel("📋 DÉTAIL DES FRAIS")
+        frais_title.setStyleSheet("""
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-top: 10px;
+            background: transparent;
+        """)
+        main_layout.addWidget(frais_title)
+        
+        frais_grid = QGridLayout()
+        frais_grid.setSpacing(10)
+        frais_grid.setContentsMargins(0, 5, 0, 5)
+        
+        # Récupération des frais
+        carte_rose = float(self.data.get('carte_rose', 0))
+        accessoires = float(self.data.get('accessoires', 0))
+        tva = float(self.data.get('tva', 0))
+        asac = float(self.data.get('fichier_asac', 0))
+        vignette = float(self.data.get('vignette', 0))
+        
+        frais_items = [
+            ("📄 Carte Rose", carte_rose),
+            ("🔧 Accessoires", accessoires),
+            ("📊 TVA (19.25%)", tva),
+            ("📁 Fichier ASAC", asac),
+            ("🎫 Vignette", vignette),
+        ]
+        
+        for i, (label, value) in enumerate(frais_items):
+            item_layout = self.create_frais_row(label, value)
+            frais_grid.addLayout(item_layout, i // 3, i % 3)
+        
+        main_layout.addLayout(frais_grid)
+        
+        # ========== LIGNE 4: PTTC (Total TTC) ==========
+        pttc = float(self.data.get('pttc', prime_nette + carte_rose + accessoires + tva + asac + vignette))
+        
+        pttc_layout = QHBoxLayout()
+        pttc_layout.setContentsMargins(0, 15, 0, 0)
+        
+        pttc_label = QLabel("TOTAL TOUTES TAXES COMPRISES (PTTC)")
+        pttc_label.setStyleSheet("""
+            color: rgba(255,255,255,0.8);
+            font-size: 13px;
+            font-weight: 600;
+            background: transparent;
+        """)
+        
+        pttc_value = QLabel(f"{pttc:,.0f}".replace(",", " "))
+        pttc_value.setStyleSheet("""
+            color: #fbbf24;
+            font-size: 28px;
+            font-weight: 800;
+            background: transparent;
+        """)
+        
+        pttc_currency = QLabel("FCFA")
+        pttc_currency.setStyleSheet("""
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            background: transparent;
+        """)
+        
+        pttc_layout.addWidget(pttc_label)
+        pttc_layout.addStretch()
+        pttc_layout.addWidget(pttc_value)
+        pttc_layout.addWidget(pttc_currency)
+        
+        main_layout.addLayout(pttc_layout)
+        
+        # ========== LIGNE 5: SECTION VALIDATION PAIEMENT ==========
+        validation_frame = QFrame()
+        validation_frame.setStyleSheet("""
+            QFrame {
+                background: rgba(255,255,255,0.1);
+                border-radius: 16px;
+                margin-top: 15px;
+            }
+        """)
+        validation_layout = QVBoxLayout(validation_frame)
+        validation_layout.setContentsMargins(20, 15, 20, 15)
+        validation_layout.setSpacing(12)
+        
+        # Titre validation
+        validation_title = QLabel("✅ VALIDATION DU PAIEMENT")
+        validation_title.setStyleSheet("""
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            background: transparent;
+        """)
+        validation_layout.addWidget(validation_title)
+        
+        # Mode de paiement
+        mode_layout = QHBoxLayout()
+        mode_layout.setSpacing(15)
+        
+        mode_label = QLabel("Mode de paiement :")
+        mode_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 12px; background: transparent;")
+        
+        self.payment_mode = QComboBox()
+        self.payment_mode.addItems(["Espèces", "Carte bancaire", "Virement", "Chèque", "Mobile Money"])
+        self.payment_mode.setStyleSheet("""
+            QComboBox {
+                background: white;
+                border: none;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: 140px;
+            }
+        """)
+        
+        mode_layout.addWidget(mode_label)
+        mode_layout.addWidget(self.payment_mode)
+        mode_layout.addStretch()
+        validation_layout.addLayout(mode_layout)
+        
+        # Montant versé
+        montant_layout = QHBoxLayout()
+        montant_layout.setSpacing(15)
+        
+        montant_label = QLabel("Montant versé :")
+        montant_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 12px; background: transparent;")
+        
+        self.montant_verse = QLineEdit()
+        self.montant_verse.setPlaceholderText("0")
+        self.montant_verse.setStyleSheet("""
+            QLineEdit {
+                background: white;
+                border: none;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: 150px;
+            }
+        """)
+        self.montant_verse.textChanged.connect(self.update_balance)
+        
+        montant_layout.addWidget(montant_label)
+        montant_layout.addWidget(self.montant_verse)
+        montant_layout.addStretch()
+        validation_layout.addLayout(montant_layout)
+        
+        # Solde restant
+        solde_layout = QHBoxLayout()
+        solde_layout.setSpacing(15)
+        
+        solde_label = QLabel("Solde restant :")
+        solde_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 12px; background: transparent;")
+        
+        self.solde_restant = QLineEdit()
+        self.solde_restant.setReadOnly(True)
+        self.solde_restant.setPlaceholderText("0")
+        self.solde_restant.setStyleSheet("""
+            QLineEdit {
+                background: rgba(255,255,255,0.2);
+                color: #fbbf24;
+                border: 1px solid rgba(255,255,255,0.3);
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: bold;
+                min-width: 150px;
+            }
+        """)
+        
+        solde_layout.addWidget(solde_label)
+        solde_layout.addWidget(self.solde_restant)
+        solde_layout.addStretch()
+        validation_layout.addLayout(solde_layout)
+        
+        # Statut du paiement
+        status_layout = QHBoxLayout()
+        status_layout.setSpacing(15)
+        
+        self.payment_status = QLabel("⏳ En attente de paiement")
+        self.payment_status.setStyleSheet("""
+            QLabel {
+                color: #fbbf24;
+                font-size: 12px;
+                font-weight: 600;
+                background: rgba(0,0,0,0.2);
+                padding: 5px 12px;
+                border-radius: 20px;
+            }
+        """)
+        
+        status_layout.addWidget(self.payment_status)
+        status_layout.addStretch()
+        validation_layout.addLayout(status_layout)
+        
+        # Bouton de validation
+        btn_validate = QPushButton("✓ VALIDER LE PAIEMENT")
+        btn_validate.setCursor(Qt.PointingHandCursor)
+        btn_validate.setStyleSheet("""
+            QPushButton {
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px;
+                font-size: 14px;
+                font-weight: 700;
+                margin-top: 5px;
+            }
+            QPushButton:hover {
+                background: #059669;
+            }
+            QPushButton:pressed {
+                padding-top: 13px;
+                padding-bottom: 11px;
+            }
+        """)
+        btn_validate.clicked.connect(self.validate_payment)
+        validation_layout.addWidget(btn_validate)
+        
+        main_layout.addWidget(validation_frame)
         
         return recap_frame
+
+    def create_detail_row(self, label, value, color="#ffffff", suffix="", bold=False):
+        """Crée une ligne de détail pour le récapitulatif"""
+        layout = QHBoxLayout()
+        layout.setSpacing(10)
+        
+        label_lbl = QLabel(label)
+        label_lbl.setStyleSheet(f"""
+            color: rgba(255,255,255,0.7);
+            font-size: 12px;
+            background: transparent;
+        """)
+        
+        value_lbl = QLabel(f"{value} FCFA {suffix}")
+        font_weight = "bold" if bold else "normal"
+        value_lbl.setStyleSheet(f"""
+            color: {color};
+            font-size: 13px;
+            font-weight: {font_weight};
+            background: transparent;
+        """)
+        
+        layout.addWidget(label_lbl)
+        layout.addStretch()
+        layout.addWidget(value_lbl)
+        
+        return layout
+
+    def create_frais_row(self, label, value):
+        """Crée une ligne de frais pour la grille"""
+        layout = QHBoxLayout()
+        layout.setSpacing(8)
+        
+        label_lbl = QLabel(label)
+        label_lbl.setStyleSheet("""
+            color: rgba(255,255,255,0.6);
+            font-size: 11px;
+            background: transparent;
+        """)
+        
+        value_lbl = QLabel(f"{value:,.0f}".replace(",", " "))
+        value_lbl.setStyleSheet("""
+            color: rgba(255,255,255,0.9);
+            font-size: 12px;
+            font-weight: 600;
+            background: transparent;
+        """)
+        
+        layout.addWidget(label_lbl)
+        layout.addStretch()
+        layout.addWidget(value_lbl)
+        
+        return layout
+
+    def update_balance(self):
+        """Met à jour le solde restant en fonction du montant versé"""
+        try:
+            prime_nette = float(self.data.get('prime_nette', 0))
+            montant_verse = float(self.montant_verse.text().replace(" ", "").replace(",", ".") or 0)
+            
+            solde = prime_nette - montant_verse
+            
+            if solde <= 0:
+                self.solde_restant.setText("0")
+                self.payment_status.setText("✅ Paiement complété")
+                self.payment_status.setStyleSheet("""
+                    QLabel {
+                        color: #10b981;
+                        font-size: 12px;
+                        font-weight: 600;
+                        background: rgba(0,0,0,0.2);
+                        padding: 5px 12px;
+                        border-radius: 20px;
+                    }
+                """)
+            else:
+                self.solde_restant.setText(f"{solde:,.0f}".replace(",", " "))
+                self.payment_status.setText("⏳ Paiement partiel")
+                self.payment_status.setStyleSheet("""
+                    QLabel {
+                        color: #fbbf24;
+                        font-size: 12px;
+                        font-weight: 600;
+                        background: rgba(0,0,0,0.2);
+                        padding: 5px 12px;
+                        border-radius: 20px;
+                    }
+                """)
+                
+        except ValueError:
+            self.solde_restant.setText("0")
+
+    def validate_payment(self):
+        """Valide le paiement et enregistre la transaction"""
+        montant_verse = float(self.montant_verse.text().replace(" ", "").replace(",", ".") or 0)
+        prime_nette = float(self.data.get('prime_nette', 0))
+        mode = self.payment_mode.currentText()
+        
+        if montant_verse <= 0:
+            QMessageBox.warning(self, "Erreur", "Veuillez saisir un montant valide")
+            return
+        
+        if montant_verse < prime_nette:
+            reply = QMessageBox.question(
+                self,
+                "Paiement partiel",
+                f"Le montant versé ({montant_verse:,.0f} FCFA) est inférieur à la prime nette ({prime_nette:,.0f} FCFA).\n\nSouhaitez-vous continuer ?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+        
+        # Ici, vous pouvez ajouter la logique d'enregistrement du paiement
+        QMessageBox.information(
+            self,
+            "Paiement validé",
+            f"Paiement de {montant_verse:,.0f} FCFA effectué par {mode}\n\nSolde restant : {max(0, prime_nette - montant_verse):,.0f} FCFA"
+        )
 
     def create_calendar_section(self):
         """Crée la section des prochaines échéances"""

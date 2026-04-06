@@ -15,7 +15,7 @@ class Vehicle(Base):
     chassis = Column(String(50), unique=False, nullable=False)
     zone = Column(String(1), nullable=False)
     marque = Column(String(50), nullable=False)
-    categorie = Column(String(50), nullable=False)  # Changé de Integer à String
+    categorie = Column(String(50), nullable=False)
     modele = Column(String(50), nullable=False)
     annee = Column(Integer, nullable=False)
     energie = Column(String(20))
@@ -23,7 +23,7 @@ class Vehicle(Base):
     places = Column(Integer, default=5)
     has_remorque = Column(Boolean, default=False)
     libele_tarif = Column(String(50), nullable=False)
-    code_tarif = Column(String(50), nullable=True)  # Ajout du champ code_tarif
+    code_tarif = Column(String(50), nullable=True)
 
     # --- PROPRIÉTAIRE & FLOTTE ---
     owner_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)
@@ -35,6 +35,7 @@ class Vehicle(Base):
     date_debut = Column(Date)
     date_fin = Column(Date)
     statut = Column(String(20), default="En Circulation")
+    nbr_jour = Column(Integer, default=0)  # Nombre de jours de couverture
 
     # --- RÉCAPITULATIF FINANCIER GLOBAL ---
     valeur_neuf = Column(Float, default=0.0)
@@ -43,61 +44,78 @@ class Vehicle(Base):
     reduction = Column(Float, default=0.0)
     prime_nette = Column(Float, default=0.0)
     prime_emise = Column(Float, default=0.0)
+    
+    # --- FRAIS SUPPLÉMENTAIRES ---
+    carte_rose = Column(Float, default=0.0)      # Carte rose
+    accessoires = Column(Float, default=0.0)     # Accessoires
+    tva = Column(Float, default=0.0)            # TVA (19.25%)
+    fichier_asac = Column(Float, default=0.0)   # Fichier ASAC
+    vignette = Column(Float, default=0.0)       # Vignette
+    pttc = Column(Float, default=0.0)           # Prime Toute Taxe Comprise
 
     # --- DÉTAIL DES GARANTIES (ÉTAT ET MONTANT) ---
     # RC
     check_rc = Column(Boolean, default=False)
-    amt_rc = Column(Float, default=0.0)  # Montant brut
-    red_rc = Column(Float, default=0.0)  # Taux de réduction (%)
+    amt_rc = Column(Float, default=0.0)      # Montant brut
+    red_rc = Column(Float, default=0.0)      # Taux de réduction (%)
     amt_red_rc = Column(Float, default=0.0)  # Montant après réduction
+    amt_val_red_rc = Column(Float, default=0.0)  # Valeur de la réduction en FCFA
     
     # Défense Recours
     check_dr = Column(Boolean, default=False)
     amt_dr = Column(Float, default=0.0)
     red_dr = Column(Float, default=0.0)
     amt_red_dr = Column(Float, default=0.0)
+    amt_val_red_dr = Column(Float, default=0.0)
     
     # Vol
     check_vol = Column(Boolean, default=False)
     amt_vol = Column(Float, default=0.0)
     red_vol = Column(Float, default=0.0)
     amt_red_vol = Column(Float, default=0.0)
+    amt_val_red_vol = Column(Float, default=0.0)
     
     # Vandalisme / VB
     check_vb = Column(Boolean, default=False)
     amt_vb = Column(Float, default=0.0)
     red_vb = Column(Float, default=0.0)
     amt_red_vb = Column(Float, default=0.0)
+    amt_val_red_vb = Column(Float, default=0.0)
     
     # Incendie
     check_in = Column(Boolean, default=False)
     amt_in = Column(Float, default=0.0)
     red_in = Column(Float, default=0.0)
     amt_red_in = Column(Float, default=0.0)
+    amt_val_red_in = Column(Float, default=0.0)
     
     # Bris de Glace
     check_bris = Column(Boolean, default=False)
     amt_bris = Column(Float, default=0.0)
     red_bris = Column(Float, default=0.0)
     amt_red_bris = Column(Float, default=0.0)
+    amt_val_red_bris = Column(Float, default=0.0)
     
     # Assistance Réparation
     check_ar = Column(Boolean, default=False)
     amt_ar = Column(Float, default=0.0)
     red_ar = Column(Float, default=0.0)
     amt_red_ar = Column(Float, default=0.0)
+    amt_val_red_ar = Column(Float, default=0.0)
     
     # Dommages Tous Accidents (DTA)
     check_dta = Column(Boolean, default=False)
     amt_dta = Column(Float, default=0.0)
     red_dta = Column(Float, default=0.0)
     amt_red_dta = Column(Float, default=0.0)
+    amt_val_red_dta = Column(Float, default=0.0)
     
     # Individuelle Personnes Transportées (IPT)
     check_ipt = Column(Boolean, default=False)
     amt_ipt = Column(Float, default=0.0)
     red_ipt = Column(Float, default=0.0)
     amt_red_ipt = Column(Float, default=0.0)
+    amt_val_red_ipt = Column(Float, default=0.0)
     
     # --- TRAÇABILITÉ & CLE ETRANGERES ---
     created_at = Column(DateTime, server_default=func.now())
@@ -137,7 +155,24 @@ class Vehicle(Base):
     @property
     def total_reduction_amount(self):
         """Total des réductions appliquées"""
-        return self.total_guarantees_brut - self.total_guarantees_net
+        return sum([
+            self.amt_val_red_rc or 0, self.amt_val_red_dr or 0, self.amt_val_red_vol or 0,
+            self.amt_val_red_vb or 0, self.amt_val_red_in or 0, self.amt_val_red_bris or 0,
+            self.amt_val_red_ar or 0, self.amt_val_red_dta or 0, self.amt_val_red_ipt or 0
+        ])
+    
+    @property
+    def total_frais(self):
+        """Total des frais supplémentaires"""
+        return sum([
+            self.carte_rose or 0, self.accessoires or 0, 
+            self.tva or 0, self.fichier_asac or 0, self.vignette or 0
+        ])
+    
+    @property
+    def total_ttc(self):
+        """Total TTC (Prime nette + tous frais)"""
+        return (self.prime_nette or 0) + self.total_frais
 
     def __repr__(self):
         return f"<Vehicle(Immat={self.immatriculation}, Marque={self.marque})>"
