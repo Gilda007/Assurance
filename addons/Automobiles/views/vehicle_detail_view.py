@@ -6,7 +6,8 @@ from PySide6.QtCore import Qt
 import qrcode
 from io import BytesIO
 from PySide6.QtGui import QFont, QColor, QPixmap
-
+from addons.Automobiles.controllers.contract_controller import ContractController
+from addons.Automobiles.controllers.paiement_controller import PaymentController
 
 MODERN_STYLE = """
     /* Global */
@@ -330,10 +331,15 @@ class VehicleDetailView(QWidget):
         
         # Configurer l'interface
         self.setup_ui()
+        self.connect_signals()
 
     def _init_controllers(self):
         """Initialise les contrôleurs pour la gestion des contrats et paiements"""
         try:
+            # Si on a un controller principal et qu'il expose une session, on l'utilise
+            if self.controller and self.db_session is None:
+                self.db_session = getattr(self.controller, 'session', self.db_session)
+
             # Vérifier si le contrôleur principal existe et a les attributs requis
             if self.controller:
                 if hasattr(self.controller, 'contracts'):
@@ -349,6 +355,15 @@ class VehicleDetailView(QWidget):
                     print("⚠️ Pas de paiements dans controller")
             else:
                 print("⚠️ Controller principal est None")
+
+            # Si les contrôleurs ne sont pas fournis, créer des contrôleurs à partir de db_session
+            if not self.contract_ctrl and self.db_session is not None:
+                self.contract_ctrl = ContractController(self.db_session)
+                print("✓ Contract controller créé à partir de db_session")
+
+            if not self.payment_ctrl and self.db_session is not None:
+                self.payment_ctrl = PaymentController(self.db_session)
+                print("✓ Payment controller créé à partir de db_session")
             
             # Charger les données du contrat pour ce véhicule
             self._load_contract_data()
@@ -406,8 +421,8 @@ class VehicleDetailView(QWidget):
         
         try:
             # Nettoyer l'état de la session si possible
-            if hasattr(self.contract_ctrl, 'session'):
-                self.contract_ctrl.session.rollback()
+            # if hasattr(self.contract_ctrl, 'session'):
+            #     self.contract_ctrl.session.rollback()
             
             print(f"Recherche contrat pour vehicle_id: {vehicle_id}")
             
@@ -569,6 +584,52 @@ class VehicleDetailView(QWidget):
         
         layout.addStretch()
         return tab
+
+    def download_document(self, file):
+        """Gère le téléchargement des documents"""
+        QMessageBox.information(self, "Téléchargement", f"Téléchargement du document {file}")
+
+    def handle_action(self, action):
+        """Gère les actions du header"""
+        if action == "edit":
+            QMessageBox.information(self, "Modification", "Fonction de modification à implémenter")
+        elif action == "renew":
+            QMessageBox.information(self, "Renouvellement", "Fonction de renouvellement à implémenter")
+        elif action == "email":
+            QMessageBox.information(self, "Envoi email", "Fonction d'envoi par email à implémenter")
+        elif action == "export":
+            QMessageBox.information(self, "Export PDF", "Fonction d'export PDF à implémenter")
+    
+    def print_document(self, doc_type):
+        """Gère l'impression des documents"""
+        if self.controller:
+            methods = {
+                "carte_rose": getattr(self.controller.vehicles, 'print_carte_rose', None),
+                "vignette": getattr(self.controller.vehicles, 'print_vignette', None),
+                "quittance": getattr(self.controller.vehicles, 'print_quittance', None),
+                "attestation": getattr(self.controller.vehicles, 'print_attestation', None),
+                "devis": getattr(self.controller.vehicles, 'print_devis', None),
+                "rapport": getattr(self.controller.vehicles, 'print_rapport', None)
+            }
+            if doc_type in methods and methods[doc_type]:
+                methods[doc_type](self.data)
+            else:
+                QMessageBox.information(self, "Impression", f"Impression du document {doc_type}")
+ 
+    def connect_signals(self):
+        """Connecte les boutons aux fonctions du contrôleur"""
+        # Connexion des boutons d'action
+        for action, btn in self.action_buttons.items():
+            btn.clicked.connect(lambda checked, a=action: self.handle_action(a))
+        
+        # Connexion des boutons d'impression
+        if self.controller:
+            for key, btn in self.print_buttons.items():
+                btn.clicked.connect(lambda checked, k=key: self.print_document(k))
+        
+        # Connexion des boutons de documents
+        for file, btn in self.doc_buttons.items():
+            btn.clicked.connect(lambda checked, f=file: self.download_document(f))
 
     def create_garanties_tab(self):
         """Onglet des garanties"""

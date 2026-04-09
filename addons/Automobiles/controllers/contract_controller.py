@@ -222,9 +222,6 @@ class ContractController:
             return None
         
         try:
-            # Nettoyer l'état de la session
-            self.db.rollback()
-            
             print(f"=== get_contract_by_vehicle ===")
             print(f"Recherche contrat pour vehicle_id: {vehicle_id}")
             
@@ -253,7 +250,7 @@ class ContractController:
             return contrat
             
         except Exception as e:
-            self.db.rollback()
+            # self.db.rollback()
             print(f"Erreur get_contract_by_vehicle: {e}")
             import traceback
             traceback.print_exc()
@@ -693,13 +690,6 @@ class ContractController:
             Contrat.vehicle_id == vehicle_id,
             Contrat.statut == ContractStatus.PROFORMAT
         ).first()
-
-    # def get_active_contract_by_vehicle(self, vehicle_id: int) -> Optional[Contrat]:
-    #     """Récupère le contrat actif d'un véhicule"""
-    #     return self.db.query(Contrat).filter(
-    #         Contrat.vehicle_id == vehicle_id,
-    #         Contrat.statut == ContractStatus.ACTIF
-    #     ).first()
 
     def _generate_proformat_number(self) -> str:
         """Génère un numéro de proformat unique"""

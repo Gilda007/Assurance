@@ -34,7 +34,7 @@ class PaymentController:
         """
         try:
             # Nettoyer la session
-            self.db.rollback()
+            # self.db.rollback()
             
             # Vérifier que le contrat existe
             contrat = self.db.query(Contrat).filter(Contrat.id == data.get('contrat_id')).first()

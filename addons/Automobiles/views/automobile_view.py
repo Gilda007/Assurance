@@ -8,6 +8,8 @@ from addons.Automobiles.views.audit_auto_view import AuditLogDialog
 from addons.Automobiles.views.flotte_form_view import FleetForm
 from addons.Automobiles.views.automobile_form_view import VehicleForm
 from addons.Automobiles.views.vehicle_detail_view import VehicleDetailView
+from addons.Automobiles.models.contact_models import Contact
+from addons.Automobiles.models.compagnies_models import Compagnie
 import os
 from core.logger import logger
 
@@ -15,9 +17,8 @@ class VehiculeModuleView(QWidget):
     def __init__(self, controller, current_user):
         super().__init__()
         self.controller = controller
-        self.session = controller
+        self.session = getattr(controller, 'session', controller)
         self.current_user = current_user
-        self.controller=controller
         # self.vehicle_service = VehicleController(self.session)
         # self.fleet_service = FleetController(self.session, current_user_id=None)
         # self.vehicle_id = self.on_delete_vehicle if self.on_delete_vehicle else None
@@ -488,13 +489,28 @@ class VehiculeModuleView(QWidget):
             
             # Récupération du nom du propriétaire (Contact)
             owner_name = "N/A"
-            if hasattr(vehicle, 'owner') and vehicle.owner:
-                owner_name = f"{getattr(vehicle.owner, 'nom', '')} {getattr(vehicle.owner, 'prenom', '')}".strip()
-            
+            owner_obj = None
+            if hasattr(vehicle, 'owner_id') and getattr(vehicle, 'owner_id', None):
+                session = getattr(self.controller, 'session', None)
+                if session:
+                    try:
+                        owner_obj = session.query(Contact).get(vehicle.owner_id)
+                    except Exception:
+                        owner_obj = None
+            if owner_obj:
+                owner_name = f"{getattr(owner_obj, 'nom', '')} {getattr(owner_obj, 'prenom', '')}".strip()
+
             # Récupération du nom de la compagnie d'assurance
             compagny_name = "Non définie"
-            if hasattr(vehicle, 'compagny') and vehicle.compagny:
-                compagny_name = getattr(vehicle.compagny, 'nom', 'N/A')
+            if hasattr(vehicle, 'compagny_id') and getattr(vehicle, 'compagny_id', None):
+                session = getattr(self.controller, 'session', None)
+                if session:
+                    try:
+                        compagny_obj = session.query(Compagnie).get(vehicle.compagny_id)
+                        if compagny_obj:
+                            compagny_name = getattr(compagny_obj, 'nom', 'N/A')
+                    except Exception:
+                        compagny_name = "Non définie"
 
             vehicle_data = {
                 # Identification
@@ -531,9 +547,9 @@ class VehiculeModuleView(QWidget):
                 # Propriétaire & Assurance
                 'owner': owner_name,
                 'compagny': compagny_name,
-                'phone': getattr(vehicle.owner, 'telephone', 'N/A') if vehicle.owner else "N/A",
-                'email': getattr(vehicle.owner, 'email', 'N/A') if vehicle.owner else "N/A",
-                'city': getattr(vehicle.owner, 'ville', 'Yaoundé') if vehicle.owner else "Yaoundé",
+                'phone': getattr(owner_obj, 'telephone', 'N/A') if owner_obj else "N/A",
+                'email': getattr(owner_obj, 'email', 'N/A') if owner_obj else "N/A",
+                'city': getattr(owner_obj, 'ville', 'Yaoundé') if owner_obj else "Yaoundé",
 
                 # Garanties (Présentées séparément pour faciliter l'affichage dans la vue de détails)
 

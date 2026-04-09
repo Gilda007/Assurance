@@ -812,6 +812,7 @@ class VehicleForm(QDialog):
         self.carte_rose = QLineEdit("0")
         self.carte_rose.setStyleSheet(style_info)
         self.carte_rose.setAlignment(Qt.AlignRight)
+        self.carte_rose.textChanged.connect(self.calculate_pttc)
         recap_layout.addWidget(self.create_labeled_field("Carte Rose", self.carte_rose), 3, 0)
 
         self.accessoire = QLineEdit("0")
@@ -819,6 +820,7 @@ class VehicleForm(QDialog):
         self.accessoire.setStyleSheet(style_info)
         self.accessoire.setAlignment(Qt.AlignRight)
         self.accessoire.textChanged.connect(self.calculate_tva)
+        self.accessoire.textChanged.connect(self.calculate_pttc)
         recap_layout.addWidget(self.create_labeled_field("Accessoires", self.accessoire), 3, 1)
 
         self.tva = QLineEdit("0")
@@ -839,11 +841,13 @@ class VehicleForm(QDialog):
         self.asac.setStyleSheet(style_info)
         self.asac.setAlignment(Qt.AlignRight)
         self.asac.textChanged.connect(self.calculate_tva)
+        self.asac.textChanged.connect(self.calculate_pttc)
         recap_layout.addWidget(self.create_labeled_field("Fichier ASAC", self.asac), 5, 1)
 
         self.vignette = QLineEdit("0")
         self.vignette.setStyleSheet(style_info)
         self.vignette.setAlignment(Qt.AlignRight)
+        self.vignette.textChanged.connect(self.calculate_pttc)
         recap_layout.addWidget(self.create_labeled_field("Vignette", self.vignette), 5, 0)
 
         self.pttc = QLineEdit("0")
@@ -1568,7 +1572,7 @@ class VehicleForm(QDialog):
                 )
             else:
                 self.progress_bar.setValue(50)
-                success, message = self.controller.vehicles.create_vehicle(
+                success, vehicle_id, message = self.controller.vehicles.create_vehicle(
                     data=data, 
                     user_id=current_user_id,
                     local_ip=ip_local,
@@ -1909,6 +1913,7 @@ class VehicleForm(QDialog):
             carte_rose = self.get_float_value(self.carte_rose)
             
             pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
+            print(pttc)
             
             self.pttc.setText(f"{pttc:,.0f}".replace(",", " "))
             
@@ -2112,7 +2117,7 @@ class VehicleForm(QDialog):
         v_neuf = self.get_float_value(self.val_neuf)
         
         if key == "rc":
-            return self.calculate_rc_brut()
+            return self.calculate_rc_brut() * prorata
         elif key == "dr":
             return self.get_rc_base_amount() * 0.03
         elif key == "vol":
@@ -2120,28 +2125,29 @@ class VehicleForm(QDialog):
         elif key == "vb":
             return v_venale * 0.02 * prorata
         elif key == "in":
-            return v_venale * 0.0025 * prorata
+            return v_venale * 0.025 * prorata
         elif key == "bris":
             return v_neuf * 0.005 * prorata
         elif key == "ar":
             return v_venale * 0.75 * 0.03 * prorata
         elif key == "dta":
-            cv = self.get_int_value(self.usage_input)
-            if cv < 2:
-                return 0
-            elif 2 <= cv <= 7:
-                return 30000 * prorata
-            elif 8 <= cv <= 13:
-                return 50000 * prorata
-            elif 14 <= cv <= 20:
-                return 75000 * prorata
-            else:
-                return 200000 * prorata
+            # cv = self.get_int_value(self.usage_input)
+            # if cv < 2:
+            #     return 0
+            # elif 2 <= cv <= 7:
+            #     return 30000 * prorata
+            # elif 8 <= cv <= 13:
+            #     return 50000 * prorata
+            # elif 14 <= cv <= 20:
+            #     return 75000 * prorata
+            # else:
+            #     return 200000 * prorata
+            return self.val_neuf * 0.05 * prorata
         elif key == "ipt":
             if int(self.places_input.text()) == 5:
                 return 7500
             elif int(self.places_input.text()) == 7:
-                return (7500 * 7) / 5
+                return ((7500 * 7) / 5) * prorata
         return 0
 
     def update_net_amount(self, key):

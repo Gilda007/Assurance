@@ -33,14 +33,6 @@ from addons.Paramètres.models.models import User
 from core.database import engine, Base
 import addons.Automobiles.models as models
 
-# Imports pour les graphiques
-try:
-    import pyqtgraph as pg
-    HAS_PYQTGRAPH = True
-except ImportError:
-    HAS_PYQTGRAPH = False
-    print("Pour de meilleurs graphiques: pip install pyqtgraph")
-
 # Palette de couleurs moderne
 class AppColors:
     PRIMARY = "#2563eb"
@@ -1104,7 +1096,7 @@ class AnimatedSidebar(QFrame):
         layout.addWidget(burger_frame)
 
         # Logo
-        self.logo_label = QLabel("AMS AUTO")
+        self.logo_label = QLabel("LOMETA")
         self.logo_label.setAlignment(Qt.AlignCenter)
 
         self.logo_label.setStyleSheet("""
@@ -1263,6 +1255,7 @@ class AnimatedSidebar(QFrame):
         layout.addWidget(self.logout_btn)
 
         # Animation au survol (optionnel)
+    
     def animate_logout_button(event):
         if event.type() == QEvent.Enter:
             # Animation d'entrée
@@ -1292,7 +1285,7 @@ class AnimatedSidebar(QFrame):
                 border-radius: 14px;
             """)
         else:
-            self.logo_label.setText("AMS AUTO")
+            self.logo_label.setText("LOMETA")
             self.logo_label.setStyleSheet("""
                 color: white;
                 font-size: 20px;
@@ -1397,7 +1390,7 @@ class MainWindow(QMainWindow):
     def __init__(self, user):
         super().__init__()
         self.user = user
-        self.setWindowTitle("AMS AUTO PRO")
+        self.setWindowTitle("LOMETA - Tableau de Bord")
         self.resize(1280, 800)
         self.setMinimumSize(1000, 600)
         self.setStyleSheet(STYLE_SHEET)
