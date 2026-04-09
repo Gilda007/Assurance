@@ -15,7 +15,7 @@ class VehiculeModuleView(QWidget):
     def __init__(self, controller, current_user):
         super().__init__()
         self.controller = controller
-        self.session = controller.session
+        self.session = controller
         self.current_user = current_user
         self.controller=controller
         # self.vehicle_service = VehicleController(self.session)
@@ -389,6 +389,7 @@ class VehiculeModuleView(QWidget):
         )
         if dialog.exec():
             self.controller.vehicles.get_all_vehicles()
+            self.refresh_data()
 
     def filter_vehicles(self):
         text = self.search_vehicule.text().lower()
@@ -497,6 +498,7 @@ class VehiculeModuleView(QWidget):
 
             vehicle_data = {
                 # Identification
+                'id': getattr(vehicle, 'id', None),
                 'immatriculation': getattr(vehicle, 'immatriculation', 'N/A'),
                 'chassis': getattr(vehicle, 'chassis', 'N/A'),
                 'marque': getattr(vehicle, 'marque', 'N/A'),
@@ -513,13 +515,37 @@ class VehiculeModuleView(QWidget):
                 'zone': getattr(vehicle, 'zone', 'N/A'),
                 'categorie': getattr(vehicle, 'categorie', 'N/A'),
                 'code_tarif': getattr(vehicle, 'code_tarif', 'N/A'),
-                
+                'prime_emise': getattr(vehicle, 'prime_emise', 0),
+                'valeur_neuf': getattr(vehicle, 'valeur_neuf', 0),
+                'valeur_venale': getattr(vehicle, 'valeur_venale', 0),
+                'prime_nette': getattr(vehicle, 'prime_nette', 0),
+                'prime_brute': getattr(vehicle, 'prime_brute', 0),
+                'réduction': getattr(vehicle, 'reduction', 0),
+                'carte_rose': getattr(vehicle, 'carte_rose', 'N/A'),
+                'accessoires': getattr(vehicle, 'accessoires', 'N/A'),
+                'tva': getattr(vehicle, 'tva', 0),
+                'fichier_asac': getattr(vehicle, 'fichier_asac', 'N/A'),
+                'vignette': getattr(vehicle, 'vignette', 'N/A'),
+                'PTTC': getattr(vehicle, 'pttc', 0),
+
                 # Propriétaire & Assurance
                 'owner': owner_name,
                 'compagny': compagny_name,
                 'phone': getattr(vehicle.owner, 'telephone', 'N/A') if vehicle.owner else "N/A",
                 'email': getattr(vehicle.owner, 'email', 'N/A') if vehicle.owner else "N/A",
                 'city': getattr(vehicle.owner, 'ville', 'Yaoundé') if vehicle.owner else "Yaoundé",
+
+                # Garanties (Présentées séparément pour faciliter l'affichage dans la vue de détails)
+
+                'check_rc': getattr(vehicle, 'check_rc', False),
+                'check_dr': getattr(vehicle, 'check_dr', False),
+                'check_vb': getattr(vehicle, 'check_vb', False),
+                'check_vol': getattr(vehicle, 'check_vol', False),
+                'check_in': getattr(vehicle, 'check_in', False),
+                'check_bris': getattr(vehicle, 'check_bris', False),
+                'check_ar': getattr(vehicle, 'check_ar', False),
+                'check_dta': getattr(vehicle, 'check_dta', False),
+                'check_ipt': getattr(vehicle, 'check_ipt', False), 
                 
                 # Montants des garanties (pour affichage dans les détails)
                 'amt_rc': getattr(vehicle, 'amt_rc', 0),
@@ -531,7 +557,6 @@ class VehiculeModuleView(QWidget):
                 'amt_ar': getattr(vehicle, 'amt_ar', 0),
                 'amt_dta': getattr(vehicle, 'amt_dta', 0),
                 'amt_ipt': getattr(vehicle, 'amt_ipt', 0),
-                'amt_attest': getattr(vehicle, 'prime_nette', 0),
 
                 # Montants des garanties (pour affichage dans les détails)
                 'amt_red_rc': getattr(vehicle, 'amt_red_rc', 0),
@@ -563,7 +588,7 @@ class VehiculeModuleView(QWidget):
             layout.setContentsMargins(0, 0, 0, 0)
 
             # Instanciation de la vue avec le contrôleur pour les impressions
-            self.view_details = VehicleDetailView(vehicle_data=vehicle_data, controller=self.controller)
+            self.view_details = VehicleDetailView(vehicle_data=vehicle_data, controller=self.controller, db_session=self.session)
             layout.addWidget(self.view_details)
 
             # Connexion du bouton retour (btn_back) pour fermer le dialogue

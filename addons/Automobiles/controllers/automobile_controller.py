@@ -1,22 +1,36 @@
+from typing import Dict, Optional, Tuple
 import json
 import socket
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func
 from addons.Automobiles.models.contact_models import Contact
 from addons.Automobiles.models.compagnies_models import Compagnie
 from addons.Automobiles.models.automobile_models import Vehicle, AuditVehicleLog
+from addons.Automobiles.controllers.contract_controller import ContractController
 from datetime import date, datetime
 import requests
+
+from core import logger
 
 
 class VehicleController:
     def __init__(self, session: Session):
         self.session = session
+        self.contract_ctrl = ContractController(self.session)
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.session.close()  # Correction: session au lieu de db
 
     def get_all_vehicles(self):
         """Récupère uniquement les véhicules actifs."""
-        return self.session.query(Vehicle).filter(Vehicle.is_active == True).all()
+        from sqlalchemy.orm import joinedload
+        return self.session.query(Vehicle)\
+            .options(joinedload(Vehicle.owner))\
+            .filter(Vehicle.is_active == True).all()
     
     def get_vehicles_by_id(self, vehicle_id):
         """Récupère un véhicule par son ID."""
@@ -88,37 +102,78 @@ class VehicleController:
             'Morale': len([c for c in contacts if c.type_contact == 'Morale'])
         }
         return contacts, stats
-
-    def create_vehicle(self, data, user_id, local_ip=None, public_ip=None):
+    
+    def create_vehicle(self, data: Dict, user_id: int, local_ip=None, public_ip=None) -> Tuple[bool, any, str]:
+        """
+        Crée un véhicule ET son contrat proformat associé
+        
+        Returns:
+            Tuple (succès, id_vehicule_ou_message, message)
+        """
         try:
-            # 1. Gestion des infos réseau si manquantes
+            # 1. Vérification préalable des données critiques
+            owner_id = data.get('owner_id')
+            if not owner_id:
+                print("❌ owner_id manquant dans les données")
+                print(f"Clés disponibles: {list(data.keys())}")
+                return False, None, "Le propriétaire du véhicule est requis (owner_id manquant)"
+            
+            company_id = data.get('company_id', data.get('compagny_id'))
+            if not company_id:
+                return False, None, "La compagnie d'assurance est requise"
+            
+            # 2. Nettoyer l'état de la session (mais sans rollback immédiat)
+            # On ne fait pas rollback ici car cela pourrait annuler des données utiles
+            # self.session.rollback()  # ← À COMMENTER ou à déplacer
+            
+            # 3. Gestion des infos réseau si manquantes
             if local_ip is None or public_ip is None:
                 local_ip, public_ip = self.get_network_info()
 
-            # 2. Préparation du log d'audit (AVANT de modifier 'data')
-            # On garde une copie propre pour le JSON
+            # 4. Préparation du log d'audit
             audit_data = data.copy()
             audit_data['ip_info'] = {'local': local_ip, 'public': public_ip}
 
-            # 3. Nettoyage de 'data' pour SQLAlchemy
-            # On ne garde que les clés qui existent réellement dans le modèle Vehicle
+            # 5. Nettoyage de 'data' pour SQLAlchemy
             vehicle_columns = Vehicle.__table__.columns.keys()
             filtered_data = {k: v for k, v in data.items() if k in vehicle_columns}
+            
+            # S'assurer que owner_id est dans les données filtrées
+            filtered_data['owner_id'] = owner_id
+            print(f"✅ owner_id = {owner_id} ajouté aux données du véhicule")
 
-            # 4. Création du véhicule
+            # 6. Création du véhicule
             new_vehicle = Vehicle(**filtered_data)
             
-            # Attribution forcée des champs de traçabilité sur l'objet (si ils existent)
             if hasattr(new_vehicle, 'created_by'):
                 new_vehicle.created_by = user_id
             if hasattr(new_vehicle, 'created_ip'):
                 new_vehicle.created_ip = public_ip
 
             self.session.add(new_vehicle)
-            self.session.flush() # Récupère new_vehicle.id
+            self.session.flush()  # Récupère new_vehicle.id
+            print(f"✓ Véhicule créé avec ID: {new_vehicle.id}")
 
-            # 5. Remplissage de la table Audit
-            # Utilisation de json.dumps avec default=str pour les dates
+            # 7. CRÉATION AUTOMATIQUE DU CONTRAT PROFORMAT
+            contrat_data = self._prepare_contract_data(new_vehicle, data, user_id)
+            
+            # Vérifier que contrat_data contient owner_id
+            print(f"📋 Contrat data préparé - owner_id: {contrat_data.get('owner_id')}")
+            
+            success, contrat, contrat_message = self.contract_ctrl.create_proformat_contract(
+                vehicle_id=new_vehicle.id,
+                user_id=user_id,
+                data=contrat_data
+            )
+            
+            if not success:
+                # Si la création du contrat échoue, on annule tout
+                self.session.rollback()
+                return False, None, f"Erreur création contrat: {contrat_message}"
+            
+            print(f"✓ Contrat proformat créé: {contrat.numero_police}")
+
+            # 8. Audit de création du véhicule
             audit = AuditVehicleLog(
                 user_id=user_id,
                 action="CREATE",
@@ -133,14 +188,46 @@ class VehicleController:
             
             self.session.add(audit)
             self.session.commit()
-            return True, new_vehicle.id # Retourner l'ID est plus utile pour la vue
+            
+            logger.log_info(f"Véhicule {new_vehicle.immatriculation} créé avec contrat {contrat.numero_police}")
+            return True, new_vehicle.id, "Véhicule et contrat créés avec succès"
 
         except Exception as e:
             self.session.rollback()
             import traceback
-            print(traceback.format_exc()) # Log console pour le debug
-            return False, str(e)
-
+            print(traceback.format_exc())
+            logger.error(f"Erreur création véhicule: {e}")
+            return False, None, str(e)
+        
+    def _prepare_contract_data(self, vehicle: Vehicle, data: Dict, user_id: int) -> Dict:
+        """Prépare les données pour le contrat proformat"""
+        
+        # Valeurs par défaut
+        prime_pure = float(data.get('prime_pure', 100000))
+        taxes = prime_pure * 0.1925  # TVA 19.25%
+        
+        # Frais optionnels
+        carte_rose = float(data.get('carte_rose', 25000))
+        vignette = float(data.get('vignette', 5000))
+        fichier_asac = float(data.get('fichier_asac', 2000))
+        timbre = float(data.get('timbre', 1000))
+        accessoires = float(data.get('accessoires', 0))
+        commission = float(data.get('commission_intermediaire', 0))
+        
+        # Total TTC
+        total_ttc = prime_pure + taxes + carte_rose + vignette + fichier_asac + timbre + accessoires + commission
+        
+        return {
+            'owner_id': data.get('owner_id'),
+            'company_id': data.get('company_id', 1),
+            'prime_pure': prime_pure,
+            'accessoires': accessoires,
+            'taxes_totales': taxes,
+            'commission_intermediaire': commission,
+            'prime_totale_ttc': total_ttc,
+            'fleet_id': data.get('fleet_id')
+        }
+    
     def deactivate_vehicle(self, vehicle_id, user_id):
         try:
             vehicle = self.session.query(Vehicle).get(vehicle_id)
@@ -534,3 +621,160 @@ class VehicleController:
                     "Erreur d'impression",
                     f"Une erreur est survenue lors de la génération du document :\n\n{str(e)}"
                 )
+
+    def create_vehicle_with_proformat(self, data: Dict, user_id: int) -> Tuple[bool, Optional[Vehicle], str]:
+        """
+        Crée un véhicule et son contrat proformat associé
+        
+        Args:
+            data: Données du véhicule et du contrat
+            user_id: ID de l'utilisateur
+        
+        Returns:
+            Tuple (succès, véhicule, message)
+        """
+        try:
+            # 1. Créer le véhicule
+            nouveau_vehicule = Vehicle(
+                immatriculation=data.get('immatriculation'),
+                marque=data.get('marque'),
+                modele=data.get('modele'),
+                chassis=data.get('chassis'),
+                annee=data.get('annee'),
+                energie=data.get('energie'),
+                places=data.get('places'),
+                categorie=data.get('categorie'),
+                zone=data.get('zone'),
+                code_tarif=data.get('code_tarif'),
+                usage=data.get('usage'),
+                owner_id=data.get('owner_id'),
+                created_by=user_id,
+                updated_by=user_id,
+                created_ip=self._get_local_ip(),
+                last_ip=self._get_local_ip()
+            )
+            
+            self.session.add(nouveau_vehicule)
+            self.session.flush()  # Pour obtenir l'ID du véhicule
+            self.session.commit()
+            self.session.refresh(nouveau_vehicule)
+
+            print(f"✓ Véhicule créé et commité avec ID: {nouveau_vehicule.id}")
+            
+            # 2. Préparer les données du contrat proformat
+            contrat_data = self._prepare_proformat_data(nouveau_vehicule, data, user_id)
+            
+            # 3. Créer le contrat proformat
+            success, contrat, message = self.contract_ctrl.create_proformat_contract(
+                vehicle_id=nouveau_vehicule.id,
+                user_id=user_id,
+                data=contrat_data
+            )
+            
+            if not success:
+                # Si échec contrat, supprimer le véhicule
+                self.session.delete(nouveau_vehicule)
+                self.session.commit()
+                return False, None, f"Erreur création contrat: {message}"
+            
+            self.session.commit()
+            self.session.refresh(nouveau_vehicule)
+            
+            logger.info(f"Véhicule {nouveau_vehicule.immatriculation} créé avec proformat {contrat.numero_police}")
+            return True, nouveau_vehicule, "Véhicule créé avec succès"
+            
+        except Exception as e:
+            self.session.rollback()
+            logger.log_error(f"Erreur création véhicule: {e}")
+            return False, None, str(e)
+    
+    def _prepare_proformat_data(self, vehicle: Vehicle, data: Dict, user_id: int) -> Dict:
+        """Prépare les données du contrat proformat"""
+        
+        # Calculer les montants par défaut (à adapter selon vos règles)
+        prime_pure = self._calculate_base_premium(vehicle, data)
+        taxes = prime_pure * 0.1925  # TVA 19.25%
+        
+        # Frais optionnels
+        carte_rose = data.get('carte_rose', 25000)
+        vignette = data.get('vignette', 5000)
+        fichier_asac = data.get('fichier_asac', 2000)
+        timbre = data.get('timbre', 1000)
+        accessoires = data.get('accessoires', 0)
+        commission = data.get('commission_intermediaire', 0)
+        
+        # Total TTC
+        total_ttc = prime_pure + taxes + carte_rose + vignette + fichier_asac + timbre + accessoires + commission
+        
+        return {
+            'owner_id': data.get('owner_id'),
+            'company_id': data.get('company_id', 1),
+            'prime_pure': prime_pure,
+            'accessoires': accessoires,
+            'taxes_totales': taxes,
+            'commission_intermediaire': commission,
+            'prime_totale_ttc': total_ttc,
+            'fleet_id': data.get('fleet_id')
+        }
+    
+    def _calculate_base_premium(self, vehicle: Vehicle, data: Dict) -> float:
+        """Calcule la prime de base selon les caractéristiques du véhicule"""
+        base = 75000  # Prime de base
+        
+        # Ajustement selon la puissance fiscale
+        puissance = data.get('puissance', getattr(vehicle, 'puissance', 0))
+        if puissance:
+            if puissance <= 5:
+                base = 50000
+            elif puissance <= 7:
+                base = 65000
+            elif puissance <= 10:
+                base = 85000
+            else:
+                base = 100000 + (puissance - 10) * 5000
+        
+        # Ajustement selon la zone
+        zone = data.get('zone', getattr(vehicle, 'zone', 'urbain'))
+        zone_coeff = {'urbain': 1.1, 'rural': 0.9, 'mixte': 1.0}
+        base *= zone_coeff.get(zone, 1.0)
+        
+        # Ajustement selon la catégorie
+        categorie = data.get('categorie', getattr(vehicle, 'categorie', 'particulier'))
+        categorie_coeff = {'particulier': 1.0, 'utilitaire': 1.2, 'luxe': 1.5, 'transport': 1.3}
+        base *= categorie_coeff.get(categorie, 1.0)
+        
+        return round(base, 0)
+    
+    def _get_local_ip(self) -> str:
+        """Récupère l'IP locale"""
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "127.0.0.1"
+    
+    def validate_contract(self, vehicle_id: int, user_id: int, data: Dict = None) -> Tuple[bool, str]:
+        """
+        Valide le contrat proformat d'un véhicule et le transforme en contrat actif
+        """
+        try:
+            # Récupérer le proformat
+            proformat = self.contract_ctrl.get_proformat_by_vehicle(vehicle_id)
+            if not proformat:
+                return False, "Aucun proformat trouvé pour ce véhicule"
+            
+            # Transformer en contrat actif
+            success, message = self.contract_ctrl.update_proformat_to_active(
+                contrat_id=proformat.id,
+                user_id=user_id,
+                data=data
+            )
+            
+            return success, message
+            
+        except Exception as e:
+            logger.error(f"Erreur validation contrat: {e}")
+            return False, str(e)

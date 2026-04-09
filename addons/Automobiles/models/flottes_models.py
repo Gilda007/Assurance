@@ -44,7 +44,7 @@ class Fleet(Base):
     # Lien vers le Client (Contact) - On utilise une string "Contact"
     owner_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)
     owner = relationship("Contact", back_populates="fleets")
-    contracts = relationship("Contract", back_populates="fleet")
+    contract = relationship("Contrat", back_populates="fleet")
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=datetime.now)

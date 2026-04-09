@@ -45,7 +45,7 @@ class Contact(Base):
     # --- RELATIONS (Utilisation stricte de chaînes de caractères) ---
     vehicles = relationship("Vehicle", back_populates="owner", cascade="all, delete-orphan")
     fleets = relationship("Fleet", back_populates="owner", cascade="all, delete-orphan")
-    contracts = relationship("Contract", back_populates="contact", cascade="all, delete-orphan")
+    contracts = relationship("Contrat", back_populates="owner", cascade="all, delete-orphan")
 
     # --- TRAÇABILITÉ ---
     created_at = Column(DateTime, default=datetime.now)

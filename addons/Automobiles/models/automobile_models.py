@@ -130,7 +130,7 @@ class Vehicle(Base):
     fleet = relationship("Fleet", back_populates="vehicles")
     owner = relationship("Contact", back_populates="vehicles")
     compagny = relationship("Compagnie", back_populates="vehicles")
-    contracts = relationship("Contract", back_populates="vehicle")
+    contract = relationship("Contrat", back_populates="vehicle", uselist=False)
     tarif = relationship("AutomobileTarif", back_populates="vehicles")
     
     # --- PROPRIÉTÉS CALCULÉES ---

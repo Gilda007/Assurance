@@ -1,105 +1,175 @@
 # addons/Automobile/main_ui.py
-from core.base_module import BaseModule
-from PySide6.QtWidgets import QPushButton, QLabel, QVBoxLayout, QWidget
-from PySide6.QtCore import Qt
-from core.alerts import AlertManager
+"""
+Module Automobile - Point d'entrée de l'extension
+Gère l'intégration dans la barre latérale et l'activation de l'interface
+"""
 
-
-# Importez vos futures vues et contrôleurs ici
-# from addons.Automobile.views.vehicle_view import VehicleMainView
-# from addons.Automobile.controllers.vehicle_controller import VehicleController
-
-    # addons/Automobile/main_ui.py
-from core.base_module import BaseModule
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtCore import Qt
+
+from core.base_module import BaseModule
 from core.alerts import AlertManager
+
 from addons.Automobiles.views.view import VehicleMainView
 from addons.Automobiles.controllers import AutomobileMainController
-# Imports centralisés depuis les répertoires du module
-# from addons.Automobiles.views import VehicleMainView
-# from addons.Automobiles.controllers import VehicleController
+
 
 class AutomobileModule(BaseModule):
+    """
+    Module principal de gestion automobile
+    S'intègre dans l'application principale via la barre latérale
+    """
+    
+    # Constantes pour le style
+    BUTTON_HEIGHT = 45
+    BUTTON_STYLE = """
+        QPushButton {
+            background-color: transparent;
+            color: #f8fafc;
+            text-align: left;
+            padding-left: 20px;
+            border: none;
+            border-radius: 8px;
+            margin: 2px 10px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        QPushButton:hover {
+            background-color: #334155;
+        }
+        QPushButton:pressed {
+            background-color: #1e293b;
+        }
+    """
+    
+    def __init__(self, main_window):
+        """Initialise le module avec la fenêtre principale"""
+        super().__init__(main_window)
+        self._view = None
+        self._controller = None
+        self._button = None
+    
     def setup(self):
-        """Initialisation du bouton dans la barre latérale principale"""
-        # Récupération des ressources partagées depuis la fenêtre principale
-        self.db_session = getattr(self.main_window, 'db_session', None)
-        
-        # Création du bouton d'accès au module
-        self.btn = QPushButton("🚗 Automobile")
-        self.btn.setFixedHeight(45)
-        self.btn.setCursor(Qt.PointingHandCursor)
-        
-        self.btn.setStyleSheet("""
-            QPushButton {
-                background-color: transparent;
-                color: #f8fafc;
-                text-align: left;
-                padding-left: 20px;
-                border: none;
-                border-radius: 8px;
-                margin: 2px 10px;
-                font-size: 13px;
-            }
-            QPushButton:hover {
-                background-color: #334155;
-            }
-        """)
-
-        self.btn.clicked.connect(self.activate_module)
-        
+        """Configure le module dans l'interface principale"""
+        self._create_navigation_button()
+        self._add_to_sidebar()
+    
+    def _create_navigation_button(self):
+        """Crée et configure le bouton de navigation du module"""
+        self._button = QPushButton("🚗  Automobile")
+        self._button.setFixedHeight(self.BUTTON_HEIGHT)
+        self._button.setCursor(Qt.PointingHandCursor)
+        self._button.setStyleSheet(self.BUTTON_STYLE)
+        self._button.clicked.connect(self.activate_module)
+    
+    def _add_to_sidebar(self):
+        """Ajoute le bouton à la barre latérale si elle existe"""
         if hasattr(self.main_window, 'sidebar_layout'):
-            self.main_window.sidebar_layout.addWidget(self.btn)
-
+            self.main_window.sidebar_layout.addWidget(self._button)
+        else:
+            sidebar = getattr(self.main_window, 'sidebar', None)
+            if sidebar and hasattr(sidebar, 'layout'):
+                sidebar.layout().addWidget(self._button)
+    
     def activate_module(self):
-        """Logique d'affichage de l'interface dans la zone de contenu"""
-        current_user = getattr(self.main_window, 'current_user', None)
-        
+        """Active l'interface du module dans la zone de contenu principale"""
+        # 1. Vérification de l'authentification
+        current_user = self._get_current_user()
         if not current_user:
-            AlertManager.show_error(self.main_window, "Accès Refusé", 
-                                "Veuillez vous connecter pour accéder au parc automobile.")
+            AlertManager.show_error(
+                self.main_window,
+                "Accès Refusé",
+                "Veuillez vous connecter pour accéder au parc automobile."
+            )
             return
-
-        # # Utilisation de 'content_area' comme identifié précédemment
-        stack = getattr(self.main_window, 'content_area', None)
-
-        # if stack is None:
-        #     print("ERREUR : 'content_area' est introuvable dans MainWindow")
-        #     return
-
-        # if not hasattr(self, 'view'):
-        #     # Création de la vue avec injection des dépendances
-        #     self.view = self.create_module_view() 
-        #     stack.addWidget(self.view)
-
-        # stack.setCurrentWidget(self.view)
-
-        if not hasattr(self, 'view'):
-            # 1. On crée d'abord le contrôleur (La logique)
-            #    Le contrôleur n'a besoin que de l'ID utilisateur pour la traçabilité.
-            #    Si on passe l'objet User complet, SQLAlchemy essaie de l'insérer dans la colonne "created_by".
-            user_id = getattr(current_user, 'id', current_user)
-            self.main_controller = AutomobileMainController(self.db_session, user_id)
-            
-            # 2. On crée la vue EN LUI PASSANT le contrôleur (Le visuel)
-            self.view = VehicleMainView(self.main_controller, current_user)
-            
-            
-            # 3. On ajoute la VUE (pas le contrôleur) au stack
-            stack.addWidget(self.view)
-
-        stack.setCurrentWidget(self.view)
-
-    def create_module_view(self):
-        """Initialise le contrôleur et la vue principale"""
-        # On initialise le contrôleur avec la session de base de données
         
-        # On récupère l'utilisateur actuel
-        current_user = getattr(self.main_window, 'current_user', None)
-
-        self.controller = AutomobileMainController(self.db_session, current_user)
+        # 2. Récupération de la zone de contenu
+        content_stack = self._get_content_area()
+        if not content_stack:
+            self._log_error("Zone de contenu introuvable dans MainWindow")
+            return
         
-        # On injecte le contrôleur et l'utilisateur dans la vue principale.
-        # Cette vue se chargera ensuite de les passer aux 10 sous-fichiers.
-        return AutomobileMainController(self.controller, current_user)
+        # 3. Initialisation des composants si nécessaire
+        if not self._view:
+            self._initialize_module_components(current_user)
+            content_stack.addWidget(self._view)
+        
+        # 4. Affichage de la vue
+        content_stack.setCurrentWidget(self._view)
+    
+    def _get_current_user(self):
+        """Récupère l'utilisateur courant depuis la fenêtre principale"""
+        return getattr(self.main_window, 'current_user', None)
+    
+    def _get_content_area(self):
+        """Récupère la zone de contenu (stacked widget) depuis la fenêtre principale"""
+        content_area = getattr(self.main_window, 'content_area', None)
+        if content_area:
+            return content_area
+        
+        alternatives = ['stacked_widget', 'main_stack', 'content_stack']
+        for attr in alternatives:
+            if hasattr(self.main_window, attr):
+                return getattr(self.main_window, attr)
+        
+        return None
+    
+    def _initialize_module_components(self, current_user):
+        """
+        Initialise le contrôleur et la vue du module
+        
+        Args:
+            current_user: L'utilisateur courant (objet ou ID)
+        """
+        # Récupération de l'ID utilisateur
+        user_id = self._extract_user_id(current_user)
+        
+        # === CORRECTION DÉFINITIVE ===
+        # Le constructeur attend: session et current_user_id
+        self._controller = AutomobileMainController(
+            session=self.db_session,
+            current_user_id=user_id
+        )
+        # ==============================
+        
+        # Création de la vue (interface utilisateur)
+        self._view = VehicleMainView(
+            controller=self._controller,
+            user=current_user
+        )
+    
+    def _extract_user_id(self, user):
+        """Extrait l'ID d'un utilisateur (objet ou valeur directe)"""
+        if hasattr(user, 'id'):
+            return user.id
+        return user
+    
+    def _log_error(self, message):
+        """Log une erreur de manière élégante"""
+        print(f"[AutomobileModule] {message}")
+    
+    @property
+    def view(self):
+        """Retourne la vue du module"""
+        return self._view
+    
+    @property
+    def controller(self):
+        """Retourne le contrôleur du module"""
+        return self._controller
+    
+    @property
+    def db_session(self):
+        """Retourne la session de base de données depuis la fenêtre principale"""
+        return getattr(self.main_window, 'db_session', None)
+    
+    def cleanup(self):
+        """Nettoie les ressources du module"""
+        if self._controller and hasattr(self._controller, 'cleanup'):
+            self._controller.cleanup()
+        
+        if self._view:
+            self._view.deleteLater()
+            self._view = None
+        
+        self._controller = None

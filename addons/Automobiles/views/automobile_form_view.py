@@ -1529,7 +1529,7 @@ class VehicleForm(QDialog):
         # DEBUG: Afficher les données avant sauvegarde
         print("=== DONNÉES SAUVEGARDÉES ===")
         for key, value in data.items():
-            if key.startswith(('amt', 'prime', 'reduction', 'carte', 'accessoires', 'tva', 'asac', 'vignette', 'pttc')):
+            if key.startswith(('owner_id', 'amt', 'prime', 'reduction', 'carte', 'accessoires', 'tva', 'asac', 'vignette', 'pttc')):
                 print(f"{key}: {value}")
         print("============================")
         
@@ -2276,3 +2276,25 @@ class VehicleForm(QDialog):
         except Exception as e:
             print(f"Erreur lors du calcul RC : {e}")
             return 0
+
+    # Dans votre vue de création de véhicule (automobile_view.py par exemple)
+
+    def create_vehicle_with_contract(self, vehicle_data):
+        """Crée un véhicule et son contrat proformat"""
+        
+        with self.controller.vehicles as vehicle_ctrl:
+            success, vehicle, message = vehicle_ctrl.create_vehicle(
+                data=vehicle_data,
+                user_id=self.get_current_user_id()
+            )
+            
+            if success:
+                QMessageBox.information(self, "Succès", 
+                    f"Véhicule créé avec succès!\n"
+                    f"Immatriculation: {vehicle.immatriculation}\n"
+                    f"Un proformat a été généré automatiquement.")
+                
+                # Ouvrir la vue de détail du véhicule avec son proformat
+                self.show_vehicle_detail(vehicle.id)
+            else:
+                QMessageBox.warning(self, "Erreur", f"Erreur: {message}")
