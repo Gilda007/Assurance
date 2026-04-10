@@ -512,17 +512,48 @@ class VehicleController:
         )
         self.session.add(new_tranche)
         self.session.commit()
-        
-    def print_carte_rose(self, vehicle_data):
+
+    def print_carte_rose(self, vehicle_data, parent_widget=None):
         """Lance l'impression de la carte rose avec les données reçues"""
         try:
             from addons.Automobiles.views.carte_rose_printer import CarteRosePrinter
             printer_tool = CarteRosePrinter(vehicle_data)
-            printer_tool.print(None) # Remplacez None par self.view si vous avez accès à la vue
+            printer_tool.print(parent_widget)  # ← Passer le parent_widget
         except Exception as e:
             from PySide6.QtWidgets import QMessageBox
             print(f"Erreur impression : {e}")
-            QMessageBox.warning(self, "Impression", f"Erreur lors de l'impression : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            # Correction 2: Utiliser un QMessageBox avec un parent valide
+            if parent_widget:
+                QMessageBox.warning(
+                    parent_widget, 
+                    "Impression", 
+                    f"Erreur lors de l'impression : {str(e)}"
+                )
+            else:
+                print(f"Erreur impression (pas de parent): {e}")
+
+    def print_attestation(self, vehicle_data, parent_widget=None):
+        """Lance l'impression de la carte rose avec les données reçues"""
+        try:
+            from addons.Automobiles.views.attestation_print import AttestationPrinter
+            printer_tool = AttestationPrinter(vehicle_data)
+            printer_tool.print(parent_widget)  # ← Passer le parent_widget
+        except Exception as e:
+            from PySide6.QtWidgets import QMessageBox
+            print(f"Erreur impression : {e}")
+            import traceback
+            traceback.print_exc()
+            # Correction 2: Utiliser un QMessageBox avec un parent valide
+            if parent_widget:
+                QMessageBox.warning(
+                    parent_widget, 
+                    "Impression", 
+                    f"Erreur lors de l'impression : {str(e)}"
+                )
+            else:
+                print(f"Erreur impression (pas de parent): {e}")
 
     def print_vignette(self, vehicle_data, parent_widget=None):
         """

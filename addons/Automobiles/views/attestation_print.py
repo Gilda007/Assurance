@@ -2,7 +2,7 @@ from PySide6.QtPrintSupport import QPrinter, QPrintDialog
 from PySide6.QtGui import QPainter, QFont, QPageLayout
 from PySide6.QtCore import Qt
 
-class CarteRosePrinter:
+class AttestationPrinter:
     def __init__(self, vehicle_data):
         self.data = vehicle_data
 
@@ -38,24 +38,25 @@ class CarteRosePrinter:
         draw_line(10, 30, self.data.get('owner'))
         
         # 2. BP YDé (Adresse)
-        draw_line(10, 40, f"{self.data.get('immatriculation', '')}")
+        draw_line(10, 40, f"ID: {self.data.get('id', 'N/A')}")
+
+        periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
+        draw_line(10, 50, periode)
         
         # 4. Marque et Modèle
         marque_mod = f"{self.data.get('marque', '')} {self.data.get('modele', '')}"
-        draw_line(10, 50, marque_mod)
-        
-        # 5. Assureur
-        draw_line(10, 60, self.data.get('compagny'))
+        draw_line(10, 65, marque_mod)
+
+        draw_line(10, 75, self.data.get('immatriculation', ''))
         
         # 6. AMS Assurance (Texte fixe ou ID Agence)
-        draw_line(10, 70, "AMS ASSURANCE")
+        draw_line(10, 85, "VT")
         
         # 7. ID (Châssis ou Identifiant interne)
-        draw_line(10, 80, f"ID: {self.data.get('id', 'N/A')}")
+        draw_line(10, 95, f"CAT {self.data.get('categorie', '01')}")
         
         # 8. Période : date_debut AU date_fin
-        periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
-        draw_line(10, 90, periode)
+        
         
         # 9. Catégorie
         usage_categorie = f"{self.data.get('libele_tarif', '')}, CATEGORIE: {self.data.get('categorie', '')}"
@@ -77,51 +78,38 @@ class CarteRosePrinter:
         # Note : Vous devrez ajuster ces coordonnées au millimètre près avec une règle
         
         # Ligne 1 : Date de création et Propriétaire
-        draw_text_mm(80, 30, self.data.get('owner', ''))
+        draw_text_mm(80, 30, self.data.get('id', ''))
 
         # Ligne 2 : Adresse / Ville
-        draw_text_mm(80, 40, self.data.get('immatriculation', ''))
+        draw_text_mm(80, 40, periode)
 
         # Ligne 3 : Numéro de police ou Code
-        draw_text_mm(80, 50, self.data.get('compagny'))
+        draw_text_mm(80, 50, marque_mod)
 
         # Ligne 4 : Période de validité
-        draw_text_mm(80, 60, "AMS ASSURANCE")
+        draw_text_mm(80, 60, f"{self.data.get('immatriculation', 'N/A')}")
 
         # Ligne 5 : Marque et Modèle
-        marque_mod = f"{self.data.get('marque')} {self.data.get('modele')}"
-        draw_text_mm(80, 70, marque_mod)
-
-        # Ligne 6 : Immatriculation
-        draw_text_mm(80, 80, f"ID: {self.data.get('id', 'N/A')}")
-
-        draw_line(80, 90, periode)
+        draw_text_mm(80, 70, 'VT')
 
         # Ligne 7 : Catégorie
         draw_text_mm(80, 100, f"CAT {self.data.get('categorie', '01')}")
 
-        # Ligne 8 : Montants spécifiques (Ex: DTA comme sur votre image)
-        # if self.data.get('amt_dta', 0) > 0:
-        #     dta_text = f"DTA: {float(self.data.get('amt_dta')):,.0f}".replace(",", " ")
-        #     draw_text_mm(100, 105, dta_text)
 
-        draw_line(200, 30, periode)
+         # Ligne 1 : Date de création et Propriétaire
+        info_ower = f"{self.data.get('owner', '')} {self.data.get('phone', '')}"
+        draw_text_mm(120, 30, info_ower)
 
-        draw_text_mm(150, 40, self.data.get('owner', ''))
+        # Ligne 3 : Numéro de police ou Code
+        draw_text_mm(120, 40, f"{self.data.get('id', 'N/A')}")
 
-        draw_text_mm(150, 50, self.data.get('immatriculation', ''))
+        # Ligne 2 : Adresse / Ville
+        draw_text_mm(120, 50, periode)
 
-        draw_text_mm(150, 60, self.data.get('compagny'))
+        # Ligne 5 : Marque et Modèle
+        draw_text_mm(120, 60, marque_mod)
 
-        draw_text_mm(150, 70, usage_categorie)
+        # Ligne 7 : Catégorie
+        draw_text_mm(120, 70, f"{self.data.get('immatriculation', 'N/A')}")
 
-        draw_text_mm(200, 40, f"ID: {self.data.get('id', 'N/A')}")
-
-        draw_text_mm(200, 50, periode)
-
-        draw_text_mm(200, 60, marque_mod)
-
-        draw_text_mm(200, 70, self.data.get('chassis', 'N/A'))
-
-        periode = f"AMS ASSURANCE, YAOUNDE"
-        draw_line(200, 80, periode)
+        draw_text_mm(120, 80, 'VT')

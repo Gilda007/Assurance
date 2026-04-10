@@ -543,6 +543,7 @@ class VehiculeModuleView(QWidget):
                 'fichier_asac': getattr(vehicle, 'fichier_asac', 'N/A'),
                 'vignette': getattr(vehicle, 'vignette', 'N/A'),
                 'PTTC': getattr(vehicle, 'pttc', 0),
+                'libele-tarif': getattr(vehicle, 'libele_tarif', 'N/A'),
 
                 # Propriétaire & Assurance
                 'owner': owner_name,
