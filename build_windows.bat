@@ -16,6 +16,11 @@ pyinstaller --onedir ^
     --hidden-import=config ^
     --hidden-import=version_manager ^
     --hidden-import=update_manager ^
+    --hidden-import=requests ^
+    --hidden-import=urllib3 ^
+    --hidden-import=certifi ^
+    --hidden-import=chardet ^
+    --hidden-import=idna ^
     --runtime-tmpdir "." ^
     main.py
 
