@@ -33,7 +33,7 @@ from update_manager import UpdateManager
 
 
 from core.database import engine, Base
-import addons.Automobiles.models as models
+# import addons.Automobiles.models as models
 
 # Palette de couleurs moderne
 class AppColors:

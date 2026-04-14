@@ -26,45 +26,176 @@ class ModuleInstaller(QThread):
         self.zip_path = zip_path
         self.addons_dir = addons_dir
         
+class ModuleInstaller(QThread):
+    """Thread pour l'installation d'un module depuis un fichier zip"""
+    progress = Signal(int)
+    status = Signal(str)
+    finished = Signal(bool, str)
+    
+    def __init__(self, zip_path, addons_dir):
+        super().__init__()
+        self.zip_path = zip_path
+        self.addons_dir = addons_dir
+        
     def run(self):
         try:
-            self.status.emit("Extraction du module...")
+            self.status.emit("🔍 Analyse du module...")
+            self.progress.emit(5)
             
             with zipfile.ZipFile(self.zip_path, 'r') as zip_ref:
-                if 'manifest.json' not in [f for f in zip_ref.namelist() if f.endswith('manifest.json')]:
-                    self.finished.emit(False, "Le module ne contient pas de manifest.json")
+                file_list = zip_ref.namelist()
+                
+                # ========== 1. RECHERCHE DU MANIFEST ==========
+                self.status.emit("🔍 Recherche du manifest.json...")
+                
+                manifest_path = None
+                possible_manifest_paths = []
+                
+                for file_name in file_list:
+                    # Normaliser le chemin
+                    normalized = file_name.replace('\\', '/')
+                    base_name = os.path.basename(normalized).lower()
+                    
+                    # Vérifier si c'est un manifest.json
+                    if base_name == 'manifest.json':
+                        possible_manifest_paths.append(file_name)
+                        manifest_path = file_name
+                        print(f"✅ manifest.json trouvé : {file_name}")
+                
+                if not manifest_path:
+                    # Diagnostic détaillé
+                    error_msg = "❌ manifest.json non trouvé dans le ZIP.\n\n"
+                    error_msg += "Fichiers trouvés :\n"
+                    for f in file_list[:20]:
+                        error_msg += f"  • {f}\n"
+                    error_msg += "\nStructure attendue :\n"
+                    error_msg += "  MonModule.zip\n"
+                    error_msg += "  └── MonModule/\n"
+                    error_msg += "      ├── manifest.json\n"
+                    error_msg += "      └── ..."
+                    
+                    self.finished.emit(False, error_msg)
                     return
                 
-                zip_ref.extractall(self.addons_dir)
-            
-            extracted_folders = [f for f in os.listdir(self.addons_dir) 
-                                if os.path.isdir(os.path.join(self.addons_dir, f))]
-            
-            if extracted_folders:
-                module_name = extracted_folders[-1]
-                manifest_path = os.path.join(self.addons_dir, module_name, 'manifest.json')
-                if os.path.exists(manifest_path):
-                    with open(manifest_path, 'r', encoding='utf-8') as f:
-                        manifest = json.load(f)
+                self.progress.emit(20)
+                
+                # ========== 2. LECTURE DU MANIFEST ==========
+                self.status.emit("📖 Lecture du manifest.json...")
+                
+                with zip_ref.open(manifest_path) as mf:
+                    try:
+                        manifest = json.load(mf)
+                        module_name = manifest.get('name', 'Module')
+                        module_version = manifest.get('version', '1.0.0')
+                        print(f"📦 Module: {module_name} v{module_version}")
+                    except json.JSONDecodeError as e:
+                        self.finished.emit(False, f"manifest.json invalide : {str(e)}")
+                        return
+                
+                self.progress.emit(30)
+                
+                # ========== 3. DÉTERMINER LE DOSSIER D'EXTRACTION ==========
+                self.status.emit("📁 Préparation de l'extraction...")
+                
+                # Déterminer le dossier racine du module dans le ZIP
+                parts = manifest_path.split('/')
+                if len(parts) > 1:
+                    # manifest.json est dans un sous-dossier
+                    module_root_folder = parts[0]
+                    extract_in_place = True
+                    print(f"📁 Module dans le dossier : {module_root_folder}")
+                else:
+                    # manifest.json est à la racine, créer un dossier
+                    module_root_folder = module_name.replace(' ', '_')
+                    extract_in_place = False
+                    print(f"📁 Création du dossier : {module_root_folder}")
+                
+                self.progress.emit(40)
+                
+                # ========== 4. EXTRACTION ==========
+                self.status.emit("📦 Extraction des fichiers...")
+                
+                # Créer un dossier temporaire pour l'extraction
+                import tempfile
+                temp_extract_dir = tempfile.mkdtemp()
+                
+                # Extraire tous les fichiers
+                zip_ref.extractall(temp_extract_dir)
+                
+                self.progress.emit(70)
+                
+                # ========== 5. ORGANISATION DES FICHIERS ==========
+                self.status.emit("📂 Organisation des fichiers...")
+                
+                # Chemin final du module
+                final_module_path = os.path.join(self.addons_dir, module_root_folder)
+                
+                # Supprimer l'ancienne version si elle existe
+                if os.path.exists(final_module_path):
+                    import shutil
+                    backup_path = final_module_path + "_backup"
+                    if os.path.exists(backup_path):
+                        shutil.rmtree(backup_path)
+                    shutil.move(final_module_path, backup_path)
+                    print(f"📦 Ancienne version sauvegardée dans {backup_path}")
+                
+                # Déplacer les fichiers extraits
+                if extract_in_place:
+                    # Les fichiers sont dans un sous-dossier
+                    source = os.path.join(temp_extract_dir, module_root_folder)
+                    if os.path.exists(source):
+                        import shutil
+                        shutil.move(source, final_module_path)
+                    else:
+                        self.finished.emit(False, f"Dossier {module_root_folder} non trouvé après extraction")
+                        return
+                else:
+                    # Les fichiers sont à la racine, créer le dossier
+                    os.makedirs(final_module_path, exist_ok=True)
+                    import shutil
+                    for item in os.listdir(temp_extract_dir):
+                        if item != module_root_folder:
+                            src = os.path.join(temp_extract_dir, item)
+                            dst = os.path.join(final_module_path, item)
+                            shutil.move(src, dst)
+                
+                # Nettoyer le dossier temporaire
+                import shutil
+                shutil.rmtree(temp_extract_dir, ignore_errors=True)
+                
+                self.progress.emit(90)
+                
+                # ========== 6. VÉRIFICATION FINALE ==========
+                self.status.emit("✅ Vérification de l'installation...")
+                
+                # Vérifier que le manifest a bien été copié
+                final_manifest = os.path.join(final_module_path, 'manifest.json')
+                if os.path.exists(final_manifest):
+                    with open(final_manifest, 'r', encoding='utf-8') as f:
+                        final_manifest_data = json.load(f)
                     
+                    # Mettre à jour VersionManager
+                    from version_manager import VersionManager
                     version_manager = VersionManager(self.addons_dir)
                     version_manager.update_module(
-                        module_name,
-                        manifest.get('version', '1.0.0'),
-                        manifest.get('changelog', 'Installation initiale'),
+                        module_root_folder,
+                        final_manifest_data.get('version', '1.0.0'),
+                        final_manifest_data.get('changelog', 'Installation initiale'),
                         0
                     )
                     
-                    self.status.emit("Module installé avec succès")
-                    self.finished.emit(True, f"Module {module_name} installé")
+                    self.progress.emit(100)
+                    self.status.emit("✅ Installation terminée !")
+                    self.finished.emit(True, f"Module {final_manifest_data.get('name', module_name)} installé avec succès")
                 else:
-                    self.finished.emit(False, "Manifest.json non trouvé après extraction")
-            else:
-                self.finished.emit(False, "Aucun dossier extrait")
+                    self.finished.emit(False, f"Installation incomplète : manifest.json non trouvé dans {final_module_path}")
                 
+        except zipfile.BadZipFile:
+            self.finished.emit(False, "Le fichier n'est pas un ZIP valide")
         except Exception as e:
-            self.finished.emit(False, f"Erreur: {str(e)}")
-
+            import traceback
+            traceback.print_exc()
+            self.finished.emit(False, f"Erreur lors de l'installation: {str(e)}")
 
 class ModernCard(QFrame):
     """Carte moderne avec effet de survol"""
@@ -1003,11 +1134,29 @@ class ParametreModuleWidget(QWidget):
             return False
     
     def on_import_finished(self, success, message):
+        """Fin de l'import"""
         if hasattr(self, 'progress_dialog'):
             self.progress_dialog.close()
         
         if success:
+            # Afficher le contenu du dossier addons pour vérifier
+            import os
+            print("\n📁 Contenu de addons après installation:")
+            if os.path.exists(self.addons_dir):
+                for item in os.listdir(self.addons_dir):
+                    item_path = os.path.join(self.addons_dir, item)
+                    if os.path.isdir(item_path):
+                        print(f"  📁 {item}/")
+                        # Vérifier si manifest.json existe
+                        manifest_path = os.path.join(item_path, 'manifest.json')
+                        if os.path.exists(manifest_path):
+                            print(f"     ✅ manifest.json présent")
+                        else:
+                            print(f"     ❌ manifest.json manquant")
+                    else:
+                        print(f"  📄 {item}")
+            
             self.refresh_data()
-            QMessageBox.information(self, "Succès", message)
+            self.show_restart_notification()
         else:
             QMessageBox.critical(self, "Erreur", message)

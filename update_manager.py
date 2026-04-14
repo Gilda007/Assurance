@@ -9,7 +9,7 @@ import urllib.error
 import zipfile
 from datetime import datetime
 from PySide6.QtCore import QThread, Signal, QObject, QTimer
-from PySide6.QtWidgets import QMessageBox
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QMessageBox, QLabel, QPushButton
 
 # Import du dialogue de mise à jour
 from update_dialog import UpdateDialog
@@ -354,8 +354,188 @@ class UpdateManager(QObject):
         self.installer.start()
     
     def on_install_finished(self, success, message):
-        """Installation terminée"""
+        """Installation terminée (pour les mises à jour)"""
+        if hasattr(self, 'progress_dialog'):
+            self.progress_dialog.close()
+        
         if success:
-            QMessageBox.information(self.parent, "Mise à jour", message + "\n\nRedémarrez l'application pour appliquer les changements.")
+            msg_box = QMessageBox(self)
+            msg_box.setIcon(QMessageBox.Information)
+            msg_box.setWindowTitle("✅ Mise à jour réussie")
+            msg_box.setText(f"{message}\n\nLes modifications prendront effet après le redémarrage.")
+            msg_box.setInformativeText("Voulez-vous redémarrer l'application maintenant ?")
+            
+            restart_btn = msg_box.addButton("🔄 Redémarrer maintenant", QMessageBox.AcceptRole)
+            later_btn = msg_box.addButton("⏰ Redémarrer plus tard", QMessageBox.RejectRole)
+            
+            msg_box.setStyleSheet("""
+                QMessageBox {
+                    background-color: white;
+                    border-radius: 16px;
+                }
+                QPushButton {
+                    background-color: #10b981;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-weight: 600;
+                }
+                QPushButton:hover {
+                    background-color: #059669;
+                }
+            """)
+            
+            result = msg_box.exec()
+            
+            if msg_box.clickedButton() == restart_btn:
+                self.restart_application()
+            else:
+                self.refresh_data()
+                self.show_restart_notification()
         else:
-            QMessageBox.warning(self.parent, "Erreur", message)
+            QMessageBox.warning(self, "❌ Erreur", message)
+
+    def show_restart_notification(self):
+        """Affiche une notification toast"""
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        from PySide6.QtCore import QPropertyAnimation
+        
+        # Créer une notification flottante
+        notification = QFrame(self)
+        notification.setStyleSheet("""
+            QFrame {
+                background: #1e293b;
+                border-radius: 12px;
+                color: white;
+            }
+        """)
+        notification.setFixedHeight(50)
+        
+        layout = QHBoxLayout(notification)
+        layout.setContentsMargins(15, 0, 15, 0)
+        
+        icon = QLabel("🔄")
+        icon.setStyleSheet("font-size: 16px;")
+        
+        text = QLabel("Module installé. Redémarrez l'application pour appliquer les changements.")
+        text.setStyleSheet("color: white; font-size: 12px;")
+        
+        restart_btn = QPushButton("Redémarrer")
+        restart_btn.setStyleSheet("""
+            QPushButton {
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 5px 12px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #2563eb;
+            }
+        """)
+        restart_btn.clicked.connect(self.restart_application)
+        
+        close_btn = QPushButton("✕")
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #94a3b8;
+                border: none;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                color: white;
+            }
+        """)
+        close_btn.clicked.connect(notification.deleteLater)
+        
+        layout.addWidget(icon)
+        layout.addWidget(text, 1)
+        layout.addWidget(restart_btn)
+        layout.addWidget(close_btn)
+        
+        # Positionner en bas à droite
+        notification.adjustSize()
+        notification.move(
+            self.width() - notification.width() - 20,
+            self.height() - notification.height() - 20
+        )
+        
+        # Effet d'apparition/disparition
+        opacity_effect = QGraphicsOpacityEffect()
+        notification.setGraphicsEffect(opacity_effect)
+        
+        animation = QPropertyAnimation(opacity_effect, b"opacity")
+        animation.setDuration(300)
+        animation.setStartValue(0)
+        animation.setEndValue(1)
+        animation.start()
+        
+        notification.show()
+        
+        # Auto-disparition après 8 secondes
+        QTimer.singleShot(8000, notification.deleteLater)
+
+    def restart_application(self):
+        """Redémarre l'application"""
+        import sys
+        import subprocess
+        import os
+        from PySide6.QtWidgets import QApplication
+        
+        try:
+            # Obtenir le chemin de l'application
+            if getattr(sys, 'frozen', False):
+                # Mode compilé (exécutable)
+                app_path = sys.executable
+                args = []
+            else:
+                # Mode développement (script Python)
+                # Chercher main.py dans différents emplacements
+                possible_paths = [
+                    sys.argv[0],  # Chemin actuel
+                    os.path.join(os.getcwd(), "main.py"),
+                    os.path.join(os.path.dirname(__file__), "..", "main.py"),
+                    os.path.join(os.path.dirname(sys.argv[0]), "main.py"),
+                ]
+                
+                app_path = None
+                for path in possible_paths:
+                    if os.path.exists(path) and path.endswith('.py'):
+                        app_path = path
+                        break
+                
+                if not app_path:
+                    # Dernier recours : utiliser python avec le script actuel
+                    app_path = sys.executable
+                    args = [sys.argv[0]]
+                else:
+                    args = []
+            
+            # Construire la commande
+            cmd = [app_path] + args + sys.argv[1:]
+            
+            print(f"🔄 Redémarrage avec : {cmd}")  # Debug
+            
+            # Lancer la nouvelle instance
+            if sys.platform == "win32":
+                # Windows
+                subprocess.Popen(cmd, shell=True)
+            else:
+                # Linux/Mac
+                subprocess.Popen(cmd)
+            
+            # Fermer l'instance actuelle
+            QApplication.quit()
+            
+        except Exception as e:
+            print(f"Erreur redémarrage: {e}")
+            QMessageBox.warning(
+                self, 
+                "Erreur", 
+                f"Impossible de redémarrer automatiquement : {str(e)}\n\n"
+                "Veuillez redémarrer l'application manuellement."
+            )
