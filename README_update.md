@@ -30,7 +30,7 @@ Dans la VM, créer `vm_updater_config.json` :
   "check_interval_seconds": 3600
 }
 ```
-
+{"immatriculation": "TL 32658 LK", "chas...
 - Mac : `install_path`: `/Applications/AMS`
 - Linux : `install_path`: `/opt/ams`
 

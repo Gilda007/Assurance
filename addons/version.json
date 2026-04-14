@@ -1,0 +1,64 @@
+{
+  "app_version": "1.2.0",
+  "last_check": "2026-04-14T10:30:00",
+  "modules": {
+    "Automobiles": {
+      "version": "1.2.0",
+      "installed_date": "2026-04-10T14:30:00",
+      "last_update": "2026-04-14T09:00:00",
+      "size": 2450000,
+      "checksum": "a1b2c3d4e5f678901234567890123456",
+      "enabled": true,
+      "changelog": "• Correction bugs interface\n• Ajout export PDF\n• Optimisation performances"
+    },
+    "Paramètres": {
+      "version": "1.1.0",
+      "installed_date": "2026-04-05T11:20:00",
+      "last_update": "2026-04-12T15:30:00",
+      "size": 1200000,
+      "checksum": "b2c3d4e5f678901234567890123456789",
+      "enabled": true,
+      "changelog": "• Nouveau module paramètres\n• Configuration utilisateur"
+    },
+    "Finances": {
+      "version": "1.0.0",
+      "installed_date": "2026-04-01T09:00:00",
+      "last_update": "2026-04-01T09:00:00",
+      "size": 1800000,
+      "checksum": "c3d4e5f6789012345678901234567890ab",
+      "enabled": false,
+      "changelog": "• Module initial"
+    }
+  },
+  "settings": {
+    "auto_update": true,
+    "check_interval": 3600,
+    "notify_before_update": true,
+    "backup_before_update": true
+  },
+  "history": [
+    {
+      "date": "2026-04-14T09:00:00",
+      "action": "update",
+      "module": "Automobiles",
+      "old_version": "1.1.0",
+      "new_version": "1.2.0",
+      "status": "success"
+    },
+    {
+      "date": "2026-04-12T15:30:00",
+      "action": "update",
+      "module": "Paramètres",
+      "old_version": "1.0.0",
+      "new_version": "1.1.0",
+      "status": "success"
+    },
+    {
+      "date": "2026-04-10T14:30:00",
+      "action": "install",
+      "module": "Automobiles",
+      "version": "1.1.0",
+      "status": "success"
+    }
+  ]
+}

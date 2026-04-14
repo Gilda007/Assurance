@@ -26,7 +26,6 @@
     "installable": true,
     "application": "True",
     "auto_install": "False",
-    "icon": "addons/Automobiles/static/logo.png",
     "website": "https://universalhouse.org",
     "license": "LGPL-3"
 }

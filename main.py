@@ -29,6 +29,8 @@ from addons.Paramètres.controllers.setup_controller import SetupController
 from addons.Paramètres.views.loggin_view import LoginView
 from addons.Paramètres.controllers.login_controller import LoginController
 from addons.Paramètres.models.models import User
+from update_manager import UpdateManager
+
 
 from core.database import engine, Base
 import addons.Automobiles.models as models
@@ -1392,11 +1394,12 @@ class MainWindow(QMainWindow):
         self.user = user
         self.setWindowTitle("LOMETA - Tableau de Bord")
         self.resize(1280, 800)
-        self.setMinimumSize(1000, 600)
+        self.setMinimumSize(1200, 800)
         self.setStyleSheet(STYLE_SHEET)
         
         self.setup_ui()
         self.init_modules()
+        self.update_manager = UpdateManager(self)
         self.setup_shortcuts()
     
     def setup_ui(self):
@@ -1610,6 +1613,45 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'dashboard'):
             self.dashboard.update_stats()
     
+    def create_menu(self):
+        """Crée la barre de menu"""
+        menubar = self.menuBar()
+        
+        # Menu Aide
+        help_menu = menubar.addMenu("&Aide")
+        
+        # Action Vérifier les mises à jour
+        check_update_action = help_menu.addAction("&Vérifier les mises à jour")
+        check_update_action.triggered.connect(self.manual_update_check)
+        
+        help_menu.addSeparator()
+        
+        about_action = help_menu.addAction("&À propos")
+        about_action.triggered.connect(self.show_about)
+
+    def check_updates_startup(self):
+        """Vérifie les mises à jour au démarrage"""
+        # Optionnel: vérifier silencieusement
+        self.update_manager.check_updates_auto()
+        
+        # Afficher un message dans la barre d'état
+        self.statusBar().showMessage("Vérification des mises à jour...", 2000)
+    
+    def manual_update_check(self):
+        """Vérification manuelle des mises à jour"""
+        self.update_manager.check_updates_manual()
+    
+    def show_status_message(self, message):
+        """Affiche un message dans la barre d'état"""
+        self.statusBar().showMessage(message, 5000)
+    
+    def show_about(self):
+        """Affiche la boîte À propos"""
+        QMessageBox.about(self, "À propos", 
+                         "Mon Application v1.0.0\n\n"
+                         "Application de gestion modulaire\n"
+                         "© 2024 Votre Société")
+
     def toggle_fullscreen(self):
         if self.isFullScreen():
             self.showNormal()

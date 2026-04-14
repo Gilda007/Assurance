@@ -37,4 +37,5 @@ SQLAlchemy
 typing_extensions
 urllib3
 xlrd
-      
+flask>=2.0.0
+flask-cors>=3.0.0
