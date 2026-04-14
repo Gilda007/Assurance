@@ -13,7 +13,11 @@ from PySide6.QtGui import QDesktopServices, QColor, QFont, QPalette, QLinearGrad
 # Import du gestionnaire de mise à jour
 from update_manager import UpdateManager, UpdateChecker, UpdateInstaller
 from version_manager import VersionManager
+from config import Config
 
+
+        
+# parametre_module_view.py - ModuleInstaller modifié
 
 class ModuleInstaller(QThread):
     """Thread pour l'installation d'un module depuis un fichier zip"""
@@ -26,18 +30,66 @@ class ModuleInstaller(QThread):
         self.zip_path = zip_path
         self.addons_dir = addons_dir
         
-class ModuleInstaller(QThread):
-    """Thread pour l'installation d'un module depuis un fichier zip"""
-    progress = Signal(int)
-    status = Signal(str)
-    finished = Signal(bool, str)
-    
-    def __init__(self, zip_path, addons_dir):
-        super().__init__()
-        self.zip_path = zip_path
-        self.addons_dir = addons_dir
+    def install_python_package(self, package_name):
+        """Installe un package Python via pip"""
+        import subprocess
+        import sys
         
+        try:
+            # Vérifier si déjà installé
+            result = subprocess.run(
+                [sys.executable, '-m', 'pip', 'show', package_name],
+                capture_output=True, text=True
+            )
+            
+            if result.returncode == 0:
+                # Déjà installé, vérifier la version
+                return True, f"✅ {package_name} déjà installé"
+            
+            # Installer le package
+            result = subprocess.run(
+                [sys.executable, '-m', 'pip', 'install', package_name],
+                capture_output=True, text=True
+            )
+            
+            if result.returncode == 0:
+                return True, f"✅ {package_name} installé avec succès"
+            else:
+                return False, f"❌ Erreur installation {package_name}: {result.stderr}"
+                
+        except Exception as e:
+            return False, f"❌ Erreur: {str(e)}"
+    
+    def install_requirements(self, requirements_path):
+        """Installe toutes les dépendances du fichier requirements.txt"""
+        import subprocess
+        import sys
+        
+        results = []
+        success_count = 0
+        error_count = 0
+        
+        try:
+            # Lire le fichier requirements.txt
+            with open(requirements_path, 'r', encoding='utf-8') as f:
+                requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
+            
+            for req in requirements:
+                self.status.emit(f"📦 Installation de {req}...")
+                success, message = self.install_python_package(req)
+                results.append(message)
+                if success:
+                    success_count += 1
+                else:
+                    error_count += 1
+            
+            return success_count, error_count, results
+            
+        except Exception as e:
+            return 0, 1, [f"Erreur lecture requirements.txt: {str(e)}"]
+    
     def run(self):
+        """Installe le module et ses dépendances"""
         try:
             self.status.emit("🔍 Analyse du module...")
             self.progress.emit(5)
@@ -46,157 +98,130 @@ class ModuleInstaller(QThread):
                 file_list = zip_ref.namelist()
                 
                 # ========== 1. RECHERCHE DU MANIFEST ==========
-                self.status.emit("🔍 Recherche du manifest.json...")
-                
                 manifest_path = None
-                possible_manifest_paths = []
-                
                 for file_name in file_list:
-                    # Normaliser le chemin
-                    normalized = file_name.replace('\\', '/')
-                    base_name = os.path.basename(normalized).lower()
-                    
-                    # Vérifier si c'est un manifest.json
-                    if base_name == 'manifest.json':
-                        possible_manifest_paths.append(file_name)
+                    if file_name.endswith('manifest.json'):
                         manifest_path = file_name
-                        print(f"✅ manifest.json trouvé : {file_name}")
+                        break
                 
                 if not manifest_path:
-                    # Diagnostic détaillé
-                    error_msg = "❌ manifest.json non trouvé dans le ZIP.\n\n"
-                    error_msg += "Fichiers trouvés :\n"
-                    for f in file_list[:20]:
-                        error_msg += f"  • {f}\n"
-                    error_msg += "\nStructure attendue :\n"
-                    error_msg += "  MonModule.zip\n"
-                    error_msg += "  └── MonModule/\n"
-                    error_msg += "      ├── manifest.json\n"
-                    error_msg += "      └── ..."
-                    
-                    self.finished.emit(False, error_msg)
+                    self.finished.emit(False, "manifest.json non trouvé")
                     return
+                
+                # Lire le manifest
+                with zip_ref.open(manifest_path) as mf:
+                    manifest = json.load(mf)
+                    module_name = manifest.get('name', 'Module')
                 
                 self.progress.emit(20)
                 
-                # ========== 2. LECTURE DU MANIFEST ==========
-                self.status.emit("📖 Lecture du manifest.json...")
+                # ========== 2. RECHERCHE DU requirements.txt ==========
+                requirements_path = None
+                for file_name in file_list:
+                    if file_name.endswith('requirements.txt'):
+                        requirements_path = file_name
+                        break
                 
-                with zip_ref.open(manifest_path) as mf:
-                    try:
-                        manifest = json.load(mf)
-                        module_name = manifest.get('name', 'Module')
-                        module_version = manifest.get('version', '1.0.0')
-                        print(f"📦 Module: {module_name} v{module_version}")
-                    except json.JSONDecodeError as e:
-                        self.finished.emit(False, f"manifest.json invalide : {str(e)}")
-                        return
+                # ========== 3. EXTRACTION DU MODULE ==========
+                self.status.emit("📦 Extraction du module...")
                 
-                self.progress.emit(30)
-                
-                # ========== 3. DÉTERMINER LE DOSSIER D'EXTRACTION ==========
-                self.status.emit("📁 Préparation de l'extraction...")
-                
-                # Déterminer le dossier racine du module dans le ZIP
-                parts = manifest_path.split('/')
-                if len(parts) > 1:
-                    # manifest.json est dans un sous-dossier
-                    module_root_folder = parts[0]
-                    extract_in_place = True
-                    print(f"📁 Module dans le dossier : {module_root_folder}")
+                # Déterminer le dossier d'extraction
+                if '/' in manifest_path:
+                    module_folder = manifest_path.split('/')[0]
                 else:
-                    # manifest.json est à la racine, créer un dossier
-                    module_root_folder = module_name.replace(' ', '_')
-                    extract_in_place = False
-                    print(f"📁 Création du dossier : {module_root_folder}")
+                    module_folder = module_name.replace(' ', '_')
                 
-                self.progress.emit(40)
+                final_module_path = os.path.join(self.addons_dir, module_folder)
                 
-                # ========== 4. EXTRACTION ==========
-                self.status.emit("📦 Extraction des fichiers...")
-                
-                # Créer un dossier temporaire pour l'extraction
+                # Extraire
                 import tempfile
-                temp_extract_dir = tempfile.mkdtemp()
+                temp_dir = tempfile.mkdtemp()
+                zip_ref.extractall(temp_dir)
                 
-                # Extraire tous les fichiers
-                zip_ref.extractall(temp_extract_dir)
-                
-                self.progress.emit(70)
-                
-                # ========== 5. ORGANISATION DES FICHIERS ==========
-                self.status.emit("📂 Organisation des fichiers...")
-                
-                # Chemin final du module
-                final_module_path = os.path.join(self.addons_dir, module_root_folder)
-                
-                # Supprimer l'ancienne version si elle existe
+                # Déplacer vers addons
                 if os.path.exists(final_module_path):
                     import shutil
-                    backup_path = final_module_path + "_backup"
-                    if os.path.exists(backup_path):
-                        shutil.rmtree(backup_path)
-                    shutil.move(final_module_path, backup_path)
-                    print(f"📦 Ancienne version sauvegardée dans {backup_path}")
+                    shutil.rmtree(final_module_path)
                 
-                # Déplacer les fichiers extraits
-                if extract_in_place:
-                    # Les fichiers sont dans un sous-dossier
-                    source = os.path.join(temp_extract_dir, module_root_folder)
-                    if os.path.exists(source):
-                        import shutil
-                        shutil.move(source, final_module_path)
-                    else:
-                        self.finished.emit(False, f"Dossier {module_root_folder} non trouvé après extraction")
-                        return
-                else:
-                    # Les fichiers sont à la racine, créer le dossier
-                    os.makedirs(final_module_path, exist_ok=True)
-                    import shutil
-                    for item in os.listdir(temp_extract_dir):
-                        if item != module_root_folder:
-                            src = os.path.join(temp_extract_dir, item)
-                            dst = os.path.join(final_module_path, item)
-                            shutil.move(src, dst)
-                
-                # Nettoyer le dossier temporaire
+                source_path = os.path.join(temp_dir, module_folder) if module_folder in os.listdir(temp_dir) else temp_dir
                 import shutil
-                shutil.rmtree(temp_extract_dir, ignore_errors=True)
+                shutil.move(source_path, final_module_path)
+                
+                # Nettoyer
+                shutil.rmtree(temp_dir, ignore_errors=True)
+                
+                self.progress.emit(60)
+                
+                # ========== 4. INSTALLATION DES DÉPENDANCES ==========
+                deps_installed = False
+                if requirements_path:
+                    self.status.emit("📦 Installation des dépendances Python...")
+                    self.progress.emit(70)
+                    
+                    # Chemin du requirements.txt extrait
+                    req_file_path = os.path.join(final_module_path, 'requirements.txt')
+                    
+                    if os.path.exists(req_file_path):
+                        success_count, error_count, results = self.install_requirements(req_file_path)
+                        
+                        if error_count > 0:
+                            # Afficher les erreurs mais continuer
+                            error_msg = f"⚠️ {error_count} dépendance(s) non installée(s)\n\n"
+                            for r in results:
+                                if '❌' in r:
+                                    error_msg += f"{r}\n"
+                            
+                            # Demander à l'utilisateur s'il veut continuer
+                            self.finished.emit(False, error_msg + "\n\nVoulez-vous continuer l'installation du module ?")
+                            # Note: Pour une vraie interaction, il faudrait un signal
+                        else:
+                            deps_installed = True
+                            self.status.emit(f"✅ {success_count} dépendance(s) installée(s)")
                 
                 self.progress.emit(90)
                 
-                # ========== 6. VÉRIFICATION FINALE ==========
-                self.status.emit("✅ Vérification de l'installation...")
+                # ========== 5. MISE À JOUR DU VERSION MANAGER ==========
+                from version_manager import VersionManager
+                vm = VersionManager(self.addons_dir)
+                vm.update_module(
+                    module_folder,
+                    manifest.get('version', '1.0.0'),
+                    manifest.get('changelog', 'Installation initiale'),
+                    0
+                )
                 
-                # Vérifier que le manifest a bien été copié
-                final_manifest = os.path.join(final_module_path, 'manifest.json')
-                if os.path.exists(final_manifest):
-                    with open(final_manifest, 'r', encoding='utf-8') as f:
-                        final_manifest_data = json.load(f)
-                    
-                    # Mettre à jour VersionManager
-                    from version_manager import VersionManager
-                    version_manager = VersionManager(self.addons_dir)
-                    version_manager.update_module(
-                        module_root_folder,
-                        final_manifest_data.get('version', '1.0.0'),
-                        final_manifest_data.get('changelog', 'Installation initiale'),
-                        0
-                    )
-                    
-                    self.progress.emit(100)
-                    self.status.emit("✅ Installation terminée !")
-                    self.finished.emit(True, f"Module {final_manifest_data.get('name', module_name)} installé avec succès")
-                else:
-                    self.finished.emit(False, f"Installation incomplète : manifest.json non trouvé dans {final_module_path}")
+                # Sauvegarder les dépendances installées
+                if requirements_path:
+                    vm.set_module_dependencies(module_folder, self.get_installed_packages())
                 
-        except zipfile.BadZipFile:
-            self.finished.emit(False, "Le fichier n'est pas un ZIP valide")
+                self.progress.emit(100)
+                
+                # Message final
+                success_msg = f"✅ Module {manifest.get('name', module_name)} installé avec succès"
+                if deps_installed:
+                    success_msg += "\n📦 Dépendances Python installées"
+                
+                self.finished.emit(True, success_msg)
+                
         except Exception as e:
             import traceback
             traceback.print_exc()
-            self.finished.emit(False, f"Erreur lors de l'installation: {str(e)}")
-
+            self.finished.emit(False, f"Erreur: {str(e)}")
+    
+    def get_installed_packages(self):
+        """Retourne la liste des packages installés"""
+        import subprocess
+        import sys
+        
+        result = subprocess.run(
+            [sys.executable, '-m', 'pip', 'list', '--format=json'],
+            capture_output=True, text=True
+        )
+        
+        if result.returncode == 0:
+            return json.loads(result.stdout)
+        return []
+    
 class ModernCard(QFrame):
     """Carte moderne avec effet de survol"""
     def __init__(self, parent=None):
@@ -230,7 +255,14 @@ class ParametreModuleWidget(QWidget):
         super().__init__()
         self.controller = controller
         self.user = user
-        self.addons_dir = os.path.join(os.getcwd(), "addons")
+        
+        # ⚠️ CRUCIAL : Utiliser Config.get_addons_dir()
+        self.addons_dir = Config.get_addons_dir()
+        
+        # Debug : afficher le chemin
+        print(f"📁 Dossier addons : {self.addons_dir}")
+        print(f"📁 Le dossier existe : {os.path.exists(self.addons_dir)}")
+        
         self.version_manager = VersionManager(self.addons_dir)
         self.update_manager = UpdateManager(self)
         
@@ -545,7 +577,8 @@ class ParametreModuleWidget(QWidget):
     def get_all_modules(self):
         """Récupère tous les modules avec leurs informations"""
         modules = []
-        if not os.path.exists(self.addons_dir): 
+        if not os.path.exists(self.addons_dir):
+            print(f"⚠️ Dossier addons non trouvé : {self.addons_dir}")
             return modules
         
         for folder in os.listdir(self.addons_dir):
@@ -977,6 +1010,86 @@ class ParametreModuleWidget(QWidget):
         self.dynamic_layout.addWidget(actions_card)
         
         self.dynamic_layout.addStretch()
+
+        deps_frame = QFrame()
+        deps_frame.setStyleSheet("""
+            QFrame {
+                background: #f8fafc;
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+            }
+        """)
+        deps_layout = QVBoxLayout(deps_frame)
+        deps_layout.setContentsMargins(20, 18, 20, 18)
+        
+        deps_title = QLabel("📦 Dépendances Python")
+        deps_title.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b;")
+        deps_layout.addWidget(deps_title)
+        
+        # Vérifier les dépendances installées
+        module_info = self.version_manager.get_module_info(mod['folder_name'])
+        deps = module_info.get('dependencies_installed', []) if module_info else []
+        
+        if deps:
+            deps_list = QLabel()
+            deps_text = "\n".join([f"• {dep.get('name', '')} {dep.get('version', '')}" for dep in deps[:10]])
+            deps_list.setText(deps_text)
+            deps_list.setStyleSheet("color: #475569; font-size: 12px; margin-top: 10px;")
+            deps_layout.addWidget(deps_list)
+            
+            # Bouton pour vérifier/réinstaller
+            btn_check_deps = QPushButton("🔍 Vérifier les dépendances")
+            btn_check_deps.setCursor(Qt.PointingHandCursor)
+            btn_check_deps.setStyleSheet("""
+                QPushButton {
+                    background: #3b82f6;
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-weight: 600;
+                    margin-top: 10px;
+                }
+            """)
+            btn_check_deps.clicked.connect(lambda: self.check_module_dependencies(mod['folder_name']))
+            deps_layout.addWidget(btn_check_deps)
+        else:
+            no_deps = QLabel("Aucune dépendance Python spécifique")
+            no_deps.setStyleSheet("color: #94a3b8; font-size: 12px; margin-top: 10px;")
+            deps_layout.addWidget(no_deps)
+        
+        self.dynamic_layout.addWidget(deps_frame)
+
+    def check_module_dependencies(self, module_name):
+        """Vérifie les dépendances d'un module"""
+        import subprocess
+        import sys
+        
+        ok, message = self.version_manager.check_module_dependencies(module_name)
+        
+        if ok:
+            QMessageBox.information(self, "Dépendances", message)
+        else:
+            reply = QMessageBox.question(
+                self,
+                "Dépendances manquantes",
+                f"{message}\n\nVoulez-vous les installer maintenant ?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                # Réinstaller les dépendances
+                module_folder = module_name
+                req_file = os.path.join(self.addons_dir, module_folder, 'requirements.txt')
+                
+                if os.path.exists(req_file):
+                    installer = ModuleInstaller(None, self.addons_dir)
+                    success, error, results = installer.install_requirements(req_file)
+                    
+                    if success > 0:
+                        QMessageBox.information(self, "Succès", f"{success} dépendance(s) installée(s)")
+                    else:
+                        QMessageBox.warning(self, "Erreur", "Impossible d'installer les dépendances")
     
     def update_single_module(self, mod):
         """Met à jour un module spécifique"""

@@ -4,14 +4,21 @@ import json
 import hashlib
 from datetime import datetime
 from typing import Dict, Optional
+from config import Config
 
 class VersionManager:
     """Gestionnaire du fichier versions.json"""
     
-    def __init__(self, addons_dir: str):
+    def __init__(self, addons_dir=None):
+        # Si addons_dir n'est pas fourni, utiliser Config
+        if addons_dir is None:
+            addons_dir = Config.get_addons_dir()
+        
         self.addons_dir = addons_dir
         self.version_file = os.path.join(addons_dir, 'versions.json')
         self.data = self.load()
+        
+        print(f"📁 VersionManager - addons_dir : {self.addons_dir}")
     
     def load(self) -> dict:
         """Charge le fichier versions.json"""
@@ -245,3 +252,47 @@ class VersionManager:
             server_parts.append(0)
         
         return server_parts > current_parts
+    
+    def set_module_dependencies(self, module_name, dependencies):
+        """Sauvegarde les dépendances d'un module"""
+        if module_name in self.data['modules']:
+            self.data['modules'][module_name]['dependencies_installed'] = dependencies
+            self.data['modules'][module_name]['dependencies_date'] = datetime.now().isoformat()
+            self.save()
+    
+    def get_module_dependencies(self, module_name):
+        """Récupère les dépendances d'un module"""
+        module = self.data['modules'].get(module_name, {})
+        return module.get('dependencies_installed', [])
+    
+    def check_module_dependencies(self, module_name):
+        """Vérifie si les dépendances d'un module sont toujours installées"""
+        import subprocess
+        import sys
+        
+        module = self.data['modules'].get(module_name, {})
+        deps = module.get('dependencies_installed', [])
+        
+        if not deps:
+            return True, "Aucune dépendance enregistrée"
+        
+        # Vérifier les packages installés
+        result = subprocess.run(
+            [sys.executable, '-m', 'pip', 'list', '--format=json'],
+            capture_output=True, text=True
+        )
+        
+        if result.returncode == 0:
+            installed = {pkg['name'].lower() for pkg in json.loads(result.stdout)}
+            missing = []
+            
+            for dep in deps:
+                dep_name = dep.get('name', '').lower()
+                if dep_name and dep_name not in installed:
+                    missing.append(dep_name)
+            
+            if missing:
+                return False, f"Dépendances manquantes: {', '.join(missing)}"
+            return True, "Toutes les dépendances sont installées"
+        
+        return False, "Impossible de vérifier les dépendances"

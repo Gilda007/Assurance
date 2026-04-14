@@ -14,6 +14,7 @@ from core.database import SessionLocal, engine, Base, init_db
 from core.alerts import AlertManager
 from core.logger import logger
 from core.loader import AddonLoader
+import os
 
 # Imports pour les graphiques
 try:
@@ -1401,6 +1402,7 @@ class MainWindow(QMainWindow):
         self.init_modules()
         self.update_manager = UpdateManager(self)
         self.setup_shortcuts()
+        self.check_environment()
     
     def setup_ui(self):
         self.central_widget = QWidget()
@@ -1445,6 +1447,45 @@ class MainWindow(QMainWindow):
         self.sidebar.logout_btn.clicked.connect(self.handle_logout)
         self.sidebar.set_user_info(self.user.username)
     
+    # Dans main.py ou au début de l'application
+    def check_environment(self):
+        """Vérifie l'environnement et affiche les chemins"""
+        from config import Config
+        
+        print("=" * 60)
+        print("🔍 DIAGNOSTIC DE L'ENVIRONNEMENT")
+        print("=" * 60)
+        print(f"Mode compilé : {getattr(sys, 'frozen', False)}")
+        print(f"Executable : {sys.executable}")
+        print(f"Dossier exe : {Config.get_app_dir()}")
+        print(f"Dossier addons : {Config.get_addons_dir()}")
+        
+        # Vérifier si _internal existe
+        internal_dir = Config.get_internal_dir()
+        print(f"Dossier _internal : {internal_dir}")
+        print(f"_internal existe : {os.path.exists(internal_dir)}")
+        
+        # Vérifier le contenu de addons
+        addons_dir = Config.get_addons_dir()
+        if os.path.exists(addons_dir):
+            print(f"\n📁 Contenu de addons :")
+            for item in os.listdir(addons_dir):
+                item_path = os.path.join(addons_dir, item)
+                if os.path.isdir(item_path):
+                    print(f"  📁 {item}/")
+                    # Vérifier si manifest.json existe
+                    manifest = os.path.join(item_path, 'manifest.json')
+                    if os.path.exists(manifest):
+                        print(f"     ✅ manifest.json présent")
+                    else:
+                        print(f"     ❌ manifest.json manquant")
+                else:
+                    print(f"  📄 {item}")
+        else:
+            print(f"\n❌ Dossier addons non trouvé !")
+        
+        print("=" * 60)
+
     def setup_header(self):
         self.header = QFrame()
         self.header.setObjectName("Header")

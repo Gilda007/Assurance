@@ -299,6 +299,8 @@ class UpdateManager(QObject):
         self.addons_dir = Config.get_addons_dir()
         self.updates_available = {}
         self.version_manager = VersionManager(self.addons_dir)
+
+        print(f"📁 UpdateManager - addons_dir : {self.addons_dir}")
         
         # Créer le dossier addons s'il n'existe pas
         os.makedirs(self.addons_dir, exist_ok=True)
