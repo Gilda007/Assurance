@@ -1,0 +1,47 @@
+{
+  "app_version": "1.0.0",
+  "last_check": null,
+  "modules": {
+    "Automobiles": {
+      "version": "1.0.0",
+      "installed_date": "2026-04-14T16:26:31.567836",
+      "last_update": "2026-04-14T16:31:29.424424",
+      "size": 0,
+      "checksum": "",
+      "enabled": true,
+      "changelog": "Installation initiale"
+    }
+  },
+  "settings": {
+    "auto_update": true,
+    "check_interval": 3600,
+    "notify_before_update": true,
+    "backup_before_update": true
+  },
+  "history": [
+    {
+      "date": "2026-04-14T16:31:29.424486",
+      "action": "update",
+      "module": "Automobiles",
+      "old_version": "1.0.0",
+      "new_version": "1.0.0",
+      "status": "success"
+    },
+    {
+      "date": "2026-04-14T16:30:44.350790",
+      "action": "update",
+      "module": "Automobiles",
+      "old_version": "1.0.0",
+      "new_version": "1.0.0",
+      "status": "success"
+    },
+    {
+      "date": "2026-04-14T16:26:31.567933",
+      "action": "install",
+      "module": "Automobiles",
+      "old_version": "0.0.0",
+      "new_version": "1.0.0",
+      "status": "success"
+    }
+  ]
+}

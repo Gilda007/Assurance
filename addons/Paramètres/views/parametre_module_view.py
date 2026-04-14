@@ -1273,3 +1273,116 @@ class ParametreModuleWidget(QWidget):
             self.show_restart_notification()
         else:
             QMessageBox.critical(self, "Erreur", message)
+    
+    def show_restart_notification(self):
+        """Affiche une notification pour redémarrer l'application"""
+        from PySide6.QtWidgets import QGraphicsOpacityEffect
+        from PySide6.QtCore import QPropertyAnimation, QTimer
+        
+        # Créer une notification flottante
+        notification = QFrame(self)
+        notification.setStyleSheet("""
+            QFrame {
+                background: #1e293b;
+                border-radius: 12px;
+                color: white;
+            }
+        """)
+        notification.setFixedHeight(50)
+        
+        layout = QHBoxLayout(notification)
+        layout.setContentsMargins(15, 0, 15, 0)
+        
+        icon = QLabel("🔄")
+        icon.setStyleSheet("font-size: 16px; background: transparent;")
+        
+        text = QLabel("Module installé. Redémarrez l'application pour appliquer les changements.")
+        text.setStyleSheet("color: white; font-size: 12px; background: transparent;")
+        
+        restart_btn = QPushButton("Redémarrer")
+        restart_btn.setCursor(Qt.PointingHandCursor)
+        restart_btn.setStyleSheet("""
+            QPushButton {
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                padding: 5px 12px;
+                font-size: 11px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #2563eb;
+            }
+        """)
+        restart_btn.clicked.connect(self.restart_application)
+        
+        close_btn = QPushButton("✕")
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #94a3b8;
+                border: none;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                color: white;
+            }
+        """)
+        close_btn.clicked.connect(notification.deleteLater)
+        
+        layout.addWidget(icon)
+        layout.addWidget(text, 1)
+        layout.addWidget(restart_btn)
+        layout.addWidget(close_btn)
+        
+        # Positionner en bas à droite
+        notification.adjustSize()
+        notification.move(
+            self.width() - notification.width() - 20,
+            self.height() - notification.height() - 20
+        )
+        
+        # Effet d'apparition
+        opacity_effect = QGraphicsOpacityEffect()
+        notification.setGraphicsEffect(opacity_effect)
+        
+        animation = QPropertyAnimation(opacity_effect, b"opacity")
+        animation.setDuration(300)
+        animation.setStartValue(0)
+        animation.setEndValue(1)
+        animation.start()
+        
+        notification.show()
+        
+        # Auto-disparition après 8 secondes
+        QTimer.singleShot(8000, notification.deleteLater)
+    
+    def restart_application(self):
+        """Redémarre l'application"""
+        import sys
+        import subprocess
+        from PySide6.QtWidgets import QApplication
+        
+        try:
+            # Obtenir le chemin de l'application
+            if getattr(sys, 'frozen', False):
+                # Mode compilé
+                app_path = sys.executable
+            else:
+                # Mode développement
+                app_path = sys.argv[0] if sys.argv[0] else "main.py"
+            
+            # Lancer la nouvelle instance
+            subprocess.Popen([app_path])
+            
+            # Fermer l'instance actuelle
+            QApplication.quit()
+            
+        except Exception as e:
+            QMessageBox.warning(
+                self, 
+                "Redémarrage manuel", 
+                f"Veuillez redémarrer l'application manuellement.\n\nErreur: {str(e)}"
+            )
