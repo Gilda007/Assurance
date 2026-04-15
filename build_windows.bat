@@ -16,17 +16,6 @@ del /q *.spec 2>nul
 echo OK
 echo.
 
-REM Installation des dépendances
-echo [2/6] Installation de TOUTES les dependances...
-pip install --upgrade pip
-pip install -r requirements.txt
-if errorlevel 1 (
-    echo ATTENTION: Certains paquets n'ont pas pu etre installes
-    echo Continuons quand meme...
-)
-echo OK
-echo.
-
 REM Génération de la liste complète des modules
 echo [3/6] Analyse des modules a inclure...
 
