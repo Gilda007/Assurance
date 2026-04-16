@@ -9,7 +9,7 @@ import socket
 import platform
 import requests
 
-from main import AppColors
+# from main import AppColors
 
 class VehicleForm(QDialog):
     def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
