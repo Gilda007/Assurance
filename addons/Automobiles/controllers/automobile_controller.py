@@ -500,6 +500,24 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur lors de la récupération des codes tarif : {e}")
             return []
+
+    def get_tarif_categories_by_compagnie(self, cie_id):
+        """
+        Récupère les catégories disponibles pour une compagnie donnée.
+        Retourne une liste de catégories distinctes pour le QComboBox.
+        """
+        try:
+            from addons.Automobiles.models.tarif_models import AutomobileTarif
+
+            categories = self.session.query(AutomobileTarif.categorie)\
+                .filter(AutomobileTarif.cie_id == cie_id)\
+                .distinct()\
+                .all()
+
+            return [c.categorie for c in categories if c.categorie]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des catégories tarif : {e}")
+            return []
     
     def add_tranche(self, libelle, max_cv, user_id, local_ip, network_ip):
         from addons.Automobiles.models.tarif_models import AutomobileTarif
@@ -653,6 +671,103 @@ class VehicleController:
                     f"Une erreur est survenue lors de la génération du document :\n\n{str(e)}"
                 )
     
+    def print_devis(self, vehicle_data, parent_widget=None):
+        """
+        Gère la génération et l'impression du devis d'assurance.
+        
+        Args:
+            vehicle_data (dict): Données du véhicule et du contrat
+            parent_widget (QWidget, optional): Widget parent pour les dialogues
+        """
+        try:
+            # 1. Vérification des données essentielles
+            required_fields = ['immatriculation', 'marque', 'modele', 'owner']
+            missing_fields = [field for field in required_fields if not vehicle_data.get(field)]
+            
+            if missing_fields:
+                from PySide6.QtWidgets import QMessageBox
+                if parent_widget:
+                    QMessageBox.warning(
+                        parent_widget,
+                        "Données manquantes",
+                        f"Impossible de générer le devis.\n\n"
+                        f"Champs manquants : {', '.join(missing_fields)}"
+                    )
+                print(f"Erreur : Données manquantes - {missing_fields}")
+                return
+            
+            # 2. Vérification du montant total
+            prime_totale = vehicle_data.get('prime_nette', 0)
+            if not prime_totale or float(prime_totale) == 0:
+                print("Avertissement : Le montant de la prime est à 0.")
+                if parent_widget:
+                    from PySide6.QtWidgets import QMessageBox
+                    reply = QMessageBox.question(
+                        parent_widget,
+                        "Montant nul",
+                        "Le montant de la prime est à 0.\n\n"
+                        "Voulez-vous continuer quand même ?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    if reply == QMessageBox.No:
+                        return
+            
+            # 3. Importation de l'outil d'impression
+            try:
+                from addons.Automobiles.views.devis_printer import DevisPrinter
+            except ImportError as e:
+                print(f"Erreur d'import : {e}")
+                if parent_widget:
+                    from PySide6.QtWidgets import QMessageBox
+                    QMessageBox.critical(
+                        parent_widget,
+                        "Erreur d'import",
+                        "Impossible de charger le module d'impression du devis.\n\n"
+                        "Vérifiez que le fichier devis_printer.py est présent."
+                    )
+                return
+            
+            # 4. Création du dossier d'export si nécessaire
+            import os
+            export_dir = os.path.join(os.path.expanduser("~"), "Documents", "Devis_Assurance")
+            if not os.path.exists(export_dir):
+                try:
+                    os.makedirs(export_dir)
+                    print(f"Dossier créé : {export_dir}")
+                except Exception as e:
+                    print(f"Impossible de créer le dossier d'export : {e}")
+            
+            # 5. Initialisation de l'imprimeur
+            printer_tool = DevisPrinter(vehicle_data, export_dir=export_dir)
+            
+            # 6. Lancement de l'impression
+            printer_tool.print(parent_widget)
+            
+        except ImportError:
+            print("Erreur : Le fichier devis_printer.py est introuvable dans le dossier.")
+            if parent_widget:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    parent_widget,
+                    "Erreur",
+                    "Le module d'impression du devis est introuvable.\n\n"
+                    "Vérifiez l'installation de l'application."
+                )
+                
+        except Exception as e:
+            print(f"Erreur lors de l'exécution de l'impression du devis : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            if parent_widget:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    parent_widget,
+                    "Erreur d'impression",
+                    f"Une erreur est survenue lors de la génération du devis :\n\n{str(e)}"
+                )
+
     def _calculate_base_premium(self, vehicle: Vehicle, data: Dict) -> float:
         """Calcule la prime de base selon les caractéristiques du véhicule"""
         base = 75000  # Prime de base

@@ -50,30 +50,34 @@ class UpdateChecker(QThread):
         self.version_manager = VersionManager(addons_dir)
         self.current_version = self.version_manager.get_app_version()
         
+    # Dans UpdateChecker.run()
     def run(self):
         """Vérifie les mises à jour"""
         try:
+            print("🚀 UpdateChecker.run() démarré")  # ← Debug
             url = f"{self.server_url}/check_updates"
+            print(f"   URL: {url}")  # ← Debug
+            
             req = urllib.request.Request(url)
             req.add_header('Content-Type', 'application/json')
             
             with urllib.request.urlopen(req, timeout=10) as response:
                 data = json.loads(response.read().decode())
-                updates = self.check_available_updates(data)
+                print(f"   Réponse serveur reçue")  # ← Debug
                 
-                # Mettre à jour la date du dernier check
-                self.version_manager.update_last_check()
+                updates = self.check_available_updates(data)
+                print(f"   Mises à jour trouvées: {len(updates)}")  # ← Debug
                 
                 if updates:
+                    print(f"   ✅ Émission du signal update_found")  # ← Debug
                     self.update_found.emit(updates)
                 else:
+                    print(f"   ❌ Aucune mise à jour, émission de no_update")  # ← Debug
                     self.no_update.emit()
-                    
-        except urllib.error.URLError as e:
-            self.error_occurred.emit(f"Impossible de contacter le serveur: {e.reason}")
         except Exception as e:
-            self.error_occurred.emit(f"Erreur: {str(e)}")
-    
+            print(f"   ❌ Erreur: {e}")  # ← Debug
+            self.error_occurred.emit(str(e))
+
     def check_available_updates(self, server_data):
         """Compare les versions locales avec le serveur"""
         updates = {}
@@ -137,7 +141,7 @@ class UpdateInstaller(QThread):
         self.addons_dir = addons_dir
         self.temp_dir = temp_dir or tempfile.mkdtemp()
         self.updates_queue = []
-        self.version_manager = VersionManager(addons_dir)
+        self.version_manager = VersionManager(self.addons_dir)
         
     def add_update(self, update_info):
         """Ajoute une mise à jour à installer"""
@@ -270,12 +274,12 @@ class UpdateInstaller(QThread):
         
         with open(updater_script, 'w') as f:
             f.write(f"""@echo off
-timeout /t 2 /nobreak > nul
-echo Mise à jour de l'application...
-move /Y "{download_path}" "{app_dir}\\update.zip"
-echo Mise à jour terminée. Veuillez redémarrer l'application.
-timeout /t 3 /nobreak > nul
-""")
+                    timeout /t 2 /nobreak > nul
+                    echo Mise à jour de l'application...
+                    move /Y "{download_path}" "{app_dir}\\update.zip"
+                    echo Mise à jour terminée. Veuillez redémarrer l'application.
+                    timeout /t 3 /nobreak > nul
+                """)
         
         # Lancer le script
         import subprocess
@@ -315,8 +319,14 @@ class UpdateManager(QObject):
     
     def check_updates_auto(self):
         """Vérifie automatiquement les mises à jour (silencieux)"""
+        print("🔄 Vérification AUTO des mises à jour...")  # ← Debug
+        print(f"   Serveur: {Config.UPDATE_SERVER}")
+        print(f"   Dossier addons: {self.addons_dir}")
+        
         checker = UpdateChecker(Config.UPDATE_SERVER, self.addons_dir)
         checker.update_found.connect(self.on_auto_updates_found)
+        checker.no_update.connect(self.on_no_update)
+        checker.error_occurred.connect(self.on_update_error)
         checker.start()
     
     def on_updates_found(self, updates):
@@ -328,17 +338,43 @@ class UpdateManager(QObject):
     
     def on_auto_updates_found(self, updates):
         """Notification silencieuse de mise à jour"""
+        print(f"📢 Mises à jour trouvées (auto): {list(updates.keys())}")  # ← Debug
+        
         self.updates_available = updates
         if self.parent:
             count = len(updates)
+            message = f"🔔 {count} mise(s) à jour disponible(s)"
+            
+            # Afficher une notification dans la barre d'état
             if hasattr(self.parent, 'show_status_message'):
-                self.parent.show_status_message(f"{count} mise(s) à jour disponible(s)")
+                self.parent.show_status_message(message)
+            else:
+                print(message)
+            
+            # ⚠️ OPTIONNEL : Afficher une boîte de dialogue non intrusive
+            self.show_notification_bubble(count)
     
     def on_no_update(self):
         """Aucune mise à jour trouvée"""
         if self.parent:
             QMessageBox.information(self.parent, "Mise à jour", "Votre application est à jour")
     
+    def show_notification_bubble(self, count):
+        """Affiche une bulle de notification"""
+        from PySide6.QtWidgets import QMessageBox
+        from PySide6.QtCore import QTimer
+        
+        # Notification qui disparaît automatiquement
+        msg = QMessageBox(self.parent)
+        msg.setWindowTitle("📢 Mises à jour disponibles")
+        msg.setText(f"{count} module(s) peuvent être mis à jour")
+        msg.setInformativeText("Cliquez sur 'Aide' → 'Vérifier les mises à jour' pour les installer")
+        msg.setStandardButtons(QMessageBox.Ok)
+        
+        # Fermeture automatique après 5 secondes
+        QTimer.singleShot(5000, msg.close)
+        msg.open()
+
     def on_update_error(self, error):
         """Erreur lors de la vérification"""
         if self.parent:

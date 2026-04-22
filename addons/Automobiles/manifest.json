@@ -1,11 +1,11 @@
 {
     "name": "Gestion d'Assurance Automobile",
-    "version": "1.0.0",
-    "author": "AMS Team",
+    "version": "1.1.2",
+    "author": "Fearless Cybertech Dev Team",
     "category": "Insurance",
-    "summary": "Gestion compl\u00e8te des polices, sinistres et v\u00e9hicules assur\u00e9s.",
+    "summary": "Gestion complète du parc automobile",
     "description": [
-        "module permet de :G\u00e9rer le parc automobile des clients (marques, mod\u00e8les, immatriculations).\u00c9mettre et suivre les polices d'assurance (Tiers, Tous Risques, etc.).G\u00e9rer le cycle de vie des sinistres (d\u00e9claration, expertise, indemnisation).Suivre les paiements et les \u00e9ch\u00e9ances de renouvellement."
+        "module permet de :Gérer le parc automobile des clients (marques, modèles, immatriculations)émettre et suivre les polices d'assurance (Tiers, Tous Risques, etc.).Gérer le cycle de vie des sinistres (déclaration, expertise, indemnisation).Suivre les paiements et les échéances de renouvellement."
     ],
     "dependencies": [
         "BaseCore",
@@ -24,6 +24,8 @@
         "data/insurance_types_data.xml"
     ],
     "installable": true,
+    "min_app_version": "1.0.0",
+    "changelog": "• Correction bugs interface\n• Ajout export PDF\n• Optimisation performances\n• Nouvelles fonctionnalités",
     "application": "True",
     "auto_install": "False",
     "website": "https://universalhouse.org",

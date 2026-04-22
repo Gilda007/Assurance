@@ -537,7 +537,7 @@ class VehicleForm(QDialog):
         self.combo_fleet.setPlaceholderText("Ex: Tarif Standard, Tarif Premium, ...")
         id_layout.addWidget(self.combo_fleet, 9, 0, 1, 2)
 
-        self.combo_cat = QLineEdit()
+        self.combo_cat = QComboBox()
         self.combo_cat.setStyleSheet(field_style)
         self.combo_cat.setPlaceholderText("Ex: remplissage automatique...")
         id_layout.addWidget(self.combo_cat, 9, 2, 1, 2)
@@ -794,13 +794,13 @@ class VehicleForm(QDialog):
         self.prime_nette.setReadOnly(True)
         self.prime_nette.setStyleSheet(style_success)
         self.prime_nette.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.create_labeled_field("Prime Nette", self.prime_nette), 1, 1)
+        recap_layout.addWidget(self.create_labeled_field("Prime Nette", self.prime_nette), 1, 2)
 
         self.reduction = QLineEdit("0")
         self.reduction.setReadOnly(True)
         self.reduction.setStyleSheet(style_warning)
         self.reduction.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.create_labeled_field("Réduction", self.reduction), 1, 2)
+        recap_layout.addWidget(self.create_labeled_field("Réduction", self.reduction), 1, 1)
 
         # Ligne 2 - Séparateur
         sep = QFrame()
@@ -813,7 +813,7 @@ class VehicleForm(QDialog):
         self.carte_rose.setStyleSheet(style_info)
         self.carte_rose.setAlignment(Qt.AlignRight)
         self.carte_rose.textChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.create_labeled_field("Carte Rose", self.carte_rose), 3, 0)
+        recap_layout.addWidget(self.create_labeled_field("Carte Rose", self.carte_rose),  5, 1)
 
         self.accessoire = QLineEdit("0")
         self.accessoire.setReadOnly(False)
@@ -842,7 +842,7 @@ class VehicleForm(QDialog):
         self.asac.setAlignment(Qt.AlignRight)
         self.asac.textChanged.connect(self.calculate_tva)
         self.asac.textChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.create_labeled_field("Fichier ASAC", self.asac), 5, 1)
+        recap_layout.addWidget(self.create_labeled_field("Fichier ASAC", self.asac), 3, 0)
 
         self.vignette = QLineEdit("0")
         self.vignette.setStyleSheet(style_info)
@@ -1269,7 +1269,7 @@ class VehicleForm(QDialog):
             
             # --- CHAMPS CATÉGORIE ET LIBELLÉ TARIF ---
             if hasattr(v, 'categorie') and v.categorie:
-                self.combo_cat.setText(str(v.categorie))
+                self.combo_cat.setCurrentText(str(v.categorie))
             
             # --- GESTION DU PROPRIÉTAIRE (COMPAGNIE) ---
             if hasattr(v, 'owner_id') and v.owner_id:
@@ -1438,7 +1438,7 @@ class VehicleForm(QDialog):
             "chassis": self.chassis_input.text().strip().upper(),
             "zone": self.combo_zone.currentText(),
             "libele_tarif": self.combo_fleet.currentText().strip().upper(),
-            "categorie": self.combo_cat.text().strip(),
+            "categorie": self.combo_cat.currentText().strip().upper(),
             "compagny_id": self.compagny_list.currentItem().data(Qt.UserRole).id if self.compagny_list.currentItem() else None,
             "owner_id": self.owner_list.currentItem().data(Qt.UserRole).id if self.owner_list.currentItem() else None,
             "marque": self.marque_input.text().strip(),
@@ -1649,7 +1649,7 @@ class VehicleForm(QDialog):
             "chassis": self.chassis_input.text().strip(),
             "zone": self.combo_zone.currentText(),
             "libele_tarif": self.combo_fleet.currentText(),
-            "categorie": self.combo_cat.text(),
+            "categorie": self.combo_cat.currentText(),
             "marque": self.marque_input.text().strip(),
             "modele": self.modele_input.text().strip(),
             "annee": int(self.annee_input.text()) if self.annee_input.text().isdigit() else None,
@@ -1774,7 +1774,7 @@ class VehicleForm(QDialog):
             # Récupération des informations du formulaire
             cie_id = self.selected_cie_id 
             zone = self.combo_zone.currentText()
-            categorie = self.combo_cat.text()
+            categorie = self.combo_cat.currentText()
             energie = self.energie_combo.currentText()
             
             cv_text = self.usage_input.text().strip()
@@ -1783,14 +1783,27 @@ class VehicleForm(QDialog):
             avec_remorque = self.check_remorque.isChecked() 
 
             if self.controller:
-                montant_rc = self.controller.vehicles.get_rc_premium_from_matrix(
+                res_rc = self.controller.vehicles.get_rc_premium_from_matrix(
                     cie_id=cie_id,
                     zone=zone,
                     categorie=categorie,
                     energie=energie,
                     cv_saisi=cv,
-                    avec_remorque=avec_remorque
+                    avec_remorque=avec_remorque,
+                    code_tarif=self.code_tarif.currentText().strip() if self.code_tarif.currentText() else None
                 )
+
+                montant_rc = res_rc.get('rc', 0.0) if isinstance(res_rc, dict) else res_rc
+                libelle = res_rc.get('libelle', '') if isinstance(res_rc, dict) else ''
+                categorie_retournee = res_rc.get('categorie', '') if isinstance(res_rc, dict) else ''
+
+                if categorie_retournee and self.combo_cat.currentText() != categorie_retournee:
+                    if self.combo_cat.findText(categorie_retournee) == -1:
+                        self.combo_cat.addItem(categorie_retournee)
+                    self.combo_cat.setCurrentText(categorie_retournee)
+
+                if libelle and self.combo_fleet.currentText() != libelle:
+                    self.combo_fleet.setCurrentText(libelle)
 
                 # Mise à jour du label de résultat
                 garantie_data = self.result_labels.get("rc")
@@ -1930,7 +1943,7 @@ class VehicleForm(QDialog):
                 self.update_garantie_price(key, 2)
 
     def on_code_tarif_changed(self, code):
-        """Lorsque le code tarif change, met à jour le libellé correspondant"""
+        """Lorsque le code tarif change, met à jour le libellé et la catégorie correspondants"""
         if code and self.selected_cie_id:
             # Chercher le libellé correspondant dans les données chargées
             for item in [self.code_tarif.itemData(i) for i in range(self.code_tarif.count())]:
@@ -1939,6 +1952,9 @@ class VehicleForm(QDialog):
                     if libelle:
                         self.combo_fleet.setCurrentText(libelle)
                     break
+
+            # Si un code tarif est sélectionné, recalculer la RC pour récupérer la catégorie
+            self.update_rc_calculation()
 
     def load_tarif_codes(self):
         """Charge la liste des codes tarif pour la compagnie sélectionnée"""
@@ -1961,6 +1977,15 @@ class VehicleForm(QDialog):
             self.combo_fleet.addItem("", "")
             for code, libelle in codes:
                 self.combo_fleet.addItem(libelle, {"code": code, "libelle": libelle})
+
+            # Mettre à jour la combo_cat avec les catégories disponibles
+            self.combo_cat.clear()
+            self.combo_cat.addItem("", "")
+            categories = []
+            if self.controller:
+                categories = self.controller.vehicles.get_tarif_categories_by_compagnie(self.selected_cie_id)
+            for categorie in categories:
+                self.combo_cat.addItem(str(categorie))
                 
         except Exception as e:
             print(f"Erreur lors du chargement des codes tarif : {e}")
@@ -2247,7 +2272,7 @@ class VehicleForm(QDialog):
                 
             # Récupérer les paramètres
             code_tarif = self.code_tarif.currentText().strip() if hasattr(self.code_tarif, 'currentText') else ""
-            categorie = self.combo_cat.text().strip()
+            categorie = self.combo_cat.currentText().strip()
             avec_remorque = self.check_remorque.isChecked()
             zone = self.combo_zone.currentText()
             energie = self.energie_combo.currentText()
@@ -2274,8 +2299,8 @@ class VehicleForm(QDialog):
             if libelle and self.combo_fleet.currentText() != libelle:
                 self.combo_fleet.setCurrentText(libelle)
             
-            if categorie_retournee and self.combo_cat.text() != categorie_retournee:
-                self.combo_cat.setText(categorie_retournee)
+            if categorie_retournee and self.combo_cat.currentText() != categorie_retournee:
+                self.combo_cat.setCurrentText(categorie_retournee)
             
             return montant_rc
             

@@ -57,7 +57,9 @@ class VignettePrinter:
         """
         # Vérifier le statut de paiement dans les données
         statut_paiement = self.data.get('statut_paiement', '')
-        montant_paye = self.data.get('montant_paye', '')
+        print(statut_paiement)
+        montant_paye = int(self.data.get('montant_paye', '0'))
+        print(f"montant_paye: {montant_paye}")
         prime_totale = self.data.get('prime_totale_ttc', self.data.get('prime_nette', 0))
         
         # Si le statut est explicitement PAYE ou si le montant payé >= prime totale
@@ -95,8 +97,6 @@ class VignettePrinter:
             # Ajouter un deuxième filigrane décalé
             canvas_obj.setFont('Helvetica-Bold', 40)
             canvas_obj.setFillColor(colors.Color(0.9, 0.2, 0.2, alpha=0.1))
-            # canvas_obj.drawCentredString(-80, -80, "DOCUMENT NON VALIDE")
-            # canvas_obj.drawCentredString(80, 100, "EN ATTENTE DE PAIEMENT")
             
             canvas_obj.restoreState()
     
@@ -267,29 +267,20 @@ class VignettePrinter:
         story.append(Paragraph("Attestation de paiement du Droit de Timbre Automobile", styles['MainTitle']))
         story.append(Spacer(1, 4))
         
-        # Ajouter un avertissement si non payé
-        if not self.is_paid:
-            story.append(Paragraph("⚠️ DOCUMENT NON VALIDE - PAIEMENT EN ATTENTE ⚠️", styles['WarningTitle']))
-            story.append(Spacer(1, 4))
-        
         story.append(Paragraph("Document officiel - Valeur légale", styles['SubTitle']))
-        story.append(Spacer(1, 12))
+        story.append(Spacer(1, 4))
         
         # === CADRE DE VALIDITÉ ===
         story.append(self.create_validity_box(styles))
-        story.append(Spacer(1, 16))
+        story.append(Spacer(1, 12))
         
         if progress:
             progress.setValue(40)
             QCoreApplication.processEvents()
         
-        # === MONTANT PAYÉ ===
-        story.append(self.create_amount_section(styles))
-        story.append(Spacer(1, 16))
-        
-        # === STATUT DE PAIEMENT ===
-        story.append(self.create_payment_status_section(styles))
-        story.append(Spacer(1, 16))
+        # # === STATUT DE PAIEMENT ===
+        # story.append(self.create_payment_status_section(styles))
+        # story.append(Spacer(1, 16))
         
         # === INFORMATIONS VÉHICULE ===
         story.append(Paragraph("Détails du véhicule assuré", styles['SectionTitle']))
@@ -334,85 +325,59 @@ class VignettePrinter:
         if progress:
             progress.setValue(100)
             QCoreApplication.processEvents()
-    
-    def create_payment_status_section(self, styles):
-        """Crée la section de statut de paiement"""
-        
-        if self.is_paid:
-            status_text = "✓ Paiement confirmé"
-            status_color = self.colors['success']
-            bg_color = self.colors['light']
-            status_data = [
-                ["STATUT DU PAIEMENT", ""],
-                [status_text, f"Montant réglé: {self.data.get('montant_paye', 0):,.0f} FCFA".replace(",", " ")],
-            ]
-        else:
-            status_text = "⚠️ EN ATTENTE DE PAIEMENT"
-            status_color = self.colors['danger']
-            bg_color = colors.Color(0.9, 0.2, 0.2, alpha=0.1)
-            
-            montant_du = self.data.get('prime_totale_ttc', self.data.get('prime_nette', 0))
-            montant_paye = self.data.get('montant_paye', 0)
-            reste_a_payer = montant_du - montant_paye
-            
-            status_data = [
-                ["STATUT DU PAIEMENT", ""],
-                [status_text, f"Reste à payer: {reste_a_payer:,.0f} FCFA".replace(",", " ")],
-                ["", f"Montant total dû: {montant_du:,.0f} FCFA".replace(",", " ")],
-            ]
-        
-        status_table = Table(status_data, colWidths=[50*mm, 100*mm])
-        status_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), self.colors['dark']),
-            ('TEXTCOLOR', (0, 0), (-1, 0), self.colors['white']),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-            
-            ('BACKGROUND', (0, 1), (-1, -1), bg_color),
-            ('TEXTCOLOR', (0, 1), (0, 1), status_color),
-            ('FONTNAME', (0, 1), (0, 1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 1), (0, 1), 12 if not self.is_paid else 10),
-            
-            ('BOX', (0, 0), (-1, -1), 1, status_color),
-            ('ROUNDEDCORNERS', (0, 0), (-1, -1), 8),
-        ]))
-        
-        return status_table
-    
+
     def create_header(self, styles):
         """Crée l'en-tête du document avec logo et informations"""
         
+        # 1. Préparation du logo
+        # Remplacez 'logo_ams.png' par le chemin réel de l'image sur votre machine
+        logo_path = "addons/Automobiles/static/logo.png" 
+        try:
+            # Ajustez la largeur (width) et la hauteur (height) selon vos besoins
+            logo = Image(logo_path, width=20*mm, height=15*mm)
+            logo.hAlign = 'LEFT'
+        except:
+            logo = "LOGO NON TROUVÉ" # Sécurité si l'image est manquante
+
         # Ajouter un indicateur de statut dans l'en-tête
         status_indicator = "🔴" if not self.is_paid else "🟢"
         status_text = "PAYÉ" if self.is_paid else "IMPAYÉ"
         
+        # 2. Structure des données (On insère l'objet logo dans la cellule sous le titre)
         header_data = [
             ["AMS ASSURANCES", f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}"],
-            ["Assureur agréé", f"N° Police: {self.data.get('id', 'N/A')}"],
-            ["", f"{status_indicator} Statut: {status_text}"],
+            [logo, f"N° Police: {self.data.get('numero_police', 'N/A')}"],
+            ["Assureur agréé", f"{status_indicator} Statut: {status_text}"],
         ]
         
-        header_table = Table(header_data, colWidths=[80*mm, 60*mm])
+        header_table = Table(header_data, colWidths=[90*mm, 70*mm])
         header_table.setStyle(TableStyle([
+            # Style du titre principal
             ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (0, 0), 14),
+            ('FONTSIZE', (0, 0), (0, 0), 16),
             ('TEXTCOLOR', (0, 0), (0, 0), self.colors['primary']),
+            
+            # Alignement du logo (cellule 0, 1)
+            ('LEFTPADDING', (0, 1), (0, 1), 0),
+            ('TOPPADDING', (0, 1), (0, 1), 5),
+            ('BOTTOMPADDING', (0, 1), (0, 1), 5),
+
+            # Style du texte de droite
             ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
             ('FONTSIZE', (1, 0), (1, -1), 9),
             ('TEXTCOLOR', (1, 0), (1, -1), self.colors['gray']),
             ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            
+            # Style du statut
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('TOPPADDING', (0, 0), (-1, -1), 2),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
             ('TEXTCOLOR', (1, 2), (1, 2), self.colors['success'] if self.is_paid else self.colors['danger']),
             ('FONTNAME', (1, 2), (1, 2), 'Helvetica-Bold'),
         ]))
         
         return header_table
-    
-    # Les autres méthodes (create_validity_box, create_amount_section, etc.)
-    # restent identiques à la version précédente...
+        
+        # Les autres méthodes (create_validity_box, create_amount_section, etc.)
+        # restent identiques à la version précédente...
     
     def format_date(self, date):
         """Formate une date au format JJ/MM/AAAA"""
@@ -548,55 +513,6 @@ class VignettePrinter:
         ]))
         
         return validity_table
-
-    def create_amount_section(self, styles):
-        """Crée la section du montant avec mise en valeur"""
-        
-        montant = self.data.get('montant_paye', 0)
-        if isinstance(montant, str):
-            try:
-                montant = float(montant)
-            except:
-                montant = 0
-        
-        # Créer un cadre pour le montant
-        amount_data = [
-            ["MONTANT ACQUITTÉ"],
-            [f"{montant:,.0f} FCFA".replace(",", " ")],
-            ["TTC - Toutes taxes comprises"]
-        ]
-        
-        amount_table = Table(amount_data, colWidths=[150*mm])
-        amount_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), self.colors['secondary']),
-            ('TEXTCOLOR', (0, 0), (0, 0), self.colors['white']),
-            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (0, 0), 12),
-            ('ALIGN', (0, 0), (0, 0), 'CENTER'),
-            ('TOPPADDING', (0, 0), (0, 0), 8),
-            ('BOTTOMPADDING', (0, 0), (0, 0), 8),
-            
-            ('BACKGROUND', (0, 1), (0, 1), self.colors['light']),
-            ('TEXTCOLOR', (0, 1), (0, 1), self.colors['secondary']),
-            ('FONTNAME', (0, 1), (0, 1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 1), (0, 1), 24),
-            ('ALIGN', (0, 1), (0, 1), 'CENTER'),
-            ('TOPPADDING', (0, 1), (0, 1), 12),
-            ('BOTTOMPADDING', (0, 1), (0, 1), 12),
-            
-            ('BACKGROUND', (0, 2), (0, 2), self.colors['light']),
-            ('TEXTCOLOR', (0, 2), (0, 2), self.colors['gray']),
-            ('FONTNAME', (0, 2), (0, 2), 'Helvetica'),
-            ('FONTSIZE', (0, 2), (0, 2), 9),
-            ('ALIGN', (0, 2), (0, 2), 'CENTER'),
-            ('TOPPADDING', (0, 2), (0, 2), 4),
-            ('BOTTOMPADDING', (0, 2), (0, 2), 8),
-            
-            ('BOX', (0, 0), (0, -1), 1.5, self.colors['secondary']),
-            ('ROUNDEDCORNERS', (0, 0), (0, -1), 8),
-        ]))
-        
-        return amount_table
 
     def create_vehicle_table(self, styles):
         """Crée un tableau élégant pour les informations du véhicule"""

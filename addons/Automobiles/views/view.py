@@ -184,7 +184,7 @@ class NetworkSpeedMonitor(QFrame):
             border-radius: 20px;
         """)
         
-        self.refresh_btn = QPushButton("🔄")
+        self.refresh_btn = QPushButton("🔄🔄")
         self.refresh_btn.setFixedSize(32, 32)
         self.refresh_btn.setCursor(Qt.PointingHandCursor)
         self.refresh_btn.setStyleSheet("""
