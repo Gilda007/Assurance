@@ -29,6 +29,8 @@ class VehicleForm(QDialog):
         self.old_pos = None
         self.is_maximized = False
         self.normal_geometry = None
+
+        self.preselected_owner_id = data.get('owner_id') if data else None
         
         self.setup_ui()
 
@@ -989,7 +991,89 @@ class VehicleForm(QDialog):
         if hasattr(self, 'drag_position'):
             delattr(self, 'drag_position')
 
-    
+    def fill_form(self, data):
+        """Pré-remplit le formulaire avec les données fournies"""
+        if not data:
+            return
+        
+        # Pré-remplir le propriétaire si les données sont fournies
+        owner_id = data.get('owner_id')
+        print(f"Pré-remplissage du formulaire avec owner_id: {owner_id}")
+        if owner_id:
+            self.preselected_owner_id = owner_id
+            # Récupérer et afficher les informations du propriétaire
+            self.load_owner_details_by_id(owner_id)
+
+    def load_owner_details_by_id(self, owner_id):
+        """Charge et affiche les détails du propriétaire par son ID"""
+        try:
+            # Récupérer le contact depuis le contrôleur
+            contact = self.controller.contacts.get_contact_by_id(owner_id)
+            
+            if not contact:
+                print(f"⚠️ Propriétaire avec ID {owner_id} non trouvé")
+                return
+            
+            # Stocker l'ID sélectionné
+            self.selected_owner_id = owner_id
+            
+            # Mettre à jour l'affichage des détails
+            owner_name = f"{contact.nom} {contact.prenom or ''}".upper()
+            self.lbl_owner_name.setText(owner_name)
+            
+            info_text = f"""
+                📌 Type: {contact.nature or 'Particulier'}
+                📞 Tél: {contact.telephone or 'N/A'}
+                📧 Email: {contact.email or 'N/A'}
+                🆔 Code client: {contact.code_client or 'N/A'}
+                📍 Charge Clientèle: {contact.charge_clientele or 'N/A'}
+            """
+            self.lbl_owner_info.setText(info_text)
+            
+            # Mettre à jour l'avatar/photo
+            if hasattr(contact, 'photo') and contact.photo:
+                pixmap = QPixmap()
+                pixmap.loadFromData(contact.photo)
+                self.owner_photo.setPixmap(pixmap.scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            else:
+                initials = f"{contact.nom[0]}{contact.prenom[0] if contact.prenom else ''}".upper()
+                self.owner_photo.setText(initials)
+                self.owner_photo.setStyleSheet("""
+                    QLabel {
+                        background: #3498db;
+                        color: white;
+                        font-size: 28px;
+                        font-weight: bold;
+                        border-radius: 40px;
+                        border: 3px solid #e2e8f0;
+                    }
+                """)
+            
+            # Ajouter le contact à la liste s'il n'y est pas déjà
+            self._add_contact_to_list(contact)
+            
+        except Exception as e:
+            print(f"Erreur lors du chargement du propriétaire: {e}")
+
+    def _add_contact_to_list(self, contact):
+        """Ajoute un contact à la liste et le sélectionne"""
+        # Vérifier si le contact est déjà dans la liste
+        for i in range(self.owner_list.count()):
+            item = self.owner_list.item(i)
+            if item and item.data(Qt.UserRole) and item.data(Qt.UserRole).id == contact.id:
+                # Déjà présent, le sélectionner
+                self.owner_list.setCurrentItem(item)
+                self.display_owner_details(i)
+                return
+        
+        # Ajouter le contact à la liste
+        name_display = f"{contact.nom} {contact.prenom or ''} - {contact.telephone or ''}"
+        self.owner_list.addItem(name_display)
+        item = self.owner_list.item(self.owner_list.count() - 1)
+        item.setData(Qt.UserRole, contact)
+        self.owner_list.setCurrentItem(item)
+        self.display_owner_details(self.owner_list.count() - 1)
+
     # ... (toutes les autres méthodes existantes restent identiques)
     def filter_clients(self, text):
         """Filtre les clients selon la recherche"""

@@ -35,6 +35,10 @@ class VehicleController:
     def get_vehicles_by_id(self, vehicle_id):
         """Récupère un véhicule par son ID."""
         return self.session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    
+    def get_vehicles_by_owner_id(self, owner_id):
+        """Récupère un véhicule par son ID de propriétaire."""
+        return self.session.query(Vehicle).filter(Vehicle.owner_id == owner_id).all()
 
     def get_dashboard_stats(self, fleet_id=None):
         """Calcule les KPI pour les widgets du haut de l'interface."""

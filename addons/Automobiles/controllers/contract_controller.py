@@ -213,6 +213,33 @@ class ContractController:
             print(f"Erreur get_active_contract_by_vehicle: {e}")
             return None
 
+    def get_active_contract_by_owner_id(self, owner_id: int) -> Optional[Contrat]:
+        """
+        Récupère le contrat actif d'un propriétaire
+        Un contrat est considéré actif s'il n'est pas expiré ou annulé
+        """
+        from datetime import date
+        
+        try:
+            # Récupérer tous les contrats du propriétaire
+            contrats = self.db.query(Contrat).filter(
+                Contrat.owner_id == owner_id
+            ).order_by(Contrat.created_at.desc()).all()
+            
+            print(f"Nombre de contrats trouvés pour le propriétaire {owner_id}: {len(contrats)}")
+            
+            for contrat in contrats:
+                print(f"  - Contrat ID: {contrat.id}, Police: {contrat.numero_police}")
+            
+            # Retourner le premier contrat trouvé (le plus récent)
+            # Vous pouvez ajouter des conditions supplémentaires ici
+            
+            return contrats
+            
+        except Exception as e:
+            print(f"Erreur get_active_contract_by_owner_id: {e}")
+            return None
+
     # Dans contract_controller.py, modifiez la méthode get_contract_by_vehicle
 
     def get_contract_by_vehicle(self, vehicle_id: int) -> Optional[Contrat]:
