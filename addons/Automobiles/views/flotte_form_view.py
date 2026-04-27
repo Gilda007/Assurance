@@ -590,8 +590,21 @@ class FleetForm(QDialog):
         contract_layout.addWidget(self.create_label_with_icon("🏦", "Assureur Principal"), 0, 0)
         self.assureur_input = QComboBox()
         self.assureur_input.setStyleSheet(field_style)
+        self.assureur_input.setMaximumHeight(100)  
         for cie in self.compagnies_list:
-            self.assureur_input.addItem(cie.nom, cie.id)
+            # cie est un tuple (id, nom)
+            if isinstance(cie, tuple) and len(cie) >= 2:
+                comp_id = cie[0]   # Premier élément = ID
+                comp_nom = cie[1]  # Deuxième élément = Nom
+                self.assureur_input.addItem(comp_nom, comp_id)
+            else:
+                # Fallback si c'est un objet
+                comp_id = getattr(cie, 'id', None)
+                comp_nom = getattr(cie, 'nom', str(cie))
+                if comp_id:
+                    item = QListWidgetItem(comp_nom)
+                    item.setData(Qt.UserRole, comp_id)
+                    self.assureur_input.addItem(item)
         contract_layout.addWidget(self.assureur_input, 1, 0)
         
         contract_layout.addWidget(self.create_label_with_icon("💰", "Mode de Facturation"), 0, 1)
@@ -1232,7 +1245,7 @@ class FleetForm(QDialog):
             "nom_flotte": self.name_input.text().strip(),
             "code_flotte": self.code_input.text().strip(),
             "owner_id": self.selected_client_id,
-            "assureur": self.assureur_input.currentText(),
+            "assureur": self.assureur_input.currentData(Qt.UserRole) if self.assureur_input.currentData(Qt.UserRole) else None,
             "type_gestion": self.combo_mgmt.currentText(),
             "remise_flotte": remise_val,
             "statut": self.status_combo.currentText(),

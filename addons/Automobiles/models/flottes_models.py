@@ -15,7 +15,7 @@ class Fleet(Base):
     code_flotte = Column(String(50), unique=True, nullable=False)
     
     # Gestion & Assureur
-    assureur = Column(String(100))
+    assureur = Column(Integer, ForeignKey('automobile_compagnies.id'), nullable=True)
     type_gestion = Column(String(50))  # GLOBAL ou PAR_VEHICULE
     remise_flotte = Column(Integer, default=0.0)
     statut = Column(String(50), default="Actif") # Actif, Bloqué, Résilié
@@ -45,6 +45,7 @@ class Fleet(Base):
     owner_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)
     owner = relationship("Contact", back_populates="fleets")
     contract = relationship("Contrat", back_populates="fleet")
+    compagnie = relationship("Compagnie", foreign_keys=[assureur], backref="fleets")
 
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=datetime.now)

@@ -15,6 +15,7 @@ from addons.Automobiles.views.automobile_form_view import VehicleForm
 from addons.Automobiles.views.flotte_form_view import FleetForm
 
 from datetime import datetime
+import traceback
 
 
 class ContactDetailView(QDialog):
@@ -27,15 +28,6 @@ class ContactDetailView(QDialog):
         self.controller = controller
         self.contact = contact
         self.parent_window = parent
-        
-        # Initialiser le contrôleur de flottes
-        self.fleet_controller = None
-        if hasattr(controller, 'session') and hasattr(controller, 'current_user'):
-            try:
-                from addons.Automobiles.controllers.flotte_controller import FleetController
-                self.fleet_controller = FleetController(controller.session, controller.current_user.id)
-            except Exception as e:
-                print(f"Erreur initialisation FleetController: {e}")
         
         self.setWindowTitle(f"Détails du contact - {contact.nom} {contact.prenom or ''}")
         self.setMinimumSize(1000, 700)
@@ -539,7 +531,7 @@ class ContactDetailView(QDialog):
         self.vehicules_table = QTableWidget()
         self.vehicules_table.setColumnCount(7)
         self.vehicules_table.setHorizontalHeaderLabels([
-            "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Contrat", ""
+            "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Contrat", "Actions"
         ])
         self.vehicules_table.setAlternatingRowColors(True)
         self.vehicules_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -599,19 +591,39 @@ class ContactDetailView(QDialog):
         """)
         self.btn_new_fleet.clicked.connect(self._on_new_fleet)
 
+        self.btn_import_flotte = QPushButton("📥 Importer")
+        self.btn_import_flotte.setCursor(Qt.PointingHandCursor)
+        self.btn_import_flotte.setStyleSheet("""
+            QPushButton {
+                background-color: #10b981;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #059669;
+            }
+        """)
+        self.btn_import_vehicle.clicked.connect(self._on_import_vehicle)
+
         toolbar_layout.addWidget(self.btn_new_fleet)
+        toolbar_layout.addWidget(self.btn_import_flotte)
 
         layout.addWidget(toolbar)
 
-        # Tableau avec redimensionnement automatique
+        # Tableau avec 6 colonnes (incluant Actions)
         self.flottes_table = QTableWidget()
-        self.flottes_table.setColumnCount(5)
+        self.flottes_table.setColumnCount(6)  # ← Changé de 5 à 6
         self.flottes_table.setHorizontalHeaderLabels([
-            "Nom", "Code", "Assureur", "Véhicules", "Statut"
+            "Nom", "Code", "Assureur", "Véhicules", "Statut", "Actions"  # ← Ajout de "Actions"
         ])
         self.flottes_table.setAlternatingRowColors(True)
         self.flottes_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.flottes_table.setShowGrid(False)
+        self.flottes_table.setRowHeight(0, 70)  # Hauteur de ligne plus grande pour les actions
         self.flottes_table.verticalHeader().setVisible(False)
         self.flottes_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.flottes_table.setStyleSheet(self.contrats_table.styleSheet())
@@ -856,9 +868,8 @@ class ContactDetailView(QDialog):
     def load_vehicules(self):
         """Charge les véhicules du contact"""
         try:
-            # Récupérer les véhicules - s'assurer d'avoir une liste
+            # Récupérer les véhicules
             result = self.controller.vehicles.get_vehicles_by_owner_id(self.contact.id)
-            # Si le résultat est un seul objet Vehicle, le mettre dans une liste
             if result is None:
                 vehicules = []
             elif hasattr(result, 'id') and not hasattr(result, '__iter__'):
@@ -871,6 +882,7 @@ class ContactDetailView(QDialog):
             for v in vehicules:
                 row = self.vehicules_table.rowCount()
                 self.vehicules_table.insertRow(row)
+                self.vehicules_table.setRowHeight(row, 60)
 
                 self.vehicules_table.setItem(row, 0, QTableWidgetItem(v.immatriculation or "—"))
                 self.vehicules_table.setItem(row, 1, QTableWidgetItem(v.marque or "—"))
@@ -880,29 +892,10 @@ class ContactDetailView(QDialog):
                 
                 contrat = self.controller.contracts.get_active_contract_by_vehicle(v.id)
                 self.vehicules_table.setItem(row, 5, QTableWidgetItem(contrat.numero_police if contrat else "—"))
-
-                # Bouton détails
-                btn_view = QPushButton("👁️")
-                btn_view.setFixedSize(30, 28)
-                btn_view.setCursor(Qt.PointingHandCursor)
-                btn_view.setStyleSheet("""
-                    QPushButton {
-                        background: #f1f5f9;
-                        border-radius: 6px;
-                        border: none;
-                    }
-                    QPushButton:hover {
-                        background: #3b82f6;
-                        color: white;
-                    }
-                """)
-                btn_view.clicked.connect(lambda checked, vid=v.id: self._view_vehicle_detail(vid))
                 
-                widget = QWidget()
-                widget_layout = QHBoxLayout(widget)
-                widget_layout.setContentsMargins(0, 0, 0, 0)
-                widget_layout.addWidget(btn_view)
-                self.vehicules_table.setCellWidget(row, 6, widget)
+                # Actions - UN SEUL appel
+                actions_widget = self._create_actions_widget_for_vehicle(v)  # ← Appeler la méthode
+                self.vehicules_table.setCellWidget(row, 6, actions_widget)
 
             # Mettre à jour le résumé
             total_label = self.findChild(QLabel, "total_vehicules")
@@ -916,55 +909,387 @@ class ContactDetailView(QDialog):
             import traceback
             traceback.print_exc()
 
+    def _create_actions_widget_for_vehicle(self, vehicle):
+        """Crée les boutons d'action pour un véhicule"""
+        container = QWidget()
+        # Supprimer les limites de taille pour occuper toute la cellule
+        # container.setFixedHeight(45)  # ← À SUPPRIMER
+        # container.setMinimumWidth(120)  # ← À SUPPRIMER
+        
+        container.setStyleSheet("""
+            QWidget {
+                background: transparent;
+                border: none;
+            }
+        """)
+        
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(4, 4, 4, 4)  # Petites marges internes
+        layout.setSpacing(8)
+        layout.setAlignment(Qt.AlignCenter)  # Centrer les boutons
+        
+        # Le layout va s'étendre pour remplir le container
+        # et le container va s'étendre pour remplir la cellule
+        
+        # Bouton Voir
+        btn_view = QPushButton("👁️")
+        btn_view.setFixedSize(32, 32)
+        btn_view.setCursor(Qt.PointingHandCursor)
+        btn_view.setToolTip("Voir les détails")
+        btn_view.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #3498db;
+                border-radius: 16px;
+                font-size: 14px;
+                background: transparent;
+            }
+            QPushButton:hover {
+                background-color: #3498db;
+                color: white;
+            }
+        """)
+        btn_view.clicked.connect(lambda: self._view_vehicle_detail(vehicle))
+        
+        # Bouton Modifier
+        btn_edit = QPushButton("✏️")
+        btn_edit.setFixedSize(32, 32)
+        btn_edit.setCursor(Qt.PointingHandCursor)
+        btn_edit.setToolTip("Modifier le véhicule")
+        btn_edit.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #f1c40f;
+                border-radius: 16px;
+                font-size: 14px;
+                background: transparent;
+            }
+            QPushButton:hover {
+                background-color: #f1c40f;
+                color: white;
+            }
+        """)
+        btn_edit.clicked.connect(lambda: self._edit_vehicle(vehicle))
+        
+        # Bouton Supprimer
+        btn_delete = QPushButton("🗑️")
+        btn_delete.setFixedSize(32, 32)
+        btn_delete.setCursor(Qt.PointingHandCursor)
+        btn_delete.setToolTip("Supprimer le véhicule")
+        btn_delete.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #e74c3c;
+                border-radius: 16px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                color: white;
+            }
+        """)
+        btn_delete.clicked.connect(lambda: self._delete_vehicle(vehicle))
+        
+        layout.addWidget(btn_view)
+        layout.addWidget(btn_edit)
+        layout.addWidget(btn_delete)
+        
+        return container
+         
     def load_flottes(self):
         """Charge les flottes du contact"""
         try:
+            # Vider le tableau AVANT de parcourir les données
             self.flottes_table.setRowCount(0)
             
-            if self.fleet_controller:
-                all_fleets = self.fleet_controller.get_all_fleets()
+            # Vérifier que le controller existe
+            if not hasattr(self.controller, 'fleets'):
+                print("❌ Controller.fleets non disponible")
+                return
+            
+            # Mettre à jour le nombre de colonnes (6 au lieu de 5)
+            self.flottes_table.setColumnCount(6)
+            self.flottes_table.setHorizontalHeaderLabels([
+                "Nom", "Code", "Assureur", "Véhicules", "Statut", "Actions"
+            ])
+            
+            # Récupérer les flottes
+            all_fleets = self.controller.fleets.get_fleets_by_owner(self.contact.id)
+            
+            # Normaliser en liste
+            if not all_fleets:
+                all_fleets = []
+            elif not isinstance(all_fleets, (list, tuple)):
+                all_fleets = [all_fleets]
+            
+            # Pré-charger toutes les compagnies pour optimisation
+            compagnie_ids = set()
+            for fleet in all_fleets:
+                if hasattr(fleet, 'owner_id') and fleet.owner_id == self.contact.id:
+                    if hasattr(fleet, 'assureur') and fleet.assureur and isinstance(fleet.assureur, int):
+                        compagnie_ids.add(fleet.assureur)
+            
+            # Charger les noms des compagnies en une seule requête
+            compagnies_cache = {}
+            if compagnie_ids and hasattr(self.controller, 'session'):
+                try:
+                    from addons.Automobiles.models import Compagnie
+                    compagnies = self.controller.session.query(Compagnie).filter(
+                        Compagnie.id.in_(compagnie_ids)
+                    ).all()
+                    compagnies_cache = {c.id: c.nom for c in compagnies if hasattr(c, 'nom')}
+                except Exception as e:
+                    print(f"Erreur chargement compagnies: {e}")
+            
+            # Remplir le tableau
+            for fleet in all_fleets:
+                # Vérifier l'appartenance
+                owner_id = getattr(fleet, 'owner_id', None)
+                if owner_id != self.contact.id:
+                    continue
                 
-                for fleet in all_fleets:
-                    if hasattr(fleet, 'owner_id') and fleet.owner_id == self.contact.id:
-                        row = self.flottes_table.rowCount()
-                        self.flottes_table.insertRow(row)
-                        
-                        self.flottes_table.setItem(row, 0, QTableWidgetItem(
-                            fleet.nom_flotte if hasattr(fleet, 'nom_flotte') else getattr(fleet, 'nom', '—')
-                        ))
-                        self.flottes_table.setItem(row, 1, QTableWidgetItem(
-                            fleet.code_flotte if hasattr(fleet, 'code_flotte') else '—'
-                        ))
-                        self.flottes_table.setItem(row, 2, QTableWidgetItem(
-                            fleet.assureur if hasattr(fleet, 'assureur') else '—'
-                        ))
-                        
-                        # Compter les véhicules de la flotte
-                        nb_vehicules = 0
-                        if hasattr(fleet, 'vehicles'):
-                            nb_vehicules = len(fleet.vehicles)
-                        self.flottes_table.setItem(row, 3, QTableWidgetItem(str(nb_vehicules)))
-                        
-                        statut = fleet.statut if hasattr(fleet, 'statut') else "Actif"
-                        if statut.upper() == "ACTIF":
-                            statut_item = QTableWidgetItem("✅ Actif")
-                            statut_item.setForeground(QColor("#10b981"))
-                        else:
-                            statut_item = QTableWidgetItem("❌ Inactif")
-                            statut_item.setForeground(QColor("#ef4444"))
-                        self.flottes_table.setItem(row, 4, statut_item)
-
-            # Mettre à jour le résumé
+                row = self.flottes_table.rowCount()
+                self.flottes_table.insertRow(row)
+                self.flottes_table.setRowHeight(row, 70)
+                
+                # Nom de la flotte
+                nom_flotte = getattr(fleet, 'nom_flotte', None) or getattr(fleet, 'nom', '—')
+                self.flottes_table.setItem(row, 0, QTableWidgetItem(nom_flotte))
+                
+                # Code flotte
+                code_flotte = getattr(fleet, 'code_flotte', None) or getattr(fleet, 'code', '—')
+                self.flottes_table.setItem(row, 1, QTableWidgetItem(code_flotte))
+                
+                # Compagnie
+                compagnie_nom = '—'
+                if hasattr(fleet, 'compagnie') and fleet.compagnie:
+                    compagnie_nom = getattr(fleet.compagnie, 'nom', '—')
+                elif hasattr(fleet, 'assureur') and fleet.assureur:
+                    compagnie_nom = compagnies_cache.get(fleet.assureur, str(fleet.assureur))
+                self.flottes_table.setItem(row, 2, QTableWidgetItem(compagnie_nom))
+                
+                # Nombre de véhicules
+                nb_vehicules = 0
+                if hasattr(fleet, 'vehicles'):
+                    nb_vehicules = len(fleet.vehicles)
+                elif hasattr(fleet, 'vehicules'):
+                    nb_vehicules = len(fleet.vehicules)
+                self.flottes_table.setItem(row, 3, QTableWidgetItem(str(nb_vehicules)))
+                
+                # Statut
+                statut = getattr(fleet, 'statut', 'Actif')
+                statut_item = QTableWidgetItem("✅ Actif" if str(statut).upper() == "ACTIF" else "❌ Inactif")
+                statut_item.setForeground(QColor("#10b981" if str(statut).upper() == "ACTIF" else "#ef4444"))
+                self.flottes_table.setItem(row, 4, statut_item)
+                
+                # Actions
+                actions_widget = self._create_actions_widget_for_fleet(fleet)
+                self.flottes_table.setCellWidget(row, 5, actions_widget)
+            
+            # Mettre à jour les résumés
             total_label = self.findChild(QLabel, "total_flottes")
             if total_label:
                 total_label.setText(f"Total: {self.flottes_table.rowCount()} flotte(s)")
             
             self._update_card_value("flottes", str(self.flottes_table.rowCount()))
+            
+            print(f"✅ {self.flottes_table.rowCount()} flottes chargées pour le contact {self.contact.id}")
 
         except Exception as e:
-            print(f"Erreur chargement flottes: {e}")
-            import traceback
+            print(f"❌ Erreur chargement flottes: {e}")
+            import traceback  # ← Importer ici si pas déjà en haut
             traceback.print_exc()
+            
+    def _create_actions_widget_for_fleet(self, fleet):
+        """Crée les boutons d'action pour une flotte"""
+        container = QWidget()
+        container.setFixedHeight(45)  # Hauteur fixe pour le conteneur
+        container.setMinimumWidth(120)  # Largeur minimale
+        container.setStyleSheet("""
+            QWidget {
+                background: transparent;
+                border: none;
+            }
+        """)
+        layout = QHBoxLayout(container)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(8)
+        layout.setAlignment(Qt.AlignCenter)
+        
+        # Bouton Voir les détails
+        btn_view = QPushButton("👁️")
+        btn_view.setFixedSize(32, 32)
+        btn_view.setCursor(Qt.PointingHandCursor)
+        btn_view.setToolTip("Voir les détails de la flotte")
+        btn_view.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #2980b9;
+            }
+        """)
+        btn_view.clicked.connect(lambda: self._view_fleet_detail(fleet))
+        
+        # Bouton Modifier
+        btn_edit = QPushButton("✏️")
+        btn_edit.setFixedSize(32, 32)
+        btn_edit.setCursor(Qt.PointingHandCursor)
+        btn_edit.setToolTip("Modifier la flotte")
+        btn_edit.setStyleSheet("""
+            QPushButton {
+                background-color: #f39c12;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #e67e22;
+            }
+        """)
+        btn_edit.clicked.connect(lambda: self._edit_fleet(fleet))
+        
+        # Bouton Supprimer
+        btn_delete = QPushButton("🗑️")
+        btn_delete.setFixedSize(32, 32)
+        btn_delete.setCursor(Qt.PointingHandCursor)
+        btn_delete.setToolTip("Supprimer la flotte")
+        btn_delete.setStyleSheet("""
+            QPushButton {
+                background-color: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #c0392b;
+            }
+        """)
+        btn_delete.clicked.connect(lambda: self._delete_fleet(fleet))
+        
+        # Bouton Gérer les véhicules
+        btn_vehicles = QPushButton("🚗")
+        btn_vehicles.setFixedSize(32, 32)
+        btn_vehicles.setCursor(Qt.PointingHandCursor)
+        btn_vehicles.setToolTip("Gérer les véhicules de la flotte")
+        btn_vehicles.setStyleSheet("""
+            QPushButton {
+                background-color: #2ecc71;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #27ae60;
+            }
+        """)
+        btn_vehicles.clicked.connect(lambda: self._manage_fleet_vehicles(fleet))
+        
+        layout.addWidget(btn_view)
+        layout.addWidget(btn_edit)
+        layout.addWidget(btn_delete)
+        layout.addWidget(btn_vehicles)
+        
+        return container
+    
+    def _view_fleet_detail(self, fleet):
+        """Affiche les détails d'une flotte"""
+        try:
+            # Ouvrir une vue détaillée de la flotte
+            from addons.Automobiles.views.flotte_detail_view import FleetDetailView
+            dialog = FleetDetailView(self.controller, fleet, self)
+            dialog.show()
+        except Exception as e:
+            print(f"Erreur affichage détails flotte: {e}")
+            QMessageBox.warning(self, "Erreur", f"Impossible d'afficher les détails: {str(e)}")
+
+    def _edit_fleet(self, fleet):
+        """Modifie une flotte"""
+        try:
+            from addons.Automobiles.views.flotte_form_view import FleetForm
+            
+            contacts = self.controller.fleets.get_all_contacts_for_combo()
+            compagnies = self.controller.fleets.get_all_compagnies_for_combo()
+            
+            dialog = FleetForm(
+                controller=self.controller,
+                current_fleet=fleet,
+                mode="update",
+                contacts_list=contacts,
+                compagnies_list=compagnies,
+                preselected_client_id=self.contact.id
+            )
+            
+            if dialog.exec():
+                self.load_flottes()  # Recharger les données
+                self._update_summary_cards()
+                QMessageBox.information(self, "Succès", "Flotte modifiée avec succès!")
+                
+        except Exception as e:
+            print(f"Erreur modification flotte: {e}")
+            QMessageBox.critical(self, "Erreur", f"Impossible de modifier la flotte: {str(e)}")
+
+    def _delete_fleet(self, fleet):
+        """Supprime une flotte après confirmation"""
+        try:
+            # Vérifier si la flotte contient des véhicules
+            nb_vehicules = 0
+            if hasattr(fleet, 'vehicles'):
+                nb_vehicules = len(fleet.vehicles)
+            elif hasattr(fleet, 'vehicules'):
+                nb_vehicules = len(fleet.vehicules)
+            
+            message = f"Êtes-vous sûr de vouloir supprimer la flotte '{fleet.nom_flotte}' ?"
+            if nb_vehicules > 0:
+                message += f"\n\n⚠️ Attention: Cette flotte contient {nb_vehicules} véhicule(s).\nLa suppression ne supprimera pas les véhicules, mais ils ne seront plus associés à cette flotte."
+            
+            reply = QMessageBox.question(
+                self, 
+                "Confirmation de suppression",
+                message,
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                # Détacher les véhicules puis supprimer
+                if nb_vehicules > 0:
+                    # Optionnel: détacher les véhicules
+                    for vehicle in fleet.vehicles:
+                        vehicle.fleet_id = None
+                        self.controller.session.commit()
+                
+                # Supprimer la flotte
+                success, msg = self.controller.fleets.delete_fleet(fleet.id)
+                
+                if success:
+                    self.load_flottes()
+                    self._update_summary_cards()
+                    QMessageBox.information(self, "Succès", "Flotte supprimée avec succès!")
+                else:
+                    QMessageBox.warning(self, "Erreur", f"Erreur lors de la suppression: {msg}")
+                    
+        except Exception as e:
+            print(f"Erreur suppression flotte: {e}")
+            QMessageBox.critical(self, "Erreur", f"Impossible de supprimer la flotte: {str(e)}")
+
+    def _manage_fleet_vehicles(self, fleet):
+        """Gère les véhicules d'une flotte"""
+        try:
+            from addons.Automobiles.views.fleet_vehicles_manager import FleetVehiclesManager
+            dialog = FleetVehiclesManager(self.controller, fleet, self)
+            if dialog.exec():
+                self.load_flottes()  # Recharger pour mettre à jour le nombre de véhicules
+                self._update_summary_cards()
+        except ImportError:
+            # Fallback: ouvrir le formulaire de la flotte en mode édition
+            QMessageBox.information(self, "Gestion des véhicules", 
+                                "Cette fonctionnalité sera bientôt disponible.\n"
+                                "Pour l'instant, utilisez 'Modifier' pour gérer les véhicules.")
+            self._edit_fleet(fleet)
 
     def _update_summary_cards(self):
         """Met à jour les cartes de résumé - Version directe"""
@@ -1068,9 +1393,196 @@ class ContactDetailView(QDialog):
             self._update_summary_cards()
             QMessageBox.information(self, "Succès", "Flotte créée avec succès!")
 
-    def _view_vehicle_detail(self, vehicle_id):
-        """Affiche les détails d'un véhicule"""
-        QMessageBox.information(self, "Détails véhicule", f"ID véhicule: {vehicle_id}")
+    def _view_vehicle_detail(self, vehicle):
+        """
+        Prépare et affiche l'interface de détails pour un objet Vehicle.
+        """
+        try:
+            # ⚠️ CRUCIAL : Récupérer la session AVANT tout
+            session = getattr(self.controller, 'session', None)
+            if not session:
+                raise Exception("Session non disponible")
+            
+            # ============================================================
+            # CHARGER TOUTES LES DONNÉES NÉCESSAIRES TANT QUE LA SESSION EST ACTIVE
+            # ============================================================
+            
+            # 1. Charger explicitement la relation contract
+            contract = None
+            if hasattr(vehicle, 'id') and vehicle.id:
+                # Méthode 1 : via la relation (si elle existe)
+                try:
+                    # Forcer le chargement de la relation contract
+                    contract = vehicle.contract
+                except Exception as e:
+                    print(f"Erreur chargement contract via relation: {e}")
+                    # Méthode 2 : via une requête directe
+                    try:
+                        from addons.Automobiles.models import Contrat  # Adaptez le chemin
+                        contract = session.query(Contrat).filter(Contrat.vehicle_id == vehicle.id).first()
+                        print(f"✓ Contrat trouvé via requête directe: {contract.id if contract else 'None'}")
+                    except Exception as e2:
+                        print(f"Erreur chargement contract via requête: {e2}")
+            
+            # 2. Charger les informations du propriétaire (Contact)
+            owner_name = "N/A"
+            owner_phone = "N/A"
+            owner_email = "N/A"
+            owner_city = "Yaoundé"
+            owner_obj = None
+            
+            if hasattr(vehicle, 'owner_id') and vehicle.owner_id:
+                try:
+                    from addons.Automobiles.models import Contact  # Adaptez le chemin
+                    owner_obj = session.query(Contact).get(vehicle.owner_id)
+                    if owner_obj:
+                        owner_name = f"{getattr(owner_obj, 'nom', '')} {getattr(owner_obj, 'prenom', '')}".strip()
+                        owner_phone = getattr(owner_obj, 'telephone', 'N/A')
+                        owner_email = getattr(owner_obj, 'email', 'N/A')
+                        owner_city = getattr(owner_obj, 'ville', 'Yaoundé')
+                        print(f"✓ Propriétaire trouvé: {owner_name}")
+                except Exception as e:
+                    print(f"Erreur chargement contact: {e}")
+            
+            # 3. Charger les informations de la compagnie
+            compagny_name = "Non définie"
+            if hasattr(vehicle, 'compagny_id') and vehicle.compagny_id:
+                try:
+                    from addons.Automobiles.models import Compagnie  # Adaptez le chemin
+                    compagny_obj = session.query(Compagnie).get(vehicle.compagny_id)
+                    if compagny_obj:
+                        compagny_name = getattr(compagny_obj, 'nom', 'N/A')
+                        print(f"✓ Compagnie trouvée: {compagny_name}")
+                except Exception as e:
+                    print(f"Erreur chargement compagnie: {e}")
+            
+            # 4. Récupérer les dates (attention: vehicle.date_debut peut être une date ou None)
+            date_debut_str = ""
+            date_fin_str = ""
+            if hasattr(vehicle, 'date_debut') and vehicle.date_debut:
+                if hasattr(vehicle.date_debut, 'strftime'):
+                    date_debut_str = vehicle.date_debut.strftime('%d/%m/%Y')
+                else:
+                    date_debut_str = str(vehicle.date_debut)
+            if hasattr(vehicle, 'date_fin') and vehicle.date_fin:
+                if hasattr(vehicle.date_fin, 'strftime'):
+                    date_fin_str = vehicle.date_fin.strftime('%d/%m/%Y')
+                else:
+                    date_fin_str = str(vehicle.date_fin)
+            
+            # ============================================================
+            # CONSTRUCTION DU DICTIONNAIRE vehicle_data (plus aucun accès DB)
+            # ============================================================
+            
+            vehicle_data = {
+                # Identification
+                'id': getattr(vehicle, 'id', None),
+                'immatriculation': getattr(vehicle, 'immatriculation', 'N/A'),
+                'chassis': getattr(vehicle, 'chassis', 'N/A'),
+                'marque': getattr(vehicle, 'marque', 'N/A'),
+                'modele': getattr(vehicle, 'modele', 'N/A'),
+                'annee': str(getattr(vehicle, 'annee', 'N/A')),
+                
+                # Contrat
+                'numero_police': getattr(contract, 'numero_police', 'Aucun contrat actif') if contract else 'Aucun contrat actif',
+                'date_debut': date_debut_str,
+                'date_fin': date_fin_str,
+                'prime_totale': getattr(contract, 'prime_totale_ttc', 0.0) if contract else 0.0,
+                'montant_paye': getattr(contract, 'montant_paye', 0.0) if contract else 0.0,
+                'statut_paiement': getattr(contract, 'statut_paiement', 'NON_PAYE') if contract else 'NON_PAYE',
+                
+                # Technique
+                'energy': getattr(vehicle, 'energie', 'N/A'),
+                'usage': getattr(vehicle, 'usage', '0'),
+                'places': str(getattr(vehicle, 'places', '5')),
+                'zone': getattr(vehicle, 'zone', 'N/A'),
+                'categorie': getattr(vehicle, 'categorie', 'N/A'),
+                'code_tarif': getattr(vehicle, 'code_tarif', 'N/A'),
+                'prime_emise': getattr(vehicle, 'prime_emise', 0),
+                'valeur_neuf': getattr(vehicle, 'valeur_neuf', 0),
+                'valeur_venale': getattr(vehicle, 'valeur_venale', 0),
+                'prime_nette': getattr(vehicle, 'prime_nette', 0),
+                'prime_brute': getattr(vehicle, 'prime_brute', 0),
+                'réduction': getattr(vehicle, 'reduction', 0),
+                'carte_rose': getattr(vehicle, 'carte_rose', 'N/A'),
+                'accessoires': getattr(vehicle, 'accessoires', 'N/A'),
+                'tva': getattr(vehicle, 'tva', 0),
+                'fichier_asac': getattr(vehicle, 'fichier_asac', 'N/A'),
+                'vignette': getattr(vehicle, 'vignette', 'N/A'),
+                'PTTC': getattr(vehicle, 'pttc', 0),
+                'libele_tarif': getattr(vehicle, 'libele_tarif', 'N/A'),
+                
+                # Propriétaire & Assurance
+                'owner': owner_name,
+                'compagny': compagny_name,
+                'phone': owner_phone,
+                'email': owner_email,
+                'city': owner_city,
+                
+                # Garanties (Checkboxes)
+                'check_rc': getattr(vehicle, 'check_rc', False),
+                'check_dr': getattr(vehicle, 'check_dr', False),
+                'check_vb': getattr(vehicle, 'check_vb', False),
+                'check_vol': getattr(vehicle, 'check_vol', False),
+                'check_in': getattr(vehicle, 'check_in', False),
+                'check_bris': getattr(vehicle, 'check_bris', False),
+                'check_ar': getattr(vehicle, 'check_ar', False),
+                'check_dta': getattr(vehicle, 'check_dta', False),
+                'check_ipt': getattr(vehicle, 'check_ipt', False),
+                
+                # Montants des garanties
+                'amt_rc': getattr(vehicle, 'amt_rc', 0),
+                'amt_dr': getattr(vehicle, 'amt_dr', 0),
+                'amt_vb': getattr(vehicle, 'amt_vb', 0),
+                'amt_vol': getattr(vehicle, 'amt_vol', 0),
+                'amt_in': getattr(vehicle, 'amt_in', 0),
+                'amt_bris': getattr(vehicle, 'amt_bris', 0),
+                'amt_ar': getattr(vehicle, 'amt_ar', 0),
+                'amt_dta': getattr(vehicle, 'amt_dta', 0),
+                'amt_ipt': getattr(vehicle, 'amt_ipt', 0),
+                
+                # Montants réduits des garanties
+                'amt_red_rc': getattr(vehicle, 'amt_red_rc', 0),
+                'amt_red_dr': getattr(vehicle, 'amt_red_dr', 0),
+                'amt_red_vol': getattr(vehicle, 'amt_red_vol', 0),
+                'amt_red_vb': getattr(vehicle, 'amt_red_vb', 0),
+                'amt_red_in': getattr(vehicle, 'amt_red_in', 0),
+                'amt_red_bris': getattr(vehicle, 'amt_red_bris', 0),
+                'amt_red_ar': getattr(vehicle, 'amt_red_ar', 0),
+                'amt_red_dta': getattr(vehicle, 'amt_red_dta', 0),
+                'amt_red_ipt': getattr(vehicle, 'amt_red_ipt', 0)
+            }
+            
+            # ============================================================
+            # AFFICHAGE DE LA VUE (la session peut maintenant être fermée)
+            # ============================================================
+            
+            from .vehicle_detail_view import VehicleDetailView
+            from PySide6.QtWidgets import QDialog, QVBoxLayout
+            
+            detail_dialog = QDialog(self)
+            detail_dialog.setWindowTitle(f"Fiche Véhicule : {vehicle_data['immatriculation']}")
+            detail_dialog.setMinimumSize(950, 750)
+            
+            layout = QVBoxLayout(detail_dialog)
+            layout.setContentsMargins(0, 0, 0, 0)
+            
+            # Plus besoin de passer la session, toutes les données sont dans vehicle_data
+            self.view_details = VehicleDetailView(vehicle_data=vehicle_data, controller=self.controller)
+            layout.addWidget(self.view_details)
+            
+            if hasattr(self.view_details, 'btn_back'):
+                self.view_details.btn_back.clicked.connect(detail_dialog.close)
+            
+            detail_dialog.exec()
+            
+        except Exception as e:
+            print(f"❌ Erreur show_detail_vehicle : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Erreur", f"Impossible d'afficher les détails du véhicule : {e}")
+
 
     def _on_edit_click(self):
         """Ouvre le formulaire d'édition"""

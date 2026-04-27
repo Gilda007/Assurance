@@ -184,22 +184,28 @@ class FleetController:
             return []
 
     def get_all_compagnies_for_combo(self):
-        """Retourne les contacts de nature physique depuis la table Contact."""
+        """
+        Retourne la liste des compagnies d'assurance pour les combobox.
+        Returns: Liste de tuples (id, nom)
+        """
         try:
-            # On récupère spécifiquement les colonnes ID et NOM
-            compagnies = self.session.query(Contact.id, Contact.nom)\
-                .filter(Contact.nature == "Morale")\
-                .all()
+            # Récupérer toutes les compagnies depuis la table Compagnie
+            from addons.Automobiles.models import Compagnie
+            
+            compagnies = self.session.query(Compagnie.id, Compagnie.nom).filter(
+                Compagnie.is_active == True  # Optionnel: ne prendre que les compagnies actives
+            ).all()
             
             # Debug : affiche la liste brute pour vérification
-            print(f"DEBUG Contacts : {compagnies}")
+            print(f"DEBUG Compagnies : {compagnies}")
             
-            # Correction de la compréhension de liste :
-            # Puisque ce sont des tuples (id, nom), on les dépaquette directement
-            return [(contact_id, contact_nom) for contact_id, contact_nom in compagnies]
-
+            # Retourner la liste des tuples (id, nom)
+            return [(comp_id, comp_nom) for comp_id, comp_nom in compagnies]
+            
         except Exception as e:
-            print(f"Erreur lors de la récupération des contacts : {e}")
+            print(f"Erreur lors de la récupération des compagnies : {e}")
+            import traceback
+            traceback.print_exc()
             return []
     
     # --- DANS controllers/fleet_controller.py ---
@@ -211,6 +217,46 @@ class FleetController:
         except Exception as e:
             print(f"Erreur lors de la récupération des flottes : {e}")
             return []
+    
+    def get_fleets_by_owner(self, owner_id):
+        """Récupère les flottes avec le nom de la compagnie"""
+        try:
+            from addons.Automobiles.models import Fleet, Compagnie
+            from sqlalchemy.orm import joinedload
+            
+            results = self.session.query(Fleet).filter(
+                Fleet.owner_id == owner_id
+            ).options(
+                joinedload(Fleet.compagnie)  # Si la relation s'appelle 'compagnie'
+            ).all()
+            
+            return results
+        except Exception as e:
+            print(f"Erreur: {e}")
+            return []
+
+    def get_fleet_with_details(self, fleet_id):
+        """
+        Récupère une flotte avec toutes ses relations chargées
+        
+        Args:
+            fleet_id: ID de la flotte
+        
+        Returns:
+            Objet Fleet ou None
+        """
+        try:
+            from sqlalchemy.orm import joinedload
+            
+            fleet = self.session.query(Fleet).options(
+                joinedload(Fleet.owner),
+                joinedload(Fleet.vehicles)  # Si la relation existe
+            ).filter(Fleet.id == fleet_id).first()
+            
+            return fleet
+        except Exception as e:
+            print(f"Erreur lors de la récupération de la flotte {fleet_id}: {e}")
+        return None
         
     def update_status(self, fleet_id, is_active):
         try:
@@ -441,7 +487,6 @@ class FleetController:
             self.session.rollback()
             print(f"Erreur Update Fleet Relation: {str(e)}")
             return False, f"Erreur base de données : {str(e)}"
-
 
     # RAPPORTS EN PDF DE CHAQUE FLOTTE
 
