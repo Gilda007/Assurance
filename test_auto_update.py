@@ -13,7 +13,7 @@ sys.path.insert(0, '/home/fearless/Documents/Assurance')
 sys.path.insert(0, '/home/fearless/Documents/Assurance/dist/LOMETA')
 
 from update_manager import UpdateManager
-from config import Config
+from server.config import Config
 
 class TestWindow(QMainWindow):
     def __init__(self):

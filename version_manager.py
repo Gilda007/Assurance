@@ -4,7 +4,7 @@ import json
 import hashlib
 from datetime import datetime
 from typing import Dict, Optional
-from config import Config
+from server.config import Config
 
 class VersionManager:
     """Gestionnaire du fichier versions.json"""

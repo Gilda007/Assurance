@@ -308,7 +308,7 @@ class VignettePrinter:
         # === PIED DE PAGE ===
         story.append(Spacer(1, 20))
         story.append(HRFlowable(width="100%", thickness=0.5, color=self.colors['border'], spaceAfter=6))
-        story.append(self.create_footer(styles))
+        # story.append(self.create_footer(styles))
         
         if progress:
             progress.setValue(90)
@@ -633,15 +633,15 @@ class VignettePrinter:
         
         return signature_table
 
-    def create_footer(self, styles):
-        """Crée le pied de page professionnel"""
+    # def create_footer(self, styles):
+    #     """Crée le pied de page professionnel"""
         
-        footer_text = """
-        <font size="7" color="#6b7280">
-        AMS ASSURANCES - Agrément n° 2025/001/MINFI<br/>
-        Siège social : Douala - Cameroun | Tél : (+237) 233 42 42 42 | Email : contact@amsassurances.cm<br/>
-        Document authentifié par signature électronique - Toute reproduction est interdite
-        </font>
-        """
+    #     footer_text = """
+    #     <font size="7" color="#6b7280">
+    #     AMS ASSURANCES - Agrément n° 2025/001/MINFI<br/>
+    #     Siège social : Douala - Cameroun | Tél : (+237) 233 42 42 42 | Email : contact@amsassurances.cm<br/>
+    #     Document authentifié par signature électronique - Toute reproduction est interdite
+    #     </font>
+    #     """
         
-        return Paragraph(footer_text, styles['Footer'])
+    #     return Paragraph(footer_text, styles['Footer'])

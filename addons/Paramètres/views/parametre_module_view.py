@@ -13,7 +13,7 @@ from PySide6.QtGui import QDesktopServices, QColor, QFont, QPalette, QLinearGrad
 # Import du gestionnaire de mise à jour
 from update_manager import UpdateManager, UpdateChecker, UpdateInstaller
 from version_manager import VersionManager
-from config import Config
+from server.config import Config
 
 
         
@@ -661,7 +661,7 @@ class ParametreModuleWidget(QWidget):
         self.btn_check_updates.setEnabled(False)
         self.btn_check_updates.setText("Recherche en cours...")
         
-        from config import Config
+        from server.config import Config
         self.checker = UpdateChecker(Config.UPDATE_SERVER, self.addons_dir)
         self.checker.update_found.connect(self.on_updates_found)
         self.checker.no_update.connect(self.on_no_updates)
@@ -1093,7 +1093,7 @@ class ParametreModuleWidget(QWidget):
     
     def update_single_module(self, mod):
         """Met à jour un module spécifique"""
-        from config import Config
+        from server.config import Config
         self.checker = UpdateChecker(Config.UPDATE_SERVER, self.addons_dir)
         self.checker.update_found.connect(lambda updates: self.on_single_update_found(mod, updates))
         self.checker.start()

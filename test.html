@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Rapport - Module Automobile Version 1.3</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 40px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #2563eb;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #1e293b;
+            margin-top: 30px;
+            background: #f1f5f9;
+            padding: 10px;
+            border-left: 4px solid #2563eb;
+        }
+        h3 {
+            color: #475569;
+            margin-top: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+        th {
+            background: #f8fafc;
+            font-weight: bold;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .success {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .warning {
+            background: #fef3c7;
+            color: #b45309;
+        }
+        .info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .footer {
+            margin-top: 50px;
+            text-align: center;
+            font-size: 12px;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+        .signature {
+            margin-top: 40px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .code {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+        @media print {
+            body {
+                margin: 20px;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>🚗 RAPPORT DE DÉVELOPPEMENT</h1>
+    <h2>Module Automobile - Version 1.3</h2>
+    <p>AMS Assurance | 28 Avril 2026</p>
+</div>
+
+<!-- ==================== SOMMAIRE ==================== -->
+<h2>📋 SOMMAIRE</h2>
+<ol>
+    <li><a href="#contexte">Contexte et objectifs</a></li>
+    <li><a href="#fonctionnalites">Nouvelles fonctionnalités développées</a></li>
+    <li><a href="#session">Session de travail avec Mme Tamar HAMBEN</a></li>
+    <li><a href="#recommandations">Recommandations issues de la session</a></li>
+    <li><a href="#plan-action">Plan d'action pour la version 1.4</a></li>
+    <li><a href="#conclusion">Conclusion</a></li>
+</ol>
+
+<!-- ==================== SECTION 1 ==================== -->
+<h2 id="contexte">1. CONTEXTE ET OBJECTIFS</h2>
+
+<p>Dans le cadre du développement de l'application de gestion AMS Assurance, le module <strong>Automobile</strong> a connu une évolution majeure vers la version <strong>1.3</strong>. Cette version intègre de nouvelles fonctionnalités visant à améliorer la gestion des flottes de véhicules, l'impression des documents d'assurance et l'expérience utilisateur globale.</p>
+
+<div class="box">
+    <h3>🎯 Objectifs principaux</h3>
+    <ul>
+        <li>Centraliser la gestion des flottes de véhicules</li>
+        <li>Permettre une personnalisation fine des garanties par véhicule</li>
+        <li>Faciliter l'impression groupée des documents</li>
+        <li>Améliorer l'interface utilisateur pour une meilleure productivité</li>
+    </ul>
+</div>
+
+<!-- ==================== SECTION 2 ==================== -->
+<h2 id="fonctionnalites">2. NOUVELLES FONCTIONNALITÉS DÉVELOPPÉES</h2>
+
+<h3>2.1 Module Flottes (Gestion des flottes)</h3>
+<table>
+    <thead>
+        <tr><th>Fonctionnalité</th><th>Description</th><th>Statut</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><strong>Création de flottes</strong></td><td>Création et configuration de flottes de véhicules</td><td><span class="badge success">✅ Terminé</span></td></tr>
+        <tr><td><strong>Gestion des véhicules</strong></td><td>Ajout/retrait de véhicules dans une flotte</td><td><span class="badge success">✅ Terminé</span></td></tr>
+        <tr><td><strong>Détail de flotte</strong></td><td>Vue détaillée avec onglets (infos, véhicules, stats, documents)</td><td><span class="badge success">✅ Terminé</span></td></tr>
+        <tr><td><strong>Personnalisation garanties</strong></td><td>Modification des montants de garanties par véhicule</td><td><span class="badge success">✅ Terminé</span></td></tr>
+        <tr><td><strong>Application remise</strong></td><td>Remise commerciale sur toutes les garanties (sauf RC, DR, IPT)</td><td><span class="badge success">✅ Terminé</span></td></tr>
+    </tbody>
+</table>
+
+<h3>2.2 Impression des documents</h3>
+<table>
+    <thead><tr><th>Document</th><th>Fonctionnalité</th><th>Statut</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Carte Rose</strong></td><td>Génération PDF avec QR code et sécurisation</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
+        <tr><td><strong>Vignette</strong></td><td>Format normalisé avec éléments obligatoires</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
+        <tr><td><strong>Attestation</strong></td><td>Template officiel avec signatures</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
+        <tr><td><strong>Impression groupée</strong></td><td>Sélection multiple de véhicules et documents</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
+    </tbody>
+</table>
+
+<h3>2.3 Interface utilisateur</h3>
+<table>
+    <thead><tr><th>Élément</th><th>Description</th><th>Statut</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Dashboard moderne</strong></td><td>Cartes KPI, graphiques interactifs</td><td><span class="badge success">✅ Terminé</span></td></tr>
+        <tr><td><strong>Gestionnaire de modules</strong></td><td>Installation et mise à jour des modules</td><td><span class="badge success">✅ Terminé</span></td></tr>
+        <tr><td><strong>Barre de titre personnalisée</strong></td><td>Fenêtres avec ombres et dégradés</td><td><span class="badge success">✅ Terminé</span></td></tr>
+    </tbody>
+</table>
+
+<!-- ==================== SECTION 3 ==================== -->
+<h2 id="session">3. SESSION DE TRAVAIL AVEC Mme TAMAR HAMBEN</h2>
+
+<h3>3.1 Informations générales</h3>
+<table>
+    <tr><th>Élément</th><th>Détail</th></tr>
+    <tr><td><strong>Date</strong></td><td>28 Avril 2026</td></tr>
+    <tr><td><strong>Lieu</strong></td><td>AMS Assurance - Direction Technique</td></tr>
+    <tr><td><strong>Participante</strong></td><td>Mme Tamar HAMBEN (Responsable Technique)</td></tr>
+    <tr><td><strong>Durée</strong></td><td>3 heures</td></tr>
+    <tr><td><strong>Objectif</strong></td><td>Présentation et validation des nouvelles fonctionnalités</td></tr>
+</table>
+
+<h3>3.2 Ordre du jour</h3>
+<ol>
+    <li>Présentation du module Flottes</li>
+    <li>Démonstration de la personnalisation des garanties</li>
+    <li>Revue des documents imprimables (Carte Rose, Vignette, Attestation)</li>
+    <li>Discussion sur les impressions groupées</li>
+    <li>Recueil des recommandations</li>
+</ol>
+
+<h3>3.3 Déroulement de la session</h3>
+
+<h4>📌 3.3.1 Présentation du module Flottes</h4>
+<p>Mme HAMBEN a pu découvrir l'interface complète de gestion des flottes :</p>
+<ul>
+    <li><strong>Création d'une flotte</strong> avec formulaire dédié (nom, code, assureur, dates)</li>
+    <li><strong>Sélection des clients</strong> par recherche dynamique</li>
+    <li><strong>Ajout de véhicules</strong> à la flotte via un gestionnaire dédié</li>
+    <li><strong>Vue détaillée</strong> avec 4 onglets : Informations, Véhicules, Statistiques, Documents</li>
+</ul>
+<p><strong>Appréciation générale :</strong> <em>L'interface est jugée intuitive et professionnelle. Les ombres portées et les dégradés apportent une touche moderne appréciée.</em></p>
+
+<h4>📌 3.3.2 Démonstration de la personnalisation des garanties</h4>
+<p>La fonctionnalité clé présentée permet :</p>
+<ul>
+    <li>Pour chaque véhicule dans une flotte, accéder à un dialogue de personnalisation</li>
+    <li>Modifier individuellement les montants de chaque garantie (RC, DR, Vol, VB, Incendie, Bris, AR, DTA, IPT)</li>
+    <li>Visualiser le total des garanties sélectionnées</li>
+</ul>
+<p><strong>Remarque de Mme HAMBEN :</strong> <em>"La flexibilité est excellente, mais il faut clarifier l'application de la remise commerciale."</em></p>
+
+<h4>📌 3.3.3 Revue des documents imprimables</h4>
+<p>Trois documents ont été examinés :</p>
+
+<p><strong>1. Carte Rose</strong></p>
+<ul>
+    <li>✅ QR code intégré</li>
+    <li>✅ Numéro de police</li>
+    <li>⚠️ Format à standardiser</li>
+    <li>⚠️ Éléments de sécurité à renforcer</li>
+</ul>
+
+<p><strong>2. Vignette</strong></p>
+<ul>
+    <li>✅ Design épuré</li>
+    <li>⚠️ Période de validité trop discrète</li>
+    <li>⚠️ Ajouter un hologramme virtuel</li>
+</ul>
+
+<p><strong>3. Attestation</strong></p>
+<ul>
+    <li>✅ En-tête officiel</li>
+    <li>⚠️ Manque la signature numérique</li>
+    <li>⚠️ Références légales à compléter</li>
+</ul>
+
+<h4>📌 3.3.4 Discussion sur les impressions groupées</h4>
+<p>Un besoin métier important a été identifié : la possibilité d'imprimer plusieurs documents pour plusieurs véhicules en une seule action.</p>
+<p><strong>Scénario typique :</strong> Pour une flotte de 10 véhicules, l'utilisateur souhaite imprimer la vignette, la carte rose et l'attestation pour les 5 premiers véhicules sélectionnés.</p>
+
+<!-- ==================== SECTION 4 ==================== -->
+<h2 id="recommandations">4. RECOMMANDATIONS ISSUES DE LA SESSION</h2>
+
+<h3>4.1 Documents à imprimer</h3>
+<table>
+    <thead><tr><th>Document</th><th>Recommandation</th><th>Priorité</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Carte Rose</strong></td><td>Revoir le format (dimensions normalisées)</td><td><span class="badge warning">Haute</span></td></tr>
+        <tr><td><strong>Carte Rose</strong></td><td>Ajouter un QR code plus grand et mieux positionné</td><td><span class="badge warning">Haute</span></td></tr>
+        <tr><td><strong>Carte Rose</strong></td><td>Inclure un filigrane de sécurité</td><td><span class="badge info">Moyenne</span></td></tr>
+        <tr><td><strong>Vignette</strong></td><td>Rendre la période de validité plus visible (couleur et taille)</td><td><span class="badge warning">Haute</span></td></tr>
+        <tr><td><strong>Vignette</strong></td><td>Ajouter un code barre pour lecture optique</td><td><span class="badge info">Moyenne</span></td></tr>
+        <tr><td><strong>Attestation</strong></td><td>Standardiser l'en-tête et le pied de page</td><td><span class="badge warning">Haute</span></td></tr>
+        <tr><td><strong>Attestation</strong></td><td>Ajouter une zone pour signature et cachet</td><td><span class="badge warning">Haute</span></td></tr>
+    </tbody>
+</table>
+
+<h3>4.2 Gestion des flottes</h3>
+<table>
+    <thead><tr><th>Recommandation</th><th>Description</th><th>Priorité</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Impression groupée</strong></td><td>Interface de sélection multi-véhicules/multi-documents</td><td><span class="badge warning">Haute</span></td></tr>
+        <tr><td><strong>Export PDF groupé</strong></td><td>Génération d'un seul fichier PDF pour plusieurs documents</td><td><span class="badge warning">Haute</span></td></tr>
+        <tr><td><strong>Aperçu avant impression</strong></td><td>Visualisation avant impression</td><td><span class="badge info">Moyenne</span></td></tr>
+        <tr><td><strong>Historique impressions</strong></td><td>Traçabilité des documents générés</td><td><span class="badge info">Basse</span></td></tr>
+    </tbody>
+</table>
+
+<h3>4.3 Règle d'application de la remise commerciale</h3>
+<div class="box">
+    <p><strong>Règle validée :</strong> La remise commerciale s'applique sur toutes les garanties <strong>SAUF</strong> :</p>
+    <ul>
+        <li>❌ Responsabilité Civile (RC)</li>
+        <li>❌ Défense et Recours (DR)</li>
+        <li>❌ Individuelle Transporteur (IPT)</li>
+    </ul>
+</div>
+
+<p><strong>Formule de calcul :</strong></p>
+<div class="code">
+Garantie_avec_remise = Montant_de_base * (1 - Remise/100)
+Garantie_sans_remise = Montant_de_base
+
+Prime_totale_nette = Σ(Garantie_avec_remise) + Σ(Garantie_sans_remise)
+</div>
+
+<!-- ==================== SECTION 5 ==================== -->
+<h2 id="plan-action">5. PLAN D'ACTION POUR LA VERSION 1.4</h2>
+
+<h3>📅 Sprint 1 : Refonte des documents (Semaine 1)</h3>
+<table>
+    <tr><th>Tâche</th><th>Durée</th></tr>
+    <tr><td>Refonte template Carte Rose</td><td>2 jours</td></tr>
+    <tr><td>Refonte template Vignette</td><td>1 jour</td></tr>
+    <tr><td>Refonte template Attestation</td><td>1 jour</td></tr>
+    <tr><td>Intégration QR code amélioré</td><td>1 jour</td></tr>
+    <tr><td>Tests de rendu</td><td>1 jour</td></tr>
+</table>
+
+<h3>📅 Sprint 2 : Impression groupée (Semaine 2)</h3>
+<table>
+    <tr><th>Tâche</th><th>Durée</th></tr>
+    <tr><td>Interface de sélection multi-véhicules</td><td>2 jours</td></tr>
+    <tr><td>Sélection multi-documents</td><td>1 jour</td></tr>
+    <tr><td>Génération PDF groupée</td><td>2 jours</td></tr>
+    <tr><td>Aperçu avant impression</td><td>1 jour</td></tr>
+    <tr><td>Tests et validation</td><td>1 jour</td></tr>
+</table>
+
+<h3>📅 Sprint 3 : Optimisation des garanties (Semaine 3)</h3>
+<table>
+    <tr><th>Tâche</th><th>Durée</th></tr>
+    <tr><td>Implémentation règle de remise</td><td>1 jour</td></tr>
+    <tr><td>Vérification calculs</td><td>1 jour</td></tr>
+    <tr><td>Mise à jour formulaire flotte</td><td>1 jour</td></tr>
+    <tr><td>Tests métier</td><td>1 jour</td></tr>
+</table>
+
+<h3>📅 Sprint 4 : Finalisation et livraison (Semaine 4)</h3>
+<table>
+    <tr><th>Tâche</th><th>Durée</th></tr>
+    <tr><td>Intégration complète</td><td>2 jours</td></tr>
+    <tr><td>Tests de non-régression</td><td>1 jour</td></tr>
+    <tr><td>Recette avec Mme HAMBEN</td><td>1 jour</td></tr>
+    <tr><td>Documentation utilisateur</td><td>1 jour</td></tr>
+    <tr><td>Déploiement version 1.4</td><td>1 jour</td></tr>
+</table>
+
+<!-- ==================== SECTION 6 ==================== -->
+<h2 id="conclusion">6. CONCLUSION</h2>
+
+<p>La version 1.3 du module Automobile apporte des avancées significatives, notamment la gestion complète des flottes et la personnalisation fine des garanties. La session de travail avec Mme Tamar HAMBEN a permis de valider ces fonctionnalités et d'identifier des axes d'amélioration prioritaires.</p>
+
+<p><strong>Les recommandations formulées concernent principalement :</strong></p>
+<ol>
+    <li>La refonte des documents imprimables (Carte Rose, Vignette, Attestation)</li>
+    <li>La mise en place d'une impression groupée multi-véhicules/multi-documents</li>
+    <li>L'application correcte de la remise commerciale selon les règles métier</li>
+</ol>
+
+<p>Un plan d'action sur 4 semaines est proposé pour la version <strong>1.4</strong>, avec une livraison prévue fin mai 2026.</p>
+
+<!-- ==================== ANNEXES ==================== -->
+<h2>📎 ANNEXES</h2>
+
+<h3>Annexe A : Liste des participants</h3>
+<table>
+    <tr><th>Nom</th><th>Fonction</th><th>Signature</th></tr>
+    <tr><td>Mme Tamar HAMBEN</td><td>Responsable Technique AMS</td><td>✓</td></tr>
+    <tr><td>[Développeur]</td><td>Lead Développeur</td><td>✓</td></tr>
+    <tr><td>[Chef de projet]</td><td>Chef de projet</td><td>✓</td></tr>
+</table>
+
+<h3>Annexe B : Code de calcul des garanties</h3>
+<div class="code">
+def calculate_guarantee_amount(base_amount, has_remise, remise_percent):
+    """
+    Calcule le montant d'une garantie avec ou sans remise
+    """
+    if has_remise:
+        return base_amount * (1 - remise_percent / 100)
+    return base_amount
+
+# Garanties exclues de la remise
+EXCLUDED_GUARANTIES = ['rc', 'dr', 'ipt']
+</div>
+
+<h3>Annexe C : Liens utiles</h3>
+<ul>
+    <li>Documentation technique : <code>docs/automobile_v1.3.pdf</code></li>
+    <li>Guide utilisateur : <code>docs/user_guide_flotte.pdf</code></li>
+    <li>Serveur de démonstration : <code>http://192.168.100.17:5000</code></li>
+</ul>
+
+<!-- ==================== SIGNATURES ==================== -->
+<div class="signature">
+    <div>
+        <p><strong>Fait à :</strong> Yaoundé</p>
+        <p><strong>Le :</strong> 28 Avril 2026</p>
+    </div>
+    <div>
+        <p><strong>Pour AMS Assurance,</strong></p>
+        <p>____________________</p>
+        <p>Mme Tamar HAMBEN</p>
+    </div>
+</div>
+
+<div class="footer">
+    <p>Rapport de développement - Module Automobile Version 1.3</p>
+    <p>© 2026 AMS Assurance - Tous droits réservés</p>
+</div>
+
+</body>
+</html>

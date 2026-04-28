@@ -1450,7 +1450,7 @@ class MainWindow(QMainWindow):
     # Dans main.py ou au début de l'application
     def check_environment(self):
         """Vérifie l'environnement et affiche les chemins"""
-        from config import Config
+        from server.config import Config
         
         print("=" * 60)
         print("🔍 DIAGNOSTIC DE L'ENVIRONNEMENT")

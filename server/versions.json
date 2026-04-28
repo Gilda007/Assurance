@@ -1,22 +1,39 @@
 {
   "app_version": "1.2.0",
-  "last_updated": "2026-04-21T15:55:42.563680",
+  "last_updated": "2026-04-27T15:07:32.963253",
   "modules": {
     "Automobiles": {
-      "version": "1.3.0",
+      "version": "1.1.3",
+      "name": "Gestion d'Assurance Automobile",
+      "summary": "Gestion compl\u00e8te du parc automobile",
+      "changelog": "\u2022 Correction bugs interface\n\u2022 Ajout export PDF\n\u2022 Optimisation performances\n\u2022 Nouvelles fonctionnalit\u00e9s",
+      "size": 266553,
+      "checksum": "b04014995cf6f62f4e6ec9b23b825a9a98dc2292ccbfe13ce445336174c4d827",
       "download_url": "http://192.168.100.17:5000/addons/Automobiles.zip",
-      "changelog": "• Correction bugs interface\n• Ajout export PDF\n• Optimisation performances\n• Amélioration des performances",
-      "size": 233166,
-      "required": false,
-      "min_app_version": "1.0.0"
+      "min_app_version": "1.0.0",
+      "dependencies": [
+        "BaseCore",
+        "PartnerManagement",
+        "DocumentService",
+        "FinancialEngine"
+      ],
+      "required": false
     },
-    "Paramètres": {
-      "version": "1.0.0",
-      "download_url": "http://192.168.100.17:5000/addons/Paramètres.zip",
-      "changelog": "• Module initial",
-      "size": 1200000,
-      "required": false,
-      "min_app_version": "1.0.0"
+    "Param\u00e8tres": {
+      "version": "1.1.0",
+      "name": "Gestion des Utilisateurs & S\u00e9curit\u00e9",
+      "summary": "",
+      "changelog": "",
+      "size": 583753,
+      "checksum": "2b113fcfc5b0ade2183a1b08ae2eb6b4d0da8094e4ca75c08d5ff7488b40cd48",
+      "download_url": "http://192.168.100.17:5000/addons/Param\u00e8tres.zip",
+      "min_app_version": "1.0.0",
+      "dependencies": [],
+      "required": false
     }
+  },
+  "server_info": {
+    "url": "http://192.168.100.17:5000",
+    "api_version": "1.0"
   }
 }

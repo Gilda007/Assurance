@@ -16,7 +16,7 @@ from update_dialog import UpdateDialog
 
 # Import des modules existants
 try:
-    from config import Config
+    from server.config import Config
 except ImportError:
     class Config:
         UPDATE_SERVER = "http://192.168.100.17:5000/api"
