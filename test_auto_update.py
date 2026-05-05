@@ -57,6 +57,8 @@ class TestWindow(QMainWindow):
         """Vérification automatique"""
         self.log("🔄 Lancement de la vérification AUTOMATIQUE...")
         self.update_manager.check_updates_auto()
+
+        
     
     def manual_check(self):
         """Vérification manuelle"""

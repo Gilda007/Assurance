@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, 
                                QTableWidgetItem, QHeaderView, QLineEdit, QProgressBar,
                                QStatusBar, QMenu, QMessageBox, QComboBox, QScrollArea,
                                QSplitter)
-from PySide6.QtCore import Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QEvent, QSettings
+from PySide6.QtCore import QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QEvent, QMetaObject
 from PySide6.QtGui import QFont, QColor, QKeySequence, QShortcut, QPainter
 from core.database import SessionLocal, engine, Base, init_db
 from core.alerts import AlertManager
@@ -31,6 +31,9 @@ from addons.Paramètres.views.loggin_view import LoginView
 from addons.Paramètres.controllers.login_controller import LoginController
 from addons.Paramètres.models.models import User
 from update_manager import UpdateManager
+from update_client import UpdateClient
+from update_widget import UpdateWidget
+import threading
 
 
 from core.database import engine, Base
@@ -193,6 +196,54 @@ STYLE_SHEET = f"""
     }}
 """
 
+class UpdateChecker(QObject):
+    """Vérificateur de modules avec signal"""
+    
+    # Définir le signal comme attribut de classe
+    modules_available = Signal(object)  # Signal émis quand des modules sont trouvés
+    no_modules = Signal()                # Signal émis quand aucun module
+    server_error = Signal()              # Signal émis quand erreur serveur
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.client = UpdateClient()
+    
+    def check(self, server_url="http://localhost:8000"):
+        """Vérifie les modules disponibles dans un thread séparé"""
+        
+        def check_thread():
+            client = UpdateClient(server_url=server_url)
+            status_code, modules = client.get_available_modules()
+            
+            if status_code == 200 and modules:
+                # Émettre le signal avec les modules trouvés
+                self.modules_available.emit(modules)
+            elif status_code == 200:
+                self.no_modules.emit()
+            elif status_code == 404:
+                self.server_error.emit()
+            else:
+                print(f"⚠️ Erreur de vérification: code {status_code}")
+        
+        thread = threading.Thread(target=check_thread, daemon=True)
+        thread.start()
+
+class ModuleChecker(QObject):
+    """Vérificateur de modules simple"""
+    modules_found = Signal(object)
+    
+    def check(self):
+        def check_thread():
+            client = UpdateClient()
+            code, modules = client.get_available_modules()
+            if code == 200 and modules:
+                self.modules_found.emit(modules)
+            elif code == 200:
+                print("✅ Aucun module disponible")
+            elif code == 404:
+                print("⚠️ Serveur de mise à jour non accessible")
+        
+        threading.Thread(target=check_thread, daemon=True).start()
 
 class ModernChartWidget(QWidget):
     """Widget de graphique moderne avec pyqtgraph"""
@@ -302,7 +353,6 @@ class ModernChartWidget(QWidget):
         """Efface le graphique"""
         if HAS_PYQTGRAPH:
             self.plot_widget.clear()
-
 
 class ModernDashboard(QWidget):
     """Dashboard moderne avec graphiques professionnels"""
@@ -1400,9 +1450,12 @@ class MainWindow(QMainWindow):
         
         self.setup_ui()
         self.init_modules()
-        self.update_manager = UpdateManager(self)
         self.setup_shortcuts()
         self.check_environment()
+        self.module_checker = ModuleChecker()
+        self.module_checker.modules_found.connect(self.show_update_dialog)
+
+        QTimer.singleShot(2000, self.module_checker.check)
     
     def setup_ui(self):
         self.central_widget = QWidget()
@@ -1852,6 +1905,20 @@ class MainWindow(QMainWindow):
         """Met à jour l'avatar utilisateur"""
         initials = self.user.username[0].upper() if self.user.username else "U"
         self.user_avatar.setText(initials)
+
+    # def check_for_updates(self):
+    #     """Vérifie les mises à jour sur le serveur"""
+    #     self.update_manager.check_for_updates_async()
+    
+    def check_for_modules(self):
+        """Lance la vérification"""
+        self.module_checker.check()
+    
+    def show_update_dialog(self, modules):
+        """Affiche le dialogue des modules disponibles"""
+        print(f"📦 {len(modules)} module(s) disponible(s)")
+        dialog = UpdateWidget(modules, self)
+        dialog.exec()
 
 class AppController:
     """Contrôleur principal"""

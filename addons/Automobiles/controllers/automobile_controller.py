@@ -127,7 +127,6 @@ class VehicleController:
                 return False, None, "La compagnie d'assurance est requise"
             
             # 2. Nettoyer l'état de la session (mais sans rollback immédiat)
-            # On ne fait pas rollback ici car cela pourrait annuler des données utiles
             # self.session.rollback()  # ← À COMMENTER ou à déplacer
             
             # 3. Gestion des infos réseau si manquantes
@@ -145,7 +144,24 @@ class VehicleController:
             # S'assurer que owner_id est dans les données filtrées
             filtered_data['owner_id'] = owner_id
             print(f"✅ owner_id = {owner_id} ajouté aux données du véhicule")
-
+            
+            # ⭐⭐⭐ NOUVEAU : Copier les amt_val_red_* vers les amt_fleet_*_val ⭐⭐⭐
+            # Ce mapping permet que les valeurs personnalisées des garanties
+            # soient utilisées comme valeurs par défaut dans la flotte
+            
+            fleet_mapping = {
+                'amt_val_red_rc': 'amt_fleet_rc_val',
+                'amt_val_red_dr': 'amt_fleet_dr_val',
+                'amt_val_red_vol': 'amt_fleet_vol_val',
+                'amt_val_red_vb': 'amt_fleet_vb_val',
+                'amt_val_red_in': 'amt_fleet_in_val',
+                'amt_val_red_bris': 'amt_fleet_bris_val',
+                'amt_val_red_ar': 'amt_fleet_ar_val',
+                'amt_val_red_dta': 'amt_fleet_dta_val',
+                'amt_val_red_ipt': 'amt_fleet_ipt_val',
+            }
+            
+            
             # 6. Création du véhicule
             new_vehicle = Vehicle(**filtered_data)
             
@@ -202,7 +218,7 @@ class VehicleController:
             print(traceback.format_exc())
             logger.error(f"Erreur création véhicule: {e}")
             return False, None, str(e)
-        
+               
     def _prepare_contract_data(self, vehicle: Vehicle, data: Dict, user_id: int) -> Dict:
         """Prépare les données pour le contrat proformat"""
         
@@ -219,7 +235,8 @@ class VehicleController:
         commission = float(data.get('commission_intermediaire', 0))
         
         # Total TTC
-        total_ttc = prime_pure + taxes + carte_rose + vignette + fichier_asac + timbre + accessoires + commission
+        total_ttc = float(data.get('pttc', 0))
+        print(f'le montant à payer est de {total_ttc} FCFA')
         
         return {
             'owner_id': data.get('owner_id'),
@@ -833,3 +850,93 @@ class VehicleController:
         except Exception as e:
             logger.error(f"Erreur validation contrat: {e}")
             return False, str(e)
+
+    # vehicle_controller.py
+
+    def update_vehicle_garantees(self, vehicle_id, data):
+        """
+        Met à jour un véhicule avec les données fournies.
+        
+        Args:
+            vehicle_id: ID du véhicule
+            data: Dictionnaire des champs à mettre à jour
+        
+        Returns:
+            tuple: (success, message/vehicle)
+        """
+        try:
+            session = self.session
+            vehicle = session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+            
+            if not vehicle:
+                return False, f"Véhicule {vehicle_id} non trouvé"
+            
+            # Mettre à jour les attributs
+            for key, value in data.items():
+                if hasattr(vehicle, key):
+                    setattr(vehicle, key, value)
+            
+            session.commit()
+            session.refresh(vehicle)
+            
+            return True, vehicle
+            
+        except Exception as e:
+            session.rollback()
+            print(f"Erreur update_vehicle: {e}")
+            return False, str(e)
+
+    def get_vehicle_guarantees(self, vehicle_id):
+        """
+        Récupère toutes les garanties d'un véhicule (brutes et avec réduction).
+        
+        Args:
+            vehicle_id: ID du véhicule
+        
+        Returns:
+            dict: Dictionnaire des garanties
+        """
+        try:
+            vehicle = self.get_vehicles_by_id(vehicle_id)
+            print(vehicle.date_debut)
+            if not vehicle:
+                return {}
+            
+            return {
+                'date_debut': vehicle.date_debut,
+                'date_fin': vehicle.date_fin,
+                # Garanties brutes
+                'rc': float(vehicle.amt_rc or 0),
+                'dr': float(vehicle.amt_dr or 0),
+                'vol': float(vehicle.amt_vol or 0),
+                'vb': float(vehicle.amt_vb or 0),
+                'in': float(vehicle.amt_in or 0),
+                'bris': float(vehicle.amt_bris or 0),
+                'ar': float(vehicle.amt_ar or 0),
+                'dta': float(vehicle.amt_dta or 0),
+                'ipt': float(vehicle.amt_ipt or 0),
+                # Garanties avec réduction (pour la flotte)
+                'val_red_rc': float(vehicle.amt_val_red_rc or 0),
+                'val_red_dr': float(vehicle.amt_val_red_dr or 0),
+                'val_red_vol': float(vehicle.amt_val_red_vol or 0),
+                'val_red_vb': float(vehicle.amt_val_red_vb or 0),
+                'val_red_in': float(vehicle.amt_val_red_in or 0),
+                'val_red_bris': float(vehicle.amt_val_red_bris or 0),
+                'val_red_ar': float(vehicle.amt_val_red_ar or 0),
+                'val_red_dta': float(vehicle.amt_val_red_dta or 0),
+                'val_red_ipt': float(vehicle.amt_val_red_ipt or 0),
+                # Taux de réduction
+                'red_rc': float(vehicle.red_rc or 0),
+                'red_dr': float(vehicle.red_dr or 0),
+                'red_vol': float(vehicle.red_vol or 0),
+                'red_vb': float(vehicle.red_vb or 0),
+                'red_in': float(vehicle.red_in or 0),
+                'red_bris': float(vehicle.red_bris or 0),
+                'red_ar': float(vehicle.red_ar or 0),
+                'red_dta': float(vehicle.red_dta or 0),
+                'red_ipt': float(vehicle.red_ipt or 0),
+            }
+            
+        except Exception as e:
+            print(f"Erreur get_vehicle_guarantees: {e}")
+            return {}

@@ -1,403 +1,821 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Rapport - Module Automobile Version 1.3</title>
+    <title>Rapport d'avancement - Module Automobile Fearless Cybertech</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 40px;
+            font-family: 'Segoe UI', 'Inter', Arial, sans-serif;
+            background: #f0f2f5;
+            padding: 40px;
             line-height: 1.6;
-            color: #333;
+            color: #1e293b;
         }
-        h1 {
-            color: #2563eb;
-            border-bottom: 3px solid #2563eb;
-            padding-bottom: 10px;
+        
+        .document {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
+        
+        .header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            padding: 40px 50px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+        
+        .header h2 {
+            font-size: 20px;
+            font-weight: 500;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+        
+        .header .date {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+        
+        .content {
+            padding: 40px 50px;
+        }
+        
         h2 {
             color: #1e293b;
-            margin-top: 30px;
-            background: #f1f5f9;
-            padding: 10px;
-            border-left: 4px solid #2563eb;
+            font-size: 22px;
+            font-weight: 700;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3b82f6;
         }
+        
         h3 {
+            color: #334155;
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-left: 12px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        h4 {
             color: #475569;
+            font-size: 16px;
+            font-weight: 600;
             margin-top: 20px;
+            margin-bottom: 10px;
         }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: 800;
+            color: #3b82f6;
+        }
+        
+        .stat-label {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 8px;
+        }
+        
         table {
-            border-collapse: collapse;
             width: 100%;
-            margin: 15px 0;
+            border-collapse: collapse;
+            margin: 20px 0;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
-        th, td {
-            border: 1px solid #cbd5e1;
-            padding: 10px;
-            text-align: left;
-            vertical-align: top;
-        }
+        
         th {
-            background: #f8fafc;
-            font-weight: bold;
+            background: #f1f5f9;
+            padding: 14px 16px;
+            text-align: left;
+            font-weight: 700;
+            color: #1e293b;
+            border-bottom: 2px solid #e2e8f0;
         }
+        
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
         .badge {
             display: inline-block;
-            padding: 3px 8px;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 600;
         }
-        .success {
+        
+        .badge-success {
             background: #dcfce7;
             color: #15803d;
         }
-        .warning {
+        
+        .badge-warning {
             background: #fef3c7;
             color: #b45309;
         }
-        .info {
+        
+        .badge-info {
             background: #dbeafe;
             color: #1e40af;
         }
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
+        
+        .badge-primary {
+            background: #e0e7ff;
+            color: #4338ca;
         }
-        .footer {
+        
+        .badge-purple {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+        
+        .progress-bar-container {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            height: 100%;
+            border-radius: 10px;
+            width: 0%;
+        }
+        
+        .progress-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+            text-align: right;
+        }
+        
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .feature-list li {
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .feature-icon {
+            font-size: 20px;
+            min-width: 32px;
+        }
+        
+        .roadmap {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .milestone {
+            background: #f8fafc;
+            border-radius: 16px;
+            padding: 20px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .milestone-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        
+        .milestone-date {
+            font-size: 12px;
+            color: #3b82f6;
+            margin-bottom: 10px;
+        }
+        
+        .session-card {
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+        
+        .session-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .session-icon {
+            font-size: 32px;
+            min-width: 60px;
+            text-align: center;
+        }
+        
+        .session-info {
+            flex: 1;
+        }
+        
+        .session-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .session-role {
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 4px;
+        }
+        
+        .session-date {
+            font-size: 12px;
+            color: #3b82f6;
+            margin-top: 8px;
+        }
+        
+        .signature-section {
             margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .footer {
+            background: #f8fafc;
+            padding: 20px 50px;
             text-align: center;
             font-size: 12px;
             color: #64748b;
             border-top: 1px solid #e2e8f0;
-            padding-top: 20px;
         }
-        .signature {
-            margin-top: 40px;
+        
+        .timeline {
             display: flex;
             justify-content: space-between;
+            margin: 30px 0;
+            position: relative;
         }
-        .box {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 30px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e2e8f0;
+        }
+        
+        .timeline-item {
+            text-align: center;
+            flex: 1;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .timeline-dot {
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+        
+        .timeline-label {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        
+        .timeline-date {
+            font-size: 11px;
+            color: #64748b;
+        }
+        
+        .solution-box {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-radius: 16px;
             padding: 20px;
             margin: 20px 0;
+            border: 1px solid #bae6fd;
         }
-        .code {
+        
+        .solution-title {
+            font-weight: 700;
+            font-size: 16px;
+            color: #0369a1;
+            margin-bottom: 12px;
+        }
+        
+        .code-block {
             background: #1e293b;
             color: #e2e8f0;
             padding: 15px;
-            border-radius: 8px;
+            border-radius: 12px;
             font-family: monospace;
-            font-size: 13px;
+            font-size: 12px;
             overflow-x: auto;
+            margin: 15px 0;
         }
+        
         @media print {
             body {
-                margin: 20px;
+                background: white;
+                padding: 0;
             }
-            .no-print {
-                display: none;
+            .document {
+                box-shadow: none;
             }
         }
     </style>
 </head>
 <body>
-
-<div class="header">
-    <h1>🚗 RAPPORT DE DÉVELOPPEMENT</h1>
-    <h2>Module Automobile - Version 1.3</h2>
-    <p>AMS Assurance | 28 Avril 2026</p>
-</div>
-
-<!-- ==================== SOMMAIRE ==================== -->
-<h2>📋 SOMMAIRE</h2>
-<ol>
-    <li><a href="#contexte">Contexte et objectifs</a></li>
-    <li><a href="#fonctionnalites">Nouvelles fonctionnalités développées</a></li>
-    <li><a href="#session">Session de travail avec Mme Tamar HAMBEN</a></li>
-    <li><a href="#recommandations">Recommandations issues de la session</a></li>
-    <li><a href="#plan-action">Plan d'action pour la version 1.4</a></li>
-    <li><a href="#conclusion">Conclusion</a></li>
-</ol>
-
-<!-- ==================== SECTION 1 ==================== -->
-<h2 id="contexte">1. CONTEXTE ET OBJECTIFS</h2>
-
-<p>Dans le cadre du développement de l'application de gestion AMS Assurance, le module <strong>Automobile</strong> a connu une évolution majeure vers la version <strong>1.3</strong>. Cette version intègre de nouvelles fonctionnalités visant à améliorer la gestion des flottes de véhicules, l'impression des documents d'assurance et l'expérience utilisateur globale.</p>
-
-<div class="box">
-    <h3>🎯 Objectifs principaux</h3>
-    <ul>
-        <li>Centraliser la gestion des flottes de véhicules</li>
-        <li>Permettre une personnalisation fine des garanties par véhicule</li>
-        <li>Faciliter l'impression groupée des documents</li>
-        <li>Améliorer l'interface utilisateur pour une meilleure productivité</li>
-    </ul>
-</div>
-
-<!-- ==================== SECTION 2 ==================== -->
-<h2 id="fonctionnalites">2. NOUVELLES FONCTIONNALITÉS DÉVELOPPÉES</h2>
-
-<h3>2.1 Module Flottes (Gestion des flottes)</h3>
-<table>
-    <thead>
-        <tr><th>Fonctionnalité</th><th>Description</th><th>Statut</th></tr>
-    </thead>
-    <tbody>
-        <tr><td><strong>Création de flottes</strong></td><td>Création et configuration de flottes de véhicules</td><td><span class="badge success">✅ Terminé</span></td></tr>
-        <tr><td><strong>Gestion des véhicules</strong></td><td>Ajout/retrait de véhicules dans une flotte</td><td><span class="badge success">✅ Terminé</span></td></tr>
-        <tr><td><strong>Détail de flotte</strong></td><td>Vue détaillée avec onglets (infos, véhicules, stats, documents)</td><td><span class="badge success">✅ Terminé</span></td></tr>
-        <tr><td><strong>Personnalisation garanties</strong></td><td>Modification des montants de garanties par véhicule</td><td><span class="badge success">✅ Terminé</span></td></tr>
-        <tr><td><strong>Application remise</strong></td><td>Remise commerciale sur toutes les garanties (sauf RC, DR, IPT)</td><td><span class="badge success">✅ Terminé</span></td></tr>
-    </tbody>
-</table>
-
-<h3>2.2 Impression des documents</h3>
-<table>
-    <thead><tr><th>Document</th><th>Fonctionnalité</th><th>Statut</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Carte Rose</strong></td><td>Génération PDF avec QR code et sécurisation</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
-        <tr><td><strong>Vignette</strong></td><td>Format normalisé avec éléments obligatoires</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
-        <tr><td><strong>Attestation</strong></td><td>Template officiel avec signatures</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
-        <tr><td><strong>Impression groupée</strong></td><td>Sélection multiple de véhicules et documents</td><td><span class="badge warning">🔄 À revoir</span></td></tr>
-    </tbody>
-</table>
-
-<h3>2.3 Interface utilisateur</h3>
-<table>
-    <thead><tr><th>Élément</th><th>Description</th><th>Statut</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Dashboard moderne</strong></td><td>Cartes KPI, graphiques interactifs</td><td><span class="badge success">✅ Terminé</span></td></tr>
-        <tr><td><strong>Gestionnaire de modules</strong></td><td>Installation et mise à jour des modules</td><td><span class="badge success">✅ Terminé</span></td></tr>
-        <tr><td><strong>Barre de titre personnalisée</strong></td><td>Fenêtres avec ombres et dégradés</td><td><span class="badge success">✅ Terminé</span></td></tr>
-    </tbody>
-</table>
-
-<!-- ==================== SECTION 3 ==================== -->
-<h2 id="session">3. SESSION DE TRAVAIL AVEC Mme TAMAR HAMBEN</h2>
-
-<h3>3.1 Informations générales</h3>
-<table>
-    <tr><th>Élément</th><th>Détail</th></tr>
-    <tr><td><strong>Date</strong></td><td>28 Avril 2026</td></tr>
-    <tr><td><strong>Lieu</strong></td><td>AMS Assurance - Direction Technique</td></tr>
-    <tr><td><strong>Participante</strong></td><td>Mme Tamar HAMBEN (Responsable Technique)</td></tr>
-    <tr><td><strong>Durée</strong></td><td>3 heures</td></tr>
-    <tr><td><strong>Objectif</strong></td><td>Présentation et validation des nouvelles fonctionnalités</td></tr>
-</table>
-
-<h3>3.2 Ordre du jour</h3>
-<ol>
-    <li>Présentation du module Flottes</li>
-    <li>Démonstration de la personnalisation des garanties</li>
-    <li>Revue des documents imprimables (Carte Rose, Vignette, Attestation)</li>
-    <li>Discussion sur les impressions groupées</li>
-    <li>Recueil des recommandations</li>
-</ol>
-
-<h3>3.3 Déroulement de la session</h3>
-
-<h4>📌 3.3.1 Présentation du module Flottes</h4>
-<p>Mme HAMBEN a pu découvrir l'interface complète de gestion des flottes :</p>
-<ul>
-    <li><strong>Création d'une flotte</strong> avec formulaire dédié (nom, code, assureur, dates)</li>
-    <li><strong>Sélection des clients</strong> par recherche dynamique</li>
-    <li><strong>Ajout de véhicules</strong> à la flotte via un gestionnaire dédié</li>
-    <li><strong>Vue détaillée</strong> avec 4 onglets : Informations, Véhicules, Statistiques, Documents</li>
-</ul>
-<p><strong>Appréciation générale :</strong> <em>L'interface est jugée intuitive et professionnelle. Les ombres portées et les dégradés apportent une touche moderne appréciée.</em></p>
-
-<h4>📌 3.3.2 Démonstration de la personnalisation des garanties</h4>
-<p>La fonctionnalité clé présentée permet :</p>
-<ul>
-    <li>Pour chaque véhicule dans une flotte, accéder à un dialogue de personnalisation</li>
-    <li>Modifier individuellement les montants de chaque garantie (RC, DR, Vol, VB, Incendie, Bris, AR, DTA, IPT)</li>
-    <li>Visualiser le total des garanties sélectionnées</li>
-</ul>
-<p><strong>Remarque de Mme HAMBEN :</strong> <em>"La flexibilité est excellente, mais il faut clarifier l'application de la remise commerciale."</em></p>
-
-<h4>📌 3.3.3 Revue des documents imprimables</h4>
-<p>Trois documents ont été examinés :</p>
-
-<p><strong>1. Carte Rose</strong></p>
-<ul>
-    <li>✅ QR code intégré</li>
-    <li>✅ Numéro de police</li>
-    <li>⚠️ Format à standardiser</li>
-    <li>⚠️ Éléments de sécurité à renforcer</li>
-</ul>
-
-<p><strong>2. Vignette</strong></p>
-<ul>
-    <li>✅ Design épuré</li>
-    <li>⚠️ Période de validité trop discrète</li>
-    <li>⚠️ Ajouter un hologramme virtuel</li>
-</ul>
-
-<p><strong>3. Attestation</strong></p>
-<ul>
-    <li>✅ En-tête officiel</li>
-    <li>⚠️ Manque la signature numérique</li>
-    <li>⚠️ Références légales à compléter</li>
-</ul>
-
-<h4>📌 3.3.4 Discussion sur les impressions groupées</h4>
-<p>Un besoin métier important a été identifié : la possibilité d'imprimer plusieurs documents pour plusieurs véhicules en une seule action.</p>
-<p><strong>Scénario typique :</strong> Pour une flotte de 10 véhicules, l'utilisateur souhaite imprimer la vignette, la carte rose et l'attestation pour les 5 premiers véhicules sélectionnés.</p>
-
-<!-- ==================== SECTION 4 ==================== -->
-<h2 id="recommandations">4. RECOMMANDATIONS ISSUES DE LA SESSION</h2>
-
-<h3>4.1 Documents à imprimer</h3>
-<table>
-    <thead><tr><th>Document</th><th>Recommandation</th><th>Priorité</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Carte Rose</strong></td><td>Revoir le format (dimensions normalisées)</td><td><span class="badge warning">Haute</span></td></tr>
-        <tr><td><strong>Carte Rose</strong></td><td>Ajouter un QR code plus grand et mieux positionné</td><td><span class="badge warning">Haute</span></td></tr>
-        <tr><td><strong>Carte Rose</strong></td><td>Inclure un filigrane de sécurité</td><td><span class="badge info">Moyenne</span></td></tr>
-        <tr><td><strong>Vignette</strong></td><td>Rendre la période de validité plus visible (couleur et taille)</td><td><span class="badge warning">Haute</span></td></tr>
-        <tr><td><strong>Vignette</strong></td><td>Ajouter un code barre pour lecture optique</td><td><span class="badge info">Moyenne</span></td></tr>
-        <tr><td><strong>Attestation</strong></td><td>Standardiser l'en-tête et le pied de page</td><td><span class="badge warning">Haute</span></td></tr>
-        <tr><td><strong>Attestation</strong></td><td>Ajouter une zone pour signature et cachet</td><td><span class="badge warning">Haute</span></td></tr>
-    </tbody>
-</table>
-
-<h3>4.2 Gestion des flottes</h3>
-<table>
-    <thead><tr><th>Recommandation</th><th>Description</th><th>Priorité</th></tr></thead>
-    <tbody>
-        <tr><td><strong>Impression groupée</strong></td><td>Interface de sélection multi-véhicules/multi-documents</td><td><span class="badge warning">Haute</span></td></tr>
-        <tr><td><strong>Export PDF groupé</strong></td><td>Génération d'un seul fichier PDF pour plusieurs documents</td><td><span class="badge warning">Haute</span></td></tr>
-        <tr><td><strong>Aperçu avant impression</strong></td><td>Visualisation avant impression</td><td><span class="badge info">Moyenne</span></td></tr>
-        <tr><td><strong>Historique impressions</strong></td><td>Traçabilité des documents générés</td><td><span class="badge info">Basse</span></td></tr>
-    </tbody>
-</table>
-
-<h3>4.3 Règle d'application de la remise commerciale</h3>
-<div class="box">
-    <p><strong>Règle validée :</strong> La remise commerciale s'applique sur toutes les garanties <strong>SAUF</strong> :</p>
-    <ul>
-        <li>❌ Responsabilité Civile (RC)</li>
-        <li>❌ Défense et Recours (DR)</li>
-        <li>❌ Individuelle Transporteur (IPT)</li>
-    </ul>
-</div>
-
-<p><strong>Formule de calcul :</strong></p>
-<div class="code">
-Garantie_avec_remise = Montant_de_base * (1 - Remise/100)
-Garantie_sans_remise = Montant_de_base
-
-Prime_totale_nette = Σ(Garantie_avec_remise) + Σ(Garantie_sans_remise)
-</div>
-
-<!-- ==================== SECTION 5 ==================== -->
-<h2 id="plan-action">5. PLAN D'ACTION POUR LA VERSION 1.4</h2>
-
-<h3>📅 Sprint 1 : Refonte des documents (Semaine 1)</h3>
-<table>
-    <tr><th>Tâche</th><th>Durée</th></tr>
-    <tr><td>Refonte template Carte Rose</td><td>2 jours</td></tr>
-    <tr><td>Refonte template Vignette</td><td>1 jour</td></tr>
-    <tr><td>Refonte template Attestation</td><td>1 jour</td></tr>
-    <tr><td>Intégration QR code amélioré</td><td>1 jour</td></tr>
-    <tr><td>Tests de rendu</td><td>1 jour</td></tr>
-</table>
-
-<h3>📅 Sprint 2 : Impression groupée (Semaine 2)</h3>
-<table>
-    <tr><th>Tâche</th><th>Durée</th></tr>
-    <tr><td>Interface de sélection multi-véhicules</td><td>2 jours</td></tr>
-    <tr><td>Sélection multi-documents</td><td>1 jour</td></tr>
-    <tr><td>Génération PDF groupée</td><td>2 jours</td></tr>
-    <tr><td>Aperçu avant impression</td><td>1 jour</td></tr>
-    <tr><td>Tests et validation</td><td>1 jour</td></tr>
-</table>
-
-<h3>📅 Sprint 3 : Optimisation des garanties (Semaine 3)</h3>
-<table>
-    <tr><th>Tâche</th><th>Durée</th></tr>
-    <tr><td>Implémentation règle de remise</td><td>1 jour</td></tr>
-    <tr><td>Vérification calculs</td><td>1 jour</td></tr>
-    <tr><td>Mise à jour formulaire flotte</td><td>1 jour</td></tr>
-    <tr><td>Tests métier</td><td>1 jour</td></tr>
-</table>
-
-<h3>📅 Sprint 4 : Finalisation et livraison (Semaine 4)</h3>
-<table>
-    <tr><th>Tâche</th><th>Durée</th></tr>
-    <tr><td>Intégration complète</td><td>2 jours</td></tr>
-    <tr><td>Tests de non-régression</td><td>1 jour</td></tr>
-    <tr><td>Recette avec Mme HAMBEN</td><td>1 jour</td></tr>
-    <tr><td>Documentation utilisateur</td><td>1 jour</td></tr>
-    <tr><td>Déploiement version 1.4</td><td>1 jour</td></tr>
-</table>
-
-<!-- ==================== SECTION 6 ==================== -->
-<h2 id="conclusion">6. CONCLUSION</h2>
-
-<p>La version 1.3 du module Automobile apporte des avancées significatives, notamment la gestion complète des flottes et la personnalisation fine des garanties. La session de travail avec Mme Tamar HAMBEN a permis de valider ces fonctionnalités et d'identifier des axes d'amélioration prioritaires.</p>
-
-<p><strong>Les recommandations formulées concernent principalement :</strong></p>
-<ol>
-    <li>La refonte des documents imprimables (Carte Rose, Vignette, Attestation)</li>
-    <li>La mise en place d'une impression groupée multi-véhicules/multi-documents</li>
-    <li>L'application correcte de la remise commerciale selon les règles métier</li>
-</ol>
-
-<p>Un plan d'action sur 4 semaines est proposé pour la version <strong>1.4</strong>, avec une livraison prévue fin mai 2026.</p>
-
-<!-- ==================== ANNEXES ==================== -->
-<h2>📎 ANNEXES</h2>
-
-<h3>Annexe A : Liste des participants</h3>
-<table>
-    <tr><th>Nom</th><th>Fonction</th><th>Signature</th></tr>
-    <tr><td>Mme Tamar HAMBEN</td><td>Responsable Technique AMS</td><td>✓</td></tr>
-    <tr><td>[Développeur]</td><td>Lead Développeur</td><td>✓</td></tr>
-    <tr><td>[Chef de projet]</td><td>Chef de projet</td><td>✓</td></tr>
-</table>
-
-<h3>Annexe B : Code de calcul des garanties</h3>
-<div class="code">
-def calculate_guarantee_amount(base_amount, has_remise, remise_percent):
-    """
-    Calcule le montant d'une garantie avec ou sans remise
-    """
-    if has_remise:
-        return base_amount * (1 - remise_percent / 100)
-    return base_amount
-
-# Garanties exclues de la remise
-EXCLUDED_GUARANTIES = ['rc', 'dr', 'ipt']
-</div>
-
-<h3>Annexe C : Liens utiles</h3>
-<ul>
-    <li>Documentation technique : <code>docs/automobile_v1.3.pdf</code></li>
-    <li>Guide utilisateur : <code>docs/user_guide_flotte.pdf</code></li>
-    <li>Serveur de démonstration : <code>http://192.168.100.17:5000</code></li>
-</ul>
-
-<!-- ==================== SIGNATURES ==================== -->
-<div class="signature">
-    <div>
-        <p><strong>Fait à :</strong> Yaoundé</p>
-        <p><strong>Le :</strong> 28 Avril 2026</p>
+<div class="document">
+    <div class="header">
+        <h1>🚛 RAPPORT D'AVANCEMENT</h1>
+        <h2>Module Automobile - Fearless Cybertech</h2>
+        <div class="date">Date du rapport : 4 Mai 2026 | Version : 1.3</div>
     </div>
-    <div>
-        <p><strong>Pour AMS Assurance,</strong></p>
-        <p>____________________</p>
-        <p>Mme Tamar HAMBEN</p>
+    
+    <div class="content">
+        <!-- ==================== RÉSUMÉ EXÉCUTIF ==================== -->
+        <h2>📊 RÉSUMÉ EXÉCUTIF</h2>
+        <p>Le développement du module Automobile version 1.3 est désormais <strong>achevé</strong>. Cette version apporte des fonctionnalités majeures, notamment la gestion complète des flottes de véhicules, la personalisation fine des garanties, et une interface utilisateur modernisée. Les travaux se sont déroulés conformément au planning initial.</p>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Fonctionnalités v1.3</div>
+                <div class="progress-bar-container" style="margin-top: 10px;">
+                    <div class="progress-bar" style="width: 100%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">85%</div>
+                <div class="stat-label">Tests de non-régression</div>
+                <div class="progress-bar-container" style="margin-top: 10px;">
+                    <div class="progress-bar" style="width: 85%;"></div>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">4</div>
+                <div class="stat-label">Sprints planifiés</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">12</div>
+                <div class="stat-label">Modules fonctionnels</div>
+            </div>
+        </div>
+
+        <!-- ==================== VUE D'ENSEMBLE ==================== -->
+        <h2>🎯 VUE D'ENSEMBLE DU PROJET</h2>
+        <p>L'application Fearless Cybertech est une solution complète de gestion des contrats d'assurance automobile. Le module Automobile version 1.3 constitue une évolution majeure avec l'intégration de la gestion des flottes, la personnalisation avancée des garanties et des fonctionnalités d'impression professionnelles.</p>
+        
+        <div class="timeline">
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-label">Lancement</div>
+                <div class="timeline-date">Mars 2026</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-label">Version 1.3</div>
+                <div class="timeline-date">Avril 2026</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-label">Version 1.4</div>
+                <div class="timeline-date">Mai-Juin 2026</div>
+            </div>
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-label">Version 2.0</div>
+                <div class="timeline-date">2026</div>
+            </div>
+        </div>
+
+        <!-- ==================== FONCTIONNALITÉS LIVRÉES ==================== -->
+        <h2>✅ FONCTIONNALITÉS LIVRÉES (VERSION 1.3)</h2>
+        
+        <h3>🏢 Module Flottes</h3>
+        <ul class="feature-list">
+            <li><span class="feature-icon">✅</span> Création et configuration complète des flottes</li>
+            <li><span class="feature-icon">✅</span> Gestion des véhicules dans une flotte (ajout/retrait)</li>
+            <li><span class="feature-icon">✅</span> Vue détaillée avec onglets (infos, véhicules, stats, documents)</li>
+            <li><span class="feature-icon">✅</span> Personnalisation des garanties par véhicule dans la flotte</li>
+            <li><span class="feature-icon">✅</span> Application de la remise commerciale sur les garanties</li>
+        </ul>
+        
+        <h3>🚗 Gestion des Véhicules</h3>
+        <ul class="feature-list">
+            <li><span class="feature-icon">✅</span> Création et modification de véhicules</li>
+            <li><span class="feature-icon">✅</span> Calcul automatique des primes et garanties</li>
+            <li><span class="feature-icon">✅</span> Vue détaillée avec onglets (infos, garanties, finances, stats, documents)</li>
+            <li><span class="feature-icon">✅</span> Impression des documents (Carte Rose, Vignette, Attestation, Devis, Quittance)</li>
+        </ul>
+        
+        <h3>🖨️ Impression</h3>
+        <ul class="feature-list">
+            <li><span class="feature-icon">✅</span> Impression individuelle de documents</li>
+            <li><span class="feature-icon">✅</span> Impression groupée de documents pour les véhicules sélectionnés</li>
+            <li><span class="feature-icon">✅</span> Génération PDF des rapports de flotte</li>
+            <li><span class="feature-icon">🔄</span> Refonte des templates (en cours - version 1.4)</li>
+        </ul>
+
+        <!-- ==================== TESTS MULTI-PLATEFORMES ==================== -->
+        <h2>🖥️ TESTS MULTI-PLATEFORMES</h2>
+        
+        <h3>Correction des erreurs sur Windows</h3>
+        <p>Des tests approfondis ont été réalisés sur l'environnement Windows. Plusieurs anomalies ont été identifiées et corrigées :</p>
+        <ul>
+            <li>✅ Correction des chemins d'accès aux ressources (problème de séparateurs / vs \)</li>
+            <li>✅ Résolution des problèmes de threading lors des impressions groupées</li>
+            <li>✅ Correction des erreurs de timers inter-threads</li>
+            <li>✅ Adaptation des scripts de compilation pour Windows</li>
+            <li>🔄 Correction des erreurs Pango-CRITICAL (en cours)</li>
+        </ul>
+        
+        <div class="progress-bar-container"><div class="progress-bar" style="width: 90%;"></div></div>
+        <div class="progress-label">90% - Corrections Windows en cours de finalisation</div>
+        
+        <h3>Préparation des tests sur Mac OS</h3>
+        <p>Une phase de tests sur environnement Mac OS est planifiée pour garantir la compatibilité multiplateforme de l'application.</p>
+        <ul>
+            <li>📅 Planification des tests : Mai 2026</li>
+            <li>🔧 Vérification de la compatibilité PySide6 sur macOS</li>
+            <li>📦 Tests de compilation avec py2app</li>
+            <li>🖨️ Validation des impressions PDF sur macOS</li>
+            <li>🐞 Correction des éventuelles anomalies spécifiques à macOS</li>
+        </ul>
+        
+        <div class="progress-bar-container"><div class="progress-bar" style="width: 20%;"></div></div>
+        <div class="progress-label">20% - Préparation des tests</div>
+
+        <!-- ==================== SESSIONS DE TRAVAIL ==================== -->
+        <h2>👥 SESSIONS DE TRAVAIL PLANIFIÉES</h2>
+        
+        <div class="session-card">
+            <div class="session-icon">👩‍💼</div>
+            <div class="session-info">
+                <div class="session-name">Mme Tamar HAMBEN</div>
+                <div class="session-role">Responsable Technique Fearless Cybertech</div>
+                <div class="session-date">📅 Session programmée : 7 Mai 2026</div>
+                <div style="margin-top: 8px; font-size: 13px; color: #475569;">Ordre du jour : Validation des corrections Windows, Revue des impressions groupées, Planning version 1.4</div>
+            </div>
+            <div><span class="badge badge-info">À venir</span></div>
+        </div>
+        
+        <div class="session-card">
+            <div class="session-icon">👨‍💻</div>
+            <div class="session-info">
+                <div class="session-name">M. DILANGUE CHRIST</div>
+                <div class="session-role">Expert en bases de données</div>
+                <div class="session-date">📅 Session programmée : 8 Mai 2026</div>
+                <div style="margin-top: 8px; font-size: 13px; color: #475569;">Ordre du jour : Migration des données, Optimisation des requêtes, Mise en place des sauvegardes</div>
+            </div>
+            <div><span class="badge badge-info">À venir</span></div>
+        </div>
+        
+        <div class="session-card">
+            <div class="session-icon">👨‍🔧</div>
+            <div class="session-info">
+                <div class="session-name">M. EKANI</div>
+                <div class="session-role">Expert en déploiement et sécurité</div>
+                <div class="session-date">📅 Session programmée : 11 Mai 2026</div>
+                <div style="margin-top: 8px; font-size: 13px; color: #475569;">Ordre du jour : Déploiement sur serveur, Sécurisation de l'application, Gestion des licences</div>
+            </div>
+            <div><span class="badge badge-info">À venir</span></div>
+        </div>
+
+        <!-- ==================== DÉPLOIEMENT SERVEUR ==================== -->
+        <h2>☁️ DÉPLOIEMENT SUR SERVEUR</h2>
+        
+        <h3>Infrastructure serveur</h3>
+        <table>
+            <tr><th>Composant</th><th>Détail</th></tr>
+            <tr><td>Adresse serveur</td><td><code>https://212.47.73.151/</code></td></tr>
+            <tr><td>Base de données</td><td>PostgreSQL 15</td></tr>
+            <tr><td>SGBD</td><td>pgAdmin 4</td></tr>
+            <tr><td>Système d'exploitation</td><td>Ubuntu Server 22.04 LTS</td></tr>
+        </table>
+        
+        <h3>Actions à réaliser</h3>
+        <ul>
+            <li>📦 Installation et configuration du serveur PostgreSQL</li>
+            <li>🔄 Migration des données depuis l'environnement de développement</li>
+            <li>🔐 Configuration des accès et des utilisateurs</li>
+            <li>💾 Mise en place des sauvegardes automatisées</li>
+            <li>📊 Mise en place d'un système de monitoring</li>
+            <li>🌐 Configuration du serveur de mise à jour</li>
+        </ul>
+        
+        <div class="progress-bar-container"><div class="progress-bar" style="width: 30%;"></div></div>
+        <div class="progress-label">30% - Installation en cours</div>
+
+        <!-- ==================== SÉCURISATION DU CODE ==================== -->
+        <h2>🔒 SÉCURISATION DU CODE - CHIFFREMENT DES MODULES</h2>
+        
+        <div class="solution-box">
+            <div class="solution-title">🔐 Problématique</div>
+            <p>Actuellement, le module qui s'installe est constitué d'un code source. Il est nécessaire que le code soit crypté mais lisible uniquement par le logiciel.</p>
+        </div>
+        
+        <div class="solution-box">
+            <div class="solution-title">💡 Solution proposée : Chiffrement des modules avec AES-256</div>
+            <p>Mise en place d'un système de chiffrement des modules avant distribution, avec déchiffrement à l'exécution uniquement par l'application.</p>
+            
+            <h4 style="margin-top: 15px;">Architecture proposée</h4>
+            <div class="code-block">
+                ┌─────────────────────────────────────────────────────────────┐
+                │                    SERVEUR DE DISTRIBUTION                 │
+                │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    │
+                │  │ Module      │    │ Chiffrement │    │ Module      │    │
+                │  │ Source (.py)│ →  │ AES-256     │ →  │ Chiffré     │    │
+                │  │             │    │ + Clé       │    │ (.enc)      │    │
+                │  └─────────────┘    └─────────────┘    └─────────────┘    │
+                └─────────────────────────────────────────────────────────────┘
+                                              │
+                                              ▼
+                ┌─────────────────────────────────────────────────────────────┐
+                │                    APPLICATION CLIENT                      │
+                │  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    │
+                │  │ Module      │    │ Déchiffre-  │    │ Module      │    │
+                │  │ Chiffré     │ →  │ ment avec   │ →  │ Exécutable  │    │
+                │  │ (.enc)      │    │ Clé privée  │    │ en mémoire  │    │
+                │  └─────────────┘    └─────────────┘    └─────────────┘    │
+                └─────────────────────────────────────────────────────────────┘
+            </div>
+            
+            <h4>Mécanisme de chiffrement</h4>
+            <div class="code-block">
+# module_encryptor.py - Outil de chiffrement des modules
+import os
+import json
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+
+class ModuleEncryptor:
+    """Chiffrement et déchiffrement des modules"""
+    
+    def __init__(self, master_key):
+        self.master_key = master_key
+        self.kdf = PBKDF2(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=b'ams_assurance_salt_2026',
+            iterations=100000,
+        )
+        self.key = base64.urlsafe_b64encode(self.kdf.derive(master_key.encode()))
+        self.cipher = Fernet(self.key)
+    
+    def encrypt_module(self, module_path, output_path):
+        """Chiffre un module entier"""
+        with open(module_path, 'rb') as f:
+            data = f.read()
+        encrypted = self.cipher.encrypt(data)
+        with open(output_path, 'wb') as f:
+            f.write(encrypted)
+    
+    def decrypt_module(self, encrypted_path):
+        """Déchiffre un module en mémoire (sans écrire sur disque)"""
+        with open(encrypted_path, 'rb') as f:
+            encrypted_data = f.read()
+        return self.cipher.decrypt(encrypted_data)
+            </div>
+            
+            <h4>Chargement sécurisé dans l'application</h4>
+            <div class="code-block">
+# secure_loader.py - Chargement des modules chiffrés
+import importlib.util
+import sys
+
+class SecureModuleLoader:
+    """Chargeur de modules chiffrés"""
+    
+    def __init__(self, decryption_key):
+        self.decryption_key = decryption_key
+        self.encryptor = ModuleEncryptor(decryption_key)
+    
+    def load_encrypted_module(self, module_name, encrypted_path):
+        """Charge un module chiffré en mémoire"""
+        # Déchiffrer en mémoire
+        code = self.encryptor.decrypt_module(encrypted_path)
+        
+        # Créer un module à partir du code déchiffré
+        spec = importlib.util.spec_from_loader(module_name, loader=None)
+        module = importlib.util.module_from_spec(spec)
+        
+        # Exécuter le code déchiffré dans le module
+        exec(code, module.__dict__)
+        
+        # Enregistrer le module
+        sys.modules[module_name] = module
+        return module
+            </div>
+            
+            <h4>Avantages de la solution</h4>
+            <ul>
+                <li>✅ Code source non accessible directement par les utilisateurs</li>
+                <li>✅ Protection contre la copie et la modification non autorisée</li>
+                <li>✅ Chaque client peut avoir une clé unique</li>
+                <li>✅ Déchiffrement en mémoire uniquement (pas de trace sur disque)</li>
+                <li>✅ Compatible avec le système de mise à jour existant</li>
+            </ul>
+            
+            <h4>Planning d'implémentation</h4>
+            <ul>
+                <li>📅 04 Mai : Développement de l'outil de chiffrement</li>
+                <li>📅 06 Mai : Intégration dans le processus de build</li>
+                <li>📅 06 Mai : Tests de sécurité et validation</li>
+                <li>📅 08 mai : Déploiement en production</li>
+            </ul>
+        </div>
+
+        <!-- ==================== PERSPECTIVES VERSION 1.4 ==================== -->
+        <h2>🚀 PERSPECTIVES VERSION 1.4</h2>
+        
+        <div class="roadmap">
+            <div class="milestone">
+                <div class="milestone-title">🖥️ Sprint 1 : Correction et tests multiplateformes</div>
+                <div class="milestone-date">Semaine du 11 Mai 2026</div>
+                <ul>
+                    <li>Correction des erreurs sur environnement Windows</li>
+                    <li>Tests sur environnement Mac OS</li>
+                    <li>Optimisation des performances</li>
+                </ul>
+            </div>
+            <div class="milestone">
+                <div class="milestone-title">🔒 Sprint 2 : Sécurisation et déploiement</div>
+                <div class="milestone-date">Semaine du 25 Mai 2026</div>
+                <ul>
+                    <li>Chiffrement des modules</li>
+                    <li>Déploiement sur serveur https://212.47.73.151/</li>
+                    <li>Migration et importation des données</li>
+                </ul>
+            </div>
+            <div class="milestone">
+                <div class="milestone-title">🎯 Sprint 3 : Finalisation et livraison</div>
+                <div class="milestone-date">Semaine du 1 Juin 2026</div>
+                <ul>
+                    <li>Sessions de validation avec Mme HAMBEN, M. DILANGUE CHRIST et M. EKANI</li>
+                    <li>Tests de non-régression</li>
+                    <li>Documentation utilisateur et technique</li>
+                    <li>Déploiement version 1.4</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ==================== PROCHAINS RENDEZ-VOUS ==================== -->
+        <h2>📅 PROCHAINS RENDEZ-VOUS</h2>
+        
+        <table>
+            <tr><th>Date</th><th>Participant(s)</th><th>Objectif</th></tr>
+            <tr>
+                <td>7 Mai 2026</td>
+                <td>Mme Tamar HAMBEN</td>
+                <td>Validation des corrections Windows et planning v1.4</td>
+            </tr>
+            <tr>
+                <td>8 Mai 2026</td>
+                <td>M. DILANGUE CHRIST</td>
+                <td>Migration base de données et optimisation</td>
+            </tr>
+            <tr>
+                <td>11 Mai 2026</td>
+                <td>M. EKANI</td>
+                <td>Déploiement serveur et sécurité</td>
+            </tr>
+            <tr>
+                <td>15 Mai 2026</td>
+                <td>Équipe projet</td>
+                <td>Revue d'avancement intermédiaire</td>
+            </tr>
+            <tr>
+                <td>29 Mai 2026</td>
+                <td>Tous les intervenants</td>
+                <td>Recette finale version 1.4</td>
+            </tr>
+        </table>
+
+        <!-- ==================== CONCLUSION ==================== -->
+        <h2>📋 CONCLUSION</h2>
+        <p>La version 1.3 du module Automobile est désormais <strong>fonctionnelle et stable</strong>. Les travaux se poursuivent pour atteindre les objectifs de la version 1.4, avec un accent particulier sur :</p>
+        <ul>
+            <li>La correction des anomalies sur environnement Windows et la validation sur macOS</li>
+            <li>Les sessions de travail avec Mme Tamar HAMBEN, M. DILANGUE CHRIST et M. EKANI</li>
+            <li>Le déploiement sur le serveur https://212.47.73.151/ et l'importation des données</li>
+            <li>La sécurisation du code par chiffrement des modules</li>
+        </ul>
+        <p>Un plan d'action sur 4 sprints est proposé, avec une livraison prévue début juin 2026.</p>
+        
+        <!-- ==================== ANNEXES ==================== -->
+        <h2>📎 ANNEXES</h2>
+        
+        <h3>Annexe A : Intervenants</h3>
+        <table>
+            <tr><th>Nom</th><th>Fonction</th><th>Rôle dans le projet</th></tr>
+            <tr>
+                <td>Mme Tamar HAMBEN</td>
+                <td>Responsable Technique AMS</td>
+                <td>Validation fonctionnelle, spécifications métier</td>
+            </tr>
+            <tr>
+                <td>M. DILANGUE CHRIST</td>
+                <td>Expert bases de données</td>
+                <td>Migration données, optimisation SQL, sauvegardes</td>
+            </tr>
+            <tr>
+                <td>M. EKANI</td>
+                <td>Expert déploiement</td>
+                <td>Infrastructure serveur, sécurité, mise en production</td>
+            </tr>
+        </table>
+        
+        <h3>Annexe B : Infrastructure cible</h3>
+        <ul>
+            <li><strong>Serveur de production</strong> : https://212.47.73.151/</li>
+            <li><strong>Base de données</strong> : PostgreSQL 15</li>
+            <li><strong>Système</strong> : Ubuntu Server 22.04 LTS</li>
+            <li><strong>Serveur de mise à jour</strong> : http://192.168.100.17:5000</li>
+        </ul>
+        
+        <h3>Annexe C : Technologies de chiffrement</h3>
+        <ul>
+            <li><strong>Algorithme</strong> : AES-256 (Fernet)</li>
+            <li><strong>Bibliothèque</strong> : cryptography (Python)</li>
+            <li><strong>Dérivation de clé</strong> : PBKDF2 avec 100000 itérations</li>
+            <li><strong>Distribution des clés</strong> : Intégrée au binaire principal</li>
+        </ul>
+        
+        <!-- ==================== SIGNATURES ==================== -->
+        <div class="signature-section">
+            <div>
+                <p><strong>Fait à :</strong> Yaoundé</p>
+                <p><strong>Le :</strong> 4 Mai 2026</p>
+            </div>
+            <div>
+                <p><strong>Approuvé par,</strong></p>
+                <p>_________________________</p>
+                <p>Chef de projet</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>Rapport d'avancement - Module Automobile Fearless Cybertech v1.3</p>
+        <p>© 2026 Fearless Cybertech - Tous droits réservés</p>
+        <p style="margin-top: 10px;">Document confidentiel - À usage interne</p>
     </div>
 </div>
-
-<div class="footer">
-    <p>Rapport de développement - Module Automobile Version 1.3</p>
-    <p>© 2026 AMS Assurance - Tous droits réservés</p>
-</div>
-
 </body>
 </html>
+```

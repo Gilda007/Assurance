@@ -1025,7 +1025,7 @@ class VehicleForm(QDialog):
                 📌 Type: {contact.nature or 'Particulier'}
                 📞 Tél: {contact.telephone or 'N/A'}
                 📧 Email: {contact.email or 'N/A'}
-                🆔 Code client: {contact.code_client or 'N/A'}
+                🆔 Code client: {contact.id or 'N/A'}
                 📍 Charge Clientèle: {contact.charge_clientele or 'N/A'}
             """
             self.lbl_owner_info.setText(info_text)
@@ -1175,7 +1175,7 @@ class VehicleForm(QDialog):
             📌 Type: {owner.nature or 'Particulier'}
             📞 Tél: {owner.telephone or 'N/A'}
             📧 Email: {owner.email or 'N/A'}
-            🆔 Code client: {owner.code_client or 'N/A'}
+            🆔 Code client: {owner.id or 'N/A'}
             📍 Charge Clientèle: {owner.charge_clientele or 'N/A'}
         """
         self.lbl_owner_info.setText(info_text)
@@ -1489,6 +1489,15 @@ class VehicleForm(QDialog):
                     return float(txt) if txt else 0.0
             return 0.0
         
+        def get_fleet_amt(key):
+            garantie_data = self.result_labels.get(key)
+            if garantie_data:
+                montant_brut_label = garantie_data['montant_net']
+                if montant_brut_label and montant_brut_label.isVisible():
+                    txt = montant_brut_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    return float(txt) if txt else 0.0
+            return 0.0
+        
         def get_red_amt(key):
             garantie_data = self.result_labels.get(key)
             if garantie_data:
@@ -1515,6 +1524,18 @@ class VehicleForm(QDialog):
         def clean_input(widget):
             txt = widget.text().replace(" ", "").replace(",", ".")
             return float(txt) if txt else 0.0
+    
+        # Récupérer les montants bruts
+        amt_rc = get_fleet_amt("rc")
+        amt_dr = get_fleet_amt("dr")
+        amt_vol = get_fleet_amt("vol")
+        amt_vb = get_fleet_amt("vb")
+        amt_in = get_fleet_amt("in")
+        amt_bris = get_fleet_amt("bris")
+        amt_ar = get_fleet_amt("ar")
+        amt_dta = get_fleet_amt("dta")
+        amt_ipt = get_fleet_amt("ipt")
+
         
         data = {
             # --- IDENTIFICATION & PROPRIÉTAIRE ---
@@ -1612,6 +1633,16 @@ class VehicleForm(QDialog):
             "red_ar": get_taux("ar"),
             "red_dta": get_taux("dta"),
             "red_ipt": get_taux("ipt"),
+
+            "amt_fleet_rc_val": amt_rc,
+            "amt_fleet_dr_val": amt_dr,
+            "amt_fleet_vol_val": amt_vol,
+            "amt_fleet_vb_val": amt_vb,
+            "amt_fleet_in_val": amt_in,
+            "amt_fleet_bris_val": amt_bris,
+            "amt_fleet_ar_val": amt_ar,
+            "amt_fleet_dta_val": amt_dta,
+            "amt_fleet_ipt_val": amt_ipt,
         }
         
         # DEBUG: Afficher les données avant sauvegarde
@@ -1620,6 +1651,12 @@ class VehicleForm(QDialog):
             if key.startswith(('owner_id', 'amt', 'prime', 'reduction', 'carte', 'accessoires', 'tva', 'asac', 'vignette', 'pttc')):
                 print(f"{key}: {value}")
         print("============================")
+
+        print("=== INITIALISATION DES CHAMPS DE FLOTTE ===")
+        for key in ['amt_fleet_rc_val', 'amt_fleet_dr_val', 'amt_fleet_vol_val', 
+                'amt_fleet_vb_val', 'amt_fleet_in_val', 'amt_fleet_bris_val',
+                'amt_fleet_ar_val', 'amt_fleet_dta_val', 'amt_fleet_ipt_val']:
+            print(f"   {key}: {data.get(key, 0)}")
         
         return data
 

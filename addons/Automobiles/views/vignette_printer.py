@@ -267,9 +267,12 @@ class VignettePrinter:
         story.append(Paragraph("Attestation de paiement du Droit de Timbre Automobile", styles['MainTitle']))
         story.append(Spacer(1, 4))
         
+
         story.append(Paragraph("Document officiel - Valeur légale", styles['SubTitle']))
+
+        prime_totale = self.data.get('vignette', self.data.get('vignette', 0))
+        story.append(Paragraph(f"Montant de la vignette : {prime_totale} FCFA", styles['Prime'] if self.is_paid else styles['Prime_non_paye']))
         story.append(Spacer(1, 4))
-        
         # === CADRE DE VALIDITÉ ===
         story.append(self.create_validity_box(styles))
         story.append(Spacer(1, 12))
@@ -327,58 +330,77 @@ class VignettePrinter:
             QCoreApplication.processEvents()
 
     def create_header(self, styles):
-        """Crée l'en-tête du document avec logo et informations"""
+        """Crée l'en-tête du document avec logo et informations alignés à droite"""
+        
+        from datetime import datetime
         
         # 1. Préparation du logo
-        # Remplacez 'logo_ams.png' par le chemin réel de l'image sur votre machine
-        logo_path = "addons/Automobiles/static/logo.png" 
+        logo_path = "addons/Automobiles/static/logo.png"
         try:
-            # Ajustez la largeur (width) et la hauteur (height) selon vos besoins
-            logo = Image(logo_path, width=20*mm, height=15*mm)
-            logo.hAlign = 'LEFT'
+            logo = Image(logo_path, width=25*mm, height=20*mm)
+            logo.hAlign = 'RIGHT'
         except:
-            logo = "LOGO NON TROUVÉ" # Sécurité si l'image est manquante
-
-        # Ajouter un indicateur de statut dans l'en-tête
+            logo = Paragraph("LOGO", styles['Normal'])
+        
+        # Ajouter un indicateur de statut
         status_indicator = "🔴" if not self.is_paid else "🟢"
         status_text = "PAYÉ" if self.is_paid else "IMPAYÉ"
         
-        # 2. Structure des données (On insère l'objet logo dans la cellule sous le titre)
+        # Date d'impression
+        date_impression = datetime.now().strftime("%d/%m/%Y à %H:%M:%S")
+        
+        # 2. Structure des données - Tout à droite
         header_data = [
-            ["AMS ASSURANCES", f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}"],
-            [logo, f"N° Police: {self.data.get('numero_police', 'N/A')}"],
-            ["Assureur agréé", f"{status_indicator} Statut: {status_text}"],
+            [logo],
+            [f"N° Police: {self.data.get('numero_police', 'N/A')}"],
+            [f"STATUT: {status_indicator} {status_text}"],
+            [f"Assureur agréé"],
+            [f"{date_impression}"],
         ]
         
-        header_table = Table(header_data, colWidths=[90*mm, 70*mm])
+        header_table = Table(header_data, colWidths=[160*mm])
         header_table.setStyle(TableStyle([
-            # Style du titre principal
-            ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (0, 0), 16),
-            ('TEXTCOLOR', (0, 0), (0, 0), self.colors['primary']),
+            # Logo
+            ('ALIGN', (0, 0), (0, 0), 'RIGHT'),
+            ('VALIGN', (0, 0), (0, 0), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (0, 0), 0),
+            ('BOTTOMPADDING', (0, 0), (0, 0), 5),
             
-            # Alignement du logo (cellule 0, 1)
-            ('LEFTPADDING', (0, 1), (0, 1), 0),
-            ('TOPPADDING', (0, 1), (0, 1), 5),
+            # Numéro de police
+            ('FONTNAME', (0, 1), (0, 1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 1), (0, 1), 9),
+            ('TEXTCOLOR', (0, 1), (0, 1), self.colors['primary']),
+            ('ALIGN', (0, 1), (0, 1), 'RIGHT'),
+            ('TOPPADDING', (0, 1), (0, 1), 10),
             ('BOTTOMPADDING', (0, 1), (0, 1), 5),
-
-            # Style du texte de droite
-            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-            ('FONTSIZE', (1, 0), (1, -1), 9),
-            ('TEXTCOLOR', (1, 0), (1, -1), self.colors['gray']),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             
-            # Style du statut
-            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('TEXTCOLOR', (1, 2), (1, 2), self.colors['success'] if self.is_paid else self.colors['danger']),
-            ('FONTNAME', (1, 2), (1, 2), 'Helvetica-Bold'),
+            # Statut
+            ('FONTNAME', (0, 2), (0, 2), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 2), (0, 2), 11),
+            ('TEXTCOLOR', (0, 2), (0, 2), self.colors['success'] if self.is_paid else self.colors['danger']),
+            ('ALIGN', (0, 2), (0, 2), 'RIGHT'),
+            ('TOPPADDING', (0, 2), (0, 2), 5),
+            ('BOTTOMPADDING', (0, 2), (0, 2), 3),
+            
+            # Assureur agréé
+            ('FONTNAME', (0, 3), (0, 3), 'Helvetica'),
+            ('FONTSIZE', (0, 3), (0, 3), 9),
+            ('TEXTCOLOR', (0, 3), (0, 3), self.colors['gray']),
+            ('ALIGN', (0, 3), (0, 3), 'RIGHT'),
+            ('TOPPADDING', (0, 3), (0, 3), 3),
+            ('BOTTOMPADDING', (0, 3), (0, 3), 3),
+            
+            # Date d'impression
+            ('FONTNAME', (0, 4), (0, 4), 'Helvetica'),
+            ('FONTSIZE', (0, 4), (0, 4), 8),
+            ('TEXTCOLOR', (0, 4), (0, 4), self.colors['gray']),
+            ('ALIGN', (0, 4), (0, 4), 'RIGHT'),
+            ('TOPPADDING', (0, 4), (0, 4), 5),
+            ('BOTTOMPADDING', (0, 4), (0, 4), 10),
         ]))
         
         return header_table
-        
-        # Les autres méthodes (create_validity_box, create_amount_section, etc.)
-        # restent identiques à la version précédente...
-    
+
     def format_date(self, date):
         """Formate une date au format JJ/MM/AAAA"""
         if date and date != 'N/A' and date != '':
@@ -470,6 +492,24 @@ class VignettePrinter:
                 alignment=TA_CENTER,
                 leading=9
             ),
+            'Prime': ParagraphStyle(
+                'Prime',
+                parent=styles['Normal'],
+                fontSize=12,
+                fontName='Helvetica',
+                textColor=self.colors['success'],
+                alignment=TA_CENTER,
+                leading=9
+            ),
+            'Prime_non_paye': ParagraphStyle(
+                'Prime_non_paye',
+                parent=styles['Normal'],
+                fontSize=12,
+                fontName='Helvetica',
+                textColor=self.colors['danger'],
+                alignment=TA_CENTER,
+                leading=9
+            ),
         }
         
         return custom_styles
@@ -530,21 +570,39 @@ class VignettePrinter:
             ("Catégorie", self.data.get('categorie', 'Particulier')),
         ]
         
+        # Déterminer la couleur de la puissance
+        puissance_color = colors.HexColor('#10b981') if self.is_paid else colors.HexColor('#ef4444')
+        
         # Créer le tableau
         table_data = []
+        
         for i, (label, value) in enumerate(vehicle_info):
             if i % 2 == 0:
-                # Nouvelle ligne, deux colonnes
                 if i + 1 < len(vehicle_info):
                     label2, value2 = vehicle_info[i + 1]
+                    
+                    # Créer un Paragraph pour la valeur avec style spécial si c'est la puissance
+                    if label == "Puissance":
+                        value_para = Paragraph(f'<font color="{puissance_color.hexval()}"><b>{value}</b></font>', 
+                                            styles['TableValue'])
+                    else:
+                        value_para = Paragraph(value, styles['TableValue'])
+                    
+                    if label2 == "Puissance":
+                        value2_para = Paragraph(f'<font color="{puissance_color.hexval()}"><b>{value2}</b></font>', 
+                                            styles['TableValue'])
+                    else:
+                        value2_para = Paragraph(value2, styles['TableValue'])
+                    
                     table_data.append([
                         Paragraph(f"<b>{label}</b>", styles['TableLabel']),
-                        Paragraph(value, styles['TableValue']),
+                        value_para,
                         Paragraph(f"<b>{label2}</b>", styles['TableLabel']),
-                        Paragraph(value2, styles['TableValue'])
+                        value2_para
                     ])
         
         vehicle_table = Table(table_data, colWidths=[35*mm, 40*mm, 35*mm, 40*mm])
+        
         vehicle_table.setStyle(TableStyle([
             ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
             ('FONTSIZE', (0, 0), (-1, -1), 9),
@@ -613,8 +671,7 @@ class VignettePrinter:
         
         signature_data = [
             ["", ""],
-            [f"Fait à Yaoundé, le {today}", "Pour AMS ASSURANCES"],
-            ["", "Le Directeur Général"],
+            [f"Fait à Yaoundé, le {today}", "Pour la COMPAGNIE"],
             ["", "_________________________"],
             ["", "Cachet de l'assureur"],
         ]
@@ -633,15 +690,3 @@ class VignettePrinter:
         
         return signature_table
 
-    # def create_footer(self, styles):
-    #     """Crée le pied de page professionnel"""
-        
-    #     footer_text = """
-    #     <font size="7" color="#6b7280">
-    #     AMS ASSURANCES - Agrément n° 2025/001/MINFI<br/>
-    #     Siège social : Douala - Cameroun | Tél : (+237) 233 42 42 42 | Email : contact@amsassurances.cm<br/>
-    #     Document authentifié par signature électronique - Toute reproduction est interdite
-    #     </font>
-    #     """
-        
-    #     return Paragraph(footer_text, styles['Footer'])

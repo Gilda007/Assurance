@@ -24,11 +24,13 @@ class Contrat(Base):
     # --- Relations ---
     owner_id = Column(Integer, ForeignKey("contacts.id"), nullable=False)
     company_id = Column(Integer, ForeignKey("automobile_compagnies.id"), nullable=False)
-    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=False)
+    vehicle_id = Column(Integer, ForeignKey("vehicles.id"), nullable=True)
     fleet_id = Column(Integer, ForeignKey("fleets.id"), nullable=True)
 
     # --- Statut du contrat ---
     statut = Column(SQLEnum(ContractStatus), default=ContractStatus.PROFORMAT)
+    type_contrat = Column(String(20), default="VEHICULE")
+    contrat_flotte_id = Column(Integer, nullable=True)
     date_proformat = Column(DateTime, default=datetime.now)
     date_debut = Column(DateTime, nullable=True)
     date_fin = Column(DateTime, nullable=True)

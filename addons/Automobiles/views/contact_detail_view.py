@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QTabWidget, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QScrollArea, QGridLayout,
-    QDialog, QGraphicsDropShadowEffect, QLineEdit
+    QDialog, QGraphicsDropShadowEffect, QApplication
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont, QColor
@@ -30,7 +30,7 @@ class ContactDetailView(QDialog):
         self.parent_window = parent
         
         self.setWindowTitle(f"Détails du contact - {contact.nom} {contact.prenom or ''}")
-        self.setMinimumSize(1000, 700)
+        self.setMinimumSize(1100, 700)
         self.resize(1200, 800)
         self.setup_ui()
         self.load_data()
@@ -503,6 +503,29 @@ class ContactDetailView(QDialog):
         """)
         self.btn_new_vehicle.clicked.connect(self._on_new_vehicle)
 
+        # ⭐ NOUVEAU: Bouton Impression groupée
+        self.btn_batch_print = QPushButton("🖨️ Impression groupée")
+        self.btn_batch_print.setCursor(Qt.PointingHandCursor)
+        self.btn_batch_print.setEnabled(False)  # Désactivé par défaut
+        self.btn_batch_print.setStyleSheet("""
+            QPushButton {
+                background-color: #8b5cf6;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #7c3aed;
+            }
+            QPushButton:disabled {
+                background-color: #cbd5e1;
+            }
+        """)
+        self.btn_batch_print.clicked.connect(self._on_batch_print)
+
         # Bouton Importer
         self.btn_import_vehicle = QPushButton("📥 Importer")
         self.btn_import_vehicle.setCursor(Qt.PointingHandCursor)
@@ -523,15 +546,16 @@ class ContactDetailView(QDialog):
         self.btn_import_vehicle.clicked.connect(self._on_import_vehicle)
 
         toolbar_layout.addWidget(self.btn_new_vehicle)
+        toolbar_layout.addWidget(self.btn_batch_print)
         toolbar_layout.addWidget(self.btn_import_vehicle)
 
         layout.addWidget(toolbar)
 
         # Tableau avec redimensionnement automatique
         self.vehicules_table = QTableWidget()
-        self.vehicules_table.setColumnCount(7)
+        self.vehicules_table.setColumnCount(8)
         self.vehicules_table.setHorizontalHeaderLabels([
-            "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Contrat", "Actions"
+            "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Contrat", "Code", "Actions"
         ])
         self.vehicules_table.setAlternatingRowColors(True)
         self.vehicules_table.setSelectionBehavior(QTableWidget.SelectRows)
@@ -549,7 +573,7 @@ class ContactDetailView(QDialog):
         return tab
 
     def _create_flottes_tab(self):
-        """Onglet flottes avec boutons d'import et création"""
+        """Onglet flottes avec boutons d'import, création et impression groupée"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(20, 20, 20, 20)
@@ -591,6 +615,29 @@ class ContactDetailView(QDialog):
         """)
         self.btn_new_fleet.clicked.connect(self._on_new_fleet)
 
+        # ⭐ NOUVEAU: Bouton Impression groupée pour les flottes
+        self.btn_batch_print_fleets = QPushButton("🖨️ Impression groupée")
+        self.btn_batch_print_fleets.setCursor(Qt.PointingHandCursor)
+        self.btn_batch_print_fleets.setEnabled(False)  # Désactivé par défaut
+        self.btn_batch_print_fleets.setStyleSheet("""
+            QPushButton {
+                background-color: #8b5cf6;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #7c3aed;
+            }
+            QPushButton:disabled {
+                background-color: #cbd5e1;
+            }
+        """)
+        self.btn_batch_print_fleets.clicked.connect(self._on_batch_print_fleets)
+
         self.btn_import_flotte = QPushButton("📥 Importer")
         self.btn_import_flotte.setCursor(Qt.PointingHandCursor)
         self.btn_import_flotte.setStyleSheet("""
@@ -607,26 +654,30 @@ class ContactDetailView(QDialog):
                 background-color: #059669;
             }
         """)
-        self.btn_import_vehicle.clicked.connect(self._on_import_vehicle)
+        self.btn_import_flotte.clicked.connect(self._on_import_fleet)
 
         toolbar_layout.addWidget(self.btn_new_fleet)
+        toolbar_layout.addWidget(self.btn_batch_print_fleets)
         toolbar_layout.addWidget(self.btn_import_flotte)
 
         layout.addWidget(toolbar)
 
-        # Tableau avec 6 colonnes (incluant Actions)
+        # Tableau avec 7 colonnes (incluant sélection et Actions)
         self.flottes_table = QTableWidget()
-        self.flottes_table.setColumnCount(6)  # ← Changé de 5 à 6
+        self.flottes_table.setColumnCount(7)  # +1 pour la checkbox
         self.flottes_table.setHorizontalHeaderLabels([
-            "Nom", "Code", "Assureur", "Véhicules", "Statut", "Actions"  # ← Ajout de "Actions"
+            "✓", "Nom", "Code", "Assureur", "Véhicules", "Statut", "Actions"
         ])
+        self.flottes_table.setColumnWidth(0, 40)  # Largeur fixe pour la checkbox
         self.flottes_table.setAlternatingRowColors(True)
         self.flottes_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.flottes_table.setShowGrid(False)
-        self.flottes_table.setRowHeight(0, 70)  # Hauteur de ligne plus grande pour les actions
         self.flottes_table.verticalHeader().setVisible(False)
         self.flottes_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.flottes_table.setStyleSheet(self.contrats_table.styleSheet())
+        
+        # Connecter le signal de changement de sélection
+        self.flottes_table.itemChanged.connect(self._on_fleet_selection_changed)
 
         layout.addWidget(self.flottes_table)
 
@@ -635,6 +686,58 @@ class ContactDetailView(QDialog):
         layout.addWidget(summary_frame)
 
         return tab
+
+    def _on_fleet_selection_changed(self, item):
+        """Active/désactive le bouton d'impression selon la sélection des flottes"""
+        if item and item.column() == 0:
+            has_selection = False
+            for row in range(self.flottes_table.rowCount()):
+                check_item = self.flottes_table.item(row, 0)
+                if check_item and check_item.checkState() == Qt.Checked:
+                    has_selection = True
+                    break
+            
+            self.btn_batch_print_fleets.setEnabled(has_selection)
+
+
+    def _on_batch_print_fleets(self):
+        """Gère l'impression groupée des flottes sélectionnées - Génère directement les PDF"""
+        selected_fleets = []
+        
+        for row in range(self.flottes_table.rowCount()):
+            check_item = self.flottes_table.item(row, 0)
+            if check_item and check_item.checkState() == Qt.Checked:
+                fleet_id = check_item.data(Qt.UserRole)
+                selected_fleets.append({
+                    'id': fleet_id,
+                    'nom': self.flottes_table.item(row, 1).text(),
+                    'code': self.flottes_table.item(row, 2).text(),
+                })
+        
+        if not selected_fleets:
+            QMessageBox.warning(self, "Aucune sélection", 
+                            "Veuillez sélectionner au moins une flotte à imprimer.")
+            return
+        
+        # Lancer directement l'impression sans dialogue de sélection
+        self._start_fleet_batch_print(selected_fleets)
+
+
+    def _start_fleet_batch_print(self, fleets_data):
+        """Lance l'impression groupée des flottes (rapport PDF uniquement)"""
+        from addons.Automobiles.views.fleet_batch_print_manager import FleetBatchPrintManager
+        
+        if not hasattr(self, 'fleet_batch_print_manager'):
+            self.fleet_batch_print_manager = FleetBatchPrintManager(self.controller, self)
+        
+        # Passer directement les documents par défaut (rapport de flotte)
+        # Pas de dialogue, on imprime directement le rapport
+        self.fleet_batch_print_manager.start_batch_print(fleets_data)
+
+
+    def _on_import_fleet(self):
+        """Importe des flottes"""
+        QMessageBox.information(self, "Importer flottes", "Fonctionnalité à implémenter")
 
     def _create_documents_tab(self):
         """Onglet documents"""
@@ -827,12 +930,8 @@ class ContactDetailView(QDialog):
                 
                 self.contrats_table.setItem(row, 0, QTableWidgetItem(contrat.numero_police or "—"))
                 self.contrats_table.setItem(row, 1, QTableWidgetItem(vehicule.immatriculation if vehicule else "—"))
-                self.contrats_table.setItem(row, 2, QTableWidgetItem(
-                    vehicule.date_debut.strftime("%d/%m/%Y") if vehicule.date_debut else "—"
-                ))
-                self.contrats_table.setItem(row, 3, QTableWidgetItem(
-                    vehicule.date_fin.strftime("%d/%m/%Y") if vehicule.date_fin else "—"
-                ))
+                self.contrats_table.setItem(row, 2, QTableWidgetItem(contrat.date_debut.strftime("%d/%m/%Y") if contrat.date_debut else "—"))
+                self.contrats_table.setItem(row, 3, QTableWidgetItem(contrat.date_fin.strftime("%d/%m/%Y") if contrat.date_fin else "—"))
                 
                 prime = float(contrat.prime_totale_ttc or 0)
                 total_primes += prime
@@ -866,9 +965,8 @@ class ContactDetailView(QDialog):
             traceback.print_exc()
 
     def load_vehicules(self):
-        """Charge les véhicules du contact"""
+        """Charge les véhicules du contact avec colonne de sélection"""
         try:
-            # Récupérer les véhicules
             result = self.controller.vehicles.get_vehicles_by_owner_id(self.contact.id)
             if result is None:
                 vehicules = []
@@ -884,19 +982,29 @@ class ContactDetailView(QDialog):
                 self.vehicules_table.insertRow(row)
                 self.vehicules_table.setRowHeight(row, 60)
 
-                self.vehicules_table.setItem(row, 0, QTableWidgetItem(v.immatriculation or "—"))
-                self.vehicules_table.setItem(row, 1, QTableWidgetItem(v.marque or "—"))
-                self.vehicules_table.setItem(row, 2, QTableWidgetItem(v.modele or "—"))
-                self.vehicules_table.setItem(row, 3, QTableWidgetItem(str(v.annee or "—")))
-                self.vehicules_table.setItem(row, 4, QTableWidgetItem(v.energie or "—"))
+                # ⭐ Checkbox de sélection
+                check_item = QTableWidgetItem()
+                check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                check_item.setCheckState(Qt.Unchecked)
+                check_item.setData(Qt.UserRole, v.id)  # Stocker l'ID
+                self.vehicules_table.setItem(row, 0, check_item)
+
+                self.vehicules_table.setItem(row, 1, QTableWidgetItem(v.immatriculation or "—"))
+                self.vehicules_table.setItem(row, 2, QTableWidgetItem(v.marque or "—"))
+                self.vehicules_table.setItem(row, 3, QTableWidgetItem(v.modele or "—"))
+                self.vehicules_table.setItem(row, 4, QTableWidgetItem(str(v.annee or "—")))
+                self.vehicules_table.setItem(row, 5, QTableWidgetItem(v.energie or "—"))
                 
                 contrat = self.controller.contracts.get_active_contract_by_vehicle(v.id)
-                self.vehicules_table.setItem(row, 5, QTableWidgetItem(contrat.numero_police if contrat else "—"))
+                self.vehicules_table.setItem(row, 6, QTableWidgetItem(contrat.numero_police if contrat else "—"))
                 
-                # Actions - UN SEUL appel
-                actions_widget = self._create_actions_widget_for_vehicle(v)  # ← Appeler la méthode
-                self.vehicules_table.setCellWidget(row, 6, actions_widget)
+                # Actions
+                actions_widget = self._create_actions_widget_for_vehicle(v)
+                self.vehicules_table.setCellWidget(row, 7, actions_widget)
 
+            # Activer/désactiver le bouton d'impression selon la sélection
+            self.vehicules_table.itemChanged.connect(self._on_vehicle_selection_changed)
+            
             # Mettre à jour le résumé
             total_label = self.findChild(QLabel, "total_vehicules")
             if total_label:
@@ -909,13 +1017,23 @@ class ContactDetailView(QDialog):
             import traceback
             traceback.print_exc()
 
+
+    def _on_vehicle_selection_changed(self, item):
+        """Active/désactive le bouton d'impression selon la sélection"""
+        if item and item.column() == 0:
+            # Vérifier s'il y a au moins un véhicule sélectionné
+            has_selection = False
+            for row in range(self.vehicules_table.rowCount()):
+                check_item = self.vehicules_table.item(row, 0)
+                if check_item and check_item.checkState() == Qt.Checked:
+                    has_selection = True
+                    break
+            
+            self.btn_batch_print.setEnabled(has_selection)
+
     def _create_actions_widget_for_vehicle(self, vehicle):
         """Crée les boutons d'action pour un véhicule"""
         container = QWidget()
-        # Supprimer les limites de taille pour occuper toute la cellule
-        # container.setFixedHeight(45)  # ← À SUPPRIMER
-        # container.setMinimumWidth(120)  # ← À SUPPRIMER
-        
         container.setStyleSheet("""
             QWidget {
                 background: transparent;
@@ -924,24 +1042,23 @@ class ContactDetailView(QDialog):
         """)
         
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(4, 4, 4, 4)  # Petites marges internes
+        layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(8)
-        layout.setAlignment(Qt.AlignCenter)  # Centrer les boutons
-        
-        # Le layout va s'étendre pour remplir le container
-        # et le container va s'étendre pour remplir la cellule
+        layout.setAlignment(Qt.AlignCenter)
         
         # Bouton Voir
         btn_view = QPushButton("👁️")
-        btn_view.setFixedSize(32, 32)
+        btn_view.setFixedSize(50, 32)
         btn_view.setCursor(Qt.PointingHandCursor)
         btn_view.setToolTip("Voir les détails")
         btn_view.setStyleSheet("""
             QPushButton {
+                font-size: 18px;
+                font-weight: bold;
                 border: 1px solid #3498db;
-                border-radius: 16px;
-                font-size: 14px;
-                background: transparent;
+                border-radius: 6px;
+                background-color: transparent;
+                color: #3498db;
             }
             QPushButton:hover {
                 background-color: #3498db;
@@ -952,18 +1069,20 @@ class ContactDetailView(QDialog):
         
         # Bouton Modifier
         btn_edit = QPushButton("✏️")
-        btn_edit.setFixedSize(32, 32)
+        btn_edit.setFixedSize(50, 32)
         btn_edit.setCursor(Qt.PointingHandCursor)
         btn_edit.setToolTip("Modifier le véhicule")
         btn_edit.setStyleSheet("""
             QPushButton {
-                border: 1px solid #f1c40f;
-                border-radius: 16px;
-                font-size: 14px;
-                background: transparent;
+                font-size: 18px;
+                font-weight: bold;
+                border: 1px solid #f39c12;
+                border-radius: 6px;
+                background-color: transparent;
+                color: #f39c12;
             }
             QPushButton:hover {
-                background-color: #f1c40f;
+                background-color: #f39c12;
                 color: white;
             }
         """)
@@ -971,16 +1090,20 @@ class ContactDetailView(QDialog):
         
         # Bouton Supprimer
         btn_delete = QPushButton("🗑️")
-        btn_delete.setFixedSize(32, 32)
+        btn_delete.setFixedSize(50, 32)
         btn_delete.setCursor(Qt.PointingHandCursor)
         btn_delete.setToolTip("Supprimer le véhicule")
         btn_delete.setStyleSheet("""
             QPushButton {
+                font-size: 18px;
+                font-weight: bold;
                 border: 1px solid #e74c3c;
-                border-radius: 16px;
-                font-size: 14px;
+                border-radius: 6px;
+                background-color: transparent;
+                color: #e74c3c;
             }
             QPushButton:hover {
+                background-color: #e74c3c;
                 color: white;
             }
         """)
@@ -991,9 +1114,9 @@ class ContactDetailView(QDialog):
         layout.addWidget(btn_delete)
         
         return container
-         
+    
     def load_flottes(self):
-        """Charge les flottes du contact"""
+        """Charge les flottes du contact avec colonne de sélection"""
         try:
             # Vider le tableau AVANT de parcourir les données
             self.flottes_table.setRowCount(0)
@@ -1003,11 +1126,12 @@ class ContactDetailView(QDialog):
                 print("❌ Controller.fleets non disponible")
                 return
             
-            # Mettre à jour le nombre de colonnes (6 au lieu de 5)
-            self.flottes_table.setColumnCount(6)
+            # Mettre à jour le nombre de colonnes (7 au lieu de 6)
+            self.flottes_table.setColumnCount(7)
             self.flottes_table.setHorizontalHeaderLabels([
-                "Nom", "Code", "Assureur", "Véhicules", "Statut", "Actions"
+                "✓", "Nom", "Code", "Assureur", "Véhicules", "Statut", "Actions"
             ])
+            self.flottes_table.setColumnWidth(0, 40)
             
             # Récupérer les flottes
             all_fleets = self.controller.fleets.get_fleets_by_owner(self.contact.id)
@@ -1038,6 +1162,8 @@ class ContactDetailView(QDialog):
                     print(f"Erreur chargement compagnies: {e}")
             
             # Remplir le tableau
+            self.flottes_table.blockSignals(True)
+            
             for fleet in all_fleets:
                 # Vérifier l'appartenance
                 owner_id = getattr(fleet, 'owner_id', None)
@@ -1048,13 +1174,20 @@ class ContactDetailView(QDialog):
                 self.flottes_table.insertRow(row)
                 self.flottes_table.setRowHeight(row, 70)
                 
+                # ⭐ Checkbox de sélection
+                check_item = QTableWidgetItem()
+                check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                check_item.setCheckState(Qt.Unchecked)
+                check_item.setData(Qt.UserRole, fleet.id)  # Stocker l'ID de la flotte
+                self.flottes_table.setItem(row, 0, check_item)
+                
                 # Nom de la flotte
                 nom_flotte = getattr(fleet, 'nom_flotte', None) or getattr(fleet, 'nom', '—')
-                self.flottes_table.setItem(row, 0, QTableWidgetItem(nom_flotte))
+                self.flottes_table.setItem(row, 1, QTableWidgetItem(nom_flotte))
                 
                 # Code flotte
                 code_flotte = getattr(fleet, 'code_flotte', None) or getattr(fleet, 'code', '—')
-                self.flottes_table.setItem(row, 1, QTableWidgetItem(code_flotte))
+                self.flottes_table.setItem(row, 2, QTableWidgetItem(code_flotte))
                 
                 # Compagnie
                 compagnie_nom = '—'
@@ -1062,7 +1195,7 @@ class ContactDetailView(QDialog):
                     compagnie_nom = getattr(fleet.compagnie, 'nom', '—')
                 elif hasattr(fleet, 'assureur') and fleet.assureur:
                     compagnie_nom = compagnies_cache.get(fleet.assureur, str(fleet.assureur))
-                self.flottes_table.setItem(row, 2, QTableWidgetItem(compagnie_nom))
+                self.flottes_table.setItem(row, 3, QTableWidgetItem(compagnie_nom))
                 
                 # Nombre de véhicules
                 nb_vehicules = 0
@@ -1070,17 +1203,22 @@ class ContactDetailView(QDialog):
                     nb_vehicules = len(fleet.vehicles)
                 elif hasattr(fleet, 'vehicules'):
                     nb_vehicules = len(fleet.vehicules)
-                self.flottes_table.setItem(row, 3, QTableWidgetItem(str(nb_vehicules)))
+                self.flottes_table.setItem(row, 4, QTableWidgetItem(str(nb_vehicules)))
                 
                 # Statut
                 statut = getattr(fleet, 'statut', 'Actif')
                 statut_item = QTableWidgetItem("✅ Actif" if str(statut).upper() == "ACTIF" else "❌ Inactif")
                 statut_item.setForeground(QColor("#10b981" if str(statut).upper() == "ACTIF" else "#ef4444"))
-                self.flottes_table.setItem(row, 4, statut_item)
+                self.flottes_table.setItem(row, 5, statut_item)
                 
                 # Actions
                 actions_widget = self._create_actions_widget_for_fleet(fleet)
-                self.flottes_table.setCellWidget(row, 5, actions_widget)
+                self.flottes_table.setCellWidget(row, 6, actions_widget)
+            
+            self.flottes_table.blockSignals(False)
+            
+            # Connecter le signal de sélection
+            self.flottes_table.itemChanged.connect(self._on_fleet_selection_changed)
             
             # Mettre à jour les résumés
             total_label = self.findChild(QLabel, "total_flottes")
@@ -1089,13 +1227,16 @@ class ContactDetailView(QDialog):
             
             self._update_card_value("flottes", str(self.flottes_table.rowCount()))
             
+            # Désactiver le bouton d'impression par défaut
+            self.btn_batch_print_fleets.setEnabled(False)
+            
             print(f"✅ {self.flottes_table.rowCount()} flottes chargées pour le contact {self.contact.id}")
 
         except Exception as e:
             print(f"❌ Erreur chargement flottes: {e}")
-            import traceback  # ← Importer ici si pas déjà en haut
+            import traceback
             traceback.print_exc()
-            
+
     def _create_actions_widget_for_fleet(self, fleet):
         """Crée les boutons d'action pour une flotte"""
         container = QWidget()
@@ -1114,76 +1255,84 @@ class ContactDetailView(QDialog):
         
         # Bouton Voir les détails
         btn_view = QPushButton("👁️")
-        btn_view.setFixedSize(32, 32)
+        btn_view.setFixedSize(50, 32)
         btn_view.setCursor(Qt.PointingHandCursor)
         btn_view.setToolTip("Voir les détails de la flotte")
         btn_view.setStyleSheet("""
             QPushButton {
-                background-color: #3498db;
-                color: white;
-                border: none;
+                font-size: 18px;
+                font-weight: bold;
+                border: 1px solid #3498db;
                 border-radius: 6px;
-                font-size: 14px;
+                background-color: transparent;
+                color: #3498db;
             }
             QPushButton:hover {
-                background-color: #2980b9;
+                background-color: #3498db;
+                color: white;
             }
         """)
         btn_view.clicked.connect(lambda: self._view_fleet_detail(fleet))
         
         # Bouton Modifier
         btn_edit = QPushButton("✏️")
-        btn_edit.setFixedSize(32, 32)
+        btn_edit.setFixedSize(50, 32)
         btn_edit.setCursor(Qt.PointingHandCursor)
         btn_edit.setToolTip("Modifier la flotte")
         btn_edit.setStyleSheet("""
             QPushButton {
-                background-color: #f39c12;
-                color: white;
-                border: none;
+                font-size: 18px;
+                font-weight: bold;
+                border: 1px solid #f39c12;
                 border-radius: 6px;
-                font-size: 14px;
+                background-color: transparent;
+                color: #f39c12;
             }
             QPushButton:hover {
-                background-color: #e67e22;
+                background-color: #f39c12;
+                color: white;
             }
         """)
         btn_edit.clicked.connect(lambda: self._edit_fleet(fleet))
         
         # Bouton Supprimer
         btn_delete = QPushButton("🗑️")
-        btn_delete.setFixedSize(32, 32)
+        btn_delete.setFixedSize(50, 32)
         btn_delete.setCursor(Qt.PointingHandCursor)
         btn_delete.setToolTip("Supprimer la flotte")
         btn_delete.setStyleSheet("""
             QPushButton {
-                background-color: #e74c3c;
-                color: white;
-                border: none;
+                font-size: 18px;
+                font-weight: bold;
+                border: 1px solid #e74c3c;
                 border-radius: 6px;
-                font-size: 14px;
+                background-color: transparent;
+                color: #e74c3c;
             }
             QPushButton:hover {
-                background-color: #c0392b;
+                background-color: #e74c3c;
+                color: white;
             }
         """)
         btn_delete.clicked.connect(lambda: self._delete_fleet(fleet))
         
         # Bouton Gérer les véhicules
         btn_vehicles = QPushButton("🚗")
-        btn_vehicles.setFixedSize(32, 32)
+        btn_vehicles.setFixedSize(50, 32)
         btn_vehicles.setCursor(Qt.PointingHandCursor)
         btn_vehicles.setToolTip("Gérer les véhicules de la flotte")
         btn_vehicles.setStyleSheet("""
             QPushButton {
-                background-color: #2ecc71;
-                color: white;
-                border: none;
+                font-size: 18px;
+                font-weight: bold;
+                border: 1px solid #2ecc71;
                 border-radius: 6px;
-                font-size: 14px;
+                background-color: transparent;
+                color: #2ecc71;
             }
             QPushButton:hover {
                 background-color: #27ae60;
+                color: white;
             }
         """)
         btn_vehicles.clicked.connect(lambda: self._manage_fleet_vehicles(fleet))
@@ -1583,7 +1732,6 @@ class ContactDetailView(QDialog):
             from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(self, "Erreur", f"Impossible d'afficher les détails du véhicule : {e}")
 
-
     def _on_edit_click(self):
         """Ouvre le formulaire d'édition"""
         from addons.Automobiles.views.contact_form_view import ContactForm
@@ -1592,6 +1740,149 @@ class ContactDetailView(QDialog):
             self.contact_updated.emit()
             self.close()
 
+    def _edit_vehicle(self, vehicle):
+        """Ouvre le formulaire d'édition d'un véhicule"""
+        try:
+            from addons.Automobiles.views.automobile_form_view import VehicleForm
+            
+            # Récupérer l'utilisateur courant
+            current_user = getattr(self.controller, 'current_user', None)
+            
+            # Ouvrir le formulaire en mode édition
+            dialog = VehicleForm(
+                controller=self.controller,
+                contacts_list=[],
+                current_user=current_user,
+                vehicle_to_edit=vehicle,
+                mode="edit"
+            )
+            
+            if dialog.exec():
+                # Recharger les données après modification
+                self.load_vehicules()
+                self.load_contrats()
+                self._update_summary_cards()
+                QMessageBox.information(self, "Succès", "Véhicule modifié avec succès!")
+                
+        except Exception as e:
+            print(f"Erreur édition véhicule: {e}")
+            QMessageBox.warning(self, "Erreur", f"Impossible de modifier le véhicule: {str(e)}")
+
+    def _on_batch_print(self):
+        """Gère l'impression groupée des véhicules sélectionnés"""
+        selected_vehicles = []
+        
+        for row in range(self.vehicules_table.rowCount()):
+            check_item = self.vehicules_table.item(row, 0)
+            if check_item and check_item.checkState() == Qt.Checked:
+                vehicle_id = check_item.data(Qt.UserRole)
+                # ⭐ Passer l'ID complet du véhicule, pas seulement les données d'affichage
+                selected_vehicles.append({
+                    'id': vehicle_id,
+                    'immatriculation': self.vehicules_table.item(row, 1).text(),
+                })
+        
+        if not selected_vehicles:
+            QMessageBox.warning(self, "Aucune sélection", 
+                            "Veuillez sélectionner au moins un véhicule à imprimer.")
+            return
+        
+        from addons.Automobiles.views.batch_print_dialog import BatchPrintDialog
+        dialog = BatchPrintDialog(self)
+        
+        if dialog.exec():
+            selected_documents = dialog.get_selected_documents()
+            if selected_documents:
+                self._start_batch_print(selected_vehicles, selected_documents)
+
+    # Dans contact_detail_view.py
+
+    def _start_batch_print(self, vehicles_data, selected_documents):
+        """Lance l'impression groupée via le gestionnaire"""
+        from addons.Automobiles.views.batch_print_manager import BatchPrintManager
+        
+        # Créer le gestionnaire s'il n'existe pas
+        if not hasattr(self, 'batch_print_manager'):
+            self.batch_print_manager = BatchPrintManager(self.controller, self)
+        
+        # Démarrer l'impression
+        self.batch_print_manager.start_batch_print(vehicles_data, selected_documents)
+
+
+    def _cancel_batch_print(self):
+        """Annule l'impression groupée de manière thread-safe"""
+        if hasattr(self, 'print_thread') and self.print_thread and self.print_thread.isRunning():
+            self.print_thread.cancel()
+            # Attendre que le thread se termine (avec timeout)
+            self.print_thread.wait(2000)
+
+
+    def _on_print_progress(self, current, total, message):
+        """Met à jour la progression - appelé depuis le thread principal"""
+        if hasattr(self, 'progress_dialog') and self.progress_dialog:
+            # Éviter les appels trop fréquents
+            if current % 1 == 0 or current == total:
+                self.progress_dialog.setValue(current)
+                self.progress_dialog.setLabelText(message)
+                QApplication.processEvents()
+
+
+    def _on_print_finished(self, success, message):
+        """Termine l'impression groupée - appelé depuis le thread principal"""
+        # Nettoyer le thread
+        if hasattr(self, 'print_thread') and self.print_thread:
+            self.print_thread.quit()
+            self.print_thread.wait(1000)
+            self.print_thread = None
+        
+        # Fermer la boîte de progression
+        if hasattr(self, 'progress_dialog') and self.progress_dialog:
+            self.progress_dialog.close()
+            self.progress_dialog.deleteLater()
+        
+        if success:
+            QMessageBox.information(self, "Impression terminée", message)
+        else:
+            QMessageBox.warning(self, "Erreur", message)
+        
+        # Réactiver le bouton d'impression
+        self.btn_batch_print.setEnabled(True)
+
+
+    def _on_document_printed(self, document_name, success):
+        """Notification pour chaque document imprimé - appelé depuis le thread principal"""
+        # Optionnel: afficher une notification discrète
+        if not success:
+            print(f"❌ Erreur lors de l'impression de {document_name}")
+
+    def _delete_vehicle(self, vehicle):
+        """Supprime un véhicule après confirmation"""
+        try:
+            # Demander confirmation
+            reply = QMessageBox.question(
+                self,
+                "Confirmation de suppression",
+                f"Êtes-vous sûr de vouloir supprimer le véhicule {vehicle.immatriculation} ?\n\n"
+                f"⚠️ Cette action est irréversible.",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            
+            if reply == QMessageBox.Yes:
+                # Appeler la méthode de suppression du contrôleur
+                success, message = self.controller.vehicles.deactivate_vehicle(vehicle.id, getattr(self.controller, 'current_user_id', 1))
+                
+                if success:
+                    self.load_vehicules()
+                    self.load_contrats()
+                    self._update_summary_cards()
+                    QMessageBox.information(self, "Succès", f"Véhicule {vehicle.immatriculation} supprimé avec succès!")
+                else:
+                    QMessageBox.warning(self, "Erreur", f"Erreur lors de la suppression: {message}")
+                    
+        except Exception as e:
+            print(f"Erreur suppression véhicule: {e}")
+            QMessageBox.warning(self, "Erreur", f"Impossible de supprimer le véhicule: {str(e)}")
 
 def show_contact_details(controller, contact, parent=None):
     """Ouvre la fenêtre de détails d'un contact"""

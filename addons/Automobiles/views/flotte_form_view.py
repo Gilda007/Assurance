@@ -7,7 +7,6 @@ from PySide6.QtCore import QDate, Qt, QPoint, QTimer
 from PySide6.QtGui import QColor, QIcon, QPixmap, QFont
 import os
 
-
 class GarantieSelectionDialog(QDialog):
     """Dialogue personnalisé pour sélectionner les garanties d'un véhicule dans la flotte"""
     
@@ -21,16 +20,17 @@ class GarantieSelectionDialog(QDialog):
         
     def setup_ui(self):
         self.setWindowTitle(f"Sélection des garanties - {self.vehicle_data.get('immatriculation', 'Véhicule')}")
-        self.setMinimumSize(500, 600)
+        self.setMinimumSize(800, 850)
+        self.resize(850, 900)
         self.setStyleSheet("""
             QDialog {
                 background: white;
-                border-radius: 16px;
+                border-radius: 20px;
             }
             QGroupBox {
                 font-weight: bold;
                 border: 2px solid #e2e8f0;
-                border-radius: 12px;
+                border-radius: 14px;
                 margin-top: 12px;
                 padding-top: 12px;
             }
@@ -38,6 +38,7 @@ class GarantieSelectionDialog(QDialog):
                 subcontrol-origin: margin;
                 left: 16px;
                 padding: 0 8px;
+                color: #1e293b;
             }
             QCheckBox {
                 spacing: 8px;
@@ -46,8 +47,15 @@ class GarantieSelectionDialog(QDialog):
             }
             QLineEdit {
                 border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 6px 10px;
+                border-radius: 10px;
+                padding: 8px 12px;
+                font-size: 13px;
+                font-family: monospace;
+            }
+            QLineEdit:focus {
+                border-color: #667eea;
+            }
+            QLabel {
                 font-size: 12px;
             }
         """)
@@ -57,8 +65,24 @@ class GarantieSelectionDialog(QDialog):
         layout.setSpacing(15)
         
         # En-tête
-        header = QLabel(f"🚗 {self.vehicle_data.get('immatriculation', 'Véhicule')} - {self.vehicle_data.get('marque', '')} {self.vehicle_data.get('modele', '')}")
-        header.setStyleSheet("font-size: 16px; font-weight: 800; color: #2c3e50; padding: 10px; background: #f0f9ff; border-radius: 10px;")
+        header = QFrame()
+        header.setStyleSheet("background: #f0f9ff; border-radius: 12px; padding: 15px;")
+        header_layout = QHBoxLayout(header)
+        
+        immat = self.vehicle_data.get('immatriculation', 'Véhicule')
+        marque = self.vehicle_data.get('marque', '')
+        modele = self.vehicle_data.get('modele', '')
+        
+        header_text = QLabel(f"🚗 {immat} - {marque} {modele}")
+        header_text.setStyleSheet("font-size: 16px; font-weight: 800; color: #2c3e50;")
+        
+        prime_nette = self.vehicle_data.get('prime_nette', 0)
+        prime_label = QLabel(f"💰 Prime de base: {prime_nette:,.0f} FCFA".replace(",", " "))
+        prime_label.setStyleSheet("font-size: 12px; color: #10b981; font-weight: 600; background: #d1fae5; padding: 5px 12px; border-radius: 20px;")
+        
+        header_layout.addWidget(header_text)
+        header_layout.addStretch()
+        header_layout.addWidget(prime_label)
         layout.addWidget(header)
         
         # Scroll area
@@ -69,128 +93,225 @@ class GarantieSelectionDialog(QDialog):
         
         container = QWidget()
         container_layout = QVBoxLayout(container)
-        container_layout.setSpacing(10)
+        container_layout.setSpacing(15)
         
         # Groupe Garanties de base
         base_group = QGroupBox("🛡️ Garanties de base")
         base_layout = QGridLayout(base_group)
-        base_layout.setSpacing(10)
+        base_layout.setSpacing(12)
+        base_layout.setColumnStretch(1, 1)
+        base_layout.setColumnStretch(2, 0)
+        base_layout.setColumnStretch(3, 0)
         
+        base_layout.addWidget(QLabel("<b>Garantie</b>"), 0, 0)
+        base_layout.addWidget(QLabel("<b>Montant initial (FCFA)</b>"), 0, 1)
+        base_layout.addWidget(QLabel("<b>Montant dans la flotte (FCFA)</b>"), 0, 2)
+        base_layout.addWidget(QLabel("<b>Sélection</b>"), 0, 3)
+        
+        # 4 garanties de base
         garanties = [
-            ("rc", "Responsabilité Civile", "amt_rc"),
-            ("dr", "Défense et Recours", "amt_dr"),
-            ("vol", "Vol du véhicule", "amt_vol"),
-            ("vb", "Vol à main armée", "amt_vb"),
+            ("rc", "Responsabilité Civile", "amt_rc", "amt_fleet_rc_val"),
+            ("dr", "Défense et Recours", "amt_dr", "amt_fleet_dr_val"),
+            ("vol", "Vol du véhicule", "amt_vol", "amt_fleet_vol_val"),
+            ("vb", "Vol à main armée", "amt_vb", "amt_fleet_vb_val"),
         ]
         
-        for i, (key, label, amt_key) in enumerate(garanties):
-            checkbox = QCheckBox(label)
-            checkbox.setObjectName(key)
-            checkbox.stateChanged.connect(lambda state, k=key: self.on_garantie_toggle(k, state))
+        for i, (key, label, amt_key, fleet_key) in enumerate(garanties, start=1):
+            # Label
+            label_widget = QLabel(label)
+            label_widget.setStyleSheet("font-weight: 600; color: #475569;")
+            base_layout.addWidget(label_widget, i, 0)
             
+            # Montant initial (valeur du véhicule)
+            base_amount = float(self.vehicle_data.get(amt_key, 0) or 0)
+            base_amount_label = QLabel(f"{base_amount:,.0f}".replace(",", " "))
+            base_amount_label.setStyleSheet("color: #64748b; font-family: monospace;")
+            base_layout.addWidget(base_amount_label, i, 1)
+            
+            # Montant dans la flotte
+            fleet_amount = float(self.vehicle_data.get(fleet_key, 0) or base_amount)
             amount_input = QLineEdit()
-            amount_input.setPlaceholderText("Montant (FCFA)")
-            amount_input.setEnabled(False)
+            amount_input.setPlaceholderText("Montant dans la flotte")
+            amount_input.setText(f"{fleet_amount:,.0f}".replace(",", " "))
+            amount_input.setEnabled(fleet_amount > 0)
             amount_input.setObjectName(f"amount_{key}")
+            amount_input.setFixedWidth(180)
             amount_input.textChanged.connect(self.calculate_total)
+            base_layout.addWidget(amount_input, i, 2)
             
-            base_layout.addWidget(checkbox, i, 0)
-            base_layout.addWidget(amount_input, i, 1)
+            # Checkbox
+            checkbox = QCheckBox()
+            checkbox.setObjectName(key)
+            checkbox.setChecked(fleet_amount > 0)
+            checkbox.stateChanged.connect(lambda state, k=key, inp=amount_input: self.on_garantie_toggle(k, state, inp))
+            base_layout.addWidget(checkbox, i, 3)
             
             self.garantie_widgets[key] = {
                 'checkbox': checkbox,
                 'amount': amount_input,
+                'base_amount': base_amount,
+                'fleet_amount': fleet_amount,
                 'amt_key': amt_key,
-                'default_value': float(self.vehicle_data.get(amt_key, 0) or 0)
+                'fleet_key': fleet_key,
+                'label': label
             }
-            
-            if self.garantie_widgets[key]['default_value'] > 0:
-                amount_input.setText(f"{self.garantie_widgets[key]['default_value']:,.0f}".replace(",", " "))
-                checkbox.setChecked(True)
-                amount_input.setEnabled(True)
         
         container_layout.addWidget(base_group)
         
         # Groupe Garanties supplémentaires
         extra_group = QGroupBox("🔥 Garanties supplémentaires")
         extra_layout = QGridLayout(extra_group)
-        extra_layout.setSpacing(10)
+        extra_layout.setSpacing(12)
+        extra_layout.setColumnStretch(1, 1)
+        extra_layout.setColumnStretch(2, 0)
+        extra_layout.setColumnStretch(3, 0)
         
+        extra_layout.addWidget(QLabel("<b>Garantie</b>"), 0, 0)
+        extra_layout.addWidget(QLabel("<b>Montant initial (FCFA)</b>"), 0, 1)
+        extra_layout.addWidget(QLabel("<b>Montant dans la flotte (FCFA)</b>"), 0, 2)
+        extra_layout.addWidget(QLabel("<b>Sélection</b>"), 0, 3)
+        
+        # 5 garanties supplémentaires
         extra_garanties = [
-            ("in", "Incendie", "amt_in"),
-            ("bris", "Bris de glace", "amt_bris"),
-            ("ar", "Assistance réparation", "amt_ar"),
-            ("dta", "Dommages tous accidents", "amt_dta"),
-            ("ipt", "Individuelle chauffeur", "amt_ipt"),
+            ("in", "Incendie", "amt_in", "amt_fleet_in_val"),
+            ("bris", "Bris de glace", "amt_bris", "amt_fleet_bris_val"),
+            ("ar", "Assistance réparation", "amt_ar", "amt_fleet_ar_val"),
+            ("dta", "Dommages tous accidents", "amt_dta", "amt_fleet_dta_val"),
+            ("ipt", "Individuelle chauffeur", "amt_ipt", "amt_fleet_ipt_val"),
         ]
         
-        for i, (key, label, amt_key) in enumerate(extra_garanties):
-            checkbox = QCheckBox(label)
-            checkbox.setObjectName(key)
-            checkbox.stateChanged.connect(lambda state, k=key: self.on_garantie_toggle(k, state))
+        for i, (key, label, amt_key, fleet_key) in enumerate(extra_garanties, start=1):
+            # Label
+            label_widget = QLabel(label)
+            label_widget.setStyleSheet("font-weight: 600; color: #475569;")
+            extra_layout.addWidget(label_widget, i, 0)
             
+            # Montant initial
+            base_amount = float(self.vehicle_data.get(amt_key, 0) or 0)
+            base_amount_label = QLabel(f"{base_amount:,.0f}".replace(",", " "))
+            base_amount_label.setStyleSheet("color: #64748b; font-family: monospace;")
+            extra_layout.addWidget(base_amount_label, i, 1)
+            
+            # Montant dans la flotte
+            fleet_amount = float(self.vehicle_data.get(fleet_key, 0) or base_amount)
             amount_input = QLineEdit()
-            amount_input.setPlaceholderText("Montant (FCFA)")
-            amount_input.setEnabled(False)
+            amount_input.setPlaceholderText("Montant dans la flotte")
+            amount_input.setText(f"{fleet_amount:,.0f}".replace(",", " "))
+            amount_input.setEnabled(fleet_amount > 0)
             amount_input.setObjectName(f"amount_{key}")
+            amount_input.setFixedWidth(180)
             amount_input.textChanged.connect(self.calculate_total)
+            extra_layout.addWidget(amount_input, i, 2)
             
-            extra_layout.addWidget(checkbox, i, 0)
-            extra_layout.addWidget(amount_input, i, 1)
+            # Checkbox
+            checkbox = QCheckBox()
+            checkbox.setObjectName(key)
+            checkbox.setChecked(fleet_amount > 0)
+            checkbox.stateChanged.connect(lambda state, k=key, inp=amount_input: self.on_garantie_toggle(k, state, inp))
+            extra_layout.addWidget(checkbox, i, 3)
             
             self.garantie_widgets[key] = {
                 'checkbox': checkbox,
                 'amount': amount_input,
+                'base_amount': base_amount,
+                'fleet_amount': fleet_amount,
                 'amt_key': amt_key,
-                'default_value': float(self.vehicle_data.get(amt_key, 0) or 0)
+                'fleet_key': fleet_key,
+                'label': label
             }
-            
-            if self.garantie_widgets[key]['default_value'] > 0:
-                amount_input.setText(f"{self.garantie_widgets[key]['default_value']:,.0f}".replace(",", " "))
-                checkbox.setChecked(True)
-                amount_input.setEnabled(True)
         
         container_layout.addWidget(extra_group)
-
-        for key, widget in self.garantie_widgets.items():
-            print(f"Garantie {key}: default_value = {widget['default_value']}")
-            if widget['default_value'] > 0:
-                widget['amount'].setText(f"{widget['default_value']:,.0f}".replace(",", " "))
-                widget['checkbox'].setChecked(True)
-                widget['amount'].setEnabled(True)
-            else:
-                print(f"  -> Pas de valeur par défaut pour {key}")
-
-        # Total
-        total_frame = QFrame()
-        total_frame.setStyleSheet("""
+        
+        # Section récapitulative
+        recap_frame = QFrame()
+        recap_frame.setStyleSheet("""
             QFrame {
-                background: #f0fdf4;
-                border-radius: 12px;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #667eea, stop:1 #764ba2);
+                border-radius: 16px;
                 margin-top: 10px;
             }
         """)
-        total_layout = QHBoxLayout(total_frame)
-        total_layout.setContentsMargins(15, 10, 15, 10)
+        recap_layout = QVBoxLayout(recap_frame)
+        recap_layout.setContentsMargins(20, 15, 20, 15)
+        recap_layout.setSpacing(10)
         
-        total_label = QLabel("💰 TOTAL DES GARANTIES:")
-        total_label.setStyleSheet("font-weight: bold; color: #166534;")
+        recap_title = QLabel("💰 RÉCAPITULATIF DES GARANTIES DANS LA FLOTTE")
+        recap_title.setStyleSheet("color: white; font-size: 14px; font-weight: 800; letter-spacing: 1px;")
+        recap_layout.addWidget(recap_title)
+        
+        total_line = QHBoxLayout()
+        total_label = QLabel("TOTAL :")
+        total_label.setStyleSheet("color: rgba(255,255,255,0.8); font-size: 16px; font-weight: bold;")
         
         self.total_amount = QLabel("0 FCFA")
-        self.total_amount.setStyleSheet("font-size: 18px; font-weight: 800; color: #166534;")
+        self.total_amount.setStyleSheet("color: #fbbf24; font-size: 24px; font-weight: 800;")
         
-        total_layout.addWidget(total_label)
-        total_layout.addStretch()
-        total_layout.addWidget(self.total_amount)
+        total_line.addWidget(total_label)
+        total_line.addStretch()
+        total_line.addWidget(self.total_amount)
+        recap_layout.addLayout(total_line)
         
-        container_layout.addWidget(total_frame)
+        self.progress_bar = QFrame()
+        self.progress_bar.setFixedHeight(6)
+        self.progress_bar.setStyleSheet("background: rgba(255,255,255,0.2); border-radius: 3px;")
+        self.progress_fill = QFrame()
+        self.progress_fill.setFixedHeight(6)
+        self.progress_fill.setStyleSheet("background: #fbbf24; border-radius: 3px;")
+        self.progress_fill.setFixedWidth(0)
+        
+        progress_layout = QHBoxLayout(self.progress_bar)
+        progress_layout.setContentsMargins(0, 0, 0, 0)
+        progress_layout.addWidget(self.progress_fill)
+        progress_layout.addStretch()
+        recap_layout.addWidget(self.progress_bar)
+        
+        self.count_label = QLabel("0 garantie(s) sélectionnée(s)")
+        self.count_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 11px;")
+        recap_layout.addWidget(self.count_label)
+        
+        container_layout.addWidget(recap_frame)
         
         scroll.setWidget(container)
         layout.addWidget(scroll)
         
         # Boutons
         btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(10)
+        btn_layout.setSpacing(15)
+        
+        btn_select_all = QPushButton("✅ Tout sélectionner")
+        btn_select_all.setCursor(Qt.PointingHandCursor)
+        btn_select_all.setStyleSheet("""
+            QPushButton {
+                background: #f1f5f9;
+                color: #475569;
+                border: none;
+                border-radius: 10px;
+                padding: 8px 16px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #e2e8f0;
+            }
+        """)
+        btn_select_all.clicked.connect(self.select_all)
+        
+        btn_select_none = QPushButton("❌ Tout désélectionner")
+        btn_select_none.setCursor(Qt.PointingHandCursor)
+        btn_select_none.setStyleSheet("""
+            QPushButton {
+                background: #f1f5f9;
+                color: #475569;
+                border: none;
+                border-radius: 10px;
+                padding: 8px 16px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #e2e8f0;
+            }
+        """)
+        btn_select_none.clicked.connect(self.select_none)
         
         btn_ok = QPushButton("✓ Valider")
         btn_ok.setCursor(Qt.PointingHandCursor)
@@ -199,9 +320,10 @@ class GarantieSelectionDialog(QDialog):
                 background: #10b981;
                 color: white;
                 border: none;
-                border-radius: 10px;
-                padding: 10px 20px;
+                border-radius: 12px;
+                padding: 10px 24px;
                 font-weight: bold;
+                font-size: 14px;
             }
             QPushButton:hover {
                 background: #059669;
@@ -216,9 +338,10 @@ class GarantieSelectionDialog(QDialog):
                 background: #ef4444;
                 color: white;
                 border: none;
-                border-radius: 10px;
-                padding: 10px 20px;
+                border-radius: 12px;
+                padding: 10px 24px;
                 font-weight: bold;
+                font-size: 14px;
             }
             QPushButton:hover {
                 background: #dc2626;
@@ -226,53 +349,121 @@ class GarantieSelectionDialog(QDialog):
         """)
         btn_cancel.clicked.connect(self.reject)
         
+        btn_layout.addWidget(btn_select_all)
+        btn_layout.addWidget(btn_select_none)
         btn_layout.addStretch()
         btn_layout.addWidget(btn_ok)
         btn_layout.addWidget(btn_cancel)
         
         layout.addLayout(btn_layout)
         
+        # Calcul initial du total
         self.calculate_total()
     
-    def on_garantie_toggle(self, key, state):
+    def on_garantie_toggle(self, key, state, amount_input):
         """Gère l'activation/désactivation d'une garantie"""
         widget = self.garantie_widgets.get(key)
         if widget:
             is_checked = state == Qt.Checked
-            widget['amount'].setEnabled(is_checked)
-            if not is_checked:
-                widget['amount'].clear()
+            amount_input.setEnabled(is_checked)
+            
+            if is_checked:
+                # Si activée, mettre le montant par défaut (base_amount ou fleet_amount)
+                if widget['fleet_amount'] > 0:
+                    amount_input.setText(f"{widget['fleet_amount']:,.0f}".replace(",", " "))
+                elif widget['base_amount'] > 0:
+                    amount_input.setText(f"{widget['base_amount']:,.0f}".replace(",", " "))
+                else:
+                    amount_input.setText("0")
+            else:
+                # Si désactivée, effacer le champ
+                amount_input.clear()
+            
+            # Recalculer le total
             self.calculate_total()
+    
+    def select_all(self):
+        """Sélectionne toutes les garanties"""
+        for key, widget in self.garantie_widgets.items():
+            widget['checkbox'].setChecked(True)
+            widget['amount'].setEnabled(True)
+            if widget['fleet_amount'] > 0:
+                widget['amount'].setText(f"{widget['fleet_amount']:,.0f}".replace(",", " "))
+            elif widget['base_amount'] > 0:
+                widget['amount'].setText(f"{widget['base_amount']:,.0f}".replace(",", " "))
+            else:
+                widget['amount'].setText("0")
+        self.calculate_total()
+    
+    def select_none(self):
+        """Désélectionne toutes les garanties"""
+        for key, widget in self.garantie_widgets.items():
+            widget['checkbox'].setChecked(False)
+            widget['amount'].setEnabled(False)
+            widget['amount'].clear()
+        self.calculate_total()
     
     def calculate_total(self):
         """Calcule le total des garanties sélectionnées"""
         total = 0
+        selected_count = 0
+        max_total = 5000000
+        
         for key, widget in self.garantie_widgets.items():
             if widget['checkbox'].isChecked():
+                selected_count += 1
                 text = widget['amount'].text()
-                clean_text = text.replace(" ", "").replace(",", "")
-                try:
-                    amount = float(clean_text) if clean_text else 0
-                    total += amount
-                except ValueError:
-                    pass
+                if text and text.strip():
+                    clean_text = text.replace(" ", "").replace(",", "")
+                    try:
+                        amount = float(clean_text) if clean_text else 0
+                        total += amount
+                    except ValueError:
+                        pass
+        
+        # Mettre à jour l'affichage du total
         if self.total_amount:
             self.total_amount.setText(f"{total:,.0f}".replace(",", " ") + " FCFA")
+        
+        # Stocker le total calculé pour le retour
+        self.calculated_total = total
+        
+        # Mettre à jour le compteur
+        if hasattr(self, 'count_label'):
+            self.count_label.setText(f"{selected_count} garantie(s) sélectionnée(s)")
+        
+        # Mettre à jour la barre de progression
+        if hasattr(self, 'progress_fill'):
+            percent = min(100, int(total / max_total * 100))
+            new_width = int(percent * 3)
+            self.progress_fill.setFixedWidth(min(new_width, 300))
     
     def get_selected_garanties(self):
-        """Retourne les garanties sélectionnées avec leurs montants"""
-        result = {}
+        """Retourne les garanties sélectionnées avec leurs montants et le total"""
+        result = {
+            'garanties': {},
+            'total': 0
+        }
+        
+        total = 0
         for key, widget in self.garantie_widgets.items():
             if widget['checkbox'].isChecked():
                 text = widget['amount'].text()
-                clean_text = text.replace(" ", "").replace(",", "")
-                try:
-                    amount = float(clean_text) if clean_text else 0
-                    result[key] = amount
-                except ValueError:
-                    result[key] = 0
+                if text and text.strip():
+                    clean_text = text.replace(" ", "").replace(",", "")
+                    try:
+                        amount = float(clean_text) if clean_text else 0
+                        result['garanties'][key] = amount
+                        total += amount
+                    except ValueError:
+                        result['garanties'][key] = 0
+                else:
+                    result['garanties'][key] = 0
+            else:
+                result['garanties'][key] = 0
+        
+        result['total'] = total
         return result
-
 
 class FleetForm(QDialog):
     def __init__(self, controller, current_fleet=None, parent=None, contacts_list=None, compagnies_list=None, mode="add", preselected_client_id=None):
@@ -693,10 +884,10 @@ class FleetForm(QDialog):
                 color: #4a5568;
             }
         """)
-        self.vehicle_table.setColumnCount(13)
+        self.vehicle_table.setColumnCount(14)
         self.vehicle_table.setHorizontalHeaderLabels([
             "Sélection", "Immatriculation", "Marque", "RC", "DR", "Vol", 
-            "VB", "Incendie", "Bris", "AR", "DTA", "IPT", "Actions"
+            "VB", "Incendie", "Bris", "AR", "DTA", "IPT", "PTTC", "Actions"
         ])
         self.vehicle_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.vehicle_table.setAlternatingRowColors(True)
@@ -772,52 +963,7 @@ class FleetForm(QDialog):
         except Exception as e:
             print(f"Erreur chargement clients: {e}")
 
-    def on_item_changed(self, item):
-        """Gère tous les changements dans le tableau"""
-        if not item or self.vehicle_table.signalsBlocked():
-            return
-        
-        # Si le changement concerne une checkbox
-        if item.column() == 0:
-            self.update_fleet_totals()
-        # Si le changement concerne une cellule de montant
-        elif 3 <= item.column() <= 11:
-            row = item.row()
-            self.update_row_total_fast(row)
-            self.update_fleet_totals()
-
-    def update_row_total_fast(self, row):
-        """Met à jour le total d'une ligne rapidement"""
-        try:
-            self.vehicle_table.blockSignals(True)
-            
-            row_sum = 0
-            for col in range(3, 12):
-                cell = self.vehicle_table.item(row, col)
-                if cell:
-                    val = cell.data(Qt.UserRole)
-                    if val is None:
-                        text = cell.text().replace(" ", "")
-                        try:
-                            val = float(text) if text else 0
-                        except ValueError:
-                            val = 0
-                    row_sum += float(val)
-            
-            # Mettre à jour la cellule total
-            total_formatted = f"{row_sum:,.0f}".replace(",", " ")
-            total_item = QTableWidgetItem(total_formatted)
-            total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            total_item.setData(Qt.UserRole, float(row_sum))
-            total_item.setFont(QFont("Arial", 9, QFont.Bold))
-            self.vehicle_table.setItem(row, 11, total_item)
-            
-            self.vehicle_table.blockSignals(False)
-            
-        except Exception as e:
-            print(f"Erreur update_row_total_fast: {e}")
-            self.vehicle_table.blockSignals(False)
-               
+             
     def select_preselected_client(self):
         """Sélectionne automatiquement le client pré-sélectionné"""
         if not self.preselected_client_id:
@@ -896,90 +1042,6 @@ class FleetForm(QDialog):
         except Exception as e:
             print(f"Erreur filtre véhicules: {e}")
 
-    def update_vehicle_table_with_client_vehicles(self, vehicles):
-        """Met à jour le tableau avec les véhicules du client"""
-        try:
-            self.vehicle_table.blockSignals(True)
-            self.vehicle_table.setRowCount(0)
-            
-            num_v = len(vehicles)
-            self.vehicle_table.setRowCount(num_v + 1)
-            
-            col_totals = {i: 0.0 for i in range(3, 12)}
-
-            for row, v in enumerate(vehicles):
-                saved_garanties = self.vehicle_garanties.get(v.id, {})
-                
-                # Checkbox
-                check_item = QTableWidgetItem()
-                check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
-                state = Qt.Checked if (self.current_fleet and v.fleet_id == self.current_fleet.id) else Qt.Unchecked
-                check_item.setCheckState(state)
-                check_item.setData(Qt.UserRole, v.id)
-                self.vehicle_table.setItem(row, 0, check_item)
-                
-                # Infos
-                self.vehicle_table.setItem(row, 1, QTableWidgetItem(str(v.immatriculation)))
-                self.vehicle_table.setItem(row, 2, QTableWidgetItem(str(v.marque or "N/A")))
-                
-                # Garanties
-                guarantees = {
-                    3: ('rc', v.amt_rc), 4: ('dr', v.amt_dr), 5: ('vol', v.amt_vol),
-                    6: ('vb', v.amt_vb), 7: ('in', v.amt_in), 8: ('bris', v.amt_bris),
-                    9: ('ar', v.amt_ar), 10: ('dta', v.amt_dta), 11: ('ipt', v.amt_ipt)
-                }
-                
-                row_sum = 0.0
-                for col_idx, (gar_key, default_val) in guarantees.items():
-                    amt = saved_garanties.get(gar_key, float(default_val or 0))
-                    self.vehicle_table.setItem(row, col_idx, self.create_num_item(amt))
-                    row_sum += amt
-                    if state == Qt.Checked:
-                        col_totals[col_idx] += amt
-                
-                # Total ligne
-                total_item = self.create_num_item(row_sum)
-                total_item.setFont(QFont("Arial", 9, QFont.Bold))
-                self.vehicle_table.setItem(row, 11, total_item)
-                if state == Qt.Checked:
-                    col_totals[11] += row_sum
-                
-                # Bouton personnalisation
-                btn_custom = QPushButton("✏️")
-                btn_custom.setFixedSize(30, 30)
-                btn_custom.setCursor(Qt.PointingHandCursor)
-                btn_custom.clicked.connect(lambda checked, vid=v.id, row_idx=row: self.customize_vehicle_garanties(vid, row_idx))
-                self.vehicle_table.setCellWidget(row, 12, btn_custom)
-            
-            # Footer
-            if num_v > 0:
-                last_row = num_v
-                self.vehicle_table.setSpan(last_row, 0, 1, 2)
-                
-                empty_item = QTableWidgetItem("")
-                empty_item.setBackground(QColor("#f8fafc"))
-                empty_item.setFlags(Qt.NoItemFlags)
-                self.vehicle_table.setItem(last_row, 0, empty_item)
-                
-                lbl_footer = QTableWidgetItem("TOTAL SÉLECTION")
-                lbl_footer.setFont(QFont("Arial", 10, QFont.Bold))
-                lbl_footer.setTextAlignment(Qt.AlignCenter)
-                self.vehicle_table.setItem(last_row, 2, lbl_footer)
-                
-                for col_idx, total_val in col_totals.items():
-                    footer_item = self.create_num_item(total_val)
-                    footer_item.setBackground(QColor("#e2e8f0"))
-                    footer_item.setFont(QFont("Arial", 10, QFont.Bold))
-                    self.vehicle_table.setItem(last_row, col_idx, footer_item)
-            
-            self.vehicle_table.blockSignals(False)
-            self.calculate_totals_on_change(None)
-            
-        except Exception as e:
-            print(f"Erreur update_vehicle_table: {e}")
-            if hasattr(self, 'vehicle_table'):
-                self.vehicle_table.blockSignals(False)
-
     def customize_vehicle_garanties(self, vehicle_id, row):
         """Ouvre le dialogue de personnalisation des garanties pour un véhicule"""
         try:
@@ -988,45 +1050,156 @@ class FleetForm(QDialog):
                 QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
                 return
             
+            # Récupérer les valeurs de la flotte
             vehicle_data = {
                 'id': vehicle.id,
                 'immatriculation': vehicle.immatriculation,
                 'marque': vehicle.marque,
                 'modele': vehicle.modele,
+                'prime_nette': float(vehicle.prime_nette or 0),
+                # Garanties de base
                 'amt_rc': float(vehicle.amt_rc or 0),
                 'amt_dr': float(vehicle.amt_dr or 0),
                 'amt_vol': float(vehicle.amt_vol or 0),
                 'amt_vb': float(vehicle.amt_vb or 0),
+                'amt_fleet_rc_val': float(vehicle.amt_fleet_rc_val or 0),
+                'amt_fleet_dr_val': float(vehicle.amt_fleet_dr_val or 0),
+                'amt_fleet_vol_val': float(vehicle.amt_fleet_vol_val or 0),
+                'amt_fleet_vb_val': float(vehicle.amt_fleet_vb_val or 0),
+                # Garanties supplémentaires
                 'amt_in': float(vehicle.amt_in or 0),
                 'amt_bris': float(vehicle.amt_bris or 0),
                 'amt_ar': float(vehicle.amt_ar or 0),
                 'amt_dta': float(vehicle.amt_dta or 0),
-                'amt_ipt': float(vehicle.amt_ipt or 0)
+                'amt_ipt': float(vehicle.amt_ipt or 0),
+                'amt_fleet_in_val': float(vehicle.amt_fleet_in_val or 0),
+                'amt_fleet_bris_val': float(vehicle.amt_fleet_bris_val or 0),
+                'amt_fleet_ar_val': float(vehicle.amt_fleet_ar_val or 0),
+                'amt_fleet_dta_val': float(vehicle.amt_fleet_dta_val or 0),
+                'amt_fleet_ipt_val': float(vehicle.amt_fleet_ipt_val or 0),
             }
             
+            # Récupérer les garanties sauvegardées
             saved_garanties = self.vehicle_garanties.get(vehicle_id, {})
+            
             dialog = GarantieSelectionDialog(vehicle_data, self)
             
-            for key, value in saved_garanties.items():
-                if key in dialog.garantie_widgets:
-                    dialog.garantie_widgets[key]['checkbox'].setChecked(True)
-                    dialog.garantie_widgets[key]['amount'].setText(f"{value:,.0f}".replace(",", " "))
-                    dialog.garantie_widgets[key]['amount'].setEnabled(True)
+            # Pré-remplir avec les valeurs sauvegardées
+            for key, widget in dialog.garantie_widgets.items():
+                if key in saved_garanties and saved_garanties[key] > 0:
+                    value = saved_garanties[key]
+                    widget['checkbox'].setChecked(True)
+                    widget['amount'].setText(f"{value:,.0f}".replace(",", " "))
+                    widget['amount'].setEnabled(True)
+                elif vehicle_data.get(f'amt_fleet_{key}_val', 0) > 0:
+                    value = vehicle_data.get(f'amt_fleet_{key}_val', 0)
+                    widget['checkbox'].setChecked(True)
+                    widget['amount'].setText(f"{value:,.0f}".replace(",", " "))
+                    widget['amount'].setEnabled(True)
             
             if dialog.exec():
                 selected = dialog.get_selected_garanties()
-                self.vehicle_garanties[vehicle_id] = selected
-                self.update_vehicle_row_garanties(row, selected)
+                
+                # Sauvegarder les garanties
+                filtered_selected = {k: v for k, v in selected['garanties'].items() if v > 0}
+                self.vehicle_garanties[vehicle_id] = filtered_selected
+                
+                # ⭐ Mettre à jour le PTTC avec le total calculé
+                self.update_vehicle_row_garanties(row, filtered_selected, selected['total'])
                 self.update_fleet_totals()
+                
+                # Mettre à jour la base de données
+                self.update_vehicle_guarantees_in_db(vehicle_id, filtered_selected, selected['total'])
                 
         except Exception as e:
             print(f"Erreur customisation: {e}")
+            import traceback
+            traceback.print_exc()
             QMessageBox.warning(self, "Erreur", f"Impossible de personnaliser: {str(e)}")
 
-    def update_vehicle_row_garanties(self, row, garanties):
-        """Met à jour les montants des garanties dans le tableau"""
+    def update_vehicle_guarantees_in_db(self, vehicle_id, garanties, total_pttc=0):
+        """Met à jour les champs dans la base de données"""
         try:
-            # Bloquer tous les signaux
+            session = self.controller.session
+            vehicle = session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+            if vehicle:
+                # Mapping des garanties vers les colonnes amt_fleet_*_val
+                mapping = {
+                    'rc': 'amt_fleet_rc_val',
+                    'dr': 'amt_fleet_dr_val',
+                    'vol': 'amt_fleet_vol_val',
+                    'vb': 'amt_fleet_vb_val',
+                    'in': 'amt_fleet_in_val',
+                    'bris': 'amt_fleet_bris_val',
+                    'ar': 'amt_fleet_ar_val',
+                    'dta': 'amt_fleet_dta_val',
+                    'ipt': 'amt_fleet_ipt_val',
+                }
+                
+                for key, amount in garanties.items():
+                    if key in mapping:
+                        setattr(vehicle, mapping[key], amount)
+                
+                # ⭐ Mettre à jour le PTTC (prime_nette ou un champ dédié)
+                # Option 1: Utiliser prime_nette pour stocker le PTTC
+                if total_pttc > 0:
+                    vehicle.prime_nette = total_pttc
+                
+                session.commit()
+                print(f"✅ Véhicule {vehicle_id} mis à jour: PTTC = {total_pttc}")
+        except Exception as e:
+            print(f"Erreur mise à jour véhicule: {e}")
+
+    # def update_vehicle_row_garanties(self, row, garanties):
+    #     """Met à jour les montants des garanties dans le tableau"""
+    #     try:
+    #         # Bloquer tous les signaux
+    #         self.vehicle_table.blockSignals(True)
+            
+    #         # Mapping colonne -> clé garantie
+    #         col_mapping = {
+    #             3: 'rc', 4: 'dr', 5: 'vol', 6: 'vb',
+    #             7: 'in', 8: 'bris', 9: 'ar', 10: 'dta', 11: 'ipt'
+    #         }
+            
+    #         row_sum = 0
+            
+    #         for col, gar_key in col_mapping.items():
+    #             amount = garanties.get(gar_key, 0)
+                
+    #             # Créer un NOUVEL item
+    #             formatted_val = f"{amount:,.0f}".replace(",", " ")
+    #             new_item = QTableWidgetItem(formatted_val)
+    #             new_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    #             new_item.setData(Qt.UserRole, float(amount))
+                
+    #             # Remplacer l'item existant
+    #             self.vehicle_table.setItem(row, col, new_item)
+    #             row_sum += amount
+            
+    #         # Mettre à jour le total de la ligne
+    #         total_formatted = f"{row_sum:,.0f}".replace(",", " ")
+    #         total_item = QTableWidgetItem(total_formatted)
+    #         total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    #         total_item.setData(Qt.UserRole, float(row_sum))
+    #         total_item.setFont(QFont("Arial", 9, QFont.Bold))
+    #         self.vehicle_table.setItem(row, 11, total_item)
+            
+    #         # Débloquer les signaux
+    #         self.vehicle_table.blockSignals(False)
+            
+    #         # Mettre à jour les totaux de la flotte
+    #         self.update_fleet_totals()
+            
+    #     except Exception as e:
+    #         print(f"Erreur mise à jour ligne: {e}")
+    #         self.vehicle_table.blockSignals(False)
+    #         import traceback
+    #         traceback.print_exc()   
+
+    def update_vehicle_row_garanties(self, row, garanties, total_pttc=None):
+        """Met à jour les montants des garanties et le PTTC dans le tableau"""
+        try:
             self.vehicle_table.blockSignals(True)
             
             # Mapping colonne -> clé garantie
@@ -1040,28 +1213,26 @@ class FleetForm(QDialog):
             for col, gar_key in col_mapping.items():
                 amount = garanties.get(gar_key, 0)
                 
-                # Créer un NOUVEL item
                 formatted_val = f"{amount:,.0f}".replace(",", " ")
                 new_item = QTableWidgetItem(formatted_val)
                 new_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 new_item.setData(Qt.UserRole, float(amount))
                 
-                # Remplacer l'item existant
                 self.vehicle_table.setItem(row, col, new_item)
                 row_sum += amount
             
-            # Mettre à jour le total de la ligne
-            total_formatted = f"{row_sum:,.0f}".replace(",", " ")
+            # Si un total PTTC est fourni, l'utiliser, sinon calculer la somme
+            final_total = total_pttc if total_pttc is not None else row_sum
+            
+            # Mettre à jour la cellule PTTC (colonne 12)
+            total_formatted = f"{final_total:,.0f}".replace(",", " ")
             total_item = QTableWidgetItem(total_formatted)
             total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            total_item.setData(Qt.UserRole, float(row_sum))
+            total_item.setData(Qt.UserRole, float(final_total))
             total_item.setFont(QFont("Arial", 9, QFont.Bold))
-            self.vehicle_table.setItem(row, 11, total_item)
+            self.vehicle_table.setItem(row, 12, total_item)
             
-            # Débloquer les signaux
             self.vehicle_table.blockSignals(False)
-            
-            # Mettre à jour les totaux de la flotte
             self.update_fleet_totals()
             
         except Exception as e:
@@ -1069,114 +1240,6 @@ class FleetForm(QDialog):
             self.vehicle_table.blockSignals(False)
             import traceback
             traceback.print_exc()
-            
-    def update_fleet_totals(self):
-        """Met à jour les totaux de la flotte sans utiliser de signaux"""
-        try:
-            num_rows = self.vehicle_table.rowCount()
-            if num_rows <= 1:
-                return
-            
-            last_row = num_rows - 1
-            new_totals = {i: 0.0 for i in range(3, 12)}
-            selected_count = 0
-
-            for row in range(last_row):
-                check_item = self.vehicle_table.item(row, 0)
-                if check_item and check_item.checkState() == Qt.Checked:
-                    selected_count += 1
-                    for col in range(3, 12):
-                        cell = self.vehicle_table.item(row, col)
-                        if cell:
-                            val = cell.data(Qt.UserRole)
-                            if val is not None:
-                                new_totals[col] += float(val)
-
-            # Mettre à jour le footer sans déclencher de signaux
-            self.vehicle_table.blockSignals(True)
-            
-            for col, total_val in new_totals.items():
-                footer_item = self.vehicle_table.item(last_row, col)
-                if footer_item:
-                    formatted_val = f"{total_val:,.0f}".replace(",", " ")
-                    footer_item.setText(formatted_val)
-                    footer_item.setData(Qt.UserRole, total_val)
-            
-            # Mettre à jour le label
-            total_global = new_totals[11]
-            self.total_prime_lbl.setText(f"Total Primes ({selected_count} véhicules) : {total_global:,.0f} FCFA".replace(",", " "))
-            
-            self.vehicle_table.blockSignals(False)
-            
-        except Exception as e:
-            print(f"Erreur update_fleet_totals: {e}")
-            self.vehicle_table.blockSignals(False)
-
-    def create_num_item(self, val):
-        formatted_val = f"{val:,.0f}".replace(",", " ")
-        item = QTableWidgetItem(formatted_val)
-        item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        item.setData(Qt.UserRole, float(val or 0))
-        return item
-
-    # def calculate_totals_on_change(self, item):
-    #     """Calcule les totaux de la flotte"""
-    #     try:
-    #         self.vehicle_table.blockSignals(True)
-            
-    #         num_rows = self.vehicle_table.rowCount()
-    #         if num_rows <= 1:
-    #             self.vehicle_table.blockSignals(False)
-    #             return
-            
-    #         last_row = num_rows - 1
-    #         new_totals = {i: 0.0 for i in range(3, 12)}
-    #         selected_count = 0
-
-    #         # Parcourir toutes les lignes de véhicules
-    #         for row in range(last_row):
-    #             check_item = self.vehicle_table.item(row, 0)
-    #             is_checked = check_item and check_item.checkState() == Qt.Checked
-                
-    #             if is_checked:
-    #                 selected_count += 1
-    #                 # Sommer les valeurs de chaque colonne de montant
-    #                 for col in range(3, 12):
-    #                     cell = self.vehicle_table.item(row, col)
-    #                     if cell:
-    #                         # Récupérer la valeur brute stockée dans UserRole
-    #                         val = cell.data(Qt.UserRole)
-    #                         if val is None:
-    #                             # Si UserRole n'existe pas, extraire du texte
-    #                             text = cell.text().replace(" ", "")
-    #                             try:
-    #                                 val = float(text) if text else 0
-    #                             except ValueError:
-    #                                 val = 0
-    #                         new_totals[col] += float(val)
-
-    #         # Mettre à jour la ligne de footer
-    #         for col, total_val in new_totals.items():
-    #             footer_item = self.vehicle_table.item(last_row, col)
-    #             if footer_item:
-    #                 footer_item.setText(f"{total_val:,.0f}".replace(",", " "))
-    #                 footer_item.setData(Qt.UserRole, total_val)
-
-    #         # Mettre à jour le label global
-    #         total_global = new_totals[11]
-    #         self.total_prime_lbl.setText(f"Total Primes ({selected_count} véhicules) : {total_global:,.0f} FCFA".replace(",", " "))
-
-    #         self.vehicle_table.blockSignals(False)
-            
-    #     except Exception as e:
-    #         print(f"Erreur calcul totaux: {e}")
-    #         self.vehicle_table.blockSignals(False)
-
-    def calculate_totals_on_change(self, item):
-        """Calcule les totaux de la flotte (appelé par signal)"""
-        if item is not None and item.column() != 0:
-            return
-        self.update_fleet_totals()    
 
     def filter_vehicles(self, text):
         for row in range(self.vehicle_table.rowCount()):
@@ -1221,31 +1284,331 @@ class FleetForm(QDialog):
                 return 0
         return 0
 
-    def load_data(self, fleet):
-        self.name_input.setText(fleet.nom_flotte)
-        self.code_input.setText(getattr(fleet, 'code', ""))
-        self.obs_input.setPlainText(getattr(fleet, 'observations', ""))
+    def update_vehicle_table_with_client_vehicles(self, vehicles):
+        """Met à jour le tableau avec les véhicules du client"""
+        try:
+            self.vehicle_table.blockSignals(True)
+            self.vehicle_table.setRowCount(0)
+            
+            num_v = len(vehicles)
+            # 2 lignes de total : une pour les garanties, une pour le PTTC
+            self.vehicle_table.setRowCount(num_v + 2)
+            
+            # Dictionnaire pour les totaux des colonnes garanties (3 à 11)
+            col_totals = {i: 0.0 for i in range(3, 12)}
+            total_pttc = 0.0
+
+            for row, v in enumerate(vehicles):
+                saved_garanties = self.vehicle_garanties.get(v.id, {})
+                
+                # Checkbox
+                check_item = QTableWidgetItem()
+                check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                state = Qt.Checked if (self.current_fleet and v.fleet_id == self.current_fleet.id) else Qt.Unchecked
+                check_item.setCheckState(state)
+                check_item.setData(Qt.UserRole, v.id)
+                self.vehicle_table.setItem(row, 0, check_item)
+                
+                # Infos
+                self.vehicle_table.setItem(row, 1, QTableWidgetItem(str(v.immatriculation)))
+                self.vehicle_table.setItem(row, 2, QTableWidgetItem(str(v.marque or "N/A")))
+                
+                # Garanties (colonnes 3 à 11)
+                guarantees = {
+                    3: ('rc', v.amt_rc),
+                    4: ('dr', v.amt_dr),
+                    5: ('vol', v.amt_vol),
+                    6: ('vb', v.amt_vb),
+                    7: ('in', v.amt_in),
+                    8: ('bris', v.amt_bris),
+                    9: ('ar', v.amt_ar),
+                    10: ('dta', v.amt_dta),
+                    11: ('ipt', v.amt_ipt)
+                }
+                
+                row_sum = 0.0
+                for col_idx, (gar_key, default_val) in guarantees.items():
+                    amt = saved_garanties.get(gar_key, float(default_val or 0))
+                    self.vehicle_table.setItem(row, col_idx, self.create_num_item(amt))
+                    row_sum += amt
+                    if state == Qt.Checked:
+                        col_totals[col_idx] += amt
+                
+                # PTTC (colonne 12) - calculé à partir du total des garanties
+                self.vehicle_table.setItem(row, 12, self.create_num_item(row_sum))
+                if state == Qt.Checked:
+                    total_pttc += row_sum
+                
+                # Bouton personnalisation (colonne 13)
+                btn_custom = QPushButton("✏️")
+                btn_custom.setFixedSize(30, 30)
+                btn_custom.setCursor(Qt.PointingHandCursor)
+                btn_custom.setStyleSheet("""
+                    QPushButton {
+                        background-color: #8b5cf6;
+                        color: white;
+                        border: none;
+                        border-radius: 6px;
+                        font-size: 14px;
+                    }
+                    QPushButton:hover {
+                        background-color: #7c3aed;
+                    }
+                """)
+                btn_custom.clicked.connect(lambda checked, vid=v.id, row_idx=row: self.customize_vehicle_garanties(vid, row_idx))
+                self.vehicle_table.setCellWidget(row, 13, btn_custom)
+            
+            # --- LIGNE DE TOTAL DES GARANTIES (Colonnes 3 à 11) ---
+            if num_v > 0:
+                garanties_total_row = num_v
+                self.vehicle_table.setSpan(garanties_total_row, 0, 1, 2)
+                
+                empty_item = QTableWidgetItem("")
+                empty_item.setBackground(QColor("#f8fafc"))
+                empty_item.setFlags(Qt.NoItemFlags)
+                self.vehicle_table.setItem(garanties_total_row, 0, empty_item)
+                
+                lbl_footer = QTableWidgetItem("TOTAL GARANTIES")
+                lbl_footer.setFont(QFont("Arial", 10, QFont.Bold))
+                lbl_footer.setTextAlignment(Qt.AlignCenter)
+                lbl_footer.setBackground(QColor("#e2e8f0"))
+                self.vehicle_table.setItem(garanties_total_row, 2, lbl_footer)
+                
+                # Remplir les totaux pour les colonnes 3 à 11
+                for col_idx, total_val in col_totals.items():
+                    footer_item = self.create_num_item(total_val)
+                    footer_item.setBackground(QColor("#e2e8f0"))
+                    footer_item.setFont(QFont("Arial", 10, QFont.Bold))
+                    self.vehicle_table.setItem(garanties_total_row, col_idx, footer_item)
+            
+            # --- LIGNE DE TOTAL PTTC (Colonne 12) ---
+            pttc_total_row = num_v + 1
+            self.vehicle_table.setSpan(pttc_total_row, 0, 1, 2)
+            
+            empty_item2 = QTableWidgetItem("")
+            empty_item2.setBackground(QColor("#f8fafc"))
+            empty_item2.setFlags(Qt.NoItemFlags)
+            self.vehicle_table.setItem(pttc_total_row, 0, empty_item2)
+            
+            lbl_total_pttc = QTableWidgetItem("TOTAL PTTC")
+            lbl_total_pttc.setFont(QFont("Arial", 10, QFont.Bold))
+            lbl_total_pttc.setTextAlignment(Qt.AlignCenter)
+            lbl_total_pttc.setBackground(QColor("#dbeafe"))
+            lbl_total_pttc.setForeground(QColor("#1e40af"))
+            self.vehicle_table.setItem(pttc_total_row, 2, lbl_total_pttc)
+            
+            # Valeur totale PTTC
+            total_pttc_item = self.create_num_item(total_pttc)
+            total_pttc_item.setBackground(QColor("#dbeafe"))
+            total_pttc_item.setFont(QFont("Arial", 12, QFont.Bold))
+            total_pttc_item.setForeground(QColor("#1e40af"))
+            self.vehicle_table.setItem(pttc_total_row, 12, total_pttc_item)
+            
+            self.vehicle_table.blockSignals(False)
+            self.calculate_totals_on_change(None)
+            
+        except Exception as e:
+            print(f"Erreur update_vehicle_table: {e}")
+            import traceback
+            traceback.print_exc()
+            if hasattr(self, 'vehicle_table'):
+                self.vehicle_table.blockSignals(False)
+
+    # def update_fleet_totals(self):
+    #     """Met à jour les totaux de la flotte"""
+    #     try:
+    #         num_rows = self.vehicle_table.rowCount()
+    #         if num_rows <= 2:  # Au moins 2 lignes de total
+    #             return
+            
+    #         # L'avant-dernière ligne est le total des garanties
+    #         garanties_total_row = num_rows - 2
+    #         # La dernière ligne est le total PTTC
+    #         pttc_total_row = num_rows - 1
+            
+    #         new_totals = {i: 0.0 for i in range(3, 12)}
+    #         total_pttc = 0.0
+    #         selected_count = 0
+
+    #         # Parcourir les lignes de véhicules (jusqu'à garanties_total_row)
+    #         for row in range(garanties_total_row):
+    #             check_item = self.vehicle_table.item(row, 0)
+    #             if check_item and check_item.checkState() == Qt.Checked:
+    #                 selected_count += 1
+    #                 # Garanties (colonnes 3 à 11)
+    #                 for col in range(3, 12):
+    #                     cell = self.vehicle_table.item(row, col)
+    #                     if cell:
+    #                         val = cell.data(Qt.UserRole)
+    #                         if val is not None:
+    #                             new_totals[col] += float(val)
+                    
+    #                 # PTTC (colonne 12)
+    #                 pttc_cell = self.vehicle_table.item(row, 12)
+    #                 if pttc_cell:
+    #                     pttc_val = pttc_cell.data(Qt.UserRole)
+    #                     if pttc_val is not None:
+    #                         total_pttc += float(pttc_val)
+
+    #         # Mettre à jour la ligne des totaux garanties
+    #         self.vehicle_table.blockSignals(True)
+            
+    #         for col, total_val in new_totals.items():
+    #             footer_item = self.vehicle_table.item(garanties_total_row, col)
+    #             if footer_item:
+    #                 formatted_val = f"{total_val:,.0f}".replace(",", " ")
+    #                 footer_item.setText(formatted_val)
+    #                 footer_item.setData(Qt.UserRole, total_val)
+            
+    #         # Mettre à jour la ligne du total PTTC
+    #         total_pttc_item = self.vehicle_table.item(pttc_total_row, 12)
+    #         if total_pttc_item:
+    #             formatted_pttc = f"{total_pttc:,.0f}".replace(",", " ")
+    #             total_pttc_item.setText(formatted_pttc)
+    #             total_pttc_item.setData(Qt.UserRole, total_pttc)
+            
+    #         # Mettre à jour le label
+    #         self.total_prime_lbl.setText(f"Total PTTC ({selected_count} véhicules) : {total_pttc:,.0f} FCFA".replace(",", " "))
+            
+    #         self.vehicle_table.blockSignals(False)
+            
+    #     except Exception as e:
+    #         print(f"Erreur update_fleet_totals: {e}")
+    #         self.vehicle_table.blockSignals(False)
+
+    def update_fleet_totals(self):
+        """Met à jour les totaux de la flotte"""
+        try:
+            num_rows = self.vehicle_table.rowCount()
+            if num_rows <= 2:
+                return
+            
+            garanties_total_row = num_rows - 2
+            pttc_total_row = num_rows - 1
+            
+            new_totals = {i: 0.0 for i in range(3, 12)}
+            total_pttc = 0.0
+            selected_count = 0
+
+            for row in range(garanties_total_row):
+                check_item = self.vehicle_table.item(row, 0)
+                if check_item and check_item.checkState() == Qt.Checked:
+                    selected_count += 1
+                    # Garanties (colonnes 3 à 11)
+                    for col in range(3, 12):
+                        cell = self.vehicle_table.item(row, col)
+                        if cell:
+                            val = cell.data(Qt.UserRole)
+                            if val is not None:
+                                new_totals[col] += float(val)
+                    
+                    # ⭐ PTTC (colonne 12)
+                    pttc_cell = self.vehicle_table.item(row, 12)
+                    if pttc_cell:
+                        pttc_val = pttc_cell.data(Qt.UserRole)
+                        if pttc_val is not None:
+                            total_pttc += float(pttc_val)
+
+            # Mettre à jour la ligne des totaux garanties
+            self.vehicle_table.blockSignals(True)
+            
+            for col, total_val in new_totals.items():
+                footer_item = self.vehicle_table.item(garanties_total_row, col)
+                if footer_item:
+                    formatted_val = f"{total_val:,.0f}".replace(",", " ")
+                    footer_item.setText(formatted_val)
+                    footer_item.setData(Qt.UserRole, total_val)
+            
+            # ⭐ Mettre à jour la ligne du total PTTC (colonne 12)
+            total_pttc_item = self.vehicle_table.item(pttc_total_row, 12)
+            if total_pttc_item:
+                formatted_pttc = f"{total_pttc:,.0f}".replace(",", " ")
+                total_pttc_item.setText(formatted_pttc)
+                total_pttc_item.setData(Qt.UserRole, total_pttc)
+            
+            # Mettre à jour le label
+            self.total_prime_lbl.setText(f"Total PTTC ({selected_count} véhicules) : {total_pttc:,.0f} FCFA".replace(",", " "))
+            
+            self.vehicle_table.blockSignals(False)
+            
+        except Exception as e:
+            print(f"Erreur update_fleet_totals: {e}")
+            self.vehicle_table.blockSignals(False)
+
+    def update_row_total_fast(self, row):
+        """Met à jour le PTTC d'une ligne rapidement"""
+        try:
+            self.vehicle_table.blockSignals(True)
+            
+            # Calculer le total des garanties (colonnes 3 à 11)
+            row_sum = 0
+            for col in range(3, 12):
+                cell = self.vehicle_table.item(row, col)
+                if cell:
+                    val = cell.data(Qt.UserRole)
+                    if val is None:
+                        text = cell.text().replace(" ", "").replace(",", "")
+                        try:
+                            val = float(text) if text else 0
+                        except ValueError:
+                            val = 0
+                    row_sum += float(val)
+            
+            # Mettre à jour la cellule PTTC (colonne 12)
+            pttc_formatted = f"{row_sum:,.0f}".replace(",", " ")
+            pttc_item = QTableWidgetItem(pttc_formatted)
+            pttc_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            pttc_item.setData(Qt.UserRole, float(row_sum))
+            pttc_item.setFont(QFont("Arial", 9, QFont.Bold))
+            self.vehicle_table.setItem(row, 12, pttc_item)
+            
+            self.vehicle_table.blockSignals(False)
+            
+        except Exception as e:
+            print(f"Erreur update_row_total_fast: {e}")
+            self.vehicle_table.blockSignals(False)
+
+
+    def create_num_item(self, val):
+        """Crée un item de tableau formaté pour les montants"""
+        formatted_val = f"{val:,.0f}".replace(",", " ")
+        item = QTableWidgetItem(formatted_val)
+        item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        item.setData(Qt.UserRole, float(val or 0))
+        return item
 
     def get_form_data(self):
+        """Récupère les données du formulaire"""
         remise_text = self.remise_input.text().strip()
         try:
             remise_val = float(remise_text) if remise_text else 0.0
         except ValueError:
             remise_val = 0.0
 
-        last_row = self.vehicle_table.rowCount() - 1
+        num_rows = self.vehicle_table.rowCount()
+        
+        # L'avant-dernière ligne est le total des garanties
+        garanties_total_row = num_rows - 2
+        # La dernière ligne est le total PTTC
+        pttc_total_row = num_rows - 1
 
-        def get_total_col(col_idx):
-            if last_row < 0:
+        def get_garanties_total(col_idx):
+            if garanties_total_row < 0:
                 return 0.0
-            item = self.vehicle_table.item(last_row, col_idx)
+            item = self.vehicle_table.item(garanties_total_row, col_idx)
+            return item.data(Qt.UserRole) if item else 0.0
+        
+        def get_pttc_total():
+            if pttc_total_row < 0:
+                return 0.0
+            item = self.vehicle_table.item(pttc_total_row, 12)
             return item.data(Qt.UserRole) if item else 0.0
         
         return {
             "nom_flotte": self.name_input.text().strip(),
             "code_flotte": self.code_input.text().strip(),
             "owner_id": self.selected_client_id,
-            "assureur": self.assureur_input.currentData(Qt.UserRole) if self.assureur_input.currentData(Qt.UserRole) else None,
+            "assureur": self.assureur_input.currentData() if self.assureur_input.currentData() else None,
             "type_gestion": self.combo_mgmt.currentText(),
             "remise_flotte": remise_val,
             "statut": self.status_combo.currentText(),
@@ -1253,12 +1616,46 @@ class FleetForm(QDialog):
             "date_debut": self.date_debut.date().toPython(),
             "date_fin": self.date_fin.date().toPython(),
             "observations": self.obs_input.toPlainText().strip(),
-            "total_rc": get_total_col(3), "total_dr": get_total_col(4),
-            "total_vol": get_total_col(5), "total_vb": get_total_col(6),
-            "total_in": get_total_col(7), "total_bris": get_total_col(8),
-            "total_ar": get_total_col(9), "total_dta": get_total_col(10),
-            "total_prime_nette": get_total_col(11)
+            # Totaux des garanties (depuis l'avant-dernière ligne, colonnes 3 à 11)
+            "total_rc": get_garanties_total(3),
+            "total_dr": get_garanties_total(4),
+            "total_vol": get_garanties_total(5),
+            "total_vb": get_garanties_total(6),
+            "total_in": get_garanties_total(7),
+            "total_bris": get_garanties_total(8),
+            "total_ar": get_garanties_total(9),
+            "total_dta": get_garanties_total(10),
+            "total_ipt": get_garanties_total(11),
+            "total_prime_nette": get_garanties_total(11),
+            # PTTC total (dernière ligne, colonne 12)
+            "total_pttc": get_pttc_total()
         }
+
+    def calculate_totals_on_change(self, item):
+        """Calcule les totaux de la flotte (appelé par signal)"""
+        # Ne réagir qu'aux changements sur les checkbox (colonne 0)
+        if item is not None and item.column() != 0:
+            return
+        self.update_fleet_totals()
+
+    def on_item_changed(self, item):
+        """Gère tous les changements dans le tableau"""
+        if not item or self.vehicle_table.signalsBlocked():
+            return
+        
+        # Si le changement concerne une checkbox (colonne 0)
+        if item.column() == 0:
+            self.update_fleet_totals()
+        # Si le changement concerne une cellule de montant (colonnes 3 à 11)
+        elif 3 <= item.column() <= 11:
+            row = item.row()
+            self.update_row_total_fast(row)
+            self.update_fleet_totals()
+
+    def load_data(self, fleet):
+        self.name_input.setText(fleet.nom_flotte)
+        self.code_input.setText(getattr(fleet, 'code', ""))
+        self.obs_input.setPlainText(getattr(fleet, 'observations', ""))
 
     def validate_and_save(self):
         try:

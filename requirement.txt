@@ -39,9 +39,3 @@ urllib3
 xlrd
 flask>=2.0.0
 flask-cors>=3.0.0
-
-logo AMS à droite, enlever le pied de page. enlever (Pour ams et remplacer par pour la compagnie) afficher le montant de la Vignette
- mettre en évidence le nombre de chevaux. 
-
-
- appliquer la réduction commerciale sur tout sauf RC DR et IPT=Vignette

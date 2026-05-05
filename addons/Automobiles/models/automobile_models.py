@@ -60,6 +60,7 @@ class Vehicle(Base):
     red_rc = Column(Float, default=0.0)      # Taux de réduction (%)
     amt_red_rc = Column(Float, default=0.0)  # Montant après réduction
     amt_val_red_rc = Column(Float, default=0.0)  # Valeur de la réduction en FCFA
+    amt_fleet_rc_val = Column(Float, default=0.0)      # Montant RC dans la flotte
     
     # Défense Recours
     check_dr = Column(Boolean, default=False)
@@ -67,6 +68,7 @@ class Vehicle(Base):
     red_dr = Column(Float, default=0.0)
     amt_red_dr = Column(Float, default=0.0)
     amt_val_red_dr = Column(Float, default=0.0)
+    amt_fleet_dr_val = Column(Float, default=0.0)      # Montant DR dans la flotte
     
     # Vol
     check_vol = Column(Boolean, default=False)
@@ -74,6 +76,7 @@ class Vehicle(Base):
     red_vol = Column(Float, default=0.0)
     amt_red_vol = Column(Float, default=0.0)
     amt_val_red_vol = Column(Float, default=0.0)
+    amt_fleet_vol_val = Column(Float, default=0.0)     # Montant Vol dans la flotte
     
     # Vandalisme / VB
     check_vb = Column(Boolean, default=False)
@@ -81,6 +84,7 @@ class Vehicle(Base):
     red_vb = Column(Float, default=0.0)
     amt_red_vb = Column(Float, default=0.0)
     amt_val_red_vb = Column(Float, default=0.0)
+    amt_fleet_vb_val = Column(Float, default=0.0)      # Montant VB dans la flotte
     
     # Incendie
     check_in = Column(Boolean, default=False)
@@ -88,6 +92,7 @@ class Vehicle(Base):
     red_in = Column(Float, default=0.0)
     amt_red_in = Column(Float, default=0.0)
     amt_val_red_in = Column(Float, default=0.0)
+    amt_fleet_in_val = Column(Float, default=0.0)      # Montant Incendie dans la flotte
     
     # Bris de Glace
     check_bris = Column(Boolean, default=False)
@@ -95,6 +100,7 @@ class Vehicle(Base):
     red_bris = Column(Float, default=0.0)
     amt_red_bris = Column(Float, default=0.0)
     amt_val_red_bris = Column(Float, default=0.0)
+    amt_fleet_bris_val = Column(Float, default=0.0)    # Montant Bris dans la flotte
     
     # Assistance Réparation
     check_ar = Column(Boolean, default=False)
@@ -102,6 +108,7 @@ class Vehicle(Base):
     red_ar = Column(Float, default=0.0)
     amt_red_ar = Column(Float, default=0.0)
     amt_val_red_ar = Column(Float, default=0.0)
+    amt_fleet_ar_val = Column(Float, default=0.0)      # Montant AR dans la flotte
     
     # Dommages Tous Accidents (DTA)
     check_dta = Column(Boolean, default=False)
@@ -109,6 +116,7 @@ class Vehicle(Base):
     red_dta = Column(Float, default=0.0)
     amt_red_dta = Column(Float, default=0.0)
     amt_val_red_dta = Column(Float, default=0.0)
+    amt_fleet_dta_val = Column(Float, default=0.0)     # Montant DTA dans la flotte
     
     # Individuelle Personnes Transportées (IPT)
     check_ipt = Column(Boolean, default=False)
@@ -116,6 +124,7 @@ class Vehicle(Base):
     red_ipt = Column(Float, default=0.0)
     amt_red_ipt = Column(Float, default=0.0)
     amt_val_red_ipt = Column(Float, default=0.0)
+    amt_fleet_ipt_val = Column(Float, default=0.0)     # Montant IPT dans la flotte
     
     # --- TRAÇABILITÉ & CLE ETRANGERES ---
     created_at = Column(DateTime, server_default=func.now())
@@ -162,6 +171,15 @@ class Vehicle(Base):
         ])
     
     @property
+    def total_fleet_amount(self):
+        """Total des réductions appliquées"""
+        return sum([
+            self.amt_fleet_rc_val or 0, self.amt_fleet_dr_val or 0, self.amt_fleet_vol_val or 0,
+            self.amt_fleet_vb_val or 0, self.amt_fleet_in_val or 0, self.amt_fleet_bris_val or 0,
+            self.amt_fleet_ar_val or 0, self.amt_fleet_dta_val or 0, self.amt_fleet_ipt_val or 0
+        ])
+    
+    @property
     def total_frais(self):
         """Total des frais supplémentaires"""
         return sum([
@@ -173,6 +191,88 @@ class Vehicle(Base):
     def total_ttc(self):
         """Total TTC (Prime nette + tous frais)"""
         return (self.prime_nette or 0) + self.total_frais
+    
+    @property
+    def total_original_amount(self):
+        """Total des garanties originales (hors flotte)"""
+        return sum([
+            self.amt_rc or 0,
+            self.amt_dr or 0,
+            self.amt_vol or 0,
+            self.amt_vb or 0,
+            self.amt_in or 0,
+            self.amt_bris or 0,
+            self.amt_ar or 0,
+            self.amt_dta or 0,
+            self.amt_ipt or 0
+        ])
+    
+    @property
+    def total_fleet_reduction(self):
+        """Différence entre montant original et montant flotte"""
+        return self.total_original_amount - self.total_fleet_amount
+    
+    @property
+    def fleet_reduction_percent(self):
+        """Pourcentage de réduction appliqué dans la flotte"""
+        if self.total_original_amount > 0:
+            return (self.total_fleet_reduction / self.total_original_amount) * 100
+        return 0
+    
+    @property
+    def has_custom_fleet_guarantees(self):
+        """Vérifie si le véhicule a des garanties personnalisées dans la flotte"""
+        return any([
+            self.amt_fleet_rc_val != self.amt_rc if self.amt_fleet_rc_val else False,
+            self.amt_fleet_dr_val != self.amt_dr if self.amt_fleet_dr_val else False,
+            self.amt_fleet_vol_val != self.amt_vol if self.amt_fleet_vol_val else False,
+            self.amt_fleet_vb_val != self.amt_vb if self.amt_fleet_vb_val else False,
+            self.amt_fleet_in_val != self.amt_in if self.amt_fleet_in_val else False,
+            self.amt_fleet_bris_val != self.amt_bris if self.amt_fleet_bris_val else False,
+            self.amt_fleet_ar_val != self.amt_ar if self.amt_fleet_ar_val else False,
+            self.amt_fleet_dta_val != self.amt_dta if self.amt_fleet_dta_val else False,
+            self.amt_fleet_ipt_val != self.amt_ipt if self.amt_fleet_ipt_val else False,
+        ])
+    
+    def reset_fleet_guarantees(self):
+        """Remet les garanties de la flotte aux valeurs originales"""
+        self.amt_fleet_rc_val = self.amt_rc
+        self.amt_fleet_dr_val = self.amt_dr
+        self.amt_fleet_vol_val = self.amt_vol
+        self.amt_fleet_vb_val = self.amt_vb
+        self.amt_fleet_in_val = self.amt_in
+        self.amt_fleet_bris_val = self.amt_bris
+        self.amt_fleet_ar_val = self.amt_ar
+        self.amt_fleet_dta_val = self.amt_dta
+        self.amt_fleet_ipt_val = self.amt_ipt
+    
+    def get_fleet_guarantees_dict(self):
+        """Retourne un dictionnaire des garanties de la flotte"""
+        return {
+            'rc': self.amt_fleet_rc_val or 0,
+            'dr': self.amt_fleet_dr_val or 0,
+            'vol': self.amt_fleet_vol_val or 0,
+            'vb': self.amt_fleet_vb_val or 0,
+            'in': self.amt_fleet_in_val or 0,
+            'bris': self.amt_fleet_bris_val or 0,
+            'ar': self.amt_fleet_ar_val or 0,
+            'dta': self.amt_fleet_dta_val or 0,
+            'ipt': self.amt_fleet_ipt_val or 0,
+        }
+    
+    def get_original_guarantees_dict(self):
+        """Retourne un dictionnaire des garanties originales"""
+        return {
+            'rc': self.amt_rc or 0,
+            'dr': self.amt_dr or 0,
+            'vol': self.amt_vol or 0,
+            'vb': self.amt_vb or 0,
+            'in': self.amt_in or 0,
+            'bris': self.amt_bris or 0,
+            'ar': self.amt_ar or 0,
+            'dta': self.amt_dta or 0,
+            'ipt': self.amt_ipt or 0,
+        }
 
     def __repr__(self):
         return f"<Vehicle(Immat={self.immatriculation}, Marque={self.marque})>"

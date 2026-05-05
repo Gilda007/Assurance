@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame,
     QScrollArea, QTableWidget, QTableWidgetItem, QHeaderView, QGridLayout,
     QMessageBox, QDialog, QTabWidget, QComboBox, QLineEdit, QDateEdit,
-    QGraphicsDropShadowEffect, QSizePolicy
+    QGraphicsDropShadowEffect, QProgressDialog, QProgressBar
 )
 from PySide6.QtCore import Qt, Signal, QDate, QSize, QPoint
 from PySide6.QtGui import QFont, QColor, QPixmap, QPalette, QLinearGradient, QBrush
@@ -29,6 +29,7 @@ class FleetDetailView(QWidget):
         self.drag_pos = QPoint()
         self.is_maximized = False
         self.normal_geometry = None
+        self.contract_tab = None
         
         # Initialiser les contrôleurs
         self._init_controllers()
@@ -270,15 +271,26 @@ class FleetDetailView(QWidget):
             else:
                 self.contracts = []
             
-            # Calculer les statistiques
-            self.total_vehicles = len(self.vehicles)
-            self.total_contracts = len(self.contracts)
+            # ⭐⭐⭐ STATISTIQUES DEPUIS LA TABLE FLEETS ⭐⭐⭐
+            # Nombre de véhicules
+            self.total_vehicles = len(self.vehicles) if self.vehicles else 0
             
-            # Calculer le total des primes
-            self.total_premium = 0
-            for vehicle in self.vehicles:
-                if hasattr(vehicle, 'prime_nette'):
-                    self.total_premium += float(vehicle.prime_nette or 0)
+            # ⭐ Prime totale depuis le champ total_pttc de la flotte
+            # Si le champ total_pttc existe, l'utiliser, sinon calculer
+            if hasattr(self.fleet, 'total_pttc') and self.fleet.total_pttc:
+                self.total_premium = float(self.fleet.total_pttc)
+            else:
+                # Fallback: calculer à partir des véhicules
+                self.total_premium = 0
+                for vehicle in self.vehicles:
+                    if hasattr(vehicle, 'prime_nette'):
+                        self.total_premium += float(vehicle.prime_nette or 0)
+            
+            # ⭐ Prime moyenne (calculée à partir des données de la flotte)
+            if self.total_vehicles > 0:
+                self.avg_premium = self.total_premium / self.total_vehicles
+            else:
+                self.avg_premium = 0
             
             # Récupérer le nom de la compagnie
             self.compagnie_nom = '—'
@@ -301,13 +313,26 @@ class FleetDetailView(QWidget):
                 self.owner_phone = getattr(owner, 'telephone', '—')
                 self.owner_email = getattr(owner, 'email', '—')
             
+            # ⭐ Mettre à jour les totaux des garanties depuis la flotte
+            self.total_rc = getattr(self.fleet, 'total_rc', 0) or 0
+            self.total_dr = getattr(self.fleet, 'total_dr', 0) or 0
+            self.total_vol = getattr(self.fleet, 'total_vol', 0) or 0
+            self.total_vb = getattr(self.fleet, 'total_vb', 0) or 0
+            self.total_in = getattr(self.fleet, 'total_in', 0) or 0
+            self.total_bris = getattr(self.fleet, 'total_bris', 0) or 0
+            self.total_ar = getattr(self.fleet, 'total_ar', 0) or 0
+            self.total_dta = getattr(self.fleet, 'total_dta', 0) or 0
+            
+            print(f"📊 Statistiques flotte - Total PTTC: {self.total_premium}, Total véhicules: {self.total_vehicles}")
+            
         except Exception as e:
             print(f"Erreur chargement données flotte: {e}")
             self.vehicles = []
             self.contracts = []
             self.total_vehicles = 0
             self.total_premium = 0
-    
+            self.avg_premium = 0
+
     def setup_ui(self):
         """Configure l'interface principale"""
         self.setStyleSheet(self._get_style())
@@ -349,6 +374,8 @@ class FleetDetailView(QWidget):
         
         self.tab_widget.addTab(self.create_info_tab(), "📋 Informations")
         self.tab_widget.addTab(self.create_vehicles_tab(), "🚗 Véhicules")
+        self.contract_tab = self.create_contract_tab()
+        self.tab_widget.addTab(self.contract_tab, "📄 Contrat & Paiements")
         self.tab_widget.addTab(self.create_stats_tab(), "📊 Statistiques")
         self.tab_widget.addTab(self.create_documents_tab(), "📁 Documents")
         
@@ -865,10 +892,11 @@ class FleetDetailView(QWidget):
         layout.setContentsMargins(30, 24, 30, 24)
         layout.setSpacing(40)
         
+        # ⭐ Utiliser les données de la flotte
         stats = [
             ("🚗", "VÉHICULES", str(self.total_vehicles), "dans la flotte"),
             ("💰", "PRIME TOTALE", f"{self.total_premium:,.0f}".replace(",", " "), "FCFA"),
-            ("📊", "PRIME MOYENNE", f"{self.total_premium/self.total_vehicles:,.0f}".replace(",", " ") if self.total_vehicles > 0 else "0", "FCFA/véhicule"),
+            ("📊", "PRIME MOYENNE", f"{self.avg_premium:,.0f}".replace(",", " "), "FCFA/véhicule"),
         ]
         
         for icon, title, value, unit in stats:
@@ -1009,16 +1037,16 @@ class FleetDetailView(QWidget):
         title.setProperty("class", "SectionTitle")
         layout.addWidget(title)
         
-        # Récupérer les totaux des garanties
+        # ⭐ Récupérer les totaux depuis les attributs de la flotte
         garanties_data = [
-            ("Responsabilité Civile", getattr(self.fleet, 'total_rc', 0) or 0, "#3b82f6"),
-            ("Défense et Recours", getattr(self.fleet, 'total_dr', 0) or 0, "#10b981"),
-            ("Vol du véhicule", getattr(self.fleet, 'total_vol', 0) or 0, "#f59e0b"),
-            ("Vol à Main Armée", getattr(self.fleet, 'total_vb', 0) or 0, "#ef4444"),
-            ("Incendie", getattr(self.fleet, 'total_in', 0) or 0, "#8b5cf6"),
-            ("Bris de Glaces", getattr(self.fleet, 'total_bris', 0) or 0, "#06b6d4"),
-            ("Assistance Panne", getattr(self.fleet, 'total_ar', 0) or 0, "#84cc16"),
-            ("Dommages Tous Accidents", getattr(self.fleet, 'total_dta', 0) or 0, "#ec4899"),
+            ("Responsabilité Civile", getattr(self, 'total_rc', 0) or 0, "#3b82f6"),
+            ("Défense et Recours", getattr(self, 'total_dr', 0) or 0, "#10b981"),
+            ("Vol du véhicule", getattr(self, 'total_vol', 0) or 0, "#f59e0b"),
+            ("Vol à Main Armée", getattr(self, 'total_vb', 0) or 0, "#ef4444"),
+            ("Incendie", getattr(self, 'total_in', 0) or 0, "#8b5cf6"),
+            ("Bris de Glaces", getattr(self, 'total_bris', 0) or 0, "#06b6d4"),
+            ("Assistance Panne", getattr(self, 'total_ar', 0) or 0, "#84cc16"),
+            ("Dommages Tous Accidents", getattr(self, 'total_dta', 0) or 0, "#ec4899"),
         ]
         
         total_garanties = sum(amount for _, amount, _ in garanties_data)
@@ -1081,7 +1109,42 @@ class FleetDetailView(QWidget):
         layout.addWidget(total_frame)
         
         return card
-    
+
+    def refresh_stats(self):
+        """Rafraîchit les statistiques depuis la flotte"""
+        try:
+            # Recharger la flotte depuis la base de données
+            self.fleet = self.controller.fleets.get_fleet_with_details(self.fleet.id)
+            self.load_fleet_data()
+            
+            # Mettre à jour l'affichage
+            self.update_stats_display()
+            
+        except Exception as e:
+            print(f"Erreur refresh_stats: {e}")
+
+    def update_stats_display(self):
+        """Met à jour l'affichage des statistiques"""
+        # Mettre à jour la barre de statistiques
+        for child in self.findChildren(QFrame):
+            if child.property("class") == "StatsCard":
+                child.deleteLater()
+        
+        # Recréer la barre de statistiques
+        if hasattr(self, 'tab_widget'):
+            vehicles_tab = self.tab_widget.widget(1)  # Onglet Véhicules
+            if vehicles_tab:
+                # Remplacer l'ancienne barre
+                old_layout = vehicles_tab.layout()
+                if old_layout and old_layout.count() > 0:
+                    old_item = old_layout.itemAt(0)
+                    if old_item and old_item.widget():
+                        old_item.widget().deleteLater()
+                
+                # Insérer la nouvelle barre
+                new_stats_bar = self.create_vehicles_stats_bar()
+                old_layout.insertWidget(0, new_stats_bar)
+
     def create_stats_tab(self):
         """Onglet des statistiques"""
         tab = QWidget()
@@ -1176,20 +1239,19 @@ class FleetDetailView(QWidget):
         )
         layout.addWidget(kpi1, 1)
         
-        # KPI 2: Prime totale
+        # KPI 2: Prime totale (PTTC)
         kpi2 = self._create_kpi_card(
-            title="💰 PRIME TOTALE",
-            value=f"{self.total_premium/1000:.1f}k" if self.total_premium >= 1000 else f"{self.total_premium:,.0f}".replace(",", " "),
+            title="💰 PTTC TOTAL",
+            value=f"{self.total_premium:,.0f}".replace(",", " "),
             subtitle="FCFA / an",
             color="#10b981"
         )
         layout.addWidget(kpi2, 1)
         
         # KPI 3: Prime moyenne
-        avg_premium = self.total_premium / self.total_vehicles if self.total_vehicles > 0 else 0
         kpi3 = self._create_kpi_card(
             title="📊 PRIME MOYENNE",
-            value=f"{avg_premium/1000:.1f}k" if avg_premium >= 1000 else f"{avg_premium:,.0f}".replace(",", " "),
+            value=f"{self.avg_premium:,.0f}".replace(",", " "),
             subtitle="FCFA / véhicule",
             color="#f59e0b"
         )
@@ -1206,7 +1268,7 @@ class FleetDetailView(QWidget):
         layout.addWidget(kpi4, 1)
         
         return container
-    
+
     def _create_kpi_card(self, title, value, subtitle, color):
         """Crée une carte KPI"""
         card = QFrame()
@@ -1664,3 +1726,743 @@ class FleetDetailView(QWidget):
         layout.addLayout(contacts_grid)
         
         return card
+
+    def create_contract_tab(self):
+        """Onglet Contrat & Paiements - Similaire à vehicle_detail_view"""
+        tab = QWidget()
+        
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
+        scroll.setStyleSheet("border: none; background: transparent;")
+        
+        container = QWidget()
+        container_layout = QVBoxLayout(container)
+        container_layout.setContentsMargins(0, 16, 0, 16)
+        container_layout.setSpacing(24)
+        
+        # Carte récapitulative du contrat
+        contract_card = self.create_fleet_contract_card()
+        if contract_card:
+            container_layout.addWidget(contract_card)
+        
+        # Historique des paiements
+        payment_history = self.create_fleet_payment_history()
+        if payment_history:
+            container_layout.addWidget(payment_history)
+        
+        # Échéancier des paiements
+        payment_schedule = self.create_fleet_payment_schedule()
+        if payment_schedule:
+            container_layout.addWidget(payment_schedule)
+        
+        container_layout.addStretch()
+        
+        scroll.setWidget(container)
+        
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(scroll)
+        
+        return tab
+
+    def create_fleet_contract_card(self):
+        """Crée la carte récapitulative du contrat de flotte"""
+        # Récupérer le contrat de la flotte
+        fleet_contract = self.controller.fleets.get_fleet_contract(self.fleet.id)
+        
+        recap_frame = QFrame()
+        recap_frame.setObjectName("RecapCard")
+        recap_frame.setStyleSheet("""
+            QFrame#RecapCard {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #667eea, stop:1 #764ba2);
+                border-radius: 20px;
+            }
+        """)
+        
+        main_layout = QVBoxLayout(recap_frame)
+        main_layout.setContentsMargins(32, 28, 32, 28)
+        main_layout.setSpacing(20)
+        
+        # Titre
+        title_layout = QHBoxLayout()
+        title_icon = QLabel("📄")
+        title_icon.setStyleSheet("font-size: 20px; background: transparent;")
+        title_text = QLabel("CONTRAT DE FLOTTE")
+        title_text.setStyleSheet("color: white; font-size: 16px; font-weight: 700; letter-spacing: 1px; background: transparent;")
+        title_layout.addWidget(title_icon)
+        title_layout.addWidget(title_text)
+        title_layout.addStretch()
+        main_layout.addLayout(title_layout)
+        
+        if fleet_contract:
+            # Contrat existant
+            montant_total = float(fleet_contract.prime_totale_ttc or 0)
+            montant_paye = float(fleet_contract.montant_paye or 0)
+            reste_a_payer = montant_total - montant_paye
+            
+            # Numéro de police
+            police_layout = self._create_info_row("📋 Numéro de police", fleet_contract.numero_police)
+            main_layout.addLayout(police_layout)
+            
+            # Montant total
+            amount_layout = self._create_amount_display(montant_total, montant_paye, reste_a_payer)
+            main_layout.addLayout(amount_layout)
+            
+            # Barre de progression
+            progress_layout = self._create_progress_bar(montant_paye, montant_total)
+            main_layout.addLayout(progress_layout)
+            
+            # Section validation paiement
+            validation_section = self._create_fleet_payment_section(fleet_contract, reste_a_payer)
+            main_layout.addWidget(validation_section)
+            
+        else:
+            # Pas de contrat - bouton pour créer
+            no_contract_layout = QVBoxLayout()
+            no_contract_layout.setAlignment(Qt.AlignCenter)
+            no_contract_layout.setSpacing(15)
+            
+            warning_icon = QLabel("⚠️")
+            warning_icon.setStyleSheet("font-size: 48px; background: transparent;")
+            warning_icon.setAlignment(Qt.AlignCenter)
+            
+            warning_text = QLabel("Aucun contrat n'a encore été généré pour cette flotte")
+            warning_text.setStyleSheet("color: white; font-size: 14px; background: transparent;")
+            warning_text.setAlignment(Qt.AlignCenter)
+            
+            btn_create_contract = QPushButton("📄 GÉNÉRER LE CONTRAT")
+            btn_create_contract.setCursor(Qt.PointingHandCursor)
+            btn_create_contract.setStyleSheet("""
+                QPushButton {
+                    background: #fbbf24;
+                    color: #1e293b;
+                    border: none;
+                    border-radius: 12px;
+                    padding: 12px 24px;
+                    font-weight: 700;
+                    font-size: 14px;
+                }
+                QPushButton:hover {
+                    background: #f59e0b;
+                }
+            """)
+            btn_create_contract.clicked.connect(self.create_fleet_contract)
+            
+            no_contract_layout.addWidget(warning_icon)
+            no_contract_layout.addWidget(warning_text)
+            no_contract_layout.addWidget(btn_create_contract, 0, Qt.AlignCenter)
+            
+            main_layout.addLayout(no_contract_layout)
+        
+        return recap_frame
+
+    def _create_info_row(self, label, value):
+        """Crée une ligne d'information"""
+        layout = QHBoxLayout()
+        layout.setSpacing(15)
+        
+        label_lbl = QLabel(label)
+        label_lbl.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 12px; background: transparent;")
+        
+        value_lbl = QLabel(value)
+        value_lbl.setStyleSheet("color: white; font-size: 14px; font-weight: 600; background: transparent;")
+        
+        layout.addWidget(label_lbl)
+        layout.addStretch()
+        layout.addWidget(value_lbl)
+        
+        return layout
+
+    def _create_amount_display(self, total, paid, remaining):
+        """Crée l'affichage des montants"""
+        layout = QVBoxLayout()
+        layout.setSpacing(15)
+        
+        # Total
+        total_layout = QHBoxLayout()
+        total_label = QLabel("MONTANT TOTAL")
+        total_label.setStyleSheet("color: rgba(255,255,255,0.6); font-size: 11px; font-weight: 600; letter-spacing: 1px;")
+        
+        total_value = QLabel(f"{total:,.0f} FCFA".replace(",", " "))
+        total_value.setStyleSheet("color: white; font-size: 28px; font-weight: 800;")
+        
+        total_layout.addWidget(total_label)
+        total_layout.addStretch()
+        total_layout.addWidget(total_value)
+        
+        # Payé
+        paid_layout = QHBoxLayout()
+        paid_label = QLabel("Déjà payé")
+        paid_label.setStyleSheet("color: rgba(255,255,255,0.6); font-size: 12px;")
+        
+        paid_value = QLabel(f"{paid:,.0f} FCFA".replace(",", " "))
+        paid_value.setStyleSheet("color: #10b981; font-size: 16px; font-weight: 700;")
+        
+        paid_layout.addWidget(paid_label)
+        paid_layout.addStretch()
+        paid_layout.addWidget(paid_value)
+        
+        # Restant
+        remaining_layout = QHBoxLayout()
+        remaining_label = QLabel("Reste à payer")
+        remaining_label.setStyleSheet("color: rgba(255,255,255,0.6); font-size: 12px;")
+        
+        remaining_value = QLabel(f"{remaining:,.0f} FCFA".replace(",", " "))
+        remaining_value.setStyleSheet("color: #fbbf24; font-size: 16px; font-weight: 700;")
+        
+        remaining_layout.addWidget(remaining_label)
+        remaining_layout.addStretch()
+        remaining_layout.addWidget(remaining_value)
+        
+        layout.addLayout(total_layout)
+        layout.addLayout(paid_layout)
+        layout.addLayout(remaining_layout)
+        
+        return layout
+
+    def _create_progress_bar(self, paid, total):
+        """Crée une barre de progression"""
+        layout = QVBoxLayout()
+        layout.setSpacing(8)
+        
+        percentage = int((paid / total) * 100) if total > 0 else 0
+        
+        progress_bar = QProgressBar()
+        progress_bar.setRange(0, 100)
+        progress_bar.setValue(percentage)
+        progress_bar.setFixedHeight(8)
+        progress_bar.setTextVisible(False)
+        progress_bar.setStyleSheet("""
+            QProgressBar {
+                background: rgba(255,255,255,0.2);
+                border-radius: 4px;
+            }
+            QProgressBar::chunk {
+                background: #fbbf24;
+                border-radius: 4px;
+            }
+        """)
+        
+        percent_label = QLabel(f"{percentage}% payé")
+        percent_label.setStyleSheet("color: rgba(255,255,255,0.5); font-size: 11px;")
+        percent_label.setAlignment(Qt.AlignRight)
+        
+        layout.addWidget(progress_bar)
+        layout.addWidget(percent_label)
+        
+        return layout
+
+    def _create_fleet_payment_section(self, contract, reste_a_payer):
+        """Crée la section de validation de paiement pour la flotte"""
+        validation_frame = QFrame()
+        validation_frame.setStyleSheet("""
+            QFrame {
+                background: rgba(255,255,255,0.1);
+                border-radius: 16px;
+                margin-top: 15px;
+            }
+        """)
+        
+        validation_layout = QVBoxLayout(validation_frame)
+        validation_layout.setContentsMargins(20, 15, 20, 15)
+        validation_layout.setSpacing(12)
+        
+        # Titre
+        validation_title = QLabel("💰 VALIDER UN PAIEMENT")
+        validation_title.setStyleSheet("color: white; font-size: 13px; font-weight: 700; letter-spacing: 1px; background: transparent;")
+        validation_layout.addWidget(validation_title)
+        
+        # Mode de paiement
+        mode_layout = QHBoxLayout()
+        mode_layout.setSpacing(15)
+        
+        mode_label = QLabel("Mode de paiement :")
+        mode_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 12px; background: transparent;")
+        
+        self.fleet_payment_mode = QComboBox()
+        self.fleet_payment_mode.addItems(["Espèces", "Carte bancaire", "Virement", "Chèque", "Orange Money", "MTN Mobile Money"])
+        self.fleet_payment_mode.setStyleSheet("""
+            QComboBox {
+                background: white;
+                border: none;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: 140px;
+            }
+        """)
+        
+        mode_layout.addWidget(mode_label)
+        mode_layout.addWidget(self.fleet_payment_mode)
+        mode_layout.addStretch()
+        validation_layout.addLayout(mode_layout)
+        
+        # Montant versé
+        montant_layout = QHBoxLayout()
+        montant_layout.setSpacing(15)
+        
+        montant_label = QLabel(f"Montant versé (Reste: {reste_a_payer:,.0f} FCFA) :")
+        montant_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 12px; background: transparent;")
+        
+        self.fleet_montant_verse = QLineEdit()
+        self.fleet_montant_verse.setPlaceholderText("0")
+        self.fleet_montant_verse.setStyleSheet("""
+            QLineEdit {
+                background: white;
+                border: none;
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+                min-width: 150px;
+            }
+        """)
+        self.fleet_montant_verse.textChanged.connect(self.update_fleet_balance)
+        
+        montant_layout.addWidget(montant_label)
+        montant_layout.addWidget(self.fleet_montant_verse)
+        montant_layout.addStretch()
+        validation_layout.addLayout(montant_layout)
+        
+        # Solde restant
+        solde_layout = QHBoxLayout()
+        solde_layout.setSpacing(15)
+        
+        solde_label = QLabel("Nouveau solde :")
+        solde_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 12px; background: transparent;")
+        
+        self.fleet_solde_restant = QLineEdit()
+        self.fleet_solde_restant.setReadOnly(True)
+        self.fleet_solde_restant.setPlaceholderText("0")
+        self.fleet_solde_restant.setStyleSheet("""
+            QLineEdit {
+                background: rgba(255,255,255,0.2);
+                color: #fbbf24;
+                border: 1px solid rgba(255,255,255,0.3);
+                border-radius: 8px;
+                padding: 6px 12px;
+                font-size: 12px;
+                font-weight: bold;
+                min-width: 150px;
+            }
+        """)
+        
+        solde_layout.addWidget(solde_label)
+        solde_layout.addWidget(self.fleet_solde_restant)
+        solde_layout.addStretch()
+        validation_layout.addLayout(solde_layout)
+        
+        # Statut
+        status_layout = QHBoxLayout()
+        status_layout.setSpacing(15)
+        
+        self.fleet_payment_status = QLabel("⏳ En attente")
+        self.fleet_payment_status.setStyleSheet("""
+            QLabel {
+                color: #fbbf24;
+                font-size: 12px;
+                font-weight: 600;
+                background: rgba(0,0,0,0.2);
+                padding: 5px 12px;
+                border-radius: 20px;
+            }
+        """)
+        
+        status_layout.addWidget(self.fleet_payment_status)
+        status_layout.addStretch()
+        validation_layout.addLayout(status_layout)
+        
+        # Bouton validation
+        btn_validate = QPushButton("✓ VALIDER LE PAIEMENT")
+        btn_validate.setCursor(Qt.PointingHandCursor)
+        btn_validate.setStyleSheet("""
+            QPushButton {
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 12px;
+                padding: 12px;
+                font-size: 14px;
+                font-weight: 700;
+                margin-top: 5px;
+            }
+            QPushButton:hover {
+                background: #059669;
+            }
+        """)
+        btn_validate.clicked.connect(lambda: self.validate_fleet_payment(contract))
+        validation_layout.addWidget(btn_validate)
+        
+        return validation_frame
+
+    def create_fleet_contract(self):
+        """Crée le contrat pour la flotte"""
+        try:
+            # Calculer le montant total de la flotte
+            total_pttc = self.total_premium
+            
+            data = {
+                'prime_pure': total_pttc,
+                'prime_totale_ttc': total_pttc,
+                'accessoires': 0,
+                'taxes_totales': 0,
+                'commission_intermediaire': 0
+            }
+            
+            user_id = getattr(self.controller, 'current_user_id', 1)
+            
+            success, contract = self.controller.fleets.create_fleet_contract(
+                self.fleet.id, data, user_id
+            )
+            
+            if success:
+                QMessageBox.information(self, "Succès", "Contrat de flotte créé avec succès!")
+                # Recharger l'onglet contrat
+                self.refresh_contract_tab()
+            else:
+                QMessageBox.warning(self, "Erreur", f"Erreur: {contract}")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", str(e))
+
+    def refresh_contract_tab(self):
+        """Rafraîchit l'onglet contrat"""
+        if hasattr(self, 'tab_widget') and self.tab_widget:
+            # Trouver l'index de l'onglet contrat
+            index = -1
+            for i in range(self.tab_widget.count()):
+                if self.tab_widget.tabText(i) == "📄 Contrat & Paiements":
+                    index = i
+                    break
+            
+            if index >= 0:
+                # Supprimer l'ancien onglet
+                self.tab_widget.removeTab(index)
+            
+            # Créer le nouvel onglet
+            self.contract_tab = self.create_contract_tab()
+            self.tab_widget.insertTab(index if index >= 0 else 2, self.contract_tab, "📄 Contrat & Paiements")
+            
+            # Forcer le rafraîchissement
+            self.tab_widget.setCurrentIndex(index if index >= 0 else 2)
+
+    def update_fleet_balance(self):
+        """Met à jour l'affichage du solde pour la flotte"""
+        try:
+            fleet_contract = self.controller.fleets.get_fleet_contract(self.fleet.id)
+            if fleet_contract:
+                reste_a_payer = fleet_contract.prime_totale_ttc - fleet_contract.montant_paye
+                montant_verse = self._get_fleet_montant_verse()
+                solde = reste_a_payer - montant_verse
+                
+                if solde <= 0:
+                    self.fleet_solde_restant.setText("0")
+                    self.fleet_payment_status.setText("✅ Paiement complété")
+                else:
+                    self.fleet_solde_restant.setText(f"{solde:,.0f} FCFA".replace(",", " "))
+                    self.fleet_payment_status.setText("⏳ Paiement partiel")
+        except:
+            pass
+
+    def _get_fleet_montant_verse(self):
+        """Récupère le montant versé pour la flotte"""
+        try:
+            text = self.fleet_montant_verse.text()
+            if not text:
+                return 0.0
+            cleaned = text.replace(" ", "").replace(",", ".")
+            return float(cleaned)
+        except:
+            return 0.0
+
+    def validate_fleet_payment(self, contract):
+        """Valide un paiement pour la flotte"""
+        montant_verse = self._get_fleet_montant_verse()
+        
+        if montant_verse <= 0:
+            QMessageBox.warning(self, "Erreur", "Veuillez saisir un montant valide")
+            return
+        
+        if not self.controller.paiements:
+            QMessageBox.warning(self, "Erreur", "Contrôleur de paiement non disponible")
+            return
+        
+        reste_a_payer = contract.prime_totale_ttc - contract.montant_paye
+        
+        if montant_verse > reste_a_payer + 0.01:
+            reply = QMessageBox.question(
+                self,
+                "Montant excessif",
+                f"Le montant versé ({montant_verse:,.0f} FCFA) dépasse le solde restant ({reste_a_payer:,.0f} FCFA).\n\nSouhaitez-vous continuer ?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.No:
+                return
+        
+        # Mode de paiement
+        mode_text = self.fleet_payment_mode.currentText()
+        mode_mapping = {
+            "Espèces": "CASH",
+            "Carte bancaire": "CARD",
+            "Virement": "TRANSFER",
+            "Chèque": "CHECK",
+            "Orange Money": "ORANGE_MONEY",
+            "MTN Mobile Money": "MTN_MONEY",
+        }
+        mode = mode_mapping.get(mode_text, "CASH")
+        
+        # Appeler le contrôleur
+        success, payment, message = self.controller.paiements.create_payment(
+            data={
+                'contrat_id': contract.id,
+                'montant': montant_verse,
+                'mode_paiement': mode,
+                'notes': f"Paiement flotte - {mode_text}"
+            },
+            user_id=self._get_current_user_id(),
+            ip=self._get_local_ip()
+        )
+        
+        if success:
+            QMessageBox.information(
+                self,
+                "Paiement validé",
+                f"Paiement de {montant_verse:,.0f} FCFA effectué\n\n"
+                f"Reçu: {payment.numero_recu}\n\n"
+                f"Solde restant : {max(0, reste_a_payer - montant_verse):,.0f} FCFA"
+            )
+            self.fleet_montant_verse.clear()
+            self.refresh_contract_tab()
+        else:
+            QMessageBox.warning(self, "Erreur", f"Erreur: {message}")
+
+    def create_fleet_payment_history(self):
+        """Crée l'historique des paiements de la flotte"""
+        history_card = QFrame()
+        history_card.setProperty("class", "InfoCard")
+        history_card.setStyleSheet("""
+            QFrame {
+                background: white;
+                border-radius: 20px;
+                border: 1px solid #e2e8f0;
+            }
+        """)
+        
+        layout = QVBoxLayout(history_card)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
+        
+        title = QLabel("📜 HISTORIQUE DES PAIEMENTS")
+        title.setProperty("class", "SectionTitle")
+        layout.addWidget(title)
+        
+        # Récupérer le contrat de la flotte
+        fleet_contract = self.controller.fleets.get_fleet_contract(self.fleet.id)
+        
+        if fleet_contract and hasattr(fleet_contract, 'paiements') and fleet_contract.paiements:
+            # Tableau des paiements
+            table = QTableWidget()
+            table.setColumnCount(4)
+            table.setHorizontalHeaderLabels(["Date", "Mode", "Montant", "Reçu"])
+            table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+            table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+            table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+            table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+            table.setAlternatingRowColors(True)
+            table.setShowGrid(False)
+            table.setFocusPolicy(Qt.NoFocus)
+            
+            for row, payment in enumerate(fleet_contract.paiements):
+                table.insertRow(row)
+                table.setRowHeight(row, 40)
+                
+                # Date
+                date_str = payment.date_paiement.strftime("%d/%m/%Y") if payment.date_paiement else ""
+                table.setItem(row, 0, QTableWidgetItem(date_str))
+                
+                # Mode
+                mode_str = payment.mode_paiement.value if hasattr(payment.mode_paiement, 'value') else str(payment.mode_paiement)
+                table.setItem(row, 1, QTableWidgetItem(mode_str))
+                
+                # Montant
+                amount_item = QTableWidgetItem(f"{payment.montant:,.0f} FCFA".replace(",", " "))
+                amount_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                table.setItem(row, 2, amount_item)
+                
+                # Reçu
+                table.setItem(row, 3, QTableWidgetItem(payment.numero_recu or "—"))
+            
+            table.setFixedHeight(min(300, 50 + len(fleet_contract.paiements) * 45))
+            layout.addWidget(table)
+            
+            # Total payé
+            total_paye = sum(p.montant for p in fleet_contract.paiements)
+            total_frame = QFrame()
+            total_frame.setStyleSheet("background: #f8fafc; border-radius: 12px;")
+            total_layout = QHBoxLayout(total_frame)
+            total_layout.setContentsMargins(20, 12, 20, 12)
+            
+            total_label = QLabel(f"Total payé: {total_paye:,.0f} FCFA".replace(",", " "))
+            total_label.setStyleSheet("font-weight: 700; color: #10b981;")
+            
+            total_layout.addStretch()
+            total_layout.addWidget(total_label)
+            layout.addWidget(total_frame)
+            
+        else:
+            # Aucun paiement
+            no_data = QLabel("📭 Aucun paiement enregistré pour cette flotte")
+            no_data.setStyleSheet("color: #94a3b8; padding: 40px; text-align: center;")
+            no_data.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data)
+        
+        return history_card
+
+    def create_fleet_payment_schedule(self):
+        """Crée l'échéancier des paiements de la flotte"""
+        schedule_card = QFrame()
+        schedule_card.setProperty("class", "InfoCard")
+        schedule_card.setStyleSheet("""
+            QFrame {
+                background: white;
+                border-radius: 20px;
+                border: 1px solid #e2e8f0;
+            }
+        """)
+        
+        layout = QVBoxLayout(schedule_card)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(16)
+        
+        title = QLabel("📅 ÉCHÉANCIER DES PAIEMENTS")
+        title.setProperty("class", "SectionTitle")
+        layout.addWidget(title)
+        
+        # Calculer les échéances (exemple: 4 mensualités)
+        fleet_contract = self.controller.fleets.get_fleet_contract(self.fleet.id)
+        
+        if fleet_contract:
+            montant_total = float(fleet_contract.prime_totale_ttc or 0)
+            montant_paye = float(fleet_contract.montant_paye or 0)
+            reste_a_payer = montant_total - montant_paye
+            
+            if reste_a_payer > 0:
+                # Proposer un échéancier par défaut (4 mensualités)
+                nbre_echeances = 4
+                montant_echeance = reste_a_payer / nbre_echeances
+                
+                from datetime import date, timedelta
+                today = date.today()
+                
+                for i in range(nbre_echeances):
+                    echeance_date = today + timedelta(days=(i + 1) * 30)
+                    
+                    item = QFrame()
+                    item.setStyleSheet("""
+                        QFrame {
+                            background: #f8fafc;
+                            border-radius: 12px;
+                            margin-bottom: 8px;
+                        }
+                    """)
+                    item_layout = QHBoxLayout(item)
+                    item_layout.setContentsMargins(20, 16, 20, 16)
+                    item_layout.setSpacing(16)
+                    
+                    # Numéro
+                    numero_lbl = QLabel(f"{i + 1}")
+                    numero_lbl.setFixedSize(36, 36)
+                    numero_lbl.setAlignment(Qt.AlignCenter)
+                    numero_lbl.setStyleSheet("""
+                        background: #eef2ff;
+                        color: #3b82f6;
+                        border-radius: 18px;
+                        font-size: 14px;
+                        font-weight: 800;
+                    """)
+                    
+                    # Date
+                    date_lbl = QLabel(f"📅 {echeance_date.strftime('%d/%m/%Y')}")
+                    date_lbl.setStyleSheet("font-size: 13px; font-weight: 600; color: #1e293b;")
+                    
+                    # Montant
+                    montant_lbl = QLabel(f"{montant_echeance:,.0f} FCFA".replace(",", " "))
+                    montant_lbl.setStyleSheet("font-size: 15px; font-weight: 700; color: #8b5cf6;")
+                    
+                    # Statut
+                    if i == 0:
+                        status_lbl = QLabel("⏳ À venir")
+                        status_lbl.setStyleSheet("background: #fef3c7; color: #d97706; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;")
+                    else:
+                        status_lbl = QLabel("📋 Planifié")
+                        status_lbl.setStyleSheet("background: #e0e7ff; color: #4338ca; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;")
+                    
+                    item_layout.addWidget(numero_lbl)
+                    item_layout.addWidget(date_lbl)
+                    item_layout.addStretch()
+                    item_layout.addWidget(montant_lbl)
+                    item_layout.addWidget(status_lbl)
+                    
+                    layout.addWidget(item)
+            else:
+                no_data = QLabel("✅ Contrat entièrement payé")
+                no_data.setStyleSheet("color: #10b981; padding: 40px; text-align: center; font-weight: 600;")
+                no_data.setAlignment(Qt.AlignCenter)
+                layout.addWidget(no_data)
+        else:
+            no_data = QLabel("📭 Aucun contrat trouvé pour cette flotte")
+            no_data.setStyleSheet("color: #94a3b8; padding: 40px; text-align: center;")
+            no_data.setAlignment(Qt.AlignCenter)
+            layout.addWidget(no_data)
+        
+        return schedule_card
+
+    def _get_current_user_id(self):
+        """Récupère l'ID de l'utilisateur actuel"""
+        if self.controller and hasattr(self.controller, 'get_current_user_id'):
+            return self.controller.get_current_user_id()
+        return 1
+
+    def _on_batch_print(self):
+        """Gère l'impression groupée des véhicules de la flotte"""
+        selected_vehicles = []
+        
+        for row in range(self.vehicles_table.rowCount()):
+            check_item = self.vehicles_table.item(row, 0)
+            if check_item and check_item.checkState() == Qt.Checked:
+                vehicle_data = {
+                    'id': check_item.data(Qt.UserRole),
+                    'immatriculation': self.vehicles_table.item(row, 1).text(),
+                    'marque': self.vehicles_table.item(row, 2).text(),
+                    'modele': self.vehicles_table.item(row, 3).text(),
+                    'annee': self.vehicles_table.item(row, 4).text(),
+                    'energie': self.vehicles_table.item(row, 5).text(),
+                    'prime': self.vehicles_table.item(row, 6).text(),
+                }
+                selected_vehicles.append(vehicle_data)
+        
+        if not selected_vehicles:
+            QMessageBox.warning(self, "Aucune sélection", 
+                            "Veuillez sélectionner au moins un véhicule à imprimer.")
+            return
+        
+        from addons.Automobiles.views.batch_print_dialog import BatchPrintDialog
+        dialog = BatchPrintDialog(self)
+        
+        if dialog.exec():
+            selected_documents = dialog.get_selected_documents()
+            if selected_documents:
+                self._start_batch_print(selected_vehicles, selected_documents)
+
+    def _get_local_ip(self):
+        """Récupère l'IP locale"""
+        try:
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            return ip
+        except:
+            return "127.0.0.1"
