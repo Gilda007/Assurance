@@ -937,7 +937,6 @@ class UpdateWidget(QDialog):
         main_layout.addWidget(container)
         
         self.download_btn.setEnabled(False)
-
     def load_modules(self):
         """Charge la liste des modules disponibles"""
         for module in self.modules:

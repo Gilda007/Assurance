@@ -94,19 +94,34 @@ from PySide6.QtCore import QObject
 class UpdateClient(QObject):
     """Client pour interagir avec le serveur de modules LOMETA"""
     
+    # def __init__(self, session_token: str = None, server_url: str = "http://localhost:8000"):
+    #     self.session_token = session_token  # NOUVEAU : token de session LOMETA
+    #     self.server_url = server_url.rstrip('/')
+    #     self.timeout = 10
+    
+    # def _get_url_with_token(self, endpoint: str) -> str:
+    #     """Ajoute le token de session à l'URL si disponible"""
+    #     url = f"{self.server_url}{endpoint}"
+    #     if self.session_token:
+    #         if '?' in url:
+    #             url += f"&auth={self.session_token}"
+    #         else:
+    #             url += f"?auth={self.session_token}"
+    #     return url
+
     def __init__(self, session_token: str = None, server_url: str = "http://localhost:8000"):
-        self.session_token = session_token  # NOUVEAU : token de session LOMETA
+        super().__init__()
+        self.session_token = session_token
         self.server_url = server_url.rstrip('/')
         self.timeout = 10
-    
+
     def _get_url_with_token(self, endpoint: str) -> str:
         """Ajoute le token de session à l'URL si disponible"""
         url = f"{self.server_url}{endpoint}"
         if self.session_token:
-            if '?' in url:
-                url += f"&auth={self.session_token}"
-            else:
-                url += f"?auth={self.session_token}"
+            # S'assurer que le token est bien encodé
+            separator = '&' if '?' in url else '?'
+            url += f"{separator}auth={self.session_token}"
         return url
     
     def get_available_modules(self) -> tuple:

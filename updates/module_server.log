@@ -1323,3 +1323,437 @@ LINE 3:                     FROM sessions s
 2026-05-06 15:48:46 | INFO     | ✅ Session valide: Admin
 2026-05-06 15:48:46 | INFO     | ✅ Session valide: Admin
 2026-05-06 15:48:46 | INFO     | 192.168.100.17 - "GET /api/modules?auth=7t6eWDAupxTMV38wnUDLoEaXqP06syjm/Jl0O8o12Fs= HTTP/1.1" 200 -
+2026-05-06 15:59:19 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /api/modules?auth=SDdpSlrQdFmhJCq94YjiNQ+1RteJdRUxpqJ4iWnSha8= HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:19 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:59:58 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:59:58 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:59:58 | INFO     | 192.168.100.17 - "GET /api/modules?auth=g0VksKB75wZiqZXupSv0JHT6SQN9ldyn7kCqL3sX0S8= HTTP/1.1" 200 -
+2026-05-06 16:00:37 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /api/modules?auth=XxkS+puYmqaYLM//BYJxCwTB7BabQmOysW/bWbOrQks= HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:00:37 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:10 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:03:10 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 16:03:10 | INFO     |    - id: integer
+2026-05-06 16:03:10 | INFO     |    - username: character varying
+2026-05-06 16:03:10 | INFO     |    - email: character varying
+2026-05-06 16:03:10 | INFO     |    - password_hash: character varying
+2026-05-06 16:03:10 | INFO     |    - full_name: character varying
+2026-05-06 16:03:10 | INFO     |    - role: character varying
+2026-05-06 16:03:10 | INFO     |    - is_active: boolean
+2026-05-06 16:03:10 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 16:03:10 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 16:03:10 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:03:32 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /api/modules?auth=+hbPm/j95aE3QzuNsgHm18gNc3pnj23lAciy5Wg2kpI= HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:03:32 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:00 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:04:00 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 16:04:00 | INFO     |    - id: integer
+2026-05-06 16:04:00 | INFO     |    - username: character varying
+2026-05-06 16:04:00 | INFO     |    - email: character varying
+2026-05-06 16:04:00 | INFO     |    - password_hash: character varying
+2026-05-06 16:04:00 | INFO     |    - full_name: character varying
+2026-05-06 16:04:00 | INFO     |    - role: character varying
+2026-05-06 16:04:00 | INFO     |    - is_active: boolean
+2026-05-06 16:04:00 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 16:04:00 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 16:04:00 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:04:16 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /api/modules?auth=2fyzTscX9P+Wu1xq9z0EAXGWQsJbccfgL9xK2EItrx4= HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:04:16 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:18 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:08:18 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:08:18 | INFO     | 192.168.100.17 - "GET /api/modules?auth=bc9oDN4Uv6qrFwEJJweq8lXCW7XAS2gOLYTDReNoa4A= HTTP/1.1" 200 -
+2026-05-06 16:08:45 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /api/modules?auth=2hILVjMLnWzxrH+v+d+mdqXhByn6lZ6Z3udJSY92iU8= HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:08:45 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:16 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:10:17 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 16:10:17 | INFO     |    - id: integer
+2026-05-06 16:10:17 | INFO     |    - username: character varying
+2026-05-06 16:10:17 | INFO     |    - email: character varying
+2026-05-06 16:10:17 | INFO     |    - password_hash: character varying
+2026-05-06 16:10:17 | INFO     |    - full_name: character varying
+2026-05-06 16:10:17 | INFO     |    - role: character varying
+2026-05-06 16:10:17 | INFO     |    - is_active: boolean
+2026-05-06 16:10:17 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 16:10:17 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 16:10:17 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:10:55 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /api/modules?auth=iyxZ6GWdYehLuvj+ZHRRwJ1pPGIRmQAtnZC/pIPGzVE= HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:10:55 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcyNzkyLjk3MjU2NA== HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:39 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:40 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:45 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:20:50 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 16:21:14 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 16:21:14 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:21:14 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:21:14 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDc3Mjc0LjMwMjIxNw== HTTP/1.1" 200 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /health HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:49 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:50 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:21:56 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:21:56 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:21:56 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDc3Mjc0LjMwMjIxNw== HTTP/1.1" 200 -
+2026-05-06 16:21:59 | INFO     | 127.0.0.1 - "GET /logout?auth=MToxNzc4MDc3Mjc0LjMwMjIxNw== HTTP/1.1" 302 -
+2026-05-06 16:21:59 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 16:22:05 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 16:22:13 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 401 -
+2026-05-06 16:22:19 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 401 -
+2026-05-06 16:22:26 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 401 -
+2026-05-06 16:22:32 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 16:22:41 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 16:22:41 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:22:41 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:22:41 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDc3MzYxLjg4MTg3Mg== HTTP/1.1" 200 -
+2026-05-06 16:28:43 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /api/modules?auth=1W0bZHFde+eb23Lk8pea0utDOPUKU06vGL/XYsVwU1M= HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:28:43 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /api/modules?auth=+xEAU7/KKhI7fNwjQ+EQYBkUuAE9/IhE6mkiL8cHNvQ= HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:40:02 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 16:41:36 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:41:36 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 16:41:36 | INFO     |    - id: integer
+2026-05-06 16:41:36 | INFO     |    - username: character varying
+2026-05-06 16:41:36 | INFO     |    - email: character varying
+2026-05-06 16:41:36 | INFO     |    - password_hash: character varying
+2026-05-06 16:41:36 | INFO     |    - full_name: character varying
+2026-05-06 16:41:36 | INFO     |    - role: character varying
+2026-05-06 16:41:36 | INFO     |    - is_active: boolean
+2026-05-06 16:41:36 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 16:41:36 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 16:41:36 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:41:58 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:41:58 | INFO     | 192.168.100.17 - "GET /api/modules?auth=Dj9jY9dB3fahEftPk0OJ35k3nqq0KramvdSuYRkxhcU= HTTP/1.1" 200 -
+2026-05-06 16:42:25 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:42:25 | INFO     | 192.168.100.17 - "GET /api/modules?auth=5giH274sDdDN7FG6FgqnXWpwg5qMFvT2cGqcsocw4ac= HTTP/1.1" 200 -

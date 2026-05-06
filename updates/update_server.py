@@ -632,69 +632,169 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(html.encode('utf-8'))
     
+    # def do_GET(self):
+    #     """Gère les requêtes GET"""
+    #     self.__class__.stats["total_requests"] += 1
+    #     parsed = urlparse(self.path)
+    #     path = parsed.path
+        
+    #     # Page d'authentification
+    #     if path == '/auth':
+    #         self._serve_auth_page()
+    #         return
+        
+    #     # Page de logout
+    #     if path == '/logout':
+    #         token = self._get_auth_token()
+    #         if token and self.auth_handler:
+    #             self.auth_handler.logout(token)
+    #         self._redirect_to_auth()
+    #         return
+        
+    #     # Vérifier l'authentification via session LOMETA d'abord
+    #     token = self._get_auth_token()
+    #     if token and hasattr(self, 'session_auth') and self.session_auth:
+    #         user = self.session_auth.verify_session_token(token)
+    #         if user:
+    #             self.current_user = user
+    #             self._is_authenticated_flag = True
+    #         else:
+    #             self._is_authenticated_flag = False
+    #     else:
+    #         # Fallback sur l'ancienne méthode
+    #         self._is_authenticated_flag = self._is_authenticated() if hasattr(self, '_is_authenticated') else False
+        
+    #     if not self._is_authenticated_flag and self.config.auth_enabled:
+    #         self.send_response(302)
+    #         self.send_header('Location', '/auth')
+    #         self.end_headers()
+    #         return
+        
+    #     # Vérifier l'authentification pour toutes les autres routes
+    #     if self.config.auth_enabled and not self._is_authenticated():
+    #         self._redirect_to_auth()
+    #         return
+        
+    #     # Routes protégées
+    #     routes = {
+    #         '/': self._serve_dashboard,
+    #         '/dashboard': self._serve_dashboard,
+    #         '/api/modules': self._serve_modules_api,
+    #         '/api/stats': self._serve_stats_api,
+    #         '/api/health': self._serve_health_api,
+    #     }
+        
+    #     for route, handler in routes.items():
+    #         if path == route:
+    #             handler()
+    #             return
+        
+    #     # Téléchargement de fichier
+    #     if path.startswith('/downloads/'):
+    #         self._handle_download(path)
+    #     else:
+    #         self._serve_dashboard()
+    
     def do_GET(self):
-        """Gère les requêtes GET"""
+        """Gère les requêtes GET - Version corrigée sans boucle"""
         self.__class__.stats["total_requests"] += 1
         parsed = urlparse(self.path)
         path = parsed.path
         
-        # Page d'authentification
+        # Route de connexion - JAMAIS de redirection
         if path == '/auth':
-            self._serve_auth_page()
+            self._serve_login_page()
             return
         
-        # Page de logout
+        # Route de logout
         if path == '/logout':
+            self._handle_logout()
+            return
+        
+        # Route API /api/modules - Vérifier le token
+        if path == '/api/modules':
             token = self._get_auth_token()
-            if token and self.auth_handler:
-                self.auth_handler.logout(token)
-            self._redirect_to_auth()
-            return
-        
-        # Vérifier l'authentification via session LOMETA d'abord
-        token = self._get_auth_token()
-        if token and hasattr(self, 'session_auth') and self.session_auth:
-            user = self.session_auth.verify_session_token(token)
-            if user:
-                self.current_user = user
-                self._is_authenticated_flag = True
+            if not token:
+                self._send_json_response(401, {"error": "Token manquant"})
+                return
+            
+            # Vérifier le token
+            if hasattr(self, 'session_auth') and self.session_auth:
+                user = self.session_auth.verify_session_token(token)
+                if not user:
+                    self._send_json_response(401, {"error": "Token invalide"})
+                    return
+            elif hasattr(self, 'auth_handler') and self.auth_handler:
+                user = self.auth_handler.get_user_from_session(token)
+                if not user:
+                    self._send_json_response(401, {"error": "Token invalide"})
+                    return
             else:
-                self._is_authenticated_flag = False
-        else:
-            # Fallback sur l'ancienne méthode
-            self._is_authenticated_flag = self._is_authenticated() if hasattr(self, '_is_authenticated') else False
-        
-        if not self._is_authenticated_flag and self.config.auth_enabled:
-            self.send_response(302)
-            self.send_header('Location', '/login')
-            self.end_headers()
+                self._send_json_response(401, {"error": "Authentification non configurée"})
+                return
+            
+            self._serve_modules_api()
             return
         
-        # Vérifier l'authentification pour toutes les autres routes
-        if self.config.auth_enabled and not self._is_authenticated():
-            self._redirect_to_auth()
+        # Route de téléchargement
+        if path.startswith('/downloads/'):
+            token = self._get_auth_token()
+            if not token:
+                self.send_response(302)
+                self.send_header('Location', '/auth')
+                self.end_headers()
+                return
+            
+            if hasattr(self, 'session_auth') and self.session_auth:
+                user = self.session_auth.verify_session_token(token)
+                if not user:
+                    self.send_response(302)
+                    self.send_header('Location', '/auth')
+                    self.end_headers()
+                    return
+            elif hasattr(self, 'auth_handler') and self.auth_handler:
+                user = self.auth_handler.get_user_from_session(token)
+                if not user:
+                    self.send_response(302)
+                    self.send_header('Location', '/auth')
+                    self.end_headers()
+                    return
+            else:
+                self.send_response(302)
+                self.send_header('Location', '/auth')
+                self.end_headers()
+                return
+            
+            self._handle_download(path)
             return
         
-        # Routes protégées
-        routes = {
-            '/': self._serve_dashboard,
-            '/dashboard': self._serve_dashboard,
-            '/api/modules': self._serve_modules_api,
-            '/api/stats': self._serve_stats_api,
-            '/api/health': self._serve_health_api,
-        }
-        
-        for route, handler in routes.items():
-            if path == route:
-                handler()
+        # Dashboard - Vérifier le token
+        token = self._get_auth_token()
+        if token:
+            is_valid = False
+            if hasattr(self, 'session_auth') and self.session_auth:
+                user = self.session_auth.verify_session_token(token)
+                if user:
+                    self.current_user = user
+                    is_valid = True
+            elif hasattr(self, 'auth_handler') and self.auth_handler:
+                user = self.auth_handler.get_user_from_session(token)
+                if user:
+                    self.current_user = user
+                    is_valid = True
+            
+            if is_valid:
+                self._serve_dashboard()
                 return
         
-        # Téléchargement de fichier
-        if path.startswith('/downloads/'):
-            self._handle_download(path)
+        # Pas de token valide - Rediriger vers login UNIQUEMENT si ce n'est pas déjà login
+        if path != '/auth':
+            self.send_response(302)
+            self.send_header('Location', '/auth')
+            self.end_headers()
         else:
-            self._serve_dashboard()
-    
+            self._serve_login_page()
+
     def do_POST(self):
         """Gère les requêtes POST"""
         parsed = urlparse(self.path)
@@ -1395,14 +1495,7 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
     # ========================================================================
     # API
     # ========================================================================
-    
-    # def _serve_modules_api(self):
-    #     modules = self._get_modules()
-    #     self._send_json_response(200, {
-    #         "success": True,
-    #         "total": len(modules),
-    #         "modules": [m.to_dict() for m in modules]
-    #     })
+
 
     def _serve_modules_api(self):
         """API utilisée par l'application LOMETA - Format JSON attendu par le client"""
@@ -1635,7 +1728,7 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
                 <h1>🔐 {self.config.title}</h1>
                 <p>Connectez-vous avec vos identifiants LOMETA</p>
                 {"<div class='error'>" + error_message + "</div>" if error_message else ""}
-                <form method="POST" action="/login">
+                <form method="POST" action="/auth">
                     <input type="text" name="username" placeholder="Nom d'utilisateur" required>
                     <input type="password" name="password" placeholder="Mot de passe" required>
                     <button type="submit">Se connecter</button>
@@ -1666,9 +1759,30 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         else:
             self._serve_login_page(message)
 
+    # def _handle_logout(self):
+    #     """Déconnexion"""
+    #     token = self._get_auth_token()
+    #     if token and hasattr(self, 'session_auth') and self.session_auth and self.session_auth.connection_pool:
+    #         try:
+    #             conn = self.session_auth.connection_pool.getconn()
+    #             with conn.cursor() as cur:
+    #                 cur.execute("DELETE FROM sessions WHERE token = %s", (token,))
+    #                 conn.commit()
+    #         except Exception as e:
+    #             logger.error(f"Erreur suppression session: {e}")
+    #         finally:
+    #             if conn:
+    #                 self.session_auth.connection_pool.putconn(conn)
+        
+    #     self.send_response(302)
+    #     self.send_header('Location', '/auth')
+    #     self.end_headers()
+
     def _handle_logout(self):
-        """Déconnexion"""
+        """Déconnexion - Supprimer la session et rediriger vers login"""
         token = self._get_auth_token()
+        
+        # Supprimer la session dans session_auth
         if token and hasattr(self, 'session_auth') and self.session_auth and self.session_auth.connection_pool:
             try:
                 conn = self.session_auth.connection_pool.getconn()
@@ -1681,8 +1795,13 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
                 if conn:
                     self.session_auth.connection_pool.putconn(conn)
         
+        # Supprimer la session dans auth_handler
+        if token and hasattr(self, 'auth_handler') and self.auth_handler:
+            self.auth_handler.logout(token)
+        
+        # Rediriger vers login (SANS token)
         self.send_response(302)
-        self.send_header('Location', '/login')
+        self.send_header('Location', '/auth')
         self.end_headers()
 
 
