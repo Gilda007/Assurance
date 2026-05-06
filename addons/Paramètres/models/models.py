@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, func
 from datetime import datetime
 import bcrypt
 from core.database import Base
@@ -32,3 +32,12 @@ class AuditUserLog(Base):
     details = Column(Text)       # ex: "Utilisateur 'Dams' supprimé"
     ip_address = Column(String(45))
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class Session(Base):
+    __tablename__ = 'sessions'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('utilisateurs.id'), nullable=False)
+    token = Column(String(255), unique=True, nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())

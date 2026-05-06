@@ -2,13 +2,13 @@
 import os
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QPushButton, QLineEdit, QFrame, QGraphicsDropShadowEffect,
-                             QSizePolicy, QGridLayout)
-from PySide6.QtCore import Qt, Signal, QPoint, QPropertyAnimation, QSize
+                             QSizePolicy, QGridLayout, QCheckBox)
+from PySide6.QtCore import Qt, Signal, QPoint, QPropertyAnimation, QSize, QSettings
 from PySide6.QtGui import QColor, QPixmap, QRegion, QPainterPath
 
 class LoginView(QWidget):
     # Signal attendu par le contrôleur (ajustez le nom si nécessaire, ex: login_requested)
-    login_requested = Signal(str, str)
+    login_requested = Signal(str, str, bool)  # Ajout du paramètre 'remember'
     
     def __init__(self, controller=None):
         super().__init__()
@@ -22,8 +22,11 @@ class LoginView(QWidget):
         
         # Chemin vers l'image logo.png
         self.image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.webp")
+
+        self.settings = QSettings("LOMETA", "Login") 
         
         self.setup_ui()
+        self.load_saved_session()  # NOUVEAU : Charger les identifiants sauvegardés
 
     def setup_ui(self):
         self.main_layout = QVBoxLayout(self)
@@ -137,6 +140,25 @@ class LoginView(QWidget):
             QPushButton:hover { background-color: #059669; }
         """)
 
+        self.remember_checkbox = QCheckBox("Se souvenir de moi")
+        self.remember_checkbox.setStyleSheet("""
+            QCheckBox {
+                color: #6b7280;
+                font-size: 12px;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 16px;
+                height: 16px;
+                border-radius: 4px;
+                border: 1px solid #d1d5db;
+                background: white;
+            }
+            QCheckBox::indicator:checked {
+                background: #059669;
+                border-color: #059669;
+            }
+        """)
         right_layout.addLayout(h_close)
         right_layout.addSpacing(20)
         right_layout.addWidget(login_title)
@@ -146,6 +168,7 @@ class LoginView(QWidget):
         right_layout.addWidget(self.edit_pass)
         right_layout.addSpacing(30)
         right_layout.addWidget(self.btn_submit)
+        right_layout.addWidget(self.remember_checkbox)
         right_layout.addStretch()
 
         layout_h.addWidget(self.left_panel)
@@ -178,14 +201,6 @@ class LoginView(QWidget):
         frame.field = edit
         return frame
 
-    def handle_login_submission(self):
-        user = self.edit_user.text().strip()
-        pwd = self.edit_pass.text().strip()
-        if user and pwd:
-            self.login_requested.emit(user, pwd)
-        else:
-            self.shake_window()
-
     def shake_window(self):
         anim = QPropertyAnimation(self, b"pos")
         anim.setDuration(50)
@@ -206,6 +221,39 @@ class LoginView(QWidget):
             self.old_pos = event.globalPos()
 
     def mouseReleaseEvent(self, event): self.old_pos = None
+
+    def load_saved_session(self):
+        """Charge les identifiants sauvegardés"""
+        username = self.settings.value("username", "")
+        remember = self.settings.value("remember", False, type=bool)
+        
+        if remember and username:
+            self.edit_user.field.setText(username)
+            self.remember_checkbox.setChecked(True)
+            self.edit_pass.field.setFocus()
+
+
+    def save_session(self, username, remember):
+        """Sauvegarde les identifiants si demandé"""
+        if remember:
+            self.settings.setValue("username", username)
+            self.settings.setValue("remember", True)
+        else:
+            self.settings.remove("username")
+            self.settings.setValue("remember", False)
+
+
+    def handle_login_submission(self):
+        """Version modifiée de handle_login_submission avec remember"""
+        user = self.edit_user.text().strip()
+        pwd = self.edit_pass.text().strip()
+        remember = self.remember_checkbox.isChecked()  # NOUVEAU
+        
+        if user and pwd:
+            self.save_session(user, remember)  # NOUVEAU
+            self.login_requested.emit(user, pwd, remember)  # MODIFIÉ : ajout du paramètre
+        else:
+            self.shake_window()
 
     def emit_login(self):
         self.login_requested.emit(self.username.text(), self.password.text())

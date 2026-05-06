@@ -229,17 +229,23 @@ class UpdateChecker(QObject):
         thread.start()
 
 class ModuleChecker(QObject):
-    """Vérificateur de modules simple"""
+    """Vérificateur de modules avec session LOMETA"""
     modules_found = Signal(object)
+    
+    def __init__(self, session_token: str = None, parent=None):
+        super().__init__(parent)
+        self.session_token = session_token  # NOUVEAU
     
     def check(self):
         def check_thread():
-            client = UpdateClient()
+            client = UpdateClient(server_url="http://192.168.100.17:8000", session_token=self.session_token)
             code, modules = client.get_available_modules()
             if code == 200 and modules:
                 self.modules_found.emit(modules)
             elif code == 200:
                 print("✅ Aucun module disponible")
+            elif code == 401:
+                print("⚠️ Session expirée, veuillez vous reconnecter")
             elif code == 404:
                 print("⚠️ Serveur de mise à jour non accessible")
         
@@ -1452,10 +1458,32 @@ class MainWindow(QMainWindow):
         self.init_modules()
         self.setup_shortcuts()
         self.check_environment()
-        self.module_checker = ModuleChecker()
+        self.session_token = self._get_user_session_token()
+        
+        # NOUVEAU : Passer le token au ModuleChecker
+        self.module_checker = ModuleChecker(session_token=self.session_token)
         self.module_checker.modules_found.connect(self.show_update_dialog)
 
         QTimer.singleShot(2000, self.module_checker.check)
+    
+    def _get_user_session_token(self):
+        """Récupère le token de session de l'utilisateur connecté"""
+        from core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            # Chercher la session active de l'utilisateur
+            from addons.Paramètres.models.models import Session
+            session = db.query(Session).filter(
+                Session.user_id == self.user.id,
+                Session.expires_at > datetime.now()
+            ).first()
+            if session:
+                return session.token
+        except Exception as e:
+            print(f"Erreur récupération session: {e}")
+        finally:
+            db.close()
+        return None
     
     def setup_ui(self):
         self.central_widget = QWidget()

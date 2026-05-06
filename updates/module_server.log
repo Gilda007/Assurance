@@ -1,0 +1,1325 @@
+2026-05-06 09:30:51 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:31:06 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:31:24 | INFO     | Serveur arrêté - Total téléchargements: 0
+2026-05-06 09:31:39 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:32:20 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:33:21 | INFO     | Serveur arrêté - Total téléchargements: 0
+2026-05-06 09:33:46 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:33:57 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:34:04 | INFO     | 127.0.0.1 - "GET /?auth=YWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 09:34:12 | INFO     | 127.0.0.1 - "GET /?auth=YWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 09:34:21 | INFO     | 127.0.0.1 - "GET /?auth=YWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 09:35:04 | INFO     | Serveur arrêté - Total téléchargements: 0
+2026-05-06 09:35:21 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2026-05-06 09:35:23 | INFO     | 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 200 -
+2026-05-06 09:42:16 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 200 -
+2026-05-06 09:42:16 | INFO     | 127.0.0.1 - "GET /favicon.ico HTTP/1.1" 200 -
+2026-05-06 09:42:25 | INFO     | Serveur arrêté - Total téléchargements: 0
+2026-05-06 09:42:33 | INFO     | Serveur arrêté - Total téléchargements: 0
+2026-05-06 09:42:42 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:46:45 | INFO     | Serveur arrêté - Total téléchargements: 0
+2026-05-06 09:46:52 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 09:46:59 | INFO     | 127.0.0.1 - "GET /?auth=YWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 09:47:13 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:47:13 | INFO     | 127.0.0.1 - "GET /?auth=YWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 09:49:51 | INFO     | 127.0.0.1 - "GET /?auth=YWRtaW46QWRtaW4xMjM= HTTP/1.1" 200 -
+2026-05-06 09:50:00 | INFO     | 127.0.0.1 - "POST /api/upload HTTP/1.1" 403 -
+2026-05-06 09:51:07 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 09:52:11 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:52:17 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:56:50 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 09:56:54 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:56:56 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 09:57:02 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 09:57:09 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 09:57:16 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:00:30 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: FATAL:  la base de données « autre_db » n'existe pas
+
+2026-05-06 10:00:36 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:00:43 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:00:49 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:00:55 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:01:47 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:01:55 | WARNING  | ❌ Échec connexion: postgre - Base de données non disponible
+2026-05-06 10:01:55 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:01:56 | WARNING  | ❌ Échec connexion:  - Base de données non disponible
+2026-05-06 10:01:56 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:02:22 | WARNING  | ❌ Échec connexion: ams_admin - Base de données non disponible
+2026-05-06 10:02:22 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:02:23 | WARNING  | ❌ Échec connexion:  - Base de données non disponible
+2026-05-06 10:02:23 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:02:36 | WARNING  | ❌ Échec connexion: ams_admin - Base de données non disponible
+2026-05-06 10:02:36 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:02:37 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:02:52 | INFO     | 127.0.0.1 - "GET /?auth=YW1zX2FkbWluOkFtczEyM19A HTTP/1.1" 401 -
+2026-05-06 10:02:54 | INFO     | 127.0.0.1 - "GET /?auth=YW1zX2FkbWluOkFtczEyM19A HTTP/1.1" 401 -
+2026-05-06 10:03:00 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:06:24 | INFO     | 192.168.100.64 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:06:40 | WARNING  | ❌ Échec connexion: Admin - Base de données non disponible
+2026-05-06 10:06:40 | INFO     | 192.168.100.64 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:06:42 | INFO     | 192.168.100.64 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:06:43 | INFO     | 192.168.100.64 - "GET /favicon.ico HTTP/1.1" 401 -
+2026-05-06 10:07:04 | INFO     | 192.168.100.64 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:07:06 | INFO     | 192.168.100.64 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:07:06 | INFO     | 192.168.100.64 - "GET /favicon.ico HTTP/1.1" 401 -
+2026-05-06 10:08:43 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:08:47 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:09:16 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:09:22 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 10:09:22 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 200 -
+2026-05-06 10:09:29 | ERROR    | Erreur authentification: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 10:09:29 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:10:08 | ERROR    | Erreur authentification: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 10:10:08 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:13:39 | ERROR    | Erreur authentification: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 10:13:39 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:13:49 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:13:54 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:14:01 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:14:15 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:16:21 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:16:26 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:16:35 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:16:46 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 10:16:46 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 200 -
+2026-05-06 10:16:52 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:17:16 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:18:24 | INFO     | 127.0.0.1 - "GET /api/modules HTTP/1.1" 302 -
+2026-05-06 10:18:24 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 200 -
+2026-05-06 10:18:32 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:18:43 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:22:58 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:23:04 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:23:11 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 10:23:11 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 200 -
+2026-05-06 10:23:19 | INFO     | 127.0.0.1 - "POST /login HTTP/1.1" 200 -
+2026-05-06 10:26:45 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:27:46 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:28:32 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:29:46 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:30:57 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:31:26 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:31:32 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:31:34 | ERROR    | Erreur authentification: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 10:31:34 | WARNING  | ❌ Échec connexion:  - Erreur système: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 10:31:34 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:31:35 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 401 -
+2026-05-06 10:31:43 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:34:07 | INFO     | 192.168.100.64 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:34:10 | INFO     | 192.168.100.64 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:34:10 | INFO     | 192.168.100.64 - "GET /favicon.ico HTTP/1.1" 401 -
+2026-05-06 10:35:57 | INFO     | 192.168.100.20 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 401 -
+2026-05-06 10:36:10 | INFO     | 192.168.100.20 - "GET /favicon.ico HTTP/1.1" 401 -
+2026-05-06 10:38:32 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:38:32 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 10:38:32 | INFO     |    - id: integer
+2026-05-06 10:38:32 | INFO     |    - username: character varying
+2026-05-06 10:38:32 | INFO     |    - email: character varying
+2026-05-06 10:38:32 | INFO     |    - password_hash: character varying
+2026-05-06 10:38:32 | INFO     |    - full_name: character varying
+2026-05-06 10:38:32 | INFO     |    - role: character varying
+2026-05-06 10:38:32 | INFO     |    - is_active: boolean
+2026-05-06 10:38:32 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 10:38:32 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 10:38:36 | INFO     | 127.0.0.1 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 302 -
+2026-05-06 10:38:36 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:38:43 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:38:43 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:38:43 | ERROR    | ❌ Erreur authentification: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+Traceback (most recent call last):
+  File "/home/fearless/Documents/Assurance/updates/update_server.py", line 282, in authenticate
+    cur.execute(query, (username,))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/fearless/Documents/Assurance Auto/AMS_Project/.venv/lib/python3.13/site-packages/psycopg2/extras.py", line 236, in execute
+    return super().execute(query, vars)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 10:38:43 | WARNING  | ❌ Échec authentification: Erreur système
+2026-05-06 10:38:43 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 10:40:06 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:40:06 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 10:40:06 | INFO     |    - id: integer
+2026-05-06 10:40:06 | INFO     |    - username: character varying
+2026-05-06 10:40:06 | INFO     |    - email: character varying
+2026-05-06 10:40:06 | INFO     |    - password_hash: character varying
+2026-05-06 10:40:06 | INFO     |    - full_name: character varying
+2026-05-06 10:40:06 | INFO     |    - role: character varying
+2026-05-06 10:40:06 | INFO     |    - is_active: boolean
+2026-05-06 10:40:06 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 10:40:06 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 10:40:24 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:40:24 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:40:24 | ERROR    | ❌ Erreur authentification: 'active'
+Traceback (most recent call last):
+  File "/home/fearless/Documents/Assurance/updates/update_server.py", line 289, in authenticate
+    logger.debug(f"✅ Utilisateur trouvé: id={user['id']}, role={user['role']}, active={user['active']}")
+                                                                                        ~~~~^^^^^^^^^^
+KeyError: 'active'
+2026-05-06 10:40:24 | WARNING  | ❌ Échec authentification: Erreur système
+2026-05-06 10:40:24 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 10:41:02 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:41:02 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:41:02 | ERROR    | ❌ Erreur authentification: 'active'
+Traceback (most recent call last):
+  File "/home/fearless/Documents/Assurance/updates/update_server.py", line 289, in authenticate
+    logger.debug(f"✅ Utilisateur trouvé: id={user['id']}, role={user['role']}, active={user['is_active']}")
+                                                                                        ^^^^^^^^^^^^^^
+KeyError: 'active'
+2026-05-06 10:41:02 | WARNING  | ❌ Échec authentification: Erreur système
+2026-05-06 10:41:02 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 10:41:12 | INFO     | 127.0.0.1 - "GET /?auth=TOKEN HTTP/1.1" 302 -
+2026-05-06 10:41:12 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:41:19 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:41:19 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:41:19 | ERROR    | ❌ Erreur authentification: 'active'
+Traceback (most recent call last):
+  File "/home/fearless/Documents/Assurance/updates/update_server.py", line 289, in authenticate
+    logger.debug(f"✅ Utilisateur trouvé: id={user['id']}, role={user['role']}, active={user['is_active']}")
+                                                                                        ^^^^^^^^^^^^^^
+KeyError: 'active'
+2026-05-06 10:41:19 | WARNING  | ❌ Échec authentification: Erreur système
+2026-05-06 10:41:19 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 10:41:35 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:41:35 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 10:41:35 | INFO     |    - id: integer
+2026-05-06 10:41:35 | INFO     |    - username: character varying
+2026-05-06 10:41:35 | INFO     |    - email: character varying
+2026-05-06 10:41:35 | INFO     |    - password_hash: character varying
+2026-05-06 10:41:35 | INFO     |    - full_name: character varying
+2026-05-06 10:41:35 | INFO     |    - role: character varying
+2026-05-06 10:41:35 | INFO     |    - is_active: boolean
+2026-05-06 10:41:35 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 10:41:35 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 10:41:43 | INFO     | 127.0.0.1 - "GET /?auth=TOKEN HTTP/1.1" 302 -
+2026-05-06 10:41:43 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:41:50 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:41:50 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:41:50 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, active=True
+2026-05-06 10:41:50 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 10:41:50 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 10:41:50 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 10:41:50 | WARNING  | Erreur mise à jour last_login: ERREUR:  la colonne « last_login » de la relation « utilisateurs » n'existe pas
+LINE 1: UPDATE utilisateurs SET last_login = '2026-05-06T10:41:50.26...
+                                ^
+
+2026-05-06 10:41:50 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU2OTEwLjI2...
+2026-05-06 10:41:50 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU2OTEwLjI2ODQ0...
+2026-05-06 10:41:50 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 10:41:50 | ERROR    | Erreur récupération utilisateur: ERREUR:  la colonne « nom » n'existe pas
+LINE 1: SELECT id, username, nom, prenom, email, role FROM utilisate...
+                             ^
+
+2026-05-06 10:41:50 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU2OTEwLjI2ODQ0 HTTP/1.1" 302 -
+2026-05-06 10:41:50 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:42:57 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:42:57 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 10:42:57 | INFO     |    - id: integer
+2026-05-06 10:42:57 | INFO     |    - username: character varying
+2026-05-06 10:42:57 | INFO     |    - email: character varying
+2026-05-06 10:42:57 | INFO     |    - password_hash: character varying
+2026-05-06 10:42:57 | INFO     |    - full_name: character varying
+2026-05-06 10:42:57 | INFO     |    - role: character varying
+2026-05-06 10:42:57 | INFO     |    - is_active: boolean
+2026-05-06 10:42:57 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 10:42:57 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 10:43:02 | INFO     | 127.0.0.1 - "GET /?auth=TOKEN HTTP/1.1" 302 -
+2026-05-06 10:43:02 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:43:10 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:43:10 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:43:10 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, active=True
+2026-05-06 10:43:10 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 10:43:10 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 10:43:10 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 10:43:10 | WARNING  | Erreur mise à jour last_login: ERREUR:  la colonne « last_login » de la relation « utilisateurs » n'existe pas
+LINE 1: UPDATE utilisateurs SET last_login = '2026-05-06T10:43:10.50...
+                                ^
+
+2026-05-06 10:43:10 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU2OTkwLjUw...
+2026-05-06 10:43:10 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU2OTkwLjUwOTQwNw==...
+2026-05-06 10:43:10 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 10:43:10 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU2OTkwLjUwOTQwNw== HTTP/1.1" 200 -
+2026-05-06 10:43:28 | INFO     | 127.0.0.1 - "GET /logout?auth= HTTP/1.1" 302 -
+2026-05-06 10:43:28 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:43:36 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:43:36 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:43:36 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, active=True
+2026-05-06 10:43:36 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 10:43:36 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 10:43:36 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 10:43:36 | WARNING  | Erreur mise à jour last_login: ERREUR:  la colonne « last_login » de la relation « utilisateurs » n'existe pas
+LINE 1: UPDATE utilisateurs SET last_login = '2026-05-06T10:43:36.88...
+                                ^
+
+2026-05-06 10:43:36 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU3MDE2Ljg4...
+2026-05-06 10:43:36 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ==...
+2026-05-06 10:43:36 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 10:43:36 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 200 -
+2026-05-06 10:46:24 | INFO     | 192.168.100.64 - "GET /?auth=QWRtaW46QWRtaW4xMjM= HTTP/1.1" 302 -
+2026-05-06 10:46:24 | INFO     | 192.168.100.64 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:46:25 | INFO     | 192.168.100.64 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 10:46:25 | INFO     | 192.168.100.64 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:46:33 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:46:33 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:46:33 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, active=True
+2026-05-06 10:46:33 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 10:46:33 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 10:46:33 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 10:46:33 | WARNING  | Erreur mise à jour last_login: ERREUR:  la colonne « last_login » de la relation « utilisateurs » n'existe pas
+LINE 1: UPDATE utilisateurs SET last_login = '2026-05-06T10:46:33.91...
+                                ^
+
+2026-05-06 10:46:33 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU3MTkzLjkx...
+2026-05-06 10:46:33 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU3MTkzLjkxNTk3Mg==...
+2026-05-06 10:46:33 | INFO     | 192.168.100.64 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 10:46:34 | INFO     | 192.168.100.64 - "GET /?auth=MToxNzc4MDU3MTkzLjkxNTk3Mg== HTTP/1.1" 200 -
+2026-05-06 10:46:35 | INFO     | 192.168.100.64 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 10:46:35 | INFO     | 192.168.100.64 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:48:27 | ERROR    | 127.0.0.1 - code 404, message Fichier non trouvé
+2026-05-06 10:48:27 | INFO     | 127.0.0.1 - "GET /downloads/Param%C3%A8tres.zip?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 404 -
+2026-05-06 10:50:06 | INFO     | 📥 Téléchargement: Automobiles.zip
+2026-05-06 10:50:06 | INFO     | 127.0.0.1 - "GET /downloads/Automobiles.zip?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 200 -
+2026-05-06 10:50:15 | INFO     | 🗑️ Suppression: Paramètres.zip
+2026-05-06 10:50:15 | INFO     | 127.0.0.1 - "POST /api/delete?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 200 -
+2026-05-06 10:50:16 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 200 -
+2026-05-06 10:51:08 | INFO     | 📤 Upload: Paramètres.zip
+2026-05-06 10:51:08 | INFO     | 127.0.0.1 - "POST /api/upload?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 200 -
+2026-05-06 10:51:10 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 200 -
+2026-05-06 10:51:48 | ERROR    | 127.0.0.1 - code 404, message Fichier non trouvé
+2026-05-06 10:51:48 | INFO     | 127.0.0.1 - "GET /downloads/Param%C3%A8tres.zip?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 404 -
+2026-05-06 10:52:30 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:52:30 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 10:52:30 | INFO     |    - id: integer
+2026-05-06 10:52:30 | INFO     |    - username: character varying
+2026-05-06 10:52:30 | INFO     |    - email: character varying
+2026-05-06 10:52:30 | INFO     |    - password_hash: character varying
+2026-05-06 10:52:30 | INFO     |    - full_name: character varying
+2026-05-06 10:52:30 | INFO     |    - role: character varying
+2026-05-06 10:52:30 | INFO     |    - is_active: boolean
+2026-05-06 10:52:30 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 10:52:30 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 10:52:33 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 302 -
+2026-05-06 10:52:33 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:52:40 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:52:40 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:52:40 | ERROR    | ❌ Erreur authentification: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+Traceback (most recent call last):
+  File "/home/fearless/Documents/Assurance/updates/update_server.py", line 285, in authenticate
+    cur.execute(query, (username,))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^
+  File "/home/fearless/Documents/Assurance Auto/AMS_Project/.venv/lib/python3.13/site-packages/psycopg2/extras.py", line 236, in execute
+    return super().execute(query, vars)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 10:52:40 | WARNING  | ❌ Échec authentification: Erreur système
+2026-05-06 10:52:40 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 10:53:53 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 10:53:53 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 10:53:53 | INFO     |    - id: integer
+2026-05-06 10:53:53 | INFO     |    - username: character varying
+2026-05-06 10:53:53 | INFO     |    - email: character varying
+2026-05-06 10:53:53 | INFO     |    - password_hash: character varying
+2026-05-06 10:53:53 | INFO     |    - full_name: character varying
+2026-05-06 10:53:53 | INFO     |    - role: character varying
+2026-05-06 10:53:53 | INFO     |    - is_active: boolean
+2026-05-06 10:53:53 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 10:53:53 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 10:53:59 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 10:53:59 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 10:54:07 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 10:54:07 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 10:54:07 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, is_active=True
+2026-05-06 10:54:07 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 10:54:07 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 10:54:07 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 10:54:07 | DEBUG    | 📝 Colonne last_login non trouvée, mise à jour ignorée
+2026-05-06 10:54:07 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU3NjQ3Ljgw...
+2026-05-06 10:54:07 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU3NjQ3LjgwMTQ5Mw==...
+2026-05-06 10:54:07 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 10:54:07 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU3NjQ3LjgwMTQ5Mw== HTTP/1.1" 200 -
+2026-05-06 10:54:14 | ERROR    | 127.0.0.1 - code 404, message Fichier non trouvé
+2026-05-06 10:54:14 | INFO     | 127.0.0.1 - "GET /downloads/Param%C3%A8tres.zip?auth=MToxNzc4MDU3NjQ3LjgwMTQ5Mw== HTTP/1.1" 404 -
+2026-05-06 10:58:20 | INFO     | 127.0.0.1 - "GET /downloads/Param%C3%A8tre.zip HTTP/1.1" 302 -
+2026-05-06 11:00:19 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 11:00:19 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 11:00:19 | INFO     |    - id: integer
+2026-05-06 11:00:19 | INFO     |    - username: character varying
+2026-05-06 11:00:19 | INFO     |    - email: character varying
+2026-05-06 11:00:19 | INFO     |    - password_hash: character varying
+2026-05-06 11:00:19 | INFO     |    - full_name: character varying
+2026-05-06 11:00:19 | INFO     |    - role: character varying
+2026-05-06 11:00:19 | INFO     |    - is_active: boolean
+2026-05-06 11:00:19 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 11:00:19 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 11:01:49 | INFO     | 127.0.0.1 - "GET /?auth=TOKEN HTTP/1.1" 302 -
+2026-05-06 11:01:49 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:01:57 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 11:01:57 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 11:01:57 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, is_active=True
+2026-05-06 11:01:57 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 11:01:57 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 11:01:57 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 11:01:57 | DEBUG    | 📝 Colonne last_login non trouvée, mise à jour ignorée
+2026-05-06 11:01:57 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU4MTE3LjY5...
+2026-05-06 11:01:57 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU4MTE3LjY5OTkzNA==...
+2026-05-06 11:01:57 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 11:01:57 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU4MTE3LjY5OTkzNA== HTTP/1.1" 200 -
+2026-05-06 11:02:01 | ERROR    | 127.0.0.1 - code 404, message Fichier non trouvé
+2026-05-06 11:02:01 | INFO     | 127.0.0.1 - "GET /downloads/Param%C3%A8tres.zip?auth=MToxNzc4MDU4MTE3LjY5OTkzNA== HTTP/1.1" 404 -
+2026-05-06 11:03:58 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 11:03:58 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 11:03:58 | INFO     |    - id: integer
+2026-05-06 11:03:58 | INFO     |    - username: character varying
+2026-05-06 11:03:58 | INFO     |    - email: character varying
+2026-05-06 11:03:58 | INFO     |    - password_hash: character varying
+2026-05-06 11:03:58 | INFO     |    - full_name: character varying
+2026-05-06 11:03:58 | INFO     |    - role: character varying
+2026-05-06 11:03:58 | INFO     |    - is_active: boolean
+2026-05-06 11:03:58 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 11:03:58 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 11:04:06 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 11:04:06 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:04:13 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 11:04:13 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 11:04:13 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, is_active=True
+2026-05-06 11:04:13 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 11:04:13 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 11:04:13 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 11:04:13 | DEBUG    | 📝 Colonne last_login non trouvée, mise à jour ignorée
+2026-05-06 11:04:13 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU4MjUzLjkw...
+2026-05-06 11:04:13 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU4MjUzLjkwMDE0MQ==...
+2026-05-06 11:04:13 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 11:04:13 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU4MjUzLjkwMDE0MQ== HTTP/1.1" 200 -
+2026-05-06 11:04:16 | DEBUG    | Recherche fichier: raw=Param%C3%A8tres.zip, decoded=Paramètres.zip, path=/home/fearless/Documents/Assurance/updates/Paramètres.zip
+2026-05-06 11:04:16 | INFO     | 📥 Téléchargement: Paramètres.zip (591342 bytes)
+2026-05-06 11:04:16 | INFO     | 127.0.0.1 - "GET /downloads/Param%C3%A8tres.zip?auth=MToxNzc4MDU4MjUzLjkwMDE0MQ== HTTP/1.1" 200 -
+2026-05-06 11:04:45 | INFO     | 192.168.100.64 - "GET /?auth=MToxNzc4MDU3MTkzLjkxNTk3Mg== HTTP/1.1" 302 -
+2026-05-06 11:04:45 | INFO     | 192.168.100.64 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:04:46 | INFO     | 192.168.100.64 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 11:04:46 | INFO     | 192.168.100.64 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:04:52 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 11:04:52 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 11:04:52 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, is_active=True
+2026-05-06 11:04:52 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 11:04:53 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 11:04:53 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 11:04:53 | DEBUG    | 📝 Colonne last_login non trouvée, mise à jour ignorée
+2026-05-06 11:04:53 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU4MjkzLjQx...
+2026-05-06 11:04:53 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU4MjkzLjQxMzM0Mg==...
+2026-05-06 11:04:53 | INFO     | 192.168.100.64 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 11:04:53 | INFO     | 192.168.100.64 - "GET /?auth=MToxNzc4MDU4MjkzLjQxMzM0Mg== HTTP/1.1" 200 -
+2026-05-06 11:04:53 | INFO     | 192.168.100.64 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 11:04:53 | INFO     | 192.168.100.64 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:04:56 | DEBUG    | Recherche fichier: raw=Param%C3%A8tres.zip, decoded=Paramètres.zip, path=/home/fearless/Documents/Assurance/updates/Paramètres.zip
+2026-05-06 11:04:56 | INFO     | 📥 Téléchargement: Paramètres.zip (591342 bytes)
+2026-05-06 11:04:56 | INFO     | 192.168.100.64 - "GET /downloads/Param%C3%A8tres.zip?auth=MToxNzc4MDU4MjkzLjQxMzM0Mg== HTTP/1.1" 200 -
+2026-05-06 11:05:03 | DEBUG    | Recherche fichier: raw=Automobiles.zip, decoded=Automobiles.zip, path=/home/fearless/Documents/Assurance/updates/Automobiles.zip
+2026-05-06 11:05:03 | INFO     | 📥 Téléchargement: Automobiles.zip (813969 bytes)
+2026-05-06 11:05:03 | INFO     | 192.168.100.64 - "GET /downloads/Automobiles.zip?auth=MToxNzc4MDU4MjkzLjQxMzM0Mg== HTTP/1.1" 200 -
+2026-05-06 11:06:03 | INFO     | 127.0.0.1 - "GET /api/modules HTTP/1.1" 302 -
+2026-05-06 11:06:03 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:06:54 | INFO     | 127.0.0.1 - "GET /api/modules HTTP/1.1" 302 -
+2026-05-06 11:06:54 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:23:07 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU4MjUzLjkwMDE0MQ== HTTP/1.1" 302 -
+2026-05-06 11:23:07 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:23:18 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 11:23:27 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 11:23:42 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 11:23:42 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 11:23:42 | INFO     |    - id: integer
+2026-05-06 11:23:42 | INFO     |    - username: character varying
+2026-05-06 11:23:42 | INFO     |    - email: character varying
+2026-05-06 11:23:42 | INFO     |    - password_hash: character varying
+2026-05-06 11:23:42 | INFO     |    - full_name: character varying
+2026-05-06 11:23:42 | INFO     |    - role: character varying
+2026-05-06 11:23:42 | INFO     |    - is_active: boolean
+2026-05-06 11:23:42 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 11:23:42 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 11:23:48 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 11:23:48 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 11:23:48 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, is_active=True
+2026-05-06 11:23:48 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 11:23:48 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 11:23:48 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 11:23:48 | DEBUG    | 📝 Colonne last_login non trouvée, mise à jour ignorée
+2026-05-06 11:23:48 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU5NDI4LjU4...
+2026-05-06 11:23:48 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU5NDI4LjU4Mzkx...
+2026-05-06 11:23:48 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 11:23:48 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU5NDI4LjU4Mzkx HTTP/1.1" 200 -
+2026-05-06 11:23:51 | DEBUG    | Session supprimée: MToxNzc4MDU5NDI4LjU4...
+2026-05-06 11:23:51 | INFO     | 127.0.0.1 - "GET /logout?auth=MToxNzc4MDU5NDI4LjU4Mzkx HTTP/1.1" 302 -
+2026-05-06 11:23:51 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 11:24:03 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 11:24:03 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 11:24:03 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, is_active=True
+2026-05-06 11:24:03 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 11:24:04 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 11:24:04 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 11:24:04 | DEBUG    | 📝 Colonne last_login non trouvée, mise à jour ignorée
+2026-05-06 11:24:04 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDU5NDQ0LjE3...
+2026-05-06 11:24:04 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDU5NDQ0LjE3MTU4Mw==...
+2026-05-06 11:24:04 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 11:24:04 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU5NDQ0LjE3MTU4Mw== HTTP/1.1" 200 -
+2026-05-06 12:00:12 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU5NDQ0LjE3MTU4Mw== HTTP/1.1" 302 -
+2026-05-06 12:00:12 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 12:00:20 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 12:00:30 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 12:11:58 | INFO     | Serveur arrêté - Total téléchargements: 0
+2026-05-06 12:12:01 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 12:12:01 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 12:12:01 | INFO     |    - id: integer
+2026-05-06 12:12:01 | INFO     |    - username: character varying
+2026-05-06 12:12:01 | INFO     |    - email: character varying
+2026-05-06 12:12:01 | INFO     |    - password_hash: character varying
+2026-05-06 12:12:01 | INFO     |    - full_name: character varying
+2026-05-06 12:12:01 | INFO     |    - role: character varying
+2026-05-06 12:12:01 | INFO     |    - is_active: boolean
+2026-05-06 12:12:01 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 12:12:01 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 12:13:38 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 12:13:38 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 12:13:38 | INFO     |    - id: integer
+2026-05-06 12:13:38 | INFO     |    - username: character varying
+2026-05-06 12:13:38 | INFO     |    - email: character varying
+2026-05-06 12:13:38 | INFO     |    - password_hash: character varying
+2026-05-06 12:13:38 | INFO     |    - full_name: character varying
+2026-05-06 12:13:38 | INFO     |    - role: character varying
+2026-05-06 12:13:38 | INFO     |    - is_active: boolean
+2026-05-06 12:13:38 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 12:13:38 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 12:16:04 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 12:16:04 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 12:16:04 | INFO     |    - id: integer
+2026-05-06 12:16:04 | INFO     |    - username: character varying
+2026-05-06 12:16:04 | INFO     |    - email: character varying
+2026-05-06 12:16:04 | INFO     |    - password_hash: character varying
+2026-05-06 12:16:04 | INFO     |    - full_name: character varying
+2026-05-06 12:16:04 | INFO     |    - role: character varying
+2026-05-06 12:16:04 | INFO     |    - is_active: boolean
+2026-05-06 12:16:04 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 12:16:04 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 12:18:34 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 12:18:34 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 12:18:34 | INFO     |    - id: integer
+2026-05-06 12:18:34 | INFO     |    - username: character varying
+2026-05-06 12:18:34 | INFO     |    - email: character varying
+2026-05-06 12:18:34 | INFO     |    - password_hash: character varying
+2026-05-06 12:18:34 | INFO     |    - full_name: character varying
+2026-05-06 12:18:34 | INFO     |    - role: character varying
+2026-05-06 12:18:34 | INFO     |    - is_active: boolean
+2026-05-06 12:18:34 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 12:18:34 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 12:18:40 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 12:18:40 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 12:19:01 | INFO     | 127.0.0.1 - "GET /api/modules HTTP/1.1" 302 -
+2026-05-06 12:19:01 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 12:19:14 | INFO     | 📝 Formulaire de connexion reçu pour: Admin
+2026-05-06 12:19:14 | INFO     | 🔐 Tentative de connexion: username='Admin'
+2026-05-06 12:19:14 | DEBUG    | ✅ Utilisateur trouvé: id=1, role=admin, is_active=True
+2026-05-06 12:19:14 | DEBUG    | Hash stocké: $2b$12$BbwusPQjzfe8kSBe6GrMQOE...
+2026-05-06 12:19:14 | DEBUG    | Vérification bcrypt: ✅ OK
+2026-05-06 12:19:14 | INFO     | ✅ Connexion réussie: Admin (role: admin)
+2026-05-06 12:19:14 | DEBUG    | 📝 Colonne last_login non trouvée, mise à jour ignorée
+2026-05-06 12:19:14 | DEBUG    | Session créée pour user_id=1, token=MToxNzc4MDYyNzU0LjYw...
+2026-05-06 12:19:14 | INFO     | ✅ Authentification réussie, redirection vers /?auth=MToxNzc4MDYyNzU0LjYwNTM3Mw==...
+2026-05-06 12:19:14 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 12:19:14 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDYyNzU0LjYwNTM3Mw== HTTP/1.1" 200 -
+2026-05-06 12:59:26 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 12:59:26 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 12:59:26 | INFO     |    - id: integer
+2026-05-06 12:59:26 | INFO     |    - username: character varying
+2026-05-06 12:59:26 | INFO     |    - email: character varying
+2026-05-06 12:59:26 | INFO     |    - password_hash: character varying
+2026-05-06 12:59:26 | INFO     |    - full_name: character varying
+2026-05-06 12:59:26 | INFO     |    - role: character varying
+2026-05-06 12:59:26 | INFO     |    - is_active: boolean
+2026-05-06 12:59:26 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 12:59:26 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 12:59:26 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 12:59:27 | ERROR    | Erreur vérification session: ERREUR:  la relation « sessions » n'existe pas
+LINE 3:                     FROM sessions s
+                                 ^
+
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDYyNzU0LjYwNTM3Mw== HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:27 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:28 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:32 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 12:59:43 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 12:59:43 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 12:59:43 | INFO     |    - id: integer
+2026-05-06 12:59:43 | INFO     |    - username: character varying
+2026-05-06 12:59:43 | INFO     |    - email: character varying
+2026-05-06 12:59:43 | INFO     |    - password_hash: character varying
+2026-05-06 12:59:43 | INFO     |    - full_name: character varying
+2026-05-06 12:59:43 | INFO     |    - role: character varying
+2026-05-06 12:59:43 | INFO     |    - is_active: boolean
+2026-05-06 12:59:43 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 12:59:43 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 12:59:43 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:00 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:02 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:07 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | ERROR    | Erreur vérification session: ERREUR:  la relation « sessions » n'existe pas
+LINE 3:                     FROM sessions s
+                                 ^
+
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /?auth=TOKEN HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:08 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:09 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:09 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:09 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:09 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:09 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:09 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:09 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:10 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:15 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:00:16 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 13:00:29 | ERROR    | Erreur authentification: ERREUR:  la colonne « nom » n'existe pas
+LINE 2:                     SELECT id, username, nom, prenom, email,...
+                                                 ^
+
+2026-05-06 13:00:29 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 13:02:09 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 13:02:09 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 13:02:09 | INFO     |    - id: integer
+2026-05-06 13:02:09 | INFO     |    - username: character varying
+2026-05-06 13:02:09 | INFO     |    - email: character varying
+2026-05-06 13:02:09 | INFO     |    - password_hash: character varying
+2026-05-06 13:02:09 | INFO     |    - full_name: character varying
+2026-05-06 13:02:09 | INFO     |    - role: character varying
+2026-05-06 13:02:09 | INFO     |    - is_active: boolean
+2026-05-06 13:02:09 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 13:02:09 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 13:02:09 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 13:02:14 | ERROR    | Erreur authentification: ERREUR:  la colonne « active » n'existe pas
+LINE 2: ...     SELECT id, username, full_name, email, role, active, pa...
+                                                             ^
+HINT:  Peut-être que vous souhaitiez référencer la colonne « utilisateurs.is_active ».
+
+2026-05-06 13:02:14 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 13:03:29 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 13:03:29 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 13:03:29 | INFO     |    - id: integer
+2026-05-06 13:03:29 | INFO     |    - username: character varying
+2026-05-06 13:03:29 | INFO     |    - email: character varying
+2026-05-06 13:03:29 | INFO     |    - password_hash: character varying
+2026-05-06 13:03:29 | INFO     |    - full_name: character varying
+2026-05-06 13:03:29 | INFO     |    - role: character varying
+2026-05-06 13:03:29 | INFO     |    - is_active: boolean
+2026-05-06 13:03:29 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 13:03:29 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 13:03:29 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:35 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:36 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:40 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 13:03:57 | ERROR    | Erreur création session: ERREUR:  la relation « sessions » n'existe pas
+LINE 2:                     INSERT INTO sessions (user_id, token, ex...
+                                        ^
+
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 13:03:57 | ERROR    | Erreur vérification session: ERREUR:  la relation « sessions » n'existe pas
+LINE 3:                     FROM sessions s
+                                 ^
+
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /?auth=None HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:57 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:03:58 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:03 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:04 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:04 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:04 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:04 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:04:34 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 13:05:31 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 13:05:31 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 13:05:31 | INFO     |    - id: integer
+2026-05-06 13:05:31 | INFO     |    - username: character varying
+2026-05-06 13:05:31 | INFO     |    - email: character varying
+2026-05-06 13:05:31 | INFO     |    - password_hash: character varying
+2026-05-06 13:05:31 | INFO     |    - full_name: character varying
+2026-05-06 13:05:31 | INFO     |    - role: character varying
+2026-05-06 13:05:31 | INFO     |    - is_active: boolean
+2026-05-06 13:05:31 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 13:05:31 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 13:05:31 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 13:05:36 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 13:05:44 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 13:05:44 | INFO     | ✅ Session valide: Admin
+2026-05-06 13:05:44 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDY1NTQ0LjU2NzQ2 HTTP/1.1" 302 -
+2026-05-06 13:05:44 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 13:06:20 | INFO     | ✅ Session valide: Admin
+2026-05-06 13:06:20 | INFO     | 127.0.0.1 - "GET /api/modules?auth=MToxNzc4MDY1NTQ0LjU2NzQ2 HTTP/1.1" 302 -
+2026-05-06 13:06:20 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 13:07:20 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 13:07:20 | INFO     | ✅ Session valide: Admin
+2026-05-06 13:07:20 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDY1NjQwLjE3ODU= HTTP/1.1" 302 -
+2026-05-06 13:07:20 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 13:08:35 | INFO     | ✅ Session valide: Admin
+2026-05-06 13:08:35 | INFO     | 127.0.0.1 - "GET /api/modules?auth=MToxNzc4MDY1NTQ0LjU2NzQ2 HTTP/1.1" 302 -
+2026-05-06 13:08:35 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 13:15:51 | INFO     | ✅ Session valide: Admin
+2026-05-06 13:15:51 | INFO     | 127.0.0.1 - "GET /api/modules?auth=MToxNzc4MDY1NTQ0LjU2NzQ2 HTTP/1.1" 302 -
+2026-05-06 13:15:51 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:34:05 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:34:05 | INFO     | 127.0.0.1 - "GET /api/modules?auth=5xGZO61SoZT/zPm/aGgpJPSNZPRGpflwbSZwSTiajJg= HTTP/1.1" 302 -
+2026-05-06 14:34:05 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:34:41 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 14:34:41 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:34:41 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcwODgxLjY0MTM2Mw== HTTP/1.1" 302 -
+2026-05-06 14:34:41 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:35:41 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDU3MDE2Ljg4OTkyNQ== HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:41 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:42 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:35:56 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 14:35:56 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:35:56 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcwOTU2LjIzODM1Nw== HTTP/1.1" 302 -
+2026-05-06 14:35:56 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:36:59 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /api/modules?auth=UnWekGqBQeA44umFBq+7lxP8ibx6DsHMHx41rubdBWo= HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:36:59 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:39:05 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 14:39:05 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:39:05 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcxMTQ1LjIyMTYyOA== HTTP/1.1" 302 -
+2026-05-06 14:39:05 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:42:07 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:42:07 | INFO     | 127.0.0.1 - "GET /api/modules?auth=9MH0qzzDeSqIGZ0MFXhQqCUC0BrVLVs0VSKH8Hb558o= HTTP/1.1" 302 -
+2026-05-06 14:42:07 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:53:36 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 14:53:36 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 14:53:36 | INFO     |    - id: integer
+2026-05-06 14:53:36 | INFO     |    - username: character varying
+2026-05-06 14:53:36 | INFO     |    - email: character varying
+2026-05-06 14:53:36 | INFO     |    - password_hash: character varying
+2026-05-06 14:53:36 | INFO     |    - full_name: character varying
+2026-05-06 14:53:36 | INFO     |    - role: character varying
+2026-05-06 14:53:36 | INFO     |    - is_active: boolean
+2026-05-06 14:53:36 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 14:53:36 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 14:53:36 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 14:53:44 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:53:52 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 14:53:52 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:53:52 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:53:52 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcyMDMyLjYxNzA1 HTTP/1.1" 200 -
+2026-05-06 14:54:21 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:54:21 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:54:21 | INFO     | 127.0.0.1 - "GET /api/modules?auth=B6BID/DpRCvkFqluDDCniRZtQuMenVuERAvcPLUeSao= HTTP/1.1" 200 -
+2026-05-06 14:54:54 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcyMDMyLjYxNzA1 HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:54 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:55 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:55 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:55 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:55 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:55 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:55 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:55 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:54:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 14:55:01 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:55:09 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 14:55:09 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:55:09 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:55:09 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcyMTA5LjYwMzQzMw== HTTP/1.1" 200 -
+2026-05-06 14:55:11 | INFO     | 127.0.0.1 - "GET /logout?auth=MToxNzc4MDcyMTA5LjYwMzQzMw== HTTP/1.1" 302 -
+2026-05-06 14:55:11 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 14:55:53 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:55:53 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:55:53 | INFO     | 127.0.0.1 - "GET /api/modules?auth=O4t004KsoyyUpn3J7/Fs77IBnCiSKQ/vPaQv6I3akJE= HTTP/1.1" 200 -
+2026-05-06 14:56:20 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 14:56:20 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:56:21 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:56:21 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcyMTgwLjk5MjAwNQ== HTTP/1.1" 200 -
+2026-05-06 14:56:24 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:56:24 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:56:24 | DEBUG    | Recherche fichier: raw=Automobiles.zip, decoded=Automobiles.zip, path=/home/fearless/Documents/Assurance/updates/Automobiles.zip
+2026-05-06 14:56:24 | INFO     | 📥 Téléchargement: Automobiles.zip (813969 bytes)
+2026-05-06 14:56:24 | INFO     | 127.0.0.1 - "GET /downloads/Automobiles.zip?auth=MToxNzc4MDcyMTgwLjk5MjAwNQ== HTTP/1.1" 200 -
+2026-05-06 14:56:26 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:56:26 | INFO     | ✅ Session valide: Admin
+2026-05-06 14:56:26 | DEBUG    | Recherche fichier: raw=Param%C3%A8tres.zip, decoded=Paramètres.zip, path=/home/fearless/Documents/Assurance/updates/Paramètres.zip
+2026-05-06 14:56:26 | INFO     | 📥 Téléchargement: Paramètres.zip (591342 bytes)
+2026-05-06 14:56:26 | INFO     | 127.0.0.1 - "GET /downloads/Param%C3%A8tres.zip?auth=MToxNzc4MDcyMTgwLjk5MjAwNQ== HTTP/1.1" 200 -
+2026-05-06 15:00:32 | INFO     | 127.0.0.1 - "GET /logout?auth=MToxNzc4MDcyMTgwLjk5MjAwNQ== HTTP/1.1" 302 -
+2026-05-06 15:00:32 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /api/modules HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:00:56 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:05:13 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 15:05:13 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 15:05:13 | INFO     |    - id: integer
+2026-05-06 15:05:13 | INFO     |    - username: character varying
+2026-05-06 15:05:13 | INFO     |    - email: character varying
+2026-05-06 15:05:13 | INFO     |    - password_hash: character varying
+2026-05-06 15:05:13 | INFO     |    - full_name: character varying
+2026-05-06 15:05:13 | INFO     |    - role: character varying
+2026-05-06 15:05:13 | INFO     |    - is_active: boolean
+2026-05-06 15:05:13 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 15:05:13 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 15:05:13 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 15:06:04 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:06:04 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:06:04 | INFO     | 127.0.0.1 - "GET /api/modules?auth=SBn443iZymPbHxfXkYp2QlChePu7rj3cJohC27EFAm0= HTTP/1.1" 200 -
+2026-05-06 15:06:32 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 15:06:32 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:06:32 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:06:32 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDcyNzkyLjk3MjU2NA== HTTP/1.1" 200 -
+2026-05-06 15:07:37 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /api/modules?auth=XdpXQGfjf3o1D8JbIyy9oCFq+ksVZxwp2Z6Ua547cdY= HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:07:37 | INFO     | 127.0.0.1 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:08:37 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:08:37 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:08:37 | INFO     | 192.168.100.17 - "GET /api/modules?auth=nwVtPbZpbUqP3tTpEehESVcCdY4We5UKMMMDPfKgc6M= HTTP/1.1" 200 -
+2026-05-06 15:09:08 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:09:08 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:09:08 | INFO     | 192.168.100.17 - "GET /api/modules?auth=q2nIXkTE9zO8vWfD9jw/Qy6/i6bmPidshzISnWa4d4A= HTTP/1.1" 200 -
+2026-05-06 15:15:46 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:15:46 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:15:46 | INFO     | 192.168.100.17 - "GET /api/modules?auth=tjGvX3BJs4rGIdqeW6vOq03Ad9U4su2xULmB1oSn5HI= HTTP/1.1" 200 -
+2026-05-06 15:19:22 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /api/modules?auth=08kRShe2m8E46roy5+0CKSEuCjPBWDCMnYg3RGi8kFk= HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:19:22 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:40:10 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:40:10 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:40:10 | INFO     | 192.168.100.17 - "GET /api/modules?auth=M2T4CwfNr7hgkRBx8TXQ1dn74FhHPsqYREe6wugO49Q= HTTP/1.1" 200 -
+2026-05-06 15:44:38 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /api/modules?auth=sFKzCl+B4AasLvnUvn2U+H9tNiUPHLbG/TUkfcEJShk= HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:44:38 | INFO     | 192.168.100.17 - "GET /login HTTP/1.1" 302 -
+2026-05-06 15:48:46 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:48:46 | INFO     | ✅ Session valide: Admin
+2026-05-06 15:48:46 | INFO     | 192.168.100.17 - "GET /api/modules?auth=7t6eWDAupxTMV38wnUDLoEaXqP06syjm/Jl0O8o12Fs= HTTP/1.1" 200 -
