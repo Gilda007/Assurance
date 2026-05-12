@@ -89,15 +89,15 @@ class ServerConfig:
             self.allowed_extensions = ['.zip', '.tar.gz', '.whl']
         
         if self.db_host is None:
-            self.db_host = get_env('DB_HOST', '192.168.100.17')
+            self.db_host = get_env('DB_HOST', '212.47.73.151')
         if self.db_port is None:
             self.db_port = int(get_env('DB_PORT', '5432'))
         if self.db_name is None:
             self.db_name = get_env('DB_NAME', 'ams_db')
         if self.db_user is None:
-            self.db_user = get_env('DB_USER', 'postgres')
+            self.db_user = get_env('DB_USER')
         if self.db_password is None:
-            self.db_password = get_env('DB_PASSWORD', '')
+            self.db_password = get_env('DB_PASSWORD')
 
 
 @dataclass
@@ -581,18 +581,6 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         tokens = query_params.get('auth', [])
         return tokens[0] if tokens else None
     
-    # def _is_authenticated(self):
-    #     """Vérifie si l'utilisateur est authentifié"""
-    #     if not self.config.auth_enabled:
-    #         return True
-        
-    #     token = self._get_auth_token()
-    #     if not token:
-    #         return False
-        
-    #     user = self.auth_handler.get_user_from_session(token)
-    #     return user is not None
-
     def _is_authenticated(self):
         """Vérifie si l'utilisateur est authentifié (priorité à session_auth)"""
         if not self.config.auth_enabled:
@@ -626,75 +614,12 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         self.end_headers()
     
     def _send_html(self, html):
-        """Envoie une réponse HTML"""
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html; charset=utf-8')
-        self.end_headers()
-        self.wfile.write(html.encode('utf-8'))
-    
-    # def do_GET(self):
-    #     """Gère les requêtes GET"""
-    #     self.__class__.stats["total_requests"] += 1
-    #     parsed = urlparse(self.path)
-    #     path = parsed.path
+        """Envoie une réponse HTML avec gestion des erreurs"""
+        try:
+            self._safe_send_response(200, 'text/html; charset=utf-8', html.encode('utf-8'))
+        except Exception as e:
+            logger.error(f"Erreur envoi HTML: {e}")
         
-    #     # Page d'authentification
-    #     if path == '/auth':
-    #         self._serve_auth_page()
-    #         return
-        
-    #     # Page de logout
-    #     if path == '/logout':
-    #         token = self._get_auth_token()
-    #         if token and self.auth_handler:
-    #             self.auth_handler.logout(token)
-    #         self._redirect_to_auth()
-    #         return
-        
-    #     # Vérifier l'authentification via session LOMETA d'abord
-    #     token = self._get_auth_token()
-    #     if token and hasattr(self, 'session_auth') and self.session_auth:
-    #         user = self.session_auth.verify_session_token(token)
-    #         if user:
-    #             self.current_user = user
-    #             self._is_authenticated_flag = True
-    #         else:
-    #             self._is_authenticated_flag = False
-    #     else:
-    #         # Fallback sur l'ancienne méthode
-    #         self._is_authenticated_flag = self._is_authenticated() if hasattr(self, '_is_authenticated') else False
-        
-    #     if not self._is_authenticated_flag and self.config.auth_enabled:
-    #         self.send_response(302)
-    #         self.send_header('Location', '/auth')
-    #         self.end_headers()
-    #         return
-        
-    #     # Vérifier l'authentification pour toutes les autres routes
-    #     if self.config.auth_enabled and not self._is_authenticated():
-    #         self._redirect_to_auth()
-    #         return
-        
-    #     # Routes protégées
-    #     routes = {
-    #         '/': self._serve_dashboard,
-    #         '/dashboard': self._serve_dashboard,
-    #         '/api/modules': self._serve_modules_api,
-    #         '/api/stats': self._serve_stats_api,
-    #         '/api/health': self._serve_health_api,
-    #     }
-        
-    #     for route, handler in routes.items():
-    #         if path == route:
-    #             handler()
-    #             return
-        
-    #     # Téléchargement de fichier
-    #     if path.startswith('/downloads/'):
-    #         self._handle_download(path)
-    #     else:
-    #         self._serve_dashboard()
-    
     def do_GET(self):
         """Gère les requêtes GET - Version corrigée sans boucle"""
         self.__class__.stats["total_requests"] += 1
@@ -805,11 +730,6 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
             return
         
         # Vérifier l'authentification
-        # if self.config.auth_enabled and not self._is_authenticated():
-        #     self._send_json_response(401, {"error": "Non authentifié"})
-        #     return
-
-        # Vérifier l'authentification
         is_auth = False
         token = self._get_auth_token()
         if token and hasattr(self, 'session_auth') and self.session_auth:
@@ -834,6 +754,20 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
     # PAGES D'AUTHENTIFICATION
     # ========================================================================
     
+    def _safe_send_response(self, code: int, content_type: str, data: bytes):
+        """Envoie une réponse de manière sécurisée (gère les BrokenPipeError)"""
+        try:
+            self.send_response(code)
+            self.send_header('Content-type', content_type)
+            self.end_headers()
+            self.wfile.write(data)
+            self.wfile.flush()
+        except (BrokenPipeError, ConnectionResetError, OSError):
+            # Client déconnecté, ignorer silencieusement
+            pass
+        except Exception as e:
+            logger.error(f"Erreur lors de l'envoi de la réponse: {e}")
+
     # Ajouter cette méthode pour la compatibilité avec l'ancienne route /auth
     def _handle_login_deprecated(self):
         """Traite la tentative de connexion (ancienne route /auth)"""
@@ -1522,17 +1456,46 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
     # ========================================================================
 
 
+    # def _handle_download(self, path: str):
+    #     """Gère le téléchargement avec décodage d'URL"""
+    #     # Extraire le nom du fichier et le décoder
+    #     raw_filename = path.split('/')[-1].split('?')[0]
+    #     filename = unquote(raw_filename)  # Décode %C3%A8 en è
+    #     file_path = Path(os.getcwd()) / filename
+        
+    #     logger.debug(f"Recherche fichier: raw={raw_filename}, decoded={filename}, path={file_path}")
+        
+    #     if not file_path.exists():
+    #         logger.warning(f"Fichier non trouvé: {file_path}")
+    #         self.send_error(404, f"Fichier non trouvé: {filename}")
+    #         return
+        
+    #     self.stats["total_downloads"] += 1
+    #     file_size = file_path.stat().st_size
+    #     self.stats["total_bytes_sent"] += file_size
+        
+    #     logger.info(f"📥 Téléchargement: {filename} ({file_size} bytes)")
+        
+    #     # Headers corrects pour le téléchargement
+    #     self.send_response(200)
+    #     self.send_header('Content-Type', 'application/zip')
+    #     # Encoder le nom du fichier pour les headers HTTP
+    #     encoded_filename = filename.encode('utf-8').decode('latin-1')
+    #     self.send_header('Content-Disposition', f'attachment; filename="{encoded_filename}"; filename*=UTF-8\'\'{filename}')
+    #     self.send_header('Content-Length', str(file_size))
+    #     self.send_header('Cache-Control', 'no-cache')
+    #     self.end_headers()
+        
+    #     with open(file_path, 'rb') as f:
+    #         self.wfile.write(f.read())
+
     def _handle_download(self, path: str):
-        """Gère le téléchargement avec décodage d'URL"""
-        # Extraire le nom du fichier et le décoder
+        """Gère le téléchargement avec gestion des erreurs"""
         raw_filename = path.split('/')[-1].split('?')[0]
-        filename = unquote(raw_filename)  # Décode %C3%A8 en è
+        filename = unquote(raw_filename)
         file_path = Path(os.getcwd()) / filename
         
-        logger.debug(f"Recherche fichier: raw={raw_filename}, decoded={filename}, path={file_path}")
-        
         if not file_path.exists():
-            logger.warning(f"Fichier non trouvé: {file_path}")
             self.send_error(404, f"Fichier non trouvé: {filename}")
             return
         
@@ -1540,20 +1503,32 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         file_size = file_path.stat().st_size
         self.stats["total_bytes_sent"] += file_size
         
-        logger.info(f"📥 Téléchargement: {filename} ({file_size} bytes)")
+        logger.info(f"📥 Téléchargement: {filename}")
         
-        # Headers corrects pour le téléchargement
-        self.send_response(200)
-        self.send_header('Content-Type', 'application/zip')
-        # Encoder le nom du fichier pour les headers HTTP
-        encoded_filename = filename.encode('utf-8').decode('latin-1')
-        self.send_header('Content-Disposition', f'attachment; filename="{encoded_filename}"; filename*=UTF-8\'\'{filename}')
-        self.send_header('Content-Length', str(file_size))
-        self.send_header('Cache-Control', 'no-cache')
-        self.end_headers()
-        
-        with open(file_path, 'rb') as f:
-            self.wfile.write(f.read())
+        try:
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/zip')
+            encoded_filename = filename.encode('utf-8').decode('latin-1')
+            self.send_header('Content-Disposition', f'attachment; filename="{encoded_filename}"; filename*=UTF-8\'\'{filename}')
+            self.send_header('Content-Length', str(file_size))
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            
+            with open(file_path, 'rb') as f:
+                # Envoyer par chunks pour éviter les problèmes de mémoire
+                chunk_size = 8192
+                while True:
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    try:
+                        self.wfile.write(chunk)
+                    except (BrokenPipeError, ConnectionResetError):
+                        logger.debug("Client a interrompu le téléchargement")
+                        return
+                self.wfile.flush()
+        except Exception as e:
+            logger.error(f"Erreur téléchargement {filename}: {e}")
     
     def _handle_upload(self):
         if not self.config.upload_enabled:
@@ -1638,11 +1613,40 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             self._send_json_response(500, {"error": str(e)})
     
+    # def _send_json_response(self, code: int, data: dict):
+    #     """Envoie une réponse JSON avec gestion des erreurs de connexion"""
+    #     try:
+    #         json_data = json.dumps(data, indent=2, ensure_ascii=False).encode('utf-8')
+    #         self._safe_send_response(code, 'application/json', json_data)
+    #     except Exception as e:
+    #         logger.error(f"Erreur sérialisation JSON: {e}")
+
+    # Remplacer la méthode _send_json_response existante
+    
     def _send_json_response(self, code: int, data: dict):
-        self.send_response(code)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps(data, indent=2).encode('utf-8'))
+        """Envoie une réponse JSON avec gestion des erreurs de connexion"""
+        try:
+            json_data = json.dumps(data, indent=2, ensure_ascii=False).encode('utf-8')
+            self.send_response(code)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            # Envoyer par petits morceaux
+            chunk_size = 4096
+            for i in range(0, len(json_data), chunk_size):
+                chunk = json_data[i:i+chunk_size]
+                try:
+                    self.wfile.write(chunk)
+                except (BrokenPipeError, ConnectionResetError):
+                    logger.debug("Client déconnecté pendant l'envoi JSON")
+                    return
+            self.wfile.flush()
+            
+        except BrokenPipeError:
+            logger.debug("Connexion fermée par le client")
+            pass
+        except Exception as e:
+            logger.error(f"Erreur _send_json_response: {e}")
 
 
     def _verify_lometa_session(self, token: str) -> Optional[dict]:
@@ -1758,25 +1762,6 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
             self.end_headers()
         else:
             self._serve_login_page(message)
-
-    # def _handle_logout(self):
-    #     """Déconnexion"""
-    #     token = self._get_auth_token()
-    #     if token and hasattr(self, 'session_auth') and self.session_auth and self.session_auth.connection_pool:
-    #         try:
-    #             conn = self.session_auth.connection_pool.getconn()
-    #             with conn.cursor() as cur:
-    #                 cur.execute("DELETE FROM sessions WHERE token = %s", (token,))
-    #                 conn.commit()
-    #         except Exception as e:
-    #             logger.error(f"Erreur suppression session: {e}")
-    #         finally:
-    #             if conn:
-    #                 self.session_auth.connection_pool.putconn(conn)
-        
-    #     self.send_response(302)
-    #     self.send_header('Location', '/auth')
-    #     self.end_headers()
 
     def _handle_logout(self):
         """Déconnexion - Supprimer la session et rediriger vers login"""

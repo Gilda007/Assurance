@@ -13,6 +13,7 @@ __pycache__/
 # Logs and runtime data
 logs/
 uploads/
+*.log
 
 # Editor settings
 .vscode/
@@ -36,3 +37,5 @@ test
 
 insertion
 
+*.sql
+*.pdf

@@ -91,7 +91,7 @@ class LoginView(QWidget):
         status_badge.setStyleSheet("color: #10b981; font-weight: bold; font-size: 10px; letter-spacing: 2px; background: none;")
         
         # Titre Principal
-        main_title = QLabel("AMS\nPROJECT.")
+        main_title = QLabel("Fearless\nPROJECT.")
         main_title.setStyleSheet("color: white; font-size: 50px; font-weight: 900; line-height: 1; background: none;")
 
         # Texte descriptif

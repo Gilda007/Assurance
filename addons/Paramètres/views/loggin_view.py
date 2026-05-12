@@ -87,7 +87,7 @@ class LoginView(QWidget):
         overlay_layout = QVBoxLayout(overlay)
         overlay_layout.setContentsMargins(60, 80, 60, 80)
         
-        title_ams = QLabel("AMS\nPROJECT.")
+        title_ams = QLabel("Fearless\nPROJECT.")
         title_ams.setStyleSheet("color: white; font-size: 50px; font-weight: 900; line-height: 1; background: transparent;")
         
         desc = QLabel("L'intelligence au service de votre parc automobile.")

@@ -241,3 +241,55 @@ class CompagnieController:
         except Exception as e:
             print(f"Erreur recherche compagnie: {e}")
             return []
+
+    def get_available_numbers(self, compagnie_id):
+        """Récupère les numéros disponibles dans la plage de la compagnie"""
+        try:
+            compagnie = self.db.query(Compagnie).filter(Compagnie.id == compagnie_id).first()
+            if not compagnie or not compagnie.num_debut or not compagnie.num_fin:
+                return [], 0, 0
+            
+            debut = int(compagnie.num_debut)
+            fin = int(compagnie.num_fin)
+            
+            # Récupérer les numéros déjà utilisés
+            from addons.Automobiles.models.contract_models import Contrat
+            used_numbers = self.db.query(Contrat.numero_police_attribue).filter(
+                Contrat.company_id == compagnie_id,
+                Contrat.numero_police_attribue.isnot(None)
+            ).all()
+            
+            used_set = {n[0] for n in used_numbers if n[0]}
+            
+            # Calculer les numéros disponibles
+            available = [n for n in range(debut, fin + 1) if n not in used_set]
+            total = fin - debut + 1
+            used_count = len(used_set)
+            
+            return available, total, used_count
+            
+        except Exception as e:
+            print(f"Erreur get_available_numbers: {e}")
+            return [], 0, 0
+    
+    def get_next_available_number(self, compagnie_id):
+        """Récupère le prochain numéro disponible pour une compagnie"""
+        available, total, used = self.get_available_numbers(compagnie_id)
+        if available:
+            return available[0], total, used
+        return None, total, used
+    
+    def generate_police_number(self, compagnie_id, attribued_number):
+        """Génère le numéro de police complet"""
+        try:
+            compagnie = self.db.query(Compagnie).filter(Compagnie.id == compagnie_id).first()
+            if not compagnie:
+                return f"POL-{attribued_number:05d}"
+            
+            # Utiliser le code de la compagnie comme préfixe
+            prefix = compagnie.code or "POL"
+            return f"{prefix}-{attribued_number:05d}"
+            
+        except Exception as e:
+            print(f"Erreur generate_police_number: {e}")
+            return f"POL-{attribued_number:05d}"

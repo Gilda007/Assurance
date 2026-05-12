@@ -51,6 +51,9 @@ compile_with_pyinstaller() {
         --add-data "version_manager.py:." \
         --add-data "update_manager.py:." \
         --add-data "update_dialog.py:." \
+        --add-data "update_client.py:." \
+        --add-data "update_widget.py:." \
+        --add-data "updates/update_server.py:." \
         --collect-all PySide6 \
         --collect-all PySide6.QtCharts \
         --collect-all sqlalchemy \

@@ -1360,6 +1360,13 @@ class FleetController:
         except Exception as e:
             print(f"Erreur _log_action: {e}")
             # On ne fait pas de rollback ici pour ne pas affecter l'action principale
+    
+    def get_all(self):
+        return self.session.query(Fleet).all()
+
+    def count_all(self):
+        return self.session.query(Fleet).count()
+
     def get_network_info(self):
         """Récupère simultanément l'IP Locale et l'IP Publique."""
         try:

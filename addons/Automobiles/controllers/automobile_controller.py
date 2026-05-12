@@ -853,6 +853,13 @@ class VehicleController:
 
     # vehicle_controller.py
 
+    # Dans le contrôleur des véhicules
+    def get_all(self):
+        return self.session.query(Vehicle).all()
+
+    def count_all(self):
+        return self.session.query(Vehicle).count()
+
     def update_vehicle_garantees(self, vehicle_id, data):
         """
         Met à jour un véhicule avec les données fournies.

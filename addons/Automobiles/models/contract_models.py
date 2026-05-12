@@ -34,6 +34,8 @@ class Contrat(Base):
     date_proformat = Column(DateTime, default=datetime.now)
     date_debut = Column(DateTime, nullable=True)
     date_fin = Column(DateTime, nullable=True)
+    numero_police_attribue = Column(Integer, nullable=True)
+    numero_police = Column(String(50), unique=True, nullable=False)
 
     # --- Finances ---
     prime_pure = Column(Float, default=0.0)

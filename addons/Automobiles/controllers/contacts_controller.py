@@ -195,3 +195,10 @@ class ContactController:
         contacts = self.get_all_contacts()
         stats = self.get_contact_stats()
         return contacts, stats
+    
+    # Dans le contrôleur des contacts
+    def get_all(self):
+        return self.db.query(Contact).all()
+
+    def count_by_type(self, client_type):
+        return self.db.query(Contact).filter(Contact.nature == client_type).count()

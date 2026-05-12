@@ -6,7 +6,7 @@ class Config:
     """Configuration de l'application"""
     
     # Serveur de mise à jour
-    UPDATE_SERVER = "http://192.168.100.17:5000/api"
+    UPDATE_SERVER = "http://0.0.0.0:8000/"
     
     @staticmethod
     def get_app_dir():

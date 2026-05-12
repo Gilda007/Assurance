@@ -779,4 +779,50 @@ class ContractController:
         except Exception as e:
             self.db.rollback()
             logger.error(f"Erreur suppression proformat: {e}")
-            return False, str(e)    
+            return False, str(e) 
+
+    def assign_police_number(self, compagnie_id):
+        """Attribue automatiquement un numéro de police à un contrat"""
+        try:
+            # Récupérer le prochain numéro disponible
+            from addons.Automobiles.controllers.compagnies_controller import CompagnieController
+            compagnie_ctrl = CompagnieController(self.db, self.current_user_id)
+            
+            next_number, total, used = compagnie_ctrl.get_next_available_number(compagnie_id)
+            
+            if not next_number:
+                raise Exception(
+                    f"Plus aucun numéro disponible pour cette compagnie !\n"
+                    f"Plage utilisée: {used}/{total}\n"
+                    f"Veuillez contacter l'administrateur pour étendre la plage."
+                )
+            
+            police_number = compagnie_ctrl.generate_police_number(compagnie_id, next_number)
+            
+            return next_number, police_number
+            
+        except Exception as e:
+            print(f"Erreur assign_police_number: {e}")
+            raise
+    
+    def create_contract_with_number(self, data, compagnie_id, user_id, ip):
+        """Crée un contrat avec attribution automatique du numéro de police"""
+        try:
+            # Attribuer un numéro de police
+            police_number_attribue, police_number_complet = self.assign_police_number(compagnie_id)
+            
+            # Créer le contrat
+            contrat = Contrat(
+                numero_police=police_number_complet,
+                numero_police_attribue=police_number_attribue,
+                # ... autres champs ...
+            )
+            
+            self.db.add(contrat)
+            self.db.commit()
+            
+            return True, contrat
+            
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)   

@@ -1422,6 +1422,7 @@ class VehicleMainView(QWidget):
         super().__init__()
         self.controller = controller
         self.user = user
+        self.setup_kpi_cards()
         self.setup_ui()
 
     def setup_ui(self):
@@ -1572,83 +1573,197 @@ class VehicleMainView(QWidget):
         content_layout.addWidget(self.stack)
 
     def setup_kpi_cards(self):
-        """Configure les cartes KPI modernes"""
+        """Configure les cartes KPI modernes avec données réelles"""
         self.kpi_layout = QHBoxLayout()
         self.kpi_layout.setSpacing(20)
         
+        # Récupérer les données via le contrôleur
+        stats = self.get_real_time_stats()
+        
         kpi_data = [
-            {"title": "Véhicules", "value": "142", "trend": "+12", "color": Colors.PRIMARY, "icon": "🚗", "trend_up": True},
-            {"title": "Flottes", "value": "12", "trend": "+3", "color": Colors.SUCCESS, "icon": "🏢", "trend_up": True},
-            {"title": "Entreprises", "value": "08", "trend": "+2", "color": Colors.WARNING, "icon": "🏭", "trend_up": True},
-            {"title": "Particuliers", "value": "89", "trend": "+8", "color": Colors.INFO, "icon": "👤", "trend_up": True}
+            {
+                "title": "Véhicules", 
+                "value": str(stats.get('vehicules', 0)), 
+                "trend": stats.get('vehicules_trend', '+0'), 
+                "color": Colors.PRIMARY, 
+                "icon": "🚗", 
+                "trend_up": stats.get('vehicules_trend_up', True)
+            },
+            {
+                "title": "Flottes", 
+                "value": str(stats.get('flottes', 0)), 
+                "trend": stats.get('flottes_trend', '+0'), 
+                "color": Colors.SUCCESS, 
+                "icon": "🏢", 
+                "trend_up": stats.get('flottes_trend_up', True)
+            },
+            {
+                "title": "Entreprises", 
+                "value": str(stats.get('entreprises', 0)), 
+                "trend": stats.get('entreprises_trend', '+0'), 
+                "color": Colors.WARNING, 
+                "icon": "🏭", 
+                "trend_up": stats.get('entreprises_trend_up', True)
+            },
+            {
+                "title": "Particuliers", 
+                "value": str(stats.get('particuliers', 0)), 
+                "trend": stats.get('particuliers_trend', '+0'), 
+                "color": Colors.INFO, 
+                "icon": "👤", 
+                "trend_up": stats.get('particuliers_trend_up', True)
+            }
         ]
         
+        self.kpi_cards = []
         for data in kpi_data:
             card = self._create_modern_kpi_card(data)
             self.kpi_layout.addWidget(card)
+            self.kpi_cards.append(card)
+
+
+    def get_real_time_stats(self):
+        """Récupère les statistiques via le contrôleur"""
+        stats = {
+            'vehicules': 0,
+            'flottes': 0,
+            'entreprises': 0,
+            'particuliers': 0,
+            'vehicules_trend': '+0',
+            'flottes_trend': '+0',
+            'entreprises_trend': '+0',
+            'particuliers_trend': '+0',
+            'vehicules_trend_up': True,
+            'flottes_trend_up': True,
+            'entreprises_trend_up': True,
+            'particuliers_trend_up': True
+        }
+        
+        try:
+            # Via le contrôleur si disponible
+            if hasattr(self, 'controller') and self.controller:
+                # Véhicules
+                if hasattr(self.controller, 'vehicles'):
+                    stats['vehicules'] = self.controller.vehicles.count_all() if hasattr(self.controller.vehicles, 'count_all') else len(self.controller.vehicles.get_all())
+                
+                # Flottes
+                if hasattr(self.controller, 'fleets'):
+                    stats['flottes'] = self.controller.fleets.count_all() if hasattr(self.controller.fleets, 'count_all') else len(self.controller.fleets.get_all())
+                
+                # Contacts (entreprises et particuliers)
+                if hasattr(self.controller, 'contacts'):
+                    contacts = self.controller.contacts.get_all()
+                    stats['entreprises'] = sum(1 for c in contacts if getattr(c, 'nature', '') == 'Société')
+                    stats['particuliers'] = sum(1 for c in contacts if getattr(c, 'nature', '') == 'Particulier')
+            
+        except Exception as e:
+            print(f"Erreur récupération stats via contrôleur: {e}")
+        
+        return stats
+
+
+    def _update_kpi_card_value(self, card, value, trend, trend_up):
+        """Met à jour la valeur et la tendance d'une carte KPI"""
+        for child in card.findChildren(QLabel):
+            if child.objectName() == "value_label":
+                child.setText(str(value))
+            elif child.objectName() == "trend_label":
+                trend_text = f"▲ {trend}" if trend_up else f"▼ {trend.replace('+', '')}"
+                child.setText(trend_text)
+                child.setStyleSheet(f"color: {Colors.SUCCESS if trend_up else Colors.DANGER}; font-size: 11px; font-weight: 600;")
+
 
     def _create_modern_kpi_card(self, data):
-        """Crée une carte KPI simple et élégante"""
-        main_color = data.get('color', '#3B82F6')
-        trend_up = data.get('trend_up', True)
-        trend_color = '#10B981' if trend_up else '#EF4444'
-        trend_icon = '↑' if trend_up else '↓'
+        """Crée une carte KPI moderne avec valeurs dynamiques"""
+        from PySide6.QtWidgets import QGraphicsDropShadowEffect
+        from PySide6.QtGui import QColor
         
         card = QFrame()
+        card.setObjectName("kpi_card")
         card.setFixedHeight(110)
-        card.setCursor(Qt.PointingHandCursor)
         card.setStyleSheet(f"""
-            QFrame {{
+            QFrame#kpi_card {{
                 background: white;
-                border: 1px solid {Colors.BORDER};
                 border-radius: 16px;
+                border: 1px solid {Colors.BORDER};
             }}
-            QFrame:hover {{
-                border-color: {main_color};
-                background: {main_color}04;
+            QFrame#kpi_card:hover {{
+                border-color: {Colors.PRIMARY};
+                background: {Colors.PRIMARY_LIGHT};
             }}
         """)
+        
+        # Ombre
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(15)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        shadow.setOffset(0, 2)
+        card.setGraphicsEffect(shadow)
         
         layout = QHBoxLayout(card)
-        layout.setContentsMargins(20, 14, 20, 14)
-        layout.setSpacing(12)
+        layout.setContentsMargins(20, 15, 20, 15)
+        layout.setSpacing(15)
         
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(6)
-        
-        value = QLabel(data['value'])
-        value.setStyleSheet(f"font-size: 28px; font-weight: 700; color: {main_color};")
-        
-        title = QLabel(data['title'])
-        title.setStyleSheet(f"font-size: 12px; font-weight: 500; color: {Colors.TEXT_SECONDARY};")
-        
-        trend = QLabel(f"{trend_icon} {data['trend']}")
-        trend.setStyleSheet(f"font-size: 11px; font-weight: 500; color: {trend_color};")
-        
-        text_layout.addWidget(value)
-        text_layout.addWidget(title)
-        text_layout.addWidget(trend)
-        text_layout.addStretch()
-        
+        # Icône
         icon_container = QFrame()
-        icon_container.setFixedSize(44, 44)
+        icon_container.setFixedSize(50, 50)
         icon_container.setStyleSheet(f"""
-            background: {main_color}10;
-            border-radius: 12px;
+            QFrame {{
+                background: {data['color']}15;
+                border-radius: 14px;
+            }}
         """)
-        
         icon_layout = QVBoxLayout(icon_container)
         icon_layout.setAlignment(Qt.AlignCenter)
         
-        icon = QLabel(data['icon'])
-        icon.setStyleSheet("font-size: 22px;")
-        icon_layout.addWidget(icon)
+        icon_label = QLabel(data['icon'])
+        icon_label.setStyleSheet(f"font-size: 24px; background: transparent;")
+        icon_layout.addWidget(icon_label)
         
-        layout.addLayout(text_layout, 1)
+        # Informations
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(6)
+        
+        value_label = QLabel(str(data['value']))
+        value_label.setObjectName("value_label")
+        value_label.setStyleSheet(f"""
+            font-size: 28px;
+            font-weight: 800;
+            color: {data['color']};
+        """)
+        
+        title_label = QLabel(data['title'])
+        title_label.setStyleSheet("""
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        """)
+        
+        # Tendance
+        trend_layout = QHBoxLayout()
+        trend_layout.setSpacing(5)
+        
+        if data['trend'] != '+0':
+            trend_icon = QLabel("▲" if data['trend_up'] else "▼")
+            trend_icon.setStyleSheet(f"color: {Colors.SUCCESS if data['trend_up'] else Colors.DANGER}; font-size: 10px;")
+            trend_layout.addWidget(trend_icon)
+        
+        trend_label = QLabel(data['trend'])
+        trend_label.setObjectName("trend_label")
+        trend_label.setStyleSheet(f"color: {Colors.SUCCESS if data['trend_up'] else Colors.DANGER}; font-size: 11px; font-weight: 600;")
+        trend_layout.addWidget(trend_label)
+        trend_layout.addStretch()
+        
+        info_layout.addWidget(value_label)
+        info_layout.addWidget(title_label)
+        info_layout.addLayout(trend_layout)
+        
         layout.addWidget(icon_container)
+        layout.addLayout(info_layout)
+        layout.addStretch()
         
         return card
-
+    
     def _create_nav_btn(self, text, active=False):
         """Crée un bouton de navigation moderne"""
         btn = QPushButton(text)

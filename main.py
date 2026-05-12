@@ -234,20 +234,31 @@ class ModuleChecker(QObject):
     
     def __init__(self, session_token: str = None, parent=None):
         super().__init__(parent)
-        self.session_token = session_token  # NOUVEAU
+        self.session_token = session_token
+        print(f"🔧 ModuleChecker initialisé avec token: {session_token is not None}")
     
     def check(self):
         def check_thread():
+            print(f"🔍 Vérification des modules...")
+            print(f"   Token: {self.session_token[:20] if self.session_token else 'None'}...")
+            
             client = UpdateClient(server_url="http://192.168.100.17:8000", session_token=self.session_token)
             code, modules = client.get_available_modules()
+            
+            print(f"   Code retour: {code}")
+            
             if code == 200 and modules:
+                print(f"   ✅ {len(modules)} module(s) trouvé(s)")
                 self.modules_found.emit(modules)
             elif code == 200:
                 print("✅ Aucun module disponible")
             elif code == 401:
                 print("⚠️ Session expirée, veuillez vous reconnecter")
+                # Tenter de rafraîchir la session ?
             elif code == 404:
                 print("⚠️ Serveur de mise à jour non accessible")
+            else:
+                print(f"⚠️ Code inattendu: {code}")
         
         threading.Thread(target=check_thread, daemon=True).start()
 
@@ -1459,31 +1470,41 @@ class MainWindow(QMainWindow):
         self.setup_shortcuts()
         self.check_environment()
         self.session_token = self._get_user_session_token()
+        print(f"🔑 Token de session récupéré: {self.session_token is not None}")  # Debug
         
         # NOUVEAU : Passer le token au ModuleChecker
         self.module_checker = ModuleChecker(session_token=self.session_token)
+        self.update_manager = UpdateManager(self, session_token=self.session_token)
         self.module_checker.modules_found.connect(self.show_update_dialog)
 
         QTimer.singleShot(2000, self.module_checker.check)
-    
+        # QTimer.singleShot(3000, self.update_manager.check_updates_auto)
+
     def _get_user_session_token(self):
         """Récupère le token de session de l'utilisateur connecté"""
         from core.database import SessionLocal
+        from addons.Paramètres.models.models import Session
+        from datetime import datetime
+        
         db = SessionLocal()
         try:
             # Chercher la session active de l'utilisateur
-            from addons.Paramètres.models.models import Session
             session = db.query(Session).filter(
                 Session.user_id == self.user.id,
                 Session.expires_at > datetime.now()
             ).first()
+            
             if session:
+                print(f"✅ Session trouvée: {session.token[:20]}... (expire le {session.expires_at})")
                 return session.token
+            else:
+                print("❌ Aucune session active trouvée")
+                return None
         except Exception as e:
             print(f"Erreur récupération session: {e}")
+            return None
         finally:
             db.close()
-        return None
     
     def setup_ui(self):
         self.central_widget = QWidget()

@@ -22,7 +22,7 @@ else:
 
     username = os.getenv("DB_USER")
     password = os.getenv("DB_PASS")
-    host = os.getenv("DB_HOST", "192.168.100.17")
+    host = os.getenv("DB_HOST", "212.47.73.151")
     port = os.getenv("DB_PORT", "5432")
     database = os.getenv("DB_NAME", "ams_db")
 

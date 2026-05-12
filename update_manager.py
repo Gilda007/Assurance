@@ -9,7 +9,7 @@ import urllib.error
 import zipfile
 from datetime import datetime
 from PySide6.QtCore import QThread, Signal, QObject, QTimer
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QMessageBox, QLabel, QPushButton
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QMessageBox, QLabel, QPushButton, QProgressDialog
 
 # Import du dialogue de mise à jour
 from update_dialog import UpdateDialog
@@ -19,7 +19,7 @@ try:
     from server.config import Config
 except ImportError:
     class Config:
-        UPDATE_SERVER = "http://192.168.100.17:5000/api"
+        UPDATE_SERVER = "http://0.0.0.0:8000/"
         
         @staticmethod
         def get_app_dir():
@@ -31,51 +31,52 @@ except ImportError:
         def get_modules_dir():
             return os.path.join(Config.get_app_dir(), 'addons')
 
-# Import du VersionManager existant
-from version_manager import VersionManager
 
 
 class UpdateChecker(QThread):
-    """Thread de vérification des mises à jour"""
+    """Thread de vérification des mises à jour - Version compatible update_server.py"""
     
-    update_found = Signal(dict)
+    update_found = Signal(list)  # Liste des modules disponibles
     no_update = Signal()
     error_occurred = Signal(str)
-    progress = Signal(int, int)
     
-    def __init__(self, server_url, addons_dir):
+    def __init__(self, server_url: str, session_token: str = None):
         super().__init__()
-        self.server_url = server_url
-        self.addons_dir = addons_dir
-        self.version_manager = VersionManager(addons_dir)
-        self.current_version = self.version_manager.get_app_version()
-        
-    # Dans UpdateChecker.run()
+        self.server_url = server_url.rstrip('/')
+        self.session_token = session_token
+    
     def run(self):
-        """Vérifie les mises à jour"""
+        """Vérifie les mises à jour via l'API /api/modules"""
         try:
-            print("🚀 UpdateChecker.run() démarré")  # ← Debug
-            url = f"{self.server_url}/check_updates"
-            print(f"   URL: {url}")  # ← Debug
+            from update_client import UpdateClient
             
-            req = urllib.request.Request(url)
-            req.add_header('Content-Type', 'application/json')
+            client = UpdateClient(session_token=self.session_token, server_url=self.server_url)
+            status_code, modules = client.get_available_modules()
             
-            with urllib.request.urlopen(req, timeout=10) as response:
-                data = json.loads(response.read().decode())
-                print(f"   Réponse serveur reçue")  # ← Debug
+            if status_code == 200 and modules:
+                # Convertir la liste en dictionnaire pour compatibilité
+                updates = {}
+                for module in modules:
+                    updates[module['id']] = {
+                        'type': 'module',
+                        'name': module['name'],
+                        'current_version': '0.0.0',  # Version actuelle inconnue
+                        'new_version': module.get('version', '1.0.0'),
+                        'download_url': module['download_url'],
+                        'changelog': module.get('description', ''),
+                        'size': module.get('size', 0)
+                    }
+                self.update_found.emit(updates)
+            elif status_code == 200:
+                self.no_update.emit()
+            elif status_code == 401:
+                self.error_occurred.emit("Session expirée. Veuillez vous reconnecter.")
+            elif status_code == 404:
+                self.error_occurred.emit("Serveur de mise à jour non accessible")
+            else:
+                self.error_occurred.emit(f"Erreur: code {status_code}")
                 
-                updates = self.check_available_updates(data)
-                print(f"   Mises à jour trouvées: {len(updates)}")  # ← Debug
-                
-                if updates:
-                    print(f"   ✅ Émission du signal update_found")  # ← Debug
-                    self.update_found.emit(updates)
-                else:
-                    print(f"   ❌ Aucune mise à jour, émission de no_update")  # ← Debug
-                    self.no_update.emit()
         except Exception as e:
-            print(f"   ❌ Erreur: {e}")  # ← Debug
             self.error_occurred.emit(str(e))
 
     def check_available_updates(self, server_data):
@@ -130,25 +131,28 @@ class UpdateChecker(QThread):
 
 
 class UpdateInstaller(QThread):
-    """Thread d'installation des mises à jour"""
+    """Thread d'installation des mises à jour - Compatible update_server.py"""
     
     progress = Signal(int, int)
     status = Signal(str)
     finished = Signal(bool, str)
     
-    def __init__(self, addons_dir, temp_dir=None):
+    def __init__(self, addons_dir, session_token: str = None, temp_dir=None):
         super().__init__()
         self.addons_dir = addons_dir
+        self.session_token = session_token
         self.temp_dir = temp_dir or tempfile.mkdtemp()
         self.updates_queue = []
-        self.version_manager = VersionManager(self.addons_dir)
-        
+    
     def add_update(self, update_info):
         """Ajoute une mise à jour à installer"""
         self.updates_queue.append(update_info)
     
     def run(self):
         """Installe toutes les mises à jour en file d'attente"""
+        from update_client import UpdateClient
+        
+        client = UpdateClient(session_token=self.session_token, server_url=Config.UPDATE_SERVER)
         success_count = 0
         error_count = 0
         
@@ -156,7 +160,7 @@ class UpdateInstaller(QThread):
             self.current_update = update
             self.status.emit(f"Téléchargement de {update['name']}...")
             
-            download_path = self.download_update(update)
+            download_path = self.download_update(client, update)
             if not download_path:
                 error_count += 1
                 continue
@@ -178,17 +182,31 @@ class UpdateInstaller(QThread):
         else:
             self.finished.emit(False, f"{success_count} réussie(s), {error_count} erreur(s)")
     
-    def download_update(self, update):
-        """Télécharge une mise à jour"""
+    def download_update(self, client, update):
+        """Télécharge une mise à jour via UpdateClient"""
         try:
+            import requests
+            
+            download_url = f"{Config.UPDATE_SERVER}{update['download_url']}"
+            if self.session_token:
+                separator = '&' if '?' in download_url else '?'
+                download_url += f"{separator}auth={self.session_token}"
+            
             file_ext = '.zip'
             temp_file = os.path.join(self.temp_dir, f"{update['name']}{file_ext}")
             
-            urllib.request.urlretrieve(
-                update['download_url'],
-                temp_file,
-                self.report_progress
-            )
+            response = requests.get(download_url, stream=True, timeout=30)
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+            
+            with open(temp_file, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = int((downloaded / total_size) * 100)
+                            self.progress.emit(percent, 100)
             
             return temp_file
             
@@ -196,24 +214,51 @@ class UpdateInstaller(QThread):
             self.status.emit(f"Erreur téléchargement: {str(e)}")
             return None
     
+    def install_update(self, update, download_path):
+        """Installe une mise à jour téléchargée"""
+        module_path = os.path.join(self.addons_dir, update['id'] if 'id' in update else update['name'])
+        backup_path = os.path.join(self.addons_dir, f"_{update['name']}_backup")
+        
+        try:
+            # Sauvegarder l'ancienne version
+            if os.path.exists(module_path):
+                if os.path.exists(backup_path):
+                    shutil.rmtree(backup_path)
+                shutil.move(module_path, backup_path)
+            
+            # Extraire la nouvelle version
+            with zipfile.ZipFile(download_path, 'r') as zip_ref:
+                zip_ref.extractall(self.addons_dir)
+            
+            # Vérifier que le module a bien été extrait
+            if not os.path.exists(module_path):
+                # Chercher si le dossier a un nom différent
+                extracted_items = os.listdir(self.addons_dir)
+                for item in extracted_items:
+                    if item.endswith(update['name']) or update['name'].startswith(item):
+                        module_path = os.path.join(self.addons_dir, item)
+                        break
+            
+            # Supprimer la sauvegarde
+            shutil.rmtree(backup_path, ignore_errors=True)
+            
+            return True
+            
+        except Exception as e:
+            # Restaurer la sauvegarde en cas d'erreur
+            if os.path.exists(backup_path):
+                if os.path.exists(module_path):
+                    shutil.rmtree(module_path)
+                shutil.move(backup_path, module_path)
+            return False   
+
+
     def report_progress(self, block, block_size, total_size):
         """Rapporte la progression du téléchargement"""
         if total_size > 0:
             downloaded = block * block_size
             percent = int((downloaded / total_size) * 100)
             self.progress.emit(percent, 100)
-    
-    def install_update(self, update, download_path):
-        """Installe une mise à jour téléchargée"""
-        try:
-            if update['type'] == 'module':
-                return self.install_module_update(update, download_path)
-            elif update['type'] == 'app':
-                return self.install_app_update(update, download_path)
-            return False
-        except Exception as e:
-            self.status.emit(f"Erreur installation: {str(e)}")
-            return False
     
     def install_module_update(self, update, download_path):
         """Installe une mise à jour de module"""
@@ -295,23 +340,20 @@ class UpdateInstaller(QThread):
 
 
 class UpdateManager(QObject):
-    """Gestionnaire principal des mises à jour"""
+    """Gestionnaire principal des mises à jour - Compatible update_server.py"""
     
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, session_token: str = None):
         super().__init__(parent)
         self.parent = parent
+        self.session_token = session_token
         self.addons_dir = Config.get_addons_dir()
         self.updates_available = {}
-        self.version_manager = VersionManager(self.addons_dir)
-
-        print(f"📁 UpdateManager - addons_dir : {self.addons_dir}")
         
-        # Créer le dossier addons s'il n'existe pas
         os.makedirs(self.addons_dir, exist_ok=True)
-        
+    
     def check_updates_manual(self):
         """Vérifie manuellement les mises à jour"""
-        self.checker = UpdateChecker(Config.UPDATE_SERVER, self.addons_dir)
+        self.checker = UpdateChecker(Config.UPDATE_SERVER, self.session_token)
         self.checker.update_found.connect(self.on_updates_found)
         self.checker.no_update.connect(self.on_no_update)
         self.checker.error_occurred.connect(self.on_update_error)
@@ -319,120 +361,129 @@ class UpdateManager(QObject):
     
     def check_updates_auto(self):
         """Vérifie automatiquement les mises à jour (silencieux)"""
-        print("🔄 Vérification AUTO des mises à jour...")  # ← Debug
-        print(f"   Serveur: {Config.UPDATE_SERVER}")
-        print(f"   Dossier addons: {self.addons_dir}")
-        
-        checker = UpdateChecker(Config.UPDATE_SERVER, self.addons_dir)
-        checker.update_found.connect(self.on_auto_updates_found)
-        checker.no_update.connect(self.on_no_update)
-        checker.error_occurred.connect(self.on_update_error)
-        checker.start()
+        self.checker = UpdateChecker(Config.UPDATE_SERVER, self.session_token)
+        self.checker.update_found.connect(self.on_auto_updates_found)
+        self.checker.no_update.connect(lambda: None)
+        self.checker.error_occurred.connect(self.on_update_error)
+        self.checker.start()
     
     def on_updates_found(self, updates):
         """Affiche le dialogue de mise à jour"""
-        self.updates_available = updates
-        dialog = UpdateDialog(self.parent, updates)
+        # Convertir la liste en dictionnaire
+        updates_dict = self._convert_updates_to_dict(updates)
+        self.updates_available = updates_dict
+        
+        dialog = UpdateDialog(self.parent, updates_dict)
         if dialog.exec():
             self.install_updates(dialog.get_selected_updates())
     
     def on_auto_updates_found(self, updates):
         """Notification silencieuse de mise à jour"""
-        print(f"📢 Mises à jour trouvées (auto): {list(updates.keys())}")  # ← Debug
+        # Convertir la liste en dictionnaire
+        updates_dict = self._convert_updates_to_dict(updates)
+        self.updates_available = updates_dict
         
-        self.updates_available = updates
         if self.parent:
             count = len(updates)
-            message = f"🔔 {count} mise(s) à jour disponible(s)"
-            
-            # Afficher une notification dans la barre d'état
             if hasattr(self.parent, 'show_status_message'):
-                self.parent.show_status_message(message)
-            else:
-                print(message)
-            
-            # ⚠️ OPTIONNEL : Afficher une boîte de dialogue non intrusive
+                self.parent.show_status_message(f"🔔 {count} mise(s) à jour disponible(s)")
             self.show_notification_bubble(count)
+    
+    def _convert_updates_to_dict(self, updates):
+        """Convertit une liste de modules en dictionnaire"""
+        updates_dict = {}
+        for module in updates:
+            updates_dict[module['id']] = {
+                'type': 'module',
+                'name': module['name'],
+                'current_version': '0.0.0',
+                'new_version': module.get('version', '1.0.0'),
+                'download_url': module['download_url'],
+                'changelog': module.get('description', ''),
+                'size': module.get('size', 0)
+            }
+        return updates_dict
     
     def on_no_update(self):
         """Aucune mise à jour trouvée"""
         if self.parent:
             QMessageBox.information(self.parent, "Mise à jour", "Votre application est à jour")
     
-    def show_notification_bubble(self, count):
-        """Affiche une bulle de notification"""
-        from PySide6.QtWidgets import QMessageBox
-        from PySide6.QtCore import QTimer
-        
-        # Notification qui disparaît automatiquement
-        msg = QMessageBox(self.parent)
-        msg.setWindowTitle("📢 Mises à jour disponibles")
-        msg.setText(f"{count} module(s) peuvent être mis à jour")
-        msg.setInformativeText("Cliquez sur 'Aide' → 'Vérifier les mises à jour' pour les installer")
-        msg.setStandardButtons(QMessageBox.Ok)
-        
-        # Fermeture automatique après 5 secondes
-        QTimer.singleShot(5000, msg.close)
-        msg.open()
-
     def on_update_error(self, error):
         """Erreur lors de la vérification"""
         if self.parent:
             QMessageBox.warning(self.parent, "Erreur", f"Impossible de vérifier les mises à jour:\n{error}")
     
+    def show_notification_bubble(self, count):
+        """Affiche une bulle de notification"""
+        msg = QMessageBox(self.parent)
+        msg.setWindowTitle("📢 Mises à jour disponibles")
+        msg.setText(f"{count} module(s) peuvent être mis à jour")
+        msg.setInformativeText("Cliquez sur 'Aide' → 'Vérifier les mises à jour' pour les installer")
+        msg.setStandardButtons(QMessageBox.Ok)
+        QTimer.singleShot(5000, msg.close)
+        msg.open()
+
     def install_updates(self, selected_updates):
         """Installe les mises à jour sélectionnées"""
-        self.installer = UpdateInstaller(self.addons_dir)
+        self.installer = UpdateInstaller(self.addons_dir, self.session_token)
         self.installer.finished.connect(self.on_install_finished)
+        
+        # Afficher une boîte de progression
+        self.progress_dialog = QProgressDialog("Préparation...", "Annuler", 0, 100, self.parent)
+        self.progress_dialog.setWindowTitle("Mise à jour")
+        self.progress_dialog.setMinimumWidth(400)
+        self.progress_dialog.setStyleSheet("""
+            QProgressDialog {
+                background: white;
+                border-radius: 12px;
+            }
+            QProgressBar {
+                border: none;
+                background: #e2e8f0;
+                border-radius: 6px;
+                height: 8px;
+            }
+            QProgressBar::chunk {
+                background: #3b82f6;
+                border-radius: 6px;
+            }
+        """)
+        
+        self.installer.progress.connect(self.progress_dialog.setValue)
+        self.installer.status.connect(self.progress_dialog.setLabelText)
+        self.progress_dialog.canceled.connect(self.installer.terminate)
         
         for update_name in selected_updates:
             if update_name in self.updates_available:
                 self.installer.add_update(self.updates_available[update_name])
         
         self.installer.start()
+        self.progress_dialog.show()
     
     def on_install_finished(self, success, message):
-        """Installation terminée (pour les mises à jour)"""
+        """Installation terminée"""
         if hasattr(self, 'progress_dialog'):
             self.progress_dialog.close()
         
         if success:
-            msg_box = QMessageBox(self)
+            msg_box = QMessageBox(self.parent)
             msg_box.setIcon(QMessageBox.Information)
             msg_box.setWindowTitle("✅ Mise à jour réussie")
             msg_box.setText(f"{message}\n\nLes modifications prendront effet après le redémarrage.")
             msg_box.setInformativeText("Voulez-vous redémarrer l'application maintenant ?")
             
-            restart_btn = msg_box.addButton("🔄 Redémarrer maintenant", QMessageBox.AcceptRole)
-            later_btn = msg_box.addButton("⏰ Redémarrer plus tard", QMessageBox.RejectRole)
-            
-            msg_box.setStyleSheet("""
-                QMessageBox {
-                    background-color: white;
-                    border-radius: 16px;
-                }
-                QPushButton {
-                    background-color: #10b981;
-                    color: white;
-                    border: none;
-                    border-radius: 8px;
-                    padding: 8px 16px;
-                    font-weight: 600;
-                }
-                QPushButton:hover {
-                    background-color: #059669;
-                }
-            """)
+            restart_btn = msg_box.addButton("🔄 Redémarrer maintenant", QMessageBox.YesRole)
+            later_btn = msg_box.addButton("⏰ Redémarrer plus tard", QMessageBox.NoRole)
             
             result = msg_box.exec()
             
             if msg_box.clickedButton() == restart_btn:
                 self.restart_application()
             else:
-                self.refresh_data()
                 self.show_restart_notification()
         else:
-            QMessageBox.warning(self, "❌ Erreur", message)
+            QMessageBox.warning(self.parent, "❌ Erreur", message)
 
     def show_restart_notification(self):
         """Affiche une notification toast"""

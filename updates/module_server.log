@@ -1757,3 +1757,751 @@ LINE 3:                     FROM sessions s
 2026-05-06 16:41:58 | INFO     | 192.168.100.17 - "GET /api/modules?auth=Dj9jY9dB3fahEftPk0OJ35k3nqq0KramvdSuYRkxhcU= HTTP/1.1" 200 -
 2026-05-06 16:42:25 | INFO     | ✅ Session valide: Admin
 2026-05-06 16:42:25 | INFO     | 192.168.100.17 - "GET /api/modules?auth=5giH274sDdDN7FG6FgqnXWpwg5qMFvT2cGqcsocw4ac= HTTP/1.1" 200 -
+2026-05-06 16:47:03 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:47:03 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 16:47:03 | INFO     |    - id: integer
+2026-05-06 16:47:03 | INFO     |    - username: character varying
+2026-05-06 16:47:03 | INFO     |    - email: character varying
+2026-05-06 16:47:03 | INFO     |    - password_hash: character varying
+2026-05-06 16:47:03 | INFO     |    - full_name: character varying
+2026-05-06 16:47:03 | INFO     |    - role: character varying
+2026-05-06 16:47:03 | INFO     |    - is_active: boolean
+2026-05-06 16:47:03 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 16:47:03 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 16:47:03 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 16:47:24 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:47:24 | INFO     | 192.168.100.17 - "GET /api/modules?auth=TMCKYhc4bXAbOvDehRjRfwGk/T2x8Q6W2qedEbYyeiU= HTTP/1.1" 200 -
+2026-05-06 16:47:33 | INFO     | 127.0.0.1 - "GET /logout?auth=MToxNzc4MDc3MzYxLjg4MTg3Mg== HTTP/1.1" 302 -
+2026-05-06 16:47:34 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 16:47:42 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 16:47:42 | INFO     | ✅ Session valide: Admin
+2026-05-06 16:47:42 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDc4ODYyLjc5MjczNg== HTTP/1.1" 200 -
+2026-05-06 17:04:12 | INFO     | ✅ Session valide: Admin
+2026-05-06 17:04:12 | INFO     | 192.168.100.17 - "GET /api/modules?auth=qB7ijU1H3pamGDx5Z03V4hxgYihhNJHQtJx8dVdVs8s= HTTP/1.1" 200 -
+2026-05-06 17:21:07 | INFO     | ✅ Session valide: Admin
+2026-05-06 17:21:07 | INFO     | 192.168.100.17 - "GET /api/modules?auth=jz4pa9MBNyfHRw2ltb8yF78/olQSlTp7vVj618YA4ow= HTTP/1.1" 200 -
+2026-05-06 17:23:19 | INFO     | ✅ Session valide: Admin
+2026-05-06 17:23:19 | INFO     | 192.168.100.17 - "GET /api/modules?auth=8LCWYP5MllVNTrmFEVcrvyVfmWWmlI9eUiRrZ9rT4AM= HTTP/1.1" 200 -
+2026-05-06 17:23:20 | INFO     | ✅ Session valide: Admin
+2026-05-06 17:23:20 | INFO     | 127.0.0.1 - "GET /api/modules?auth=8LCWYP5MllVNTrmFEVcrvyVfmWWmlI9eUiRrZ9rT4AM= HTTP/1.1" 200 -
+2026-05-06 17:38:54 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 17:38:54 | INFO     | 192.168.100.17 - "GET /api/modules?auth=ES/YykE8+MUvWXgTva/NhdYZNU+4SJDzJBkUk27E2Z4= HTTP/1.1" 401 -
+2026-05-06 17:38:55 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 17:38:55 | INFO     | 127.0.0.1 - "GET /api/modules?auth=ES/YykE8+MUvWXgTva/NhdYZNU+4SJDzJBkUk27E2Z4= HTTP/1.1" 401 -
+2026-05-06 17:40:35 | INFO     | 192.168.100.17 - "GET / HTTP/1.1" 302 -
+2026-05-06 17:40:35 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 17:40:35 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 17:40:35 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 17:47:21 | INFO     | ✅ Session valide: Admin
+2026-05-06 17:47:21 | INFO     | 192.168.100.17 - "GET /api/modules?auth=UoOxeQhhe04UaQ/I0D0oaEeYs0RLWZMTzlezgwaa27Q= HTTP/1.1" 200 -
+2026-05-06 17:47:22 | INFO     | ✅ Session valide: Admin
+2026-05-06 17:47:22 | INFO     | 127.0.0.1 - "GET /api/modules?auth=UoOxeQhhe04UaQ/I0D0oaEeYs0RLWZMTzlezgwaa27Q= HTTP/1.1" 200 -
+2026-05-06 17:47:48 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 17:47:48 | INFO     | 192.168.100.17 - "GET /api/modules?auth=SN+UMdF6yJtGc0VdNCcjTu3TnK97OE9sojT7SLAHhqA= HTTP/1.1" 401 -
+2026-05-06 17:47:49 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 17:47:49 | INFO     | 127.0.0.1 - "GET /api/modules?auth=SN+UMdF6yJtGc0VdNCcjTu3TnK97OE9sojT7SLAHhqA= HTTP/1.1" 401 -
+2026-05-06 17:50:15 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 17:50:15 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 17:56:31 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 17:56:31 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 17:56:31 | INFO     |    - id: integer
+2026-05-06 17:56:31 | INFO     |    - username: character varying
+2026-05-06 17:56:31 | INFO     |    - email: character varying
+2026-05-06 17:56:31 | INFO     |    - password_hash: character varying
+2026-05-06 17:56:31 | INFO     |    - full_name: character varying
+2026-05-06 17:56:31 | INFO     |    - role: character varying
+2026-05-06 17:56:31 | INFO     |    - is_active: boolean
+2026-05-06 17:56:31 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 17:56:31 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 17:56:31 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 17:56:58 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 17:56:58 | INFO     | 192.168.100.17 - "GET /api/modules?auth=F6+KH1KVP6HeF1vXvoFTISesrJa8dWHcEkRqrwuxagQ= HTTP/1.1" 401 -
+2026-05-06 17:56:59 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 17:56:59 | INFO     | 127.0.0.1 - "GET /api/modules?auth=F6+KH1KVP6HeF1vXvoFTISesrJa8dWHcEkRqrwuxagQ= HTTP/1.1" 401 -
+2026-05-06 17:57:46 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 17:57:46 | INFO     | ✅ Session valide: Admin
+2026-05-06 17:57:46 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4MDgzMDY2LjE3NjQ4Ng== HTTP/1.1" 200 -
+2026-05-06 17:57:47 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 17:57:47 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:01:21 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:01:21 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDc4ODYyLjc5MjczNg== HTTP/1.1" 302 -
+2026-05-06 18:01:21 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:01:28 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:01:28 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4MDgzMDY2LjE3NjQ4Ng== HTTP/1.1" 200 -
+2026-05-06 18:01:28 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 18:01:28 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:04:44 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:04:44 | INFO     | 📤 Upload: Paramètres_1.zip
+2026-05-06 18:04:44 | INFO     | 192.168.100.17 - "POST /api/upload?auth=MToxNzc4MDgzMDY2LjE3NjQ4Ng== HTTP/1.1" 200 -
+2026-05-06 18:04:46 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:04:46 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4MDgzMDY2LjE3NjQ4Ng== HTTP/1.1" 200 -
+2026-05-06 18:04:46 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 18:04:46 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:05:43 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:05:43 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4MDgzMDY2LjE3NjQ4Ng== HTTP/1.1" 200 -
+2026-05-06 18:05:44 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 18:05:44 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:05:49 | INFO     | 192.168.100.17 - "GET /logout?auth=MToxNzc4MDgzMDY2LjE3NjQ4Ng== HTTP/1.1" 302 -
+2026-05-06 18:05:49 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:05:50 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 18:05:50 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:05:57 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 18:05:57 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 18:05:57 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:06:07 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 18:06:07 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:06:07 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4MDgzNTY3LjI3Mjk4MQ== HTTP/1.1" 200 -
+2026-05-06 18:06:07 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 18:06:07 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 18:09:05 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:09:05 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-06 18:09:55 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:09:55 | INFO     | 192.168.100.17 - "GET /api/modules?auth=6uVm7FV1jhhOyTCf/3xoHV7qYcJiFWwXLxlxhX3d3fg= HTTP/1.1" 200 -
+2026-05-06 18:10:09 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:10:09 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-06 18:10:23 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:10:23 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-06 18:12:20 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:12:20 | INFO     | 192.168.100.17 - "GET /api/modules?auth=KDIiBCEHKty0BaSnnIiv6t6lqHjtlqXp4hapsdQ8Rw0= HTTP/1.1" 200 -
+2026-05-06 18:12:32 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:12:32 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-06 18:12:55 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:12:55 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-06 18:18:03 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:18:03 | INFO     | 192.168.100.17 - "GET /api/modules?auth=kpljuDNC8vNwRwTpvGvEyznozkWfdc0bnr35sL7Tj8k= HTTP/1.1" 200 -
+2026-05-06 18:32:43 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:32:43 | INFO     | 192.168.100.17 - "GET /api/modules?auth=dKOOFSPwBYCPNk8hNTKqWRSVN4VMkHht2s6BrN1iKHo= HTTP/1.1" 200 -
+2026-05-06 18:35:25 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:35:25 | INFO     | 192.168.100.17 - "GET /api/modules?auth=ePTm6KtLTWsl8w2iyCdk+NHrsAsD3EwzPO95KETAtC8= HTTP/1.1" 401 -
+2026-05-06 18:37:39 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:37:39 | INFO     | 192.168.100.17 - "GET /api/modules?auth=Bnu0I8rLuS/xf37JRnPS3xXCPBf49AmSNAUu2rcnKXI= HTTP/1.1" 200 -
+2026-05-06 18:40:42 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:40:42 | INFO     | 192.168.100.17 - "GET /api/modules?auth=TwgtYTVxnVE4zCq/3c4D2M0an2d4asFm+d0RnrhzW88= HTTP/1.1" 401 -
+2026-05-06 18:41:51 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:41:51 | INFO     | 192.168.100.17 - "GET /api/modules?auth=PuH9qH4v1zwXNDSe3+QR8fXgmCVilrdipC6bdJg/ZPE= HTTP/1.1" 401 -
+2026-05-06 18:44:16 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:44:16 | INFO     | 192.168.100.17 - "GET /api/modules?auth=cYRakS80CTBJhy4QGqN6+iHk8NUNUDhRo8OoSSSvT0M= HTTP/1.1" 401 -
+2026-05-06 18:47:08 | INFO     | ✅ Session valide: Admin
+2026-05-06 18:47:08 | INFO     | 192.168.100.17 - "GET /api/modules?auth=V0jjK9H4035zx8QmZtCkBU2eDES4NSR8szNPx1sqN1w= HTTP/1.1" 200 -
+2026-05-06 18:48:08 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:48:08 | INFO     | 192.168.100.17 - "GET /api/modules?auth=dRdZIPaYe5rmKcrQDMU2Yo37M6rRChx5XM+3m+bQjrM= HTTP/1.1" 401 -
+2026-05-06 18:49:50 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 18:49:50 | INFO     | 192.168.100.17 - "GET /api/modules?auth=BqH/kt2ATw0T5gJ7IJObDZA5RU+iHkTC0Ojw3Hqs7/I= HTTP/1.1" 401 -
+2026-05-06 19:06:23 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 19:06:23 | INFO     | 192.168.100.17 - "GET /api/modules?auth=4jd/1qUbBEGlHUpMnyNef8JczPecXS8N1+NVRuCKFQA= HTTP/1.1" 401 -
+2026-05-06 19:06:30 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 19:06:30 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4MDgzNTY3LjI3Mjk4MQ== HTTP/1.1" 302 -
+2026-05-06 19:06:30 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 19:06:30 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-06 19:06:30 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 19:06:39 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 19:06:39 | INFO     | ✅ Session valide: Admin
+2026-05-06 19:06:39 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDg3MTk5Ljc3NTM2Nw== HTTP/1.1" 200 -
+2026-05-06 19:06:56 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 19:06:56 | INFO     | 192.168.100.17 - "GET /api/modules?auth=ub93mML+TSeXpWtbvqJVNG5MIjp5C6N9DbAW4qe9wJQ= HTTP/1.1" 401 -
+2026-05-06 22:29:10 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-06 22:29:17 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-06 22:33:35 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-06 22:33:35 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 22:33:48 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-06 22:34:49 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 22:34:49 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-06 22:34:49 | INFO     |    - id: integer
+2026-05-06 22:34:49 | INFO     |    - username: character varying
+2026-05-06 22:34:49 | INFO     |    - email: character varying
+2026-05-06 22:34:49 | INFO     |    - password_hash: character varying
+2026-05-06 22:34:49 | INFO     |    - full_name: character varying
+2026-05-06 22:34:49 | INFO     |    - role: character varying
+2026-05-06 22:34:49 | INFO     |    - is_active: boolean
+2026-05-06 22:34:49 | INFO     |    - created_at: timestamp without time zone
+2026-05-06 22:34:49 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-06 22:34:49 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-06 22:34:58 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 22:34:58 | INFO     | ✅ Session valide: Admin
+2026-05-06 22:34:58 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDk5Njk4LjUxNTYyNg== HTTP/1.1" 200 -
+2026-05-06 22:35:03 | INFO     | 127.0.0.1 - "GET /logout?auth=MToxNzc4MDk5Njk4LjUxNTYyNg== HTTP/1.1" 302 -
+2026-05-06 22:35:03 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-06 22:35:12 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-06 22:35:12 | INFO     | ✅ Session valide: Admin
+2026-05-06 22:35:12 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MDk5NzEyLjM4MTE3OQ== HTTP/1.1" 200 -
+2026-05-06 22:38:12 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 22:38:12 | INFO     | 127.0.0.1 - "GET /api/modules?auth=YhLeX1HhSBiYMiul7rjB4rDlwWhEiZt05Eizij4Py+4= HTTP/1.1" 401 -
+2026-05-06 22:39:13 | WARNING  | ❌ Token invalide ou expiré
+2026-05-06 22:39:13 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-07 09:42:45 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 09:42:45 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-07 09:42:45 | INFO     |    - id: integer
+2026-05-07 09:42:45 | INFO     |    - username: character varying
+2026-05-07 09:42:45 | INFO     |    - email: character varying
+2026-05-07 09:42:45 | INFO     |    - password_hash: character varying
+2026-05-07 09:42:45 | INFO     |    - full_name: character varying
+2026-05-07 09:42:45 | INFO     |    - role: character varying
+2026-05-07 09:42:45 | INFO     |    - is_active: boolean
+2026-05-07 09:42:45 | INFO     |    - created_at: timestamp without time zone
+2026-05-07 09:42:45 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-07 09:42:45 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 09:42:50 | INFO     | 127.0.0.1 - "GET / HTTP/1.1" 302 -
+2026-05-07 09:42:50 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 09:43:09 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-07 09:43:25 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-07 09:43:25 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:43:25 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTM5ODA1Ljc1ODk4MQ== HTTP/1.1" 200 -
+2026-05-07 09:43:39 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:43:39 | INFO     | 192.168.100.17 - "GET /api/modules?auth=gwjXzHpOU3GQOtl2x+sMG3/+cxumtwMEStA8ZVeZU0o= HTTP/1.1" 401 -
+2026-05-07 09:44:42 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:44:42 | INFO     | 192.168.100.17 - "GET /api/modules?auth=UrWC9w/7dJ6m9l2wJp4ZGk72Vkb3uMvNcmH4j4m5O2c= HTTP/1.1" 200 -
+2026-05-07 09:45:50 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:45:50 | INFO     | 192.168.100.17 - "GET /api/modules?auth=7DLFRynoIfMLVdsBtXq5pGvQiYpR4VtiIP00BsfRi9g= HTTP/1.1" 200 -
+2026-05-07 09:46:18 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:46:18 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTM5ODA1Ljc1ODk4MQ== HTTP/1.1" 302 -
+2026-05-07 09:46:18 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 09:46:30 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-07 09:46:30 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:46:30 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTM5OTkwLjIzNjY= HTTP/1.1" 200 -
+2026-05-07 09:46:51 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:46:51 | INFO     | 192.168.100.17 - "GET /api/modules?auth=4YcPWhGz5nOFIs53iFawwQ6T2Z8y8BAapz9JIU2Ob24= HTTP/1.1" 200 -
+2026-05-07 09:47:29 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:47:29 | INFO     | 127.0.0.1 - "POST /api/delete?auth=MToxNzc4MTM5OTkwLjIzNjY= HTTP/1.1" 401 -
+2026-05-07 09:47:34 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:47:34 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTM5OTkwLjIzNjY= HTTP/1.1" 302 -
+2026-05-07 09:47:34 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 09:47:47 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-07 09:47:47 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:47:47 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTQwMDY3Ljk0MzM1Ng== HTTP/1.1" 200 -
+2026-05-07 09:47:52 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:47:52 | INFO     | 🗑️ Suppression: Paramètres_1.zip
+2026-05-07 09:47:52 | INFO     | 127.0.0.1 - "POST /api/delete?auth=MToxNzc4MTQwMDY3Ljk0MzM1Ng== HTTP/1.1" 200 -
+2026-05-07 09:47:53 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:47:53 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTQwMDY3Ljk0MzM1Ng== HTTP/1.1" 200 -
+2026-05-07 09:48:54 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:48:54 | INFO     | 192.168.100.17 - "GET /api/modules?auth=/EsCe5ez+RRXdn4dYjmuOzb8YTogZ93HHM0+4rywy0c= HTTP/1.1" 401 -
+2026-05-07 09:48:59 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:48:59 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTQwMDY3Ljk0MzM1Ng== HTTP/1.1" 302 -
+2026-05-07 09:48:59 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 09:49:21 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:49:21 | INFO     | 192.168.100.17 - "GET /api/modules?auth=s+WFuQdzFlO0Zonp5OGyXbpki/+q/fYuEkVxk/TuyxY= HTTP/1.1" 401 -
+2026-05-07 09:50:26 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 09:50:26 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-07 09:50:26 | INFO     |    - id: integer
+2026-05-07 09:50:26 | INFO     |    - username: character varying
+2026-05-07 09:50:26 | INFO     |    - email: character varying
+2026-05-07 09:50:26 | INFO     |    - password_hash: character varying
+2026-05-07 09:50:26 | INFO     |    - full_name: character varying
+2026-05-07 09:50:26 | INFO     |    - role: character varying
+2026-05-07 09:50:26 | INFO     |    - is_active: boolean
+2026-05-07 09:50:26 | INFO     |    - created_at: timestamp without time zone
+2026-05-07 09:50:26 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-07 09:50:26 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 09:50:26 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 09:51:04 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-07 09:51:04 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:51:04 | INFO     | 192.168.100.17 - "GET /api/modules?auth=jiumrFyHBPrEYT/IQU5BVxYS3inctDi2VLpIzhXAt6o= HTTP/1.1" 200 -
+2026-05-07 09:51:04 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:51:04 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTQwMjY0LjQzNTQ4Mg== HTTP/1.1" 200 -
+2026-05-07 09:56:06 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:56:06 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTQwMjY0LjQzNTQ4Mg== HTTP/1.1" 200 -
+2026-05-07 09:56:42 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 09:56:42 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTQwMjY0LjQzNTQ4Mg== HTTP/1.1" 302 -
+2026-05-07 09:56:42 | INFO     | ✅ Session valide: Admin
+2026-05-07 09:56:42 | INFO     | 192.168.100.17 - "GET /api/modules?auth=FXRiUV/1BlH6K2lwzuj/4dlUuhB2Luvr7Ze7k1w4izU= HTTP/1.1" 200 -
+2026-05-07 09:56:42 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 15:24:38 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: Network is unreachable
+	Is the server running on that host and accepting TCP/IP connections?
+
+2026-05-07 15:24:38 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: Network is unreachable
+	Is the server running on that host and accepting TCP/IP connections?
+
+2026-05-07 17:29:15 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 17:29:15 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-07 17:29:15 | INFO     |    - id: integer
+2026-05-07 17:29:15 | INFO     |    - username: character varying
+2026-05-07 17:29:15 | INFO     |    - email: character varying
+2026-05-07 17:29:15 | INFO     |    - password_hash: character varying
+2026-05-07 17:29:15 | INFO     |    - full_name: character varying
+2026-05-07 17:29:15 | INFO     |    - role: character varying
+2026-05-07 17:29:15 | INFO     |    - is_active: boolean
+2026-05-07 17:29:15 | INFO     |    - created_at: timestamp without time zone
+2026-05-07 17:29:15 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-07 17:29:15 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 17:29:36 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 17:30:45 | INFO     | ✅ Session valide: Admin
+2026-05-07 17:30:45 | INFO     | 192.168.100.17 - "GET /api/modules?auth=vpBkx6bDTQAj9x/Iq3japDcn1k7HXIuTNuFZDvvXrbs= HTTP/1.1" 200 -
+2026-05-07 17:30:45 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-07 17:30:45 | INFO     | ✅ Session valide: Admin
+2026-05-07 17:30:45 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTY3ODQ1LjYyMjEz HTTP/1.1" 200 -
+2026-05-07 17:30:55 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 17:30:55 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-07 17:31:19 | INFO     | ✅ Session valide: Admin
+2026-05-07 17:31:19 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTY3ODQ1LjYyMjEz HTTP/1.1" 200 -
+2026-05-07 17:32:31 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 17:32:31 | INFO     | 192.168.100.17 - "GET /api/modules?auth=lJ+vEzaDg82+tlAkYYHZCeDB5Qr2MRzraMhKqAnZNE8= HTTP/1.1" 401 -
+2026-05-07 17:39:04 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 17:39:04 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-07 17:39:04 | INFO     |    - id: integer
+2026-05-07 17:39:04 | INFO     |    - username: character varying
+2026-05-07 17:39:04 | INFO     |    - email: character varying
+2026-05-07 17:39:04 | INFO     |    - password_hash: character varying
+2026-05-07 17:39:04 | INFO     |    - full_name: character varying
+2026-05-07 17:39:04 | INFO     |    - role: character varying
+2026-05-07 17:39:04 | INFO     |    - is_active: boolean
+2026-05-07 17:39:04 | INFO     |    - created_at: timestamp without time zone
+2026-05-07 17:39:04 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-07 17:39:04 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-07 17:39:17 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 17:39:17 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTY3ODQ1LjYyMjEz HTTP/1.1" 302 -
+2026-05-07 17:39:17 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 17:39:25 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 17:39:25 | INFO     | 192.168.100.17 - "GET /api/modules?auth=+AWaNTTqeFm9KJBpXMHUyEeQjeyhJC0Xw8fKJAbaj58= HTTP/1.1" 401 -
+2026-05-07 17:49:30 | INFO     | ✅ Session valide: Admin
+2026-05-07 17:49:30 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTY4OTY3LjMzNzk4NQ== HTTP/1.1" 200 -
+2026-05-07 17:49:58 | INFO     | ✅ Session valide: Admin
+2026-05-07 17:49:58 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTY4OTk0LjY1MDcwMw== HTTP/1.1" 200 -
+2026-05-07 17:50:26 | INFO     | ✅ Session valide: Admin
+2026-05-07 17:50:26 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTY5MDIyLjYxMDg0Mw== HTTP/1.1" 200 -
+2026-05-07 18:00:44 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:00:56 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-07 18:00:56 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:00:56 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MTY5NjU2LjA4ODU2MQ== HTTP/1.1" 200 -
+2026-05-07 18:01:22 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:01:22 | INFO     | 127.0.0.1 - "GET //api/stats?auth=MToxNzc4MTY5NjU2LjA4ODU2MQ== HTTP/1.1" 200 -
+2026-05-07 18:01:29 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:01:29 | INFO     | 127.0.0.1 - "GET /api/stats?auth=MToxNzc4MTY5NjU2LjA4ODU2MQ== HTTP/1.1" 200 -
+2026-05-07 18:01:39 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:01:39 | INFO     | 127.0.0.1 - "GET /stats?auth=MToxNzc4MTY5NjU2LjA4ODU2MQ== HTTP/1.1" 200 -
+2026-05-07 18:04:21 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:04:21 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTY5ODU3LjgzMzg0OA== HTTP/1.1" 200 -
+2026-05-07 18:04:41 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:04:41 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTY5ODc3LjQwMTg2Mg== HTTP/1.1" 200 -
+2026-05-07 18:15:49 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:15:49 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcwNTQ1LjY2OTU5OQ== HTTP/1.1" 200 -
+2026-05-07 18:25:35 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:25:35 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcxMTMxLjE4MjU4OQ== HTTP/1.1" 200 -
+2026-05-07 18:25:44 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 18:25:44 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/dist/LOMETA/addons HTTP/1.1" 401 -
+2026-05-07 18:26:11 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:26:11 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcxMTY3LjMyMDUzOQ== HTTP/1.1" 200 -
+2026-05-07 18:26:13 | INFO     | 192.168.100.17 - "GET /downloads/Param%C3%A8tres.zip HTTP/1.1" 302 -
+2026-05-07 18:26:13 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:26:13 | INFO     | 192.168.100.17 - "GET /downloads/Automobiles.zip HTTP/1.1" 302 -
+2026-05-07 18:26:13 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:26:28 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 18:26:28 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/dist/LOMETA/addons HTTP/1.1" 401 -
+2026-05-07 18:27:00 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 18:27:00 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/dist/LOMETA/addons HTTP/1.1" 401 -
+2026-05-07 18:28:06 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:28:06 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcxMjgyLjk4NTk4OQ== HTTP/1.1" 200 -
+2026-05-07 18:28:12 | INFO     | 192.168.100.17 - "GET /downloads/Param%C3%A8tres.zip HTTP/1.1" 302 -
+2026-05-07 18:28:12 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:29:04 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:29:04 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcxMzQwLjgxMzUyOQ== HTTP/1.1" 200 -
+2026-05-07 18:29:08 | INFO     | 192.168.100.17 - "GET /downloads/Automobiles.zip HTTP/1.1" 302 -
+2026-05-07 18:29:08 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:29:58 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:29:58 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcxMzk1LjExMTI1MQ== HTTP/1.1" 200 -
+2026-05-07 18:30:01 | INFO     | 192.168.100.17 - "GET /downloads/Param%C3%A8tres.zip HTTP/1.1" 302 -
+2026-05-07 18:30:01 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:30:01 | INFO     | 192.168.100.17 - "GET /downloads/Automobiles.zip HTTP/1.1" 302 -
+2026-05-07 18:30:01 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:39:06 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:39:06 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcxOTQxLjg0MTU5OQ== HTTP/1.1" 200 -
+2026-05-07 18:39:09 | INFO     | 192.168.100.17 - "GET /downloads/Param%C3%A8tres.zip HTTP/1.1" 302 -
+2026-05-07 18:39:09 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:39:09 | INFO     | 192.168.100.17 - "GET /downloads/Automobiles.zip HTTP/1.1" 302 -
+2026-05-07 18:39:09 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:40:22 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:40:22 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcyMDE4LjQ5MjE5 HTTP/1.1" 200 -
+2026-05-07 18:40:30 | INFO     | 192.168.100.17 - "GET /downloads/Param%C3%A8tres.zip HTTP/1.1" 302 -
+2026-05-07 18:40:30 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:40:30 | INFO     | 192.168.100.17 - "GET /downloads/Automobiles.zip HTTP/1.1" 302 -
+2026-05-07 18:40:30 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:51:28 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:51:28 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcyNjgzLjg5MTE0MQ== HTTP/1.1" 200 -
+2026-05-07 18:51:30 | INFO     | 192.168.100.17 - "GET /downloads/Param%C3%A8tres.zip HTTP/1.1" 302 -
+2026-05-07 18:51:30 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:51:30 | INFO     | 192.168.100.17 - "GET /downloads/Automobiles.zip HTTP/1.1" 302 -
+2026-05-07 18:51:30 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:52:54 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:52:54 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcyNzcwLjM1NjQwMw== HTTP/1.1" 200 -
+2026-05-07 18:52:55 | INFO     | 192.168.100.17 - "GET /downloads/Param%C3%A8tres.zip HTTP/1.1" 302 -
+2026-05-07 18:52:55 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:52:55 | INFO     | 192.168.100.17 - "GET /downloads/Automobiles.zip HTTP/1.1" 302 -
+2026-05-07 18:52:55 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-07 18:55:05 | WARNING  | ❌ Token invalide ou expiré
+2026-05-07 18:55:05 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/dist/LOMETA/addons HTTP/1.1" 401 -
+2026-05-07 18:55:53 | INFO     | ✅ Session valide: Admin
+2026-05-07 18:55:53 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4MTcyOTQ5LjEwNDg0 HTTP/1.1" 200 -
+2026-05-08 06:43:21 | ERROR    | Erreur vérification session: SSL SYSCALL error: EOF detected
+
+2026-05-08 06:43:21 | INFO     | 127.0.0.1 - "GET /stats?auth=MToxNzc4MTY5NjU2LjA4ODU2MQ== HTTP/1.1" 302 -
+2026-05-08 06:43:21 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-08 06:43:42 | ERROR    | Erreur authentification: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-08 06:43:42 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 200 -
+2026-05-09 07:53:40 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-09 07:53:48 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-09 07:54:33 | INFO     | 192.168.1.110 - "GET /api/modules?auth=6d3noYN9/tFfvt/0AWptEO6kiEppYrosf+88g2GQwLU= HTTP/1.1" 401 -
+2026-05-09 07:55:48 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-09 07:55:55 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-09 07:58:06 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.100.17", port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+2026-05-09 07:58:49 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-09 07:58:49 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-09 07:58:49 | INFO     |    - id: integer
+2026-05-09 07:58:49 | INFO     |    - username: character varying
+2026-05-09 07:58:49 | INFO     |    - email: character varying
+2026-05-09 07:58:49 | INFO     |    - password_hash: character varying
+2026-05-09 07:58:49 | INFO     |    - full_name: character varying
+2026-05-09 07:58:49 | INFO     |    - role: character varying
+2026-05-09 07:58:49 | INFO     |    - is_active: boolean
+2026-05-09 07:58:49 | INFO     |    - created_at: timestamp without time zone
+2026-05-09 07:58:49 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-09 07:58:49 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-09 07:59:41 | INFO     | ✅ Session valide: Admin
+2026-05-09 07:59:41 | INFO     | 192.168.1.110 - "GET /api/modules?auth=MrNnJHLXK8Xaa3vEo9rDHKZcje5RDVcHjRrT/tXGk3s= HTTP/1.1" 200 -
+2026-05-09 08:17:13 | INFO     | 192.168.1.110 - "GET / HTTP/1.1" 302 -
+2026-05-09 08:17:13 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 08:17:14 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 08:17:14 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 08:17:38 | INFO     | 192.168.1.110 - "POST /auth HTTP/1.1" 302 -
+2026-05-09 08:17:38 | INFO     | ✅ Session valide: Admin
+2026-05-09 08:17:38 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzA3NDU4LjgzNzQwMw== HTTP/1.1" 200 -
+2026-05-09 08:17:41 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 08:17:41 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:32:22 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:32:22 | INFO     | 192.168.1.110 - "GET /api/modules?auth=3HRFAUxyAarJXl/vRvRKH3DJoELc0VzkM1afPQfeBeg= HTTP/1.1" 200 -
+2026-05-09 09:34:18 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:34:18 | INFO     | 192.168.1.110 - "GET /api/modules?auth=dUVCo/N1neyn56d5mRtk3ischnD6OuqpuwcDUjC2Iqo= HTTP/1.1" 200 -
+2026-05-09 09:35:30 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 09:35:30 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzA3NDU4LjgzNzQwMw== HTTP/1.1" 302 -
+2026-05-09 09:35:30 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:35:30 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:35:30 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:35:35 | INFO     | 192.168.1.110 - "POST /auth HTTP/1.1" 302 -
+2026-05-09 09:35:35 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:35:35 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMTM1Ljc4Njg2Ng== HTTP/1.1" 200 -
+2026-05-09 09:35:36 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:35:36 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:35:59 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:35:59 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMTM1Ljc4Njg2Ng== HTTP/1.1" 200 -
+2026-05-09 09:36:03 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:36:03 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:36:40 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-09 09:36:40 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-09 09:36:40 | INFO     |    - id: integer
+2026-05-09 09:36:40 | INFO     |    - username: character varying
+2026-05-09 09:36:40 | INFO     |    - email: character varying
+2026-05-09 09:36:40 | INFO     |    - password_hash: character varying
+2026-05-09 09:36:40 | INFO     |    - full_name: character varying
+2026-05-09 09:36:40 | INFO     |    - role: character varying
+2026-05-09 09:36:40 | INFO     |    - is_active: boolean
+2026-05-09 09:36:40 | INFO     |    - created_at: timestamp without time zone
+2026-05-09 09:36:40 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-09 09:36:40 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-09 09:36:44 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:36:45 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMTM1Ljc4Njg2Ng== HTTP/1.1" 200 -
+2026-05-09 09:36:45 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:36:45 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:37:20 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:37:20 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyMTM1Ljc4Njg2Ng== HTTP/1.1" 200 -
+2026-05-09 09:37:49 | INFO     | 127.0.0.1 - "GET /logout?auth=MToxNzc4MzEyMTM1Ljc4Njg2Ng== HTTP/1.1" 302 -
+2026-05-09 09:37:49 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:37:53 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 09:37:53 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMTM1Ljc4Njg2Ng== HTTP/1.1" 302 -
+2026-05-09 09:37:53 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:37:54 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:37:54 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:38:19 | INFO     | 192.168.1.110 - "POST /auth HTTP/1.1" 302 -
+2026-05-09 09:38:19 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:38:19 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:38:19 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:38:19 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:38:49 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:38:49 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:39:41 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:39:41 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:39:41 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:39:41 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:39:41 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:39:43 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:39:43 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:39:43 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:39:44 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:39:44 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:39:55 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:39:55 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:39:55 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:39:55 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 200 -
+2026-05-09 09:39:55 | INFO     | 192.168.1.110 - "GET /logout?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 302 -
+2026-05-09 09:39:59 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 09:39:59 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyMjk5LjI2ODQwNQ== HTTP/1.1" 302 -
+2026-05-09 09:39:59 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:39:59 | INFO     | 127.0.0.1 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:39:59 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:39:59 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:40:12 | INFO     | 192.168.1.110 - "POST /auth HTTP/1.1" 302 -
+2026-05-09 09:40:12 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:40:12 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyNDEyLjMyNjA3Mw== HTTP/1.1" 200 -
+2026-05-09 09:40:12 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:40:12 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:40:26 | INFO     | 127.0.0.1 - "POST /auth HTTP/1.1" 302 -
+2026-05-09 09:40:26 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:40:26 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyNDI2LjA0Njg3MQ== HTTP/1.1" 200 -
+2026-05-09 09:40:30 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:40:30 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyNDEyLjMyNjA3Mw== HTTP/1.1" 200 -
+2026-05-09 09:40:30 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:40:30 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:40:31 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:40:31 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyNDEyLjMyNjA3Mw== HTTP/1.1" 200 -
+2026-05-09 09:40:31 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:40:31 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:40:35 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:40:35 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyNDI2LjA0Njg3MQ== HTTP/1.1" 200 -
+2026-05-09 09:41:50 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 09:41:50 | INFO     | 192.168.1.140 - "GET /?auth=MToxNzc4MDU4MjkzLjQxMzM0Mg== HTTP/1.1" 302 -
+2026-05-09 09:41:50 | INFO     | 192.168.1.140 - "GET / HTTP/1.1" 302 -
+2026-05-09 09:41:50 | INFO     | 192.168.1.140 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:41:50 | INFO     | 192.168.1.140 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:41:50 | INFO     | 192.168.1.140 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:41:57 | INFO     | 192.168.1.140 - "GET / HTTP/1.1" 302 -
+2026-05-09 09:41:58 | INFO     | 192.168.1.140 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:41:58 | INFO     | 192.168.1.140 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:41:58 | INFO     | 192.168.1.140 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:42:09 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:42:09 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyNDEyLjMyNjA3Mw== HTTP/1.1" 200 -
+2026-05-09 09:42:09 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:42:09 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:42:11 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:42:11 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyNDI2LjA0Njg3MQ== HTTP/1.1" 200 -
+2026-05-09 09:42:47 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:42:47 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyNDI2LjA0Njg3MQ== HTTP/1.1" 200 -
+2026-05-09 09:42:48 | INFO     | 192.168.1.140 - "POST /auth HTTP/1.1" 302 -
+2026-05-09 09:42:48 | INFO     | 192.168.1.140 - "POST /auth HTTP/1.1" 302 -
+2026-05-09 09:42:49 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:42:49 | INFO     | 192.168.1.140 - "GET /?auth=MToxNzc4MzEyNTY4LjgyOTAxOQ== HTTP/1.1" 200 -
+2026-05-09 09:42:49 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:42:49 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyNDEyLjMyNjA3Mw== HTTP/1.1" 200 -
+2026-05-09 09:42:49 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:42:49 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:42:49 | INFO     | 127.0.0.1 - "GET /?auth=MToxNzc4MzEyNDI2LjA0Njg3MQ== HTTP/1.1" 200 -
+2026-05-09 09:42:49 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:43:55 | INFO     | ✅ Session valide: Admin
+2026-05-09 09:43:55 | INFO     | 192.168.1.140 - "GET /?auth=MToxNzc4MzEyNTY4LjgyOTAxOQ== HTTP/1.1" 200 -
+2026-05-09 09:43:55 | INFO     | 192.168.1.140 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:43:55 | INFO     | 192.168.1.140 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 09:43:55 | INFO     | 192.168.1.140 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 09:48:52 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 09:48:52 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-09 09:52:46 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 09:52:46 | INFO     | 192.168.1.110 - "GET /api/modules?auth=M//b8eKu2cbUbpgp+1UUkiJU2dIMvR670W5VR9dFU6o= HTTP/1.1" 401 -
+2026-05-09 09:57:54 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 09:57:54 | INFO     | 192.168.1.110 - "GET /api/modules?auth=TtZcGbPCtOgvoRO54J+QWfy0TFSWtjTnbw37A2kAvaE= HTTP/1.1" 401 -
+2026-05-09 09:58:47 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-09 09:58:47 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-09 09:58:47 | INFO     |    - id: integer
+2026-05-09 09:58:47 | INFO     |    - username: character varying
+2026-05-09 09:58:47 | INFO     |    - email: character varying
+2026-05-09 09:58:47 | INFO     |    - password_hash: character varying
+2026-05-09 09:58:47 | INFO     |    - full_name: character varying
+2026-05-09 09:58:47 | INFO     |    - role: character varying
+2026-05-09 09:58:47 | INFO     |    - is_active: boolean
+2026-05-09 09:58:47 | INFO     |    - created_at: timestamp without time zone
+2026-05-09 09:58:47 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-09 09:58:47 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-09 10:00:50 | WARNING  | ❌ Token invalide ou expiré
+2026-05-09 10:00:50 | INFO     | 192.168.1.110 - "GET /?auth=MToxNzc4MzEyMTM1Ljc4Njg2Ng== HTTP/1.1" 302 -
+2026-05-09 10:00:50 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 10:00:50 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-09 10:00:50 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-09 10:01:27 | INFO     | ✅ Session valide: Thierry
+2026-05-09 10:01:27 | INFO     | 192.168.1.110 - "GET /api/modules?auth=ZReYN5CFvfCPrgvBBVd2OzzUmI6PqCPadT7F9zumdHU= HTTP/1.1" 200 -
+2026-05-09 11:07:35 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-11 09:51:42 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "192.168.1.179", port 5432 failed: Connection timed out
+	Is the server running on that host and accepting TCP/IP connections?
+
+2026-05-11 09:53:59 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 09:53:59 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-11 09:53:59 | INFO     |    - id: integer
+2026-05-11 09:53:59 | INFO     |    - username: character varying
+2026-05-11 09:53:59 | INFO     |    - email: character varying
+2026-05-11 09:53:59 | INFO     |    - password_hash: character varying
+2026-05-11 09:53:59 | INFO     |    - full_name: character varying
+2026-05-11 09:53:59 | INFO     |    - role: character varying
+2026-05-11 09:53:59 | INFO     |    - is_active: boolean
+2026-05-11 09:53:59 | INFO     |    - created_at: timestamp without time zone
+2026-05-11 09:53:59 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-11 09:53:59 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 09:55:06 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 09:55:06 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-11 09:55:06 | INFO     |    - id: integer
+2026-05-11 09:55:06 | INFO     |    - username: character varying
+2026-05-11 09:55:06 | INFO     |    - email: character varying
+2026-05-11 09:55:06 | INFO     |    - password_hash: character varying
+2026-05-11 09:55:06 | INFO     |    - full_name: character varying
+2026-05-11 09:55:06 | INFO     |    - role: character varying
+2026-05-11 09:55:06 | INFO     |    - is_active: boolean
+2026-05-11 09:55:06 | INFO     |    - created_at: timestamp without time zone
+2026-05-11 09:55:06 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-11 09:55:06 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 09:57:13 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 09:57:13 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-11 09:57:13 | INFO     |    - id: integer
+2026-05-11 09:57:13 | INFO     |    - username: character varying
+2026-05-11 09:57:13 | INFO     |    - email: character varying
+2026-05-11 09:57:13 | INFO     |    - password_hash: character varying
+2026-05-11 09:57:13 | INFO     |    - full_name: character varying
+2026-05-11 09:57:13 | INFO     |    - role: character varying
+2026-05-11 09:57:13 | INFO     |    - is_active: boolean
+2026-05-11 09:57:13 | INFO     |    - created_at: timestamp without time zone
+2026-05-11 09:57:13 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-11 09:57:13 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 13:14:54 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 13:14:54 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-11 13:14:54 | INFO     |    - id: integer
+2026-05-11 13:14:54 | INFO     |    - username: character varying
+2026-05-11 13:14:54 | INFO     |    - email: character varying
+2026-05-11 13:14:54 | INFO     |    - password_hash: character varying
+2026-05-11 13:14:54 | INFO     |    - full_name: character varying
+2026-05-11 13:14:54 | INFO     |    - role: character varying
+2026-05-11 13:14:54 | INFO     |    - is_active: boolean
+2026-05-11 13:14:54 | INFO     |    - created_at: timestamp without time zone
+2026-05-11 13:14:54 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-11 13:14:54 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 13:15:12 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 13:15:12 | INFO     | 📊 Structure de la table 'utilisateurs':
+2026-05-11 13:15:12 | INFO     |    - id: integer
+2026-05-11 13:15:12 | INFO     |    - username: character varying
+2026-05-11 13:15:12 | INFO     |    - email: character varying
+2026-05-11 13:15:12 | INFO     |    - password_hash: character varying
+2026-05-11 13:15:12 | INFO     |    - full_name: character varying
+2026-05-11 13:15:12 | INFO     |    - role: character varying
+2026-05-11 13:15:12 | INFO     |    - is_active: boolean
+2026-05-11 13:15:12 | INFO     |    - created_at: timestamp without time zone
+2026-05-11 13:15:12 | INFO     | 🔑 Colonne mot de passe détectée: 'password_hash'
+2026-05-11 13:15:12 | INFO     | ✅ Connexion à PostgreSQL établie
+2026-05-11 13:15:54 | INFO     | ✅ Session valide: Admin
+2026-05-11 13:15:54 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NDk4MTUwLjQ1ODE0Ng== HTTP/1.1" 200 -
+2026-05-11 13:24:03 | INFO     | ✅ Session valide: Admin
+2026-05-11 13:24:03 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NDk4NjM5LjI4MzQzNg== HTTP/1.1" 200 -
+2026-05-11 14:22:33 | INFO     | 192.168.100.17 - "GET / HTTP/1.1" 302 -
+2026-05-11 14:22:33 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-11 14:22:43 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 302 -
+2026-05-11 14:22:43 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:22:43 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 200 -
+2026-05-11 14:22:55 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:22:55 | INFO     | 192.168.100.17 - "POST /api/upload?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 413 -
+2026-05-11 14:23:27 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:23:27 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 200 -
+2026-05-11 14:23:36 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:23:36 | INFO     | 192.168.100.17 - "POST /api/upload?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 413 -
+2026-05-11 14:23:48 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:23:49 | INFO     | 📤 Upload: HCS_prod.zip
+2026-05-11 14:23:49 | INFO     | 192.168.100.17 - "POST /api/upload?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 200 -
+2026-05-11 14:23:50 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:23:51 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 200 -
+2026-05-11 14:24:08 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:24:09 | INFO     | 📤 Upload: la-capitaine-icon-theme-0.6.2.zip
+2026-05-11 14:24:09 | INFO     | 192.168.100.17 - "POST /api/upload?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 200 -
+2026-05-11 14:24:10 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:24:11 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 200 -
+2026-05-11 14:24:26 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:24:26 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 200 -
+2026-05-11 14:51:37 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:51:38 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NTAzODkzLjE5NTYzMw== HTTP/1.1" 200 -
+2026-05-11 14:54:16 | INFO     | 192.168.100.54 - "GET / HTTP/1.1" 302 -
+2026-05-11 14:54:18 | INFO     | 192.168.100.54 - "GET /auth HTTP/1.1" 200 -
+2026-05-11 14:54:39 | INFO     | 192.168.100.54 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-11 14:54:41 | INFO     | 192.168.100.54 - "GET /auth HTTP/1.1" 200 -
+2026-05-11 14:54:56 | INFO     | 192.168.100.54 - "POST /auth HTTP/1.1" 302 -
+2026-05-11 14:54:58 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:54:59 | INFO     | 192.168.100.54 - "GET /?auth=MToxNzc4NTA0MDk2LjE3OTg4NA== HTTP/1.1" 200 -
+2026-05-11 14:55:12 | INFO     | 192.168.100.54 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-11 14:55:12 | INFO     | 192.168.100.54 - "GET /auth HTTP/1.1" 200 -
+2026-05-11 14:55:42 | INFO     | ✅ Session valide: Admin
+2026-05-11 14:55:43 | INFO     | 192.168.100.54 - "GET /api/modules?auth=mtNjLbtvTGSqbEEMVx6GEK5/eoxusHIkoFBbRMcUB0E= HTTP/1.1" 200 -
+2026-05-11 16:09:44 | INFO     | ✅ Session valide: Admin
+2026-05-11 16:09:44 | INFO     | 192.168.100.54 - "GET /api/modules?auth=2my4wdXqYapFHo2yAMadcQsBskFtMD219XhUiVeVH8Q= HTTP/1.1" 200 -
+2026-05-11 17:46:38 | INFO     | ✅ Session valide: Admin
+2026-05-11 17:46:38 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NTE0MzkzLjk4NDk3Ng== HTTP/1.1" 200 -
+2026-05-11 18:04:55 | INFO     | ✅ Session valide: Admin
+2026-05-11 18:04:56 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NTE1NDkxLjk4NjU5Mg== HTTP/1.1" 200 -
+2026-05-11 23:49:17 | INFO     | 192.168.1.110 - "GET / HTTP/1.1" 302 -
+2026-05-11 23:49:18 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-11 23:49:18 | INFO     | 192.168.1.110 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-11 23:49:18 | INFO     | 192.168.1.110 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 09:47:39 | INFO     | 192.168.100.81 - "GET / HTTP/1.1" 302 -
+2026-05-12 09:47:41 | INFO     | 192.168.100.81 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 09:47:42 | INFO     | 192.168.100.81 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 09:47:43 | INFO     | 192.168.100.81 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 10:24:47 | ERROR    | Erreur vérification session: SSL SYSCALL error: EOF detected
+
+2026-05-12 10:24:47 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NTc0Mjc4LjgyNDAxMw== HTTP/1.1" 401 -
+2026-05-12 10:48:36 | WARNING  | ❌ Token invalide ou expiré
+2026-05-12 10:48:36 | INFO     | 192.168.100.17 - "GET /?auth=MToxNzc4NTAyMTYzLjE1OTEzNA== HTTP/1.1" 302 -
+2026-05-12 10:48:36 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 10:48:44 | WARNING  | ❌ Token invalide ou expiré
+2026-05-12 10:48:44 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-12 10:49:40 | WARNING  | ❌ Token invalide ou expiré
+2026-05-12 10:49:40 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NTc1NzcyLjQ1MDkxNw== HTTP/1.1" 401 -
+2026-05-12 12:14:25 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "212.47.73.151", port 5432 failed: fe_sendauth: no password supplied
+
+2026-05-12 12:14:26 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "212.47.73.151", port 5432 failed: fe_sendauth: no password supplied
+
+2026-05-12 12:15:28 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NTgwOTE4LjEzMTg3MQ== HTTP/1.1" 401 -
+2026-05-12 12:39:13 | INFO     | 192.168.100.17 - "GET /api/modules?auth=MToxNzc4NTgyMzM1LjYzNTI0NQ== HTTP/1.1" 401 -
+2026-05-12 12:39:25 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-12 12:40:10 | INFO     | 127.0.0.1 - "GET /api/modules?auth=/home/fearless/Documents/Assurance/server/addons HTTP/1.1" 401 -
+2026-05-12 16:56:27 | INFO     | 192.168.100.17 - "GET /api/modules?auth=NToxNzc4NTk3Nzc5LjQzNTI2MQ== HTTP/1.1" 401 -
+2026-05-12 16:56:38 | INFO     | 192.168.100.17 - "GET / HTTP/1.1" 302 -
+2026-05-12 16:56:38 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:56:39 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 16:56:39 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:56:57 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 200 -
+2026-05-12 16:56:57 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 16:56:57 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:57:58 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "212.47.73.151", port 5432 failed: fe_sendauth: no password supplied
+
+2026-05-12 16:57:59 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "212.47.73.151", port 5432 failed: fe_sendauth: no password supplied
+
+2026-05-12 16:58:00 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 200 -
+2026-05-12 16:58:00 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 16:58:00 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:58:19 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 200 -
+2026-05-12 16:58:19 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 16:58:19 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:59:22 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "212.47.73.151", port 5432 failed: fe_sendauth: no password supplied
+
+2026-05-12 16:59:23 | ERROR    | ❌ Erreur connexion PostgreSQL: connection to server at "212.47.73.151", port 5432 failed: fe_sendauth: no password supplied
+
+2026-05-12 16:59:30 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 200 -
+2026-05-12 16:59:30 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 16:59:30 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:59:37 | INFO     | 192.168.100.17 - "GET / HTTP/1.1" 302 -
+2026-05-12 16:59:37 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:59:42 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 16:59:42 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 16:59:49 | INFO     | 192.168.100.17 - "POST /auth HTTP/1.1" 200 -
+2026-05-12 16:59:49 | INFO     | 192.168.100.17 - "GET /favicon.ico HTTP/1.1" 302 -
+2026-05-12 16:59:50 | INFO     | 192.168.100.17 - "GET /auth HTTP/1.1" 200 -
+2026-05-12 17:14:58 | INFO     | 192.168.100.17 - "GET /api/modules?auth=NToxNzc4NTk4ODkwLjEwMDI4Mg== HTTP/1.1" 401 -
