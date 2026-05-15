@@ -5,7 +5,9 @@ from core.database import SessionLocal
 from core.alerts import AlertManager
 from core.session import Session
 from core.logger import logger
-from ..models.models import User  # Import relatif vers le modèle du même module
+from ..models.models import User
+import socket
+import requests
 
 
 class LoginController(QObject):
@@ -18,8 +20,32 @@ class LoginController(QObject):
         # Connexion du signal venant de la vue (maintenant avec 3 paramètres)
         self.view.login_requested.connect(self.handle_login)
 
+    def _get_client_ip(self):
+        """Récupère l'adresse IP du client"""
+        try:
+            # IP locale
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            local_ip = s.getsockname()[0]
+            s.close()
+            
+            # Tentative de récupération IP publique
+            try:
+                public_ip = requests.get('https://api.ipify.org', timeout=2).text
+            except:
+                public_ip = local_ip
+            
+            return f"{local_ip} (pub: {public_ip})"
+        except:
+            return "127.0.0.1"
+
+    def _get_user_agent(self):
+        """Récupère l'User-Agent pour la session"""
+        # À adapter selon votre framework
+        return "LOMETA-Desktop-Client/1.0"
+
     def handle_login(self, username, password, remember=False):
-        """Logique d'authentification principale avec gestion de session"""
+        """Logique d'authentification principale avec session sécurisée"""
         if not username or not password:
             AlertManager.show_error(self.view, "Champs vides", "Veuillez saisir un identifiant et un mot de passe.")
             return
@@ -35,99 +61,66 @@ class LoginController(QObject):
                     AlertManager.show_error(self.view, "Compte inactif", "Votre compte a été désactivé. Contactez l'administrateur.")
                     return
 
-                # 3. Création de la session avec durée selon "remember"
-                token = self._create_session(db, user.id, remember)
+                # 3. Création de la session SÉCURISÉE avec durée selon "remember"
+                # La méthode start() de Session gère maintenant le chiffrement et retourne le token
+                encrypted_token = Session.start(user, remember=remember)
                 
-                # 4. Initialisation de la session globale
-                Session.start(user)
+                # 4. Récupérer les informations de session
+                session_expiry = Session._session_expiry
+                session_token_plain = Session.get_session_token()
                 
-                # 5. Ajouter le token à l'objet user pour une utilisation ultérieure
-                user.session_token = token
+                # 5. Sauvegarde en base de données (token chiffré)
+                from ..models.models import Session as SessionModel
                 
-                logger.info(f"Authentification réussie pour : {username} (remember={remember})")
+                # Supprimer les anciennes sessions de l'utilisateur (optionnel)
+                db.query(SessionModel).filter(SessionModel.user_id == user.id).delete()
                 
-                # 6. Émission du signal pour ouvrir la MainWindow
+                # Créer la nouvelle session en base
+                new_session = SessionModel(
+                    user_id=user.id,
+                    token_encrypted=encrypted_token,  # ✅ Utilise la bonne colonne
+                    expires_at=session_expiry,
+                    ip_address=self._get_client_ip(),
+                    user_agent=self._get_user_agent(),
+                    last_activity=datetime.now()
+                )
+                db.add(new_session)
+                db.commit()
+                db.refresh(new_session)
+                
+                # 6. Ajouter le token à l'objet user pour une utilisation ultérieure
+                user.session_token = session_token_plain  # Token brut pour les API
+                user.encrypted_token = encrypted_token    # Token chiffré pour stockage
+                
+                logger.info(f"🔐 Authentification réussie pour : {username} (remember={remember})")
+                logger.debug(f"   Session ID: {Session.get_session_id()}")
+                logger.debug(f"   Expiration: {session_expiry.strftime('%d/%m/%Y %H:%M:%S') if session_expiry else 'N/A'}")
+                logger.debug(f"   IP: {self._get_client_ip()}")
+                
+                # 7. Émission du signal pour ouvrir la MainWindow
                 self.login_success.emit(user)
                 
-                # 7. Fermeture de la fenêtre de login
+                # 8. Fermeture de la fenêtre de login
                 self.view.close()
             else:
                 # Sécurité : On ne précise pas si c'est le user ou le pass qui est faux
-                logger.warning(f"Tentative de connexion échouée pour : {username}")
+                logger.warning(f"⚠️ Tentative de connexion échouée pour : {username}")
                 AlertManager.show_error(self.view, "Échec", "Identifiants invalides.")
 
         except Exception as e:
-            logger.error(f"Erreur lors de l'authentification : {str(e)}")
+            logger.error(f"❌ Erreur lors de l'authentification : {str(e)}")
             AlertManager.show_error(self.view, "Erreur Système", "Impossible de contacter la base de données.", str(e))
         finally:
             db.close()
 
-    # def _create_session(self, db, user_id: int, remember: bool) -> str:
-    #     """Crée une session dans la base de données"""
-    #     import secrets
-    #     import base64
-        
-    #     # Générer un token unique
-    #     token = base64.b64encode(secrets.token_bytes(32)).decode('utf-8')
-        
-    #     # Définir la durée de la session
-    #     if remember:
-    #         expires_at = datetime.now() + timedelta(days=30)  # 30 jours
-    #         logger.info(f"Session créée pour 30 jours (remember=True)")
-    #     else:
-    #         expires_at = datetime.now() + timedelta(hours=8)   # 8 heures
-    #         logger.info(f"Session créée pour 8 heures (remember=False)")
-        
-    #     # Supprimer les anciennes sessions de l'utilisateur
-    #     from ..models.models import Session as SessionModel
-    #     db.query(SessionModel).filter(SessionModel.user_id == user_id).delete()
-        
-    #     # Créer la nouvelle session
-    #     new_session = SessionModel(
-    #         user_id=user_id,
-    #         token=token,
-    #         expires_at=expires_at
-    #     )
-    #     db.add(new_session)
-    #     db.commit()
-    #     db.refresh(new_session)
-        
-    #     return token
-
-
     def _create_session(self, db, user_id: int, remember: bool) -> str:
-        """Crée une session avec le format attendu par update_server.py"""
-        import base64
-        import datetime
-        
-        # Format attendu par update_server.py: base64(user_id:timestamp)
-        timestamp = datetime.datetime.now().timestamp()
-        token_data = f"{user_id}:{timestamp}"
-        token = base64.b64encode(token_data.encode()).decode()
-        
-        # Définir la durée de la session
-        if remember:
-            expires_at = datetime.datetime.now() + datetime.timedelta(days=30)
-        else:
-            expires_at = datetime.datetime.now() + datetime.timedelta(hours=8)
-        
-        # Supprimer les anciennes sessions
-        from ..models.models import Session as SessionModel
-        db.query(SessionModel).filter(SessionModel.user_id == user_id).delete()
-        
-        # Créer la nouvelle session
-        new_session = SessionModel(
-            user_id=user_id,
-            token=token,
-            expires_at=expires_at
-        )
-        db.add(new_session)
-        db.commit()
-        db.refresh(new_session)
-        
-        print(f"✅ Session créée avec token: {token[:30]}... (expire le {expires_at})")
-        return token
-
+        """
+        Ancienne méthode conservée pour compatibilité
+        Utilise maintenant le nouveau système de session
+        """
+        encrypted_token = Session.start(None, remember=remember)  # Temporaire
+        return encrypted_token
+    
     def _verify_password(self, input_password: str, stored_hash: str) -> bool:
         """Vérifie le mot de passe (bcrypt ou clair)"""
         if not stored_hash:

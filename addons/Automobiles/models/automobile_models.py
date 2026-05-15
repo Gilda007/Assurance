@@ -136,11 +136,11 @@ class Vehicle(Base):
     is_active = Column(Boolean, default=True)
 
     # --- RELATIONS ---
-    fleet = relationship("Fleet", back_populates="vehicles")
-    owner = relationship("Contact", back_populates="vehicles")
-    compagny = relationship("Compagnie", back_populates="vehicles")
-    contract = relationship("Contrat", back_populates="vehicle", uselist=False)
-    tarif = relationship("AutomobileTarif", back_populates="vehicles")
+    fleet = relationship("Fleet", lazy="joined", back_populates="vehicles")
+    owner = relationship("Contact", lazy="joined", back_populates="vehicles")
+    compagny = relationship("Compagnie", lazy="joined", back_populates="vehicles")
+    contract = relationship("Contrat", lazy="selectin", back_populates="vehicle", uselist=False)
+    tarif = relationship("AutomobileTarif", lazy="joined", back_populates="vehicles")
     
     # --- PROPRIÉTÉS CALCULÉES ---
     @property

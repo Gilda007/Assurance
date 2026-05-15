@@ -38,6 +38,9 @@ class Session(Base):
     
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('utilisateurs.id'), nullable=False)
-    token = Column(String(255), unique=True, nullable=False)
+    token_encrypted = Column(String(500), unique=True, nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+    last_activity = Column(DateTime, server_default=func.now())
+    ip_address = Column(String(45))
+    user_agent = Column(String(255))

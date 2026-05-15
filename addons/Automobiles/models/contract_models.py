@@ -56,10 +56,10 @@ class Contrat(Base):
     last_ip = Column(String(45))
     
     # --- RELATIONS ---
-    owner = relationship("Contact", back_populates="contracts")
-    company = relationship("Compagnie")
-    vehicle = relationship("Vehicle", back_populates="contract")
-    paiements = relationship("Paiement", back_populates="contrat", cascade="all, delete-orphan")
+    owner = relationship("Contact", lazy="joined", back_populates="contracts")
+    company = relationship("Compagnie", lazy="joined")
+    vehicle = relationship("Vehicle", lazy="joined", back_populates="contract")
+    paiements = relationship("Paiement", lazy="selectin", back_populates="contrat", cascade="all, delete-orphan")
     fleet = relationship("Fleet", back_populates="contract")
 
 
