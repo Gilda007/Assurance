@@ -37,6 +37,7 @@ import threading
 
 
 from core.database import engine, Base
+from core.local_db import cache
 # import addons.Automobiles.models as models
 
 # Palette de couleurs moderne
@@ -1467,6 +1468,8 @@ class MainWindow(QMainWindow):
         
         self.setup_ui()
         self.init_modules()
+        cache_stats = cache.get_stats()
+        print(f"📊 Cache local: {cache_stats.get('total_entries', 0)} entrées, {cache_stats.get('db_size_mb', 0)} MB")
         self.setup_shortcuts()
         self.check_environment()
         self.session_token = self._get_user_session_token()

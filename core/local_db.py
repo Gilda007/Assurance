@@ -1,65 +1,83 @@
-# core/local_db.py
+# core/local_cache.py
 """
-Base de données locale SQLite pour le mode hors-ligne
-Lecture instantanée, écriture différée, synchronisation automatique
+Cache local SQLite pour LOMETA
+- Persistant entre les sessions
+- Supporte les collections paginées
+- Gère l'expiration des données
+- Thread-safe
 """
 
 import sqlite3
 import json
+import hashlib
 import threading
 import time
 from pathlib import Path
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Callable
-from dataclasses import dataclass, asdict
-from enum import Enum
+from functools import wraps
 from PySide6.QtCore import QObject, Signal, QTimer
 
 from core.logger import logger
 
 
 # ============================================================================
-# CONSTANTES ET CONFIGURATION
+# DÉCORATEUR POUR CACHER LES DONNÉES
 # ============================================================================
 
-class SyncStatus(Enum):
-    """Statut de synchronisation d'un élément"""
-    SYNCED = "synced"       # Synchronisé avec le serveur
-    PENDING = "pending"     # En attente de synchronisation
-    CONFLICT = "conflict"   # Conflit à résoudre
-    DELETED = "deleted"     # Marqué pour suppression
-
-
-@dataclass
-class SyncMetadata:
-    """Métadonnées de synchronisation"""
-    last_sync: datetime
-    items_synced: int
-    items_pending: int
-    items_conflict: int
-    last_error: Optional[str] = None
+def cached(ttl_seconds: int = 300, key_prefix: str = ""):
+    """
+    Décorateur pour mettre automatiquement en cache les résultats d'une fonction
+    
+    Usage:
+        @cached(ttl_seconds=600)
+        def get_compagnies():
+            return db.query(Compagnie).all()
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Générer une clé unique basée sur le nom de la fonction et les arguments
+            cache_key = f"{key_prefix or func.__name__}:{hash(str(args) + str(sorted(kwargs.items())))}"
+            
+            # Essayer le cache
+            cached_result = LocalCache.instance().get(cache_key)
+            if cached_result is not None:
+                logger.debug(f"📦 Cache hit: {func.__name__}")
+                return cached_result
+            
+            # Exécuter la fonction
+            result = func(*args, **kwargs)
+            
+            # Mettre en cache
+            LocalCache.instance().set(cache_key, result, ttl_seconds=ttl_seconds)
+            logger.debug(f"💾 Cache miss: {func.__name__}")
+            
+            return result
+        return wrapper
+    return decorator
 
 
 # ============================================================================
-# CACHE LOCAL SQLITE
+# CLASSE PRINCIPALE DU CACHE
 # ============================================================================
 
-class LocalDatabase(QObject):
-    """Base de données locale SQLite pour le travail hors-ligne"""
+class LocalCache(QObject):
+    """Cache local SQLite - Singleton thread-safe"""
     
     # Signaux
-    sync_started = Signal()
-    sync_finished = Signal(int, int)  # success, errors
-    data_changed = Signal(str, str)   # table, action
-    cache_ready = Signal()
+    cache_cleared = Signal(str)  # module
+    cache_updated = Signal(str, str)  # key, action
     
     _instance = None
     _lock = threading.RLock()
     
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            cls._instance._initialized = False
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._initialized = False
         return cls._instance
     
     def __init__(self):
@@ -68,598 +86,357 @@ class LocalDatabase(QObject):
         super().__init__()
         self._initialized = True
         self._init_db()
-        self._init_sync_timer()
+        self._start_cleanup_timer()
     
     def _init_db(self):
-        """Initialise la base SQLite locale"""
-        # Dossier de cache
-        cache_dir = Path.home() / '.lometa_cache'
+        """Initialise la base SQLite"""
+        # Dossier de cache dans le répertoire utilisateur
+        cache_dir = Path.home() / '.lometa' / 'cache'
         cache_dir.mkdir(parents=True, exist_ok=True)
         
-        self.db_path = cache_dir / 'lometa_local.db'
+        self.db_path = cache_dir / 'cache.db'
         self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False, timeout=10)
         self.conn.row_factory = sqlite3.Row
         
-        # Activer les contraintes FK et WAL pour performance
-        self.conn.execute("PRAGMA foreign_keys = ON")
+        # Activer les bonnes pratiques SQLite
         self.conn.execute("PRAGMA journal_mode = WAL")
         self.conn.execute("PRAGMA synchronous = NORMAL")
         self.conn.execute("PRAGMA cache_size = 10000")
         
         self._create_tables()
-        self._create_indexes()
         
-        logger.info(f"✅ Base locale initialisée: {self.db_path}")
+        logger.info(f"✅ Cache local initialisé: {self.db_path}")
+        logger.info(f"   Taille actuelle: {self.get_size():.2f} MB")
     
     def _create_tables(self):
-        """Crée toutes les tables du cache local"""
+        """Crée les tables nécessaires"""
         
-        # Table des contrats
+        # Table principale des clés/valeurs
         self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS contrats (
-                id INTEGER PRIMARY KEY,
-                data TEXT NOT NULL,
-                hash TEXT,
-                status TEXT DEFAULT 'synced',
-                last_sync TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP
+            CREATE TABLE IF NOT EXISTS cache_items (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                module TEXT,
+                tags TEXT,
+                created_at REAL,
+                expires_at REAL,
+                last_access REAL,
+                access_count INTEGER DEFAULT 0
             )
         """)
         
-        # Table des véhicules
+        # Table des collections paginées
         self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS vehicules (
-                id INTEGER PRIMARY KEY,
+            CREATE TABLE IF NOT EXISTS cache_collections (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                page INTEGER DEFAULT 0,
                 data TEXT NOT NULL,
-                hash TEXT,
-                status TEXT DEFAULT 'synced',
-                last_sync TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                total_count INTEGER,
+                created_at REAL,
+                UNIQUE(name, page)
             )
         """)
         
-        # Table des clients
+        # Table des métadonnées
         self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS clients (
-                id INTEGER PRIMARY KEY,
-                data TEXT NOT NULL,
-                hash TEXT,
-                status TEXT DEFAULT 'synced',
-                last_sync TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Table des compagnies (référentiel)
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS compagnies (
-                id INTEGER PRIMARY KEY,
-                data TEXT NOT NULL,
-                last_sync TIMESTAMP
-            )
-        """)
-        
-        # Table des flottes
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS flottes (
-                id INTEGER PRIMARY KEY,
-                data TEXT NOT NULL,
-                hash TEXT,
-                status TEXT DEFAULT 'synced',
-                last_sync TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Table des paiements
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS paiements (
-                id INTEGER PRIMARY KEY,
-                data TEXT NOT NULL,
-                hash TEXT,
-                status TEXT DEFAULT 'synced',
-                last_sync TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Table des sinistres
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS sinistres (
-                id INTEGER PRIMARY KEY,
-                data TEXT NOT NULL,
-                hash TEXT,
-                status TEXT DEFAULT 'synced',
-                last_sync TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Métadonnées de synchronisation
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS sync_metadata (
+            CREATE TABLE IF NOT EXISTS cache_metadata (
                 key TEXT PRIMARY KEY,
                 value TEXT,
-                updated_at TIMESTAMP
+                updated_at REAL
             )
         """)
         
-        # Queue de synchronisation
-        self.conn.execute("""
-            CREATE TABLE IF NOT EXISTS sync_queue (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                table_name TEXT NOT NULL,
-                record_id INTEGER NOT NULL,
-                action TEXT NOT NULL,
-                data TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                retry_count INTEGER DEFAULT 0
-            )
-        """)
-        
-        self.conn.commit()
-        logger.info("✅ Tables du cache local créées")
-    
-    def _create_indexes(self):
-        """Crée les index pour accélérer les recherches"""
-        
-        indexes = [
-            "CREATE INDEX IF NOT EXISTS idx_contrats_status ON contrats(status)",
-            "CREATE INDEX IF NOT EXISTS idx_contrats_last_sync ON contrats(last_sync)",
-            "CREATE INDEX IF NOT EXISTS idx_vehicules_status ON vehicules(status)",
-            "CREATE INDEX IF NOT EXISTS idx_clients_status ON clients(status)",
-            "CREATE INDEX IF NOT EXISTS idx_flottes_status ON flottes(status)",
-            "CREATE INDEX IF NOT EXISTS idx_sync_queue_status ON sync_queue(retry_count, created_at)",
-        ]
-        
-        for idx in indexes:
-            try:
-                self.conn.execute(idx)
-            except Exception as e:
-                logger.warning(f"Erreur création index: {e}")
+        # Index pour accélérer les recherches
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_module ON cache_items(module)")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_expires ON cache_items(expires_at)")
+        self.conn.execute("CREATE INDEX IF NOT EXISTS idx_collections_name ON cache_collections(name)")
         
         self.conn.commit()
     
-    def _init_sync_timer(self):
-        """Initialise le timer de synchronisation automatique"""
-        self.sync_timer = QTimer()
-        self.sync_timer.timeout.connect(self.sync_with_server)
-        self.sync_timer.start(300000)  # Sync toutes les 5 minutes
-        logger.info("✅ Timer de synchronisation actif (5 minutes)")
+    def _start_cleanup_timer(self):
+        """Démarre un timer pour nettoyer les entrées expirées"""
+        self.cleanup_timer = QTimer()
+        self.cleanup_timer.timeout.connect(self._cleanup_expired)
+        self.cleanup_timer.start(3600000)  # Toutes les heures
+    
+    def _cleanup_expired(self):
+        """Supprime les entrées expirées"""
+        now = time.time()
+        deleted = self.conn.execute(
+            "DELETE FROM cache_items WHERE expires_at IS NOT NULL AND expires_at < ?",
+            (now,)
+        ).rowcount
+        if deleted > 0:
+            self.conn.commit()
+            logger.debug(f"🗑️ {deleted} entrées expirées supprimées du cache")
     
     # ============================================================================
-    # MÉTHODES DE LECTURE (ULTRA RAPIDES)
+    # MÉTHODES PRINCIPALES
     # ============================================================================
     
-    def get_contrats(self, page: int = 0, page_size: int = 50, 
-                     filters: Dict = None) -> List[Dict]:
-        """Récupère les contrats du cache local (instantané)"""
-        start = time.time()
+    def set(self, key: str, value: Any, module: str = None, 
+            tags: List[str] = None, ttl_seconds: int = None) -> bool:
+        """
+        Stocke une valeur en cache
         
+        Args:
+            key: Clé unique
+            value: Valeur à stocker (sera sérialisée en JSON)
+            module: Nom du module (pour suppression par module)
+            tags: Tags pour recherche par groupe
+            ttl_seconds: Durée de vie (None = permanent)
+        """
         try:
-            # Construction de la requête
-            query = "SELECT data FROM contrats WHERE status != 'deleted' ORDER BY id DESC LIMIT ? OFFSET ?"
-            params = [page_size, page * page_size]
+            now = time.time()
+            expires_at = now + ttl_seconds if ttl_seconds else None
             
-            cursor = self.conn.execute(query, params)
-            contrats = [json.loads(row['data']) for row in cursor.fetchall()]
+            # Calculer un hash pour détecter les changements
+            value_json = json.dumps(value, default=str, ensure_ascii=False)
+            value_hash = hashlib.md5(value_json.encode()).hexdigest()
             
-            elapsed = (time.time() - start) * 1000
-            logger.debug(f"📖 Lecture {len(contrats)} contrats: {elapsed:.2f}ms")
+            # Vérifier si la valeur a changé
+            existing = self.conn.execute(
+                "SELECT value FROM cache_items WHERE key = ?", (key,)
+            ).fetchone()
             
-            return contrats
+            if existing and json.loads(existing['value']) == value:
+                # Même valeur, juste mettre à jour l'accès
+                self.conn.execute("""
+                    UPDATE cache_items 
+                    SET last_access = ?, access_count = access_count + 1
+                    WHERE key = ?
+                """, (now, key))
+            else:
+                # Nouvelle valeur ou valeur modifiée
+                tags_json = json.dumps(tags) if tags else None
+                self.conn.execute("""
+                    INSERT OR REPLACE INTO cache_items 
+                    (key, value, module, tags, created_at, expires_at, last_access, access_count)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 
+                        COALESCE((SELECT access_count + 1 FROM cache_items WHERE key = ?), 1))
+                """, (key, value_json, module, tags_json, now, expires_at, now, key))
+            
+            self.conn.commit()
+            self.cache_updated.emit(key, 'set')
+            return True
             
         except Exception as e:
-            logger.error(f"Erreur lecture contrats: {e}")
-            return []
+            logger.error(f"Erreur cache set {key}: {e}")
+            return False
     
-    def get_vehicules(self, page: int = 0, page_size: int = 50) -> List[Dict]:
-        """Récupère les véhicules du cache local"""
-        start = time.time()
-        
+    def get(self, key: str, default: Any = None) -> Optional[Any]:
+        """Récupère une valeur du cache"""
         try:
+            now = time.time()
             cursor = self.conn.execute("""
-                SELECT data FROM vehicules 
-                WHERE status != 'deleted' 
-                ORDER BY id DESC 
-                LIMIT ? OFFSET ?
-            """, (page_size, page * page_size))
+                SELECT value, expires_at FROM cache_items WHERE key = ?
+            """, (key,))
+            row = cursor.fetchone()
             
-            vehicules = [json.loads(row['data']) for row in cursor.fetchall()]
+            if row:
+                # Vérifier expiration
+                if row['expires_at'] and now > row['expires_at']:
+                    self.delete(key)
+                    return default
+                
+                # Mettre à jour les statistiques d'accès
+                self.conn.execute("""
+                    UPDATE cache_items SET last_access = ?, access_count = access_count + 1
+                    WHERE key = ?
+                """, (now, key))
+                self.conn.commit()
+                
+                return json.loads(row['value'])
             
-            elapsed = (time.time() - start) * 1000
-            logger.debug(f"📖 Lecture {len(vehicules)} véhicules: {elapsed:.2f}ms")
-            
-            return vehicules
+            return default
             
         except Exception as e:
-            logger.error(f"Erreur lecture vehicules: {e}")
-            return []
+            logger.error(f"Erreur cache get {key}: {e}")
+            return default
     
-    def get_compagnies(self) -> List[Dict]:
-        """Récupère les compagnies (référentiel complet)"""
+    def get_or_compute(self, key: str, compute_func: Callable, 
+                       ttl_seconds: int = None, **kwargs) -> Any:
+        """
+        Récupère du cache ou calcule si absent
+        
+        Usage:
+            value = cache.get_or_compute("compagnies", get_compagnies_from_db, ttl_seconds=600)
+        """
+        cached = self.get(key)
+        if cached is not None:
+            return cached
+        
+        value = compute_func(**kwargs)
+        self.set(key, value, ttl_seconds=ttl_seconds)
+        return value
+    
+    def delete(self, key: str) -> bool:
+        """Supprime une entrée du cache"""
         try:
-            cursor = self.conn.execute("SELECT data FROM compagnies")
-            return [json.loads(row['data']) for row in cursor.fetchall()]
+            self.conn.execute("DELETE FROM cache_items WHERE key = ?", (key,))
+            self.conn.commit()
+            self.cache_updated.emit(key, 'delete')
+            return True
         except Exception as e:
-            logger.error(f"Erreur lecture compagnies: {e}")
-            return []
+            logger.error(f"Erreur cache delete {key}: {e}")
+            return False
     
-    def get_by_id(self, table: str, record_id: int) -> Optional[Dict]:
-        """Récupère un enregistrement par ID"""
+    def delete_by_module(self, module: str) -> int:
+        """Supprime toutes les entrées d'un module"""
+        try:
+            deleted = self.conn.execute(
+                "DELETE FROM cache_items WHERE module = ?", (module,)
+            ).rowcount
+            self.conn.commit()
+            self.cache_cleared.emit(module)
+            logger.info(f"🗑️ Cache du module '{module}' vidé ({deleted} entrées)")
+            return deleted
+        except Exception as e:
+            logger.error(f"Erreur delete_by_module {module}: {e}")
+            return 0
+    
+    def delete_by_tag(self, tag: str) -> int:
+        """Supprime toutes les entrées avec un tag spécifique"""
+        try:
+            deleted = self.conn.execute(
+                "DELETE FROM cache_items WHERE tags LIKE ?", (f'%"{tag}"%',)
+            ).rowcount
+            self.conn.commit()
+            return deleted
+        except Exception as e:
+            logger.error(f"Erreur delete_by_tag {tag}: {e}")
+            return 0
+    
+    def clear_all(self) -> int:
+        """Vide complètement le cache"""
+        try:
+            deleted = self.conn.execute("DELETE FROM cache_items").rowcount
+            self.conn.execute("DELETE FROM cache_collections")
+            self.conn.commit()
+            self.cache_cleared.emit('all')
+            logger.info(f"🗑️ Cache complètement vidé ({deleted} entrées)")
+            return deleted
+        except Exception as e:
+            logger.error(f"Erreur clear_all: {e}")
+            return 0
+    
+    # ============================================================================
+    # COLLECTIONS PAGINÉES
+    # ============================================================================
+    
+    def save_collection(self, name: str, data: List[Dict], 
+                        page: int = 0, total_count: int = None) -> bool:
+        """Sauvegarde une collection paginée"""
+        try:
+            self.conn.execute("""
+                INSERT OR REPLACE INTO cache_collections (name, page, data, total_count, created_at)
+                VALUES (?, ?, ?, ?, ?)
+            """, (name, page, json.dumps(data, default=str), total_count, time.time()))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Erreur save_collection {name}: {e}")
+            return False
+    
+    def get_collection(self, name: str, page: int = 0) -> Optional[List[Dict]]:
+        """Récupère une collection paginée"""
         try:
             cursor = self.conn.execute(
-                f"SELECT data FROM {table} WHERE id = ? AND status != 'deleted'",
-                (record_id,)
+                "SELECT data FROM cache_collections WHERE name = ? AND page = ?",
+                (name, page)
             )
             row = cursor.fetchone()
             if row:
                 return json.loads(row['data'])
             return None
         except Exception as e:
-            logger.error(f"Erreur lecture {table} id {record_id}: {e}")
+            logger.error(f"Erreur get_collection {name}: {e}")
             return None
     
-    def search(self, table: str, search_text: str, fields: List[str], limit: int = 50) -> List[Dict]:
-        """Recherche textuelle dans le cache local (ultra rapide)"""
+    def invalidate_collection(self, name: str):
+        """Invalide toutes les pages d'une collection"""
         try:
-            # Construction de la condition WHERE
-            conditions = " OR ".join([f"json_extract(data, '$.{f}') LIKE ?" for f in fields])
-            query = f"""
-                SELECT data FROM {table} 
-                WHERE status != 'deleted' AND ({conditions})
-                LIMIT ?
-            """
-            params = [f"%{search_text}%" for _ in fields] + [limit]
-            
-            cursor = self.conn.execute(query, params)
-            return [json.loads(row['data']) for row in cursor.fetchall()]
-            
-        except Exception as e:
-            logger.error(f"Erreur recherche dans {table}: {e}")
-            return []
-    
-    # ============================================================================
-    # MÉTHODES D'ÉCRITURE (AVEC QUEUE DE SYNCHRO)
-    # ============================================================================
-    
-    def save(self, table: str, data: Dict, immediate_sync: bool = False) -> bool:
-        """Sauvegarde un enregistrement en local"""
-        try:
-            record_id = data.get('id')
-            if not record_id:
-                logger.error(f"Impossible de sauvegarder {table}: pas d'ID")
-                return False
-            
-            # Calcul du hash pour détecter les modifications
-            import hashlib
-            data_hash = hashlib.md5(json.dumps(data, sort_keys=True).encode()).hexdigest()
-            
-            # Vérifier si l'enregistrement existe déjà
-            existing = self.conn.execute(
-                f"SELECT hash, status FROM {table} WHERE id = ?",
-                (record_id,)
-            ).fetchone()
-            
-            if existing:
-                # Mise à jour
-                self.conn.execute(f"""
-                    UPDATE {table} 
-                    SET data = ?, hash = ?, updated_at = ?,
-                        status = CASE WHEN status = 'synced' THEN 'pending' ELSE status END
-                    WHERE id = ?
-                """, (json.dumps(data), data_hash, datetime.now(), record_id))
-            else:
-                # Insertion
-                self.conn.execute(f"""
-                    INSERT INTO {table} (id, data, hash, status, created_at, updated_at)
-                    VALUES (?, ?, ?, 'pending', ?, ?)
-                """, (record_id, json.dumps(data), data_hash, datetime.now(), datetime.now()))
-            
-            # Ajouter à la queue de synchronisation
-            self.conn.execute("""
-                INSERT INTO sync_queue (table_name, record_id, action, data)
-                VALUES (?, ?, 'upsert', ?)
-            """, (table, record_id, json.dumps(data)))
-            
+            deleted = self.conn.execute(
+                "DELETE FROM cache_collections WHERE name = ?", (name,)
+            ).rowcount
             self.conn.commit()
-            self.data_changed.emit(table, 'saved')
-            
-            logger.debug(f"💾 Sauvegarde locale: {table}/{record_id}")
-            
-            if immediate_sync:
-                self.sync_with_server()
-            
-            return True
-            
+            if deleted > 0:
+                logger.debug(f"🗑️ Collection '{name}' invalidée ({deleted} pages)")
         except Exception as e:
-            logger.error(f"Erreur sauvegarde {table}: {e}")
-            self.conn.rollback()
-            return False
-    
-    def delete(self, table: str, record_id: int, soft_delete: bool = True) -> bool:
-        """Supprime un enregistrement (soft ou hard)"""
-        try:
-            if soft_delete:
-                # Soft delete: marquer comme supprimé
-                self.conn.execute(f"""
-                    UPDATE {table} SET status = 'deleted', updated_at = ?
-                    WHERE id = ?
-                """, (datetime.now(), record_id))
-                
-                # Ajouter à la queue
-                self.conn.execute("""
-                    INSERT INTO sync_queue (table_name, record_id, action)
-                    VALUES (?, ?, 'delete')
-                """, (table, record_id))
-            else:
-                # Hard delete: suppression pure
-                self.conn.execute(f"DELETE FROM {table} WHERE id = ?", (record_id,))
-            
-            self.conn.commit()
-            self.data_changed.emit(table, 'deleted')
-            
-            logger.debug(f"🗑️ Suppression locale: {table}/{record_id}")
-            return True
-            
-        except Exception as e:
-            logger.error(f"Erreur suppression {table}: {e}")
-            self.conn.rollback()
-            return False
+            logger.error(f"Erreur invalidate_collection {name}: {e}")
     
     # ============================================================================
-    # SYNCHRONISATION AVEC LE SERVEUR
+    # STATISTIQUES ET MAINTENANCE
     # ============================================================================
-    
-    def sync_with_server(self):
-        """Synchronise les données locales avec le serveur distant"""
-        import threading
-        from core.database import SessionLocal
-        from sqlalchemy import text
-        
-        def sync():
-            self.sync_started.emit()
-            logger.info("🔄 Début de la synchronisation...")
-            
-            success_count = 0
-            error_count = 0
-            
-            db = None
-            try:
-                db = SessionLocal()
-                
-                # 1. Envoyer les modifications locales (queue)
-                pending = self.conn.execute("""
-                    SELECT id, table_name, record_id, action, data 
-                    FROM sync_queue 
-                    ORDER BY created_at
-                    LIMIT 100
-                """).fetchall()
-                
-                for item in pending:
-                    try:
-                        if item['action'] == 'upsert' and item['data']:
-                            data = json.loads(item['data'])
-                            # Mettre à jour sur le serveur
-                            table = item['table_name']
-                            record_id = item['record_id']
-                            
-                            # Construction dynamique de l'UPDATE
-                            # (à adapter selon vos tables)
-                            if table == 'contrats':
-                                db.execute(text("""
-                                    UPDATE contrats SET 
-                                        numero_police = :numero_police,
-                                        prime_totale_ttc = :prime_totale_ttc,
-                                        updated_at = NOW()
-                                    WHERE id = :id
-                                """), data)
-                            
-                            db.commit()
-                            
-                            # Marquer comme synchronisé
-                            self.conn.execute("""
-                                UPDATE sync_queue SET retry_count = 0 WHERE id = ?
-                            """, (item['id'],))
-                            self.conn.execute(f"""
-                                UPDATE {item['table_name']} 
-                                SET status = 'synced', last_sync = ? 
-                                WHERE id = ?
-                            """, (datetime.now(), item['record_id']))
-                            
-                            success_count += 1
-                            
-                        elif item['action'] == 'delete':
-                            # Suppression sur le serveur
-                            db.execute(text(f"""
-                                UPDATE {item['table_name']} SET is_active = false, updated_at = NOW()
-                                WHERE id = {item['record_id']}
-                            """))
-                            db.commit()
-                            
-                            self.conn.execute("DELETE FROM sync_queue WHERE id = ?", (item['id'],))
-                            success_count += 1
-                            
-                    except Exception as e:
-                        error_count += 1
-                        logger.error(f"Erreur synchro item {item['id']}: {e}")
-                        # Incrémenter le compteur de retry
-                        self.conn.execute("""
-                            UPDATE sync_queue SET retry_count = retry_count + 1
-                            WHERE id = ?
-                        """, (item['id'],))
-                
-                # 2. Récupérer les nouvelles données du serveur
-                last_sync = self.conn.execute(
-                    "SELECT value FROM sync_metadata WHERE key = 'last_full_sync'"
-                ).fetchone()
-                
-                last_sync_time = last_sync['value'] if last_sync else '2000-01-01'
-                
-                # Récupérer les contrats récents
-                contrats = db.execute(text("""
-                    SELECT * FROM contrats 
-                    WHERE updated_at > :last_sync OR created_at > :last_sync
-                    LIMIT 500
-                """), {"last_sync": last_sync_time}).fetchall()
-                
-                for contrat in contrats:
-                    self.conn.execute("""
-                        INSERT OR REPLACE INTO contrats (id, data, last_sync, status)
-                        VALUES (?, ?, ?, 'synced')
-                    """, (contrat.id, json.dumps(dict(contrat)), datetime.now()))
-                
-                # Mettre à jour la métadonnée
-                self.conn.execute("""
-                    INSERT OR REPLACE INTO sync_metadata (key, value, updated_at)
-                    VALUES ('last_full_sync', ?, ?)
-                """, (datetime.now().isoformat(), datetime.now()))
-                
-                self.conn.commit()
-                
-                logger.info(f"✅ Synchronisation terminée: {success_count} succès, {error_count} erreurs")
-                self.sync_finished.emit(success_count, error_count)
-                
-            except Exception as e:
-                logger.error(f"❌ Erreur synchronisation: {e}")
-                self.sync_finished.emit(success_count, error_count)
-            finally:
-                if db:
-                    db.close()
-        
-        thread = threading.Thread(target=sync, daemon=True)
-        thread.start()
-    
-    # ============================================================================
-    # INITIALISATION ET MAINTENANCE
-    # ============================================================================
-    
-    def load_initial_data(self):
-        """Charge les données initiales depuis le serveur"""
-        import threading
-        from core.database import SessionLocal
-        from addons.Automobiles.models import Compagnie, Contrat, Vehicle, Contact
-        
-        def load():
-            logger.info("📥 Chargement initial des données...")
-            db = SessionLocal()
-            try:
-                # 1. Compagnies (référentiel essentiel)
-                compagnies = db.query(Compagnie).filter(Compagnie.is_active == True).all()
-                for c in compagnies:
-                    self.conn.execute("""
-                        INSERT OR REPLACE INTO compagnies (id, data, last_sync)
-                        VALUES (?, ?, ?)
-                    """, (c.id, json.dumps({
-                        'id': c.id,
-                        'code': c.code,
-                        'nom': c.nom,
-                        'email': c.email,
-                        'telephone': c.telephone,
-                        'num_debut': c.num_debut,
-                        'num_fin': c.num_fin
-                    }), datetime.now()))
-                
-                # 2. Contrats des 3 derniers mois
-                from datetime import timedelta
-                three_months_ago = datetime.now() - timedelta(days=90)
-                contrats = db.query(Contrat).filter(
-                    Contrat.created_at > three_months_ago
-                ).limit(1000).all()
-                
-                for c in contrats:
-                    self.save('contrats', {
-                        'id': c.id,
-                        'numero_police': c.numero_police,
-                        'prime_totale_ttc': c.prime_totale_ttc,
-                        'statut_paiement': c.statut_paiement,
-                        'created_at': c.created_at.isoformat() if c.created_at else None
-                    })
-                
-                # 3. Véhicules
-                vehicules = db.query(Vehicle).limit(500).all()
-                for v in vehicules:
-                    self.save('vehicules', {
-                        'id': v.id,
-                        'immatriculation': v.immatriculation,
-                        'marque': v.marque,
-                        'modele': v.modele,
-                        'annee': v.annee
-                    })
-                
-                self.conn.commit()
-                
-                logger.info(f"✅ Chargement initial terminé:")
-                logger.info(f"   - {len(compagnies)} compagnies")
-                logger.info(f"   - {len(contrats)} contrats")
-                logger.info(f"   - {len(vehicules)} véhicules")
-                
-                self.cache_ready.emit()
-                
-            except Exception as e:
-                logger.error(f"❌ Erreur chargement initial: {e}")
-            finally:
-                db.close()
-        
-        thread = threading.Thread(target=load, daemon=True)
-        thread.start()
     
     def get_stats(self) -> Dict:
-        """Retourne les statistiques du cache local"""
+        """Retourne les statistiques du cache"""
         try:
-            stats = {}
-            tables = ['contrats', 'vehicules', 'clients', 'compagnies', 'flottes', 'paiements']
+            total = self.conn.execute("SELECT COUNT(*) FROM cache_items").fetchone()[0]
+            expired = self.conn.execute(
+                "SELECT COUNT(*) FROM cache_items WHERE expires_at IS NOT NULL AND expires_at < ?",
+                (time.time(),)
+            ).fetchone()[0]
             
-            for table in tables:
-                cursor = self.conn.execute(f"""
-                    SELECT 
-                        COUNT(*) as total,
-                        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                        SUM(CASE WHEN status = 'synced' THEN 1 ELSE 0 END) as synced
-                    FROM {table}
-                """)
-                row = cursor.fetchone()
-                stats[table] = {
-                    'total': row['total'] or 0,
-                    'pending': row['pending'] or 0,
-                    'synced': row['synced'] or 0
-                }
-            
-            # Queue de synchronisation
-            cursor = self.conn.execute("SELECT COUNT(*) as count FROM sync_queue")
-            stats['sync_queue'] = cursor.fetchone()['count']
-            
-            # Taille de la base
-            import os
-            stats['db_size_mb'] = round(os.path.getsize(self.db_path) / (1024 * 1024), 2)
-            
-            return stats
-            
+            return {
+                'total_entries': total,
+                'expired_entries': expired,
+                'db_size_mb': self.get_size(),
+                'modules': self.get_modules_stats()
+            }
         except Exception as e:
-            logger.error(f"Erreur stats cache: {e}")
+            logger.error(f"Erreur get_stats: {e}")
             return {}
     
-    def clear_cache(self):
-        """Vide complètement le cache"""
+    def get_modules_stats(self) -> Dict:
+        """Statistiques par module"""
         try:
-            tables = ['contrats', 'vehicules', 'clients', 'compagnies', 'flottes', 'paiements', 'sinistres', 'sync_queue']
-            for table in tables:
-                self.conn.execute(f"DELETE FROM {table}")
-            self.conn.execute("DELETE FROM sync_metadata")
-            self.conn.commit()
-            logger.info("🗑️ Cache vidé")
+            cursor = self.conn.execute("""
+                SELECT module, COUNT(*) as count 
+                FROM cache_items 
+                WHERE module IS NOT NULL 
+                GROUP BY module
+            """)
+            return {row['module']: row['count'] for row in cursor.fetchall()}
         except Exception as e:
-            logger.error(f"Erreur vidage cache: {e}")
+            return {}
+    
+    def get_size(self) -> float:
+        """Taille de la base de cache en MB"""
+        try:
+            return self.db_path.stat().st_size / (1024 * 1024)
+        except:
+            return 0
+    
+    def vacuum(self):
+        """Optimise la base de données"""
+        try:
+            self.conn.execute("VACUUM")
+            logger.info(f"✅ Base de cache optimisée (taille: {self.get_size():.2f} MB)")
+        except Exception as e:
+            logger.error(f"Erreur vacuum: {e}")
     
     def close(self):
-        """Ferme la connexion SQLite"""
-        if hasattr(self, 'sync_timer'):
-            self.sync_timer.stop()
+        """Ferme la connexion"""
+        if hasattr(self, 'cleanup_timer'):
+            self.cleanup_timer.stop()
         if hasattr(self, 'conn'):
+            self.vacuum()
             self.conn.close()
-            logger.info("✅ Base locale fermée")
+            logger.info("✅ Cache local fermé")
 
 
-# Instance globale unique
-local_db = LocalDatabase()
+# Instance unique (singleton)
+_cache_instance = None
+
+def LocalCacheInstance() -> LocalCache:
+    """Retourne l'instance unique du cache"""
+    global _cache_instance
+    if _cache_instance is None:
+        _cache_instance = LocalCache()
+    return _cache_instance
+
+
+# Alias court pour faciliter l'utilisation
+cache = LocalCacheInstance()

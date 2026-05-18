@@ -89,11 +89,11 @@ class ServerConfig:
             self.allowed_extensions = ['.zip', '.tar.gz', '.whl']
         
         if self.db_host is None:
-            self.db_host = get_env('DB_HOST', '212.47.73.151')
+            self.db_host = get_env('DB_HOST', '')
         if self.db_port is None:
-            self.db_port = int(get_env('DB_PORT', '5432'))
+            self.db_port = int(get_env('DB_PORT', ''))
         if self.db_name is None:
-            self.db_name = get_env('DB_NAME', 'ams_db')
+            self.db_name = get_env('DB_NAME', '')
         if self.db_user is None:
             self.db_user = get_env('DB_USER')
         if self.db_password is None:
