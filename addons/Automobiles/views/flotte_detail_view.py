@@ -30,6 +30,25 @@ class FleetDetailView(QWidget):
         self.is_maximized = False
         self.normal_geometry = None
         self.contract_tab = None
+
+        # Valeurs par défaut pour éviter les erreurs si le chargement échoue
+        self.vehicles = []
+        self.contracts = []
+        self.total_vehicles = 0
+        self.total_premium = 0
+        self.avg_premium = 0
+        self.compagnie_nom = '—'
+        self.owner_name = '—'
+        self.owner_phone = '—'
+        self.owner_email = '—'
+        self.total_rc = 0
+        self.total_dr = 0
+        self.total_vol = 0
+        self.total_vb = 0
+        self.total_in = 0
+        self.total_bris = 0
+        self.total_ar = 0
+        self.total_dta = 0
         
         # Initialiser les contrôleurs
         self._init_controllers()
@@ -259,60 +278,86 @@ class FleetDetailView(QWidget):
     def load_fleet_data(self):
         """Charge les données de la flotte"""
         try:
-            # Récupérer les véhicules de la flotte
-            if hasattr(self.fleet, 'vehicles'):
-                self.vehicles = list(self.fleet.vehicles) if self.fleet.vehicles else []
-            else:
+            # Récupérer les véhicules de la flotte sans déclencher de lazy load si détaché
+            try:
+                vehicles = getattr(self.fleet, 'vehicles', None)
+                self.vehicles = list(vehicles) if vehicles else []
+            except Exception:
                 self.vehicles = []
-            
-            # Récupérer les contrats de la flotte
-            if hasattr(self.fleet, 'contract'):
-                self.contracts = [self.fleet.contract] if self.fleet.contract else []
-            else:
+
+            # Récupérer les contrats de la flotte sans lazy load si détaché
+            try:
+                contract_obj = getattr(self.fleet, 'contract', None)
+                self.contracts = [contract_obj] if contract_obj else []
+            except Exception:
                 self.contracts = []
-            
+
             # ⭐⭐⭐ STATISTIQUES DEPUIS LA TABLE FLEETS ⭐⭐⭐
-            # Nombre de véhicules
-            self.total_vehicles = len(self.vehicles) if self.vehicles else 0
-            
+            self.total_vehicles = len(self.vehicles)
+
             # ⭐ Prime totale depuis le champ total_pttc de la flotte
-            # Si le champ total_pttc existe, l'utiliser, sinon calculer
-            if hasattr(self.fleet, 'total_pttc') and self.fleet.total_pttc:
-                self.total_premium = float(self.fleet.total_pttc)
+            if getattr(self.fleet, 'total_pttc', None):
+                try:
+                    self.total_premium = float(self.fleet.total_pttc)
+                except Exception:
+                    self.total_premium = 0
             else:
-                # Fallback: calculer à partir des véhicules
                 self.total_premium = 0
                 for vehicle in self.vehicles:
-                    if hasattr(vehicle, 'prime_nette'):
-                        self.total_premium += float(vehicle.prime_nette or 0)
-            
-            # ⭐ Prime moyenne (calculée à partir des données de la flotte)
-            if self.total_vehicles > 0:
-                self.avg_premium = self.total_premium / self.total_vehicles
-            else:
-                self.avg_premium = 0
-            
+                    try:
+                        self.total_premium += float(getattr(vehicle, 'prime_nette', 0) or 0)
+                    except Exception:
+                        pass
+
+            self.avg_premium = self.total_premium / self.total_vehicles if self.total_vehicles > 0 else 0
+
             # Récupérer le nom de la compagnie
             self.compagnie_nom = '—'
-            if hasattr(self.fleet, 'compagnie') and self.fleet.compagnie:
-                self.compagnie_nom = self.fleet.compagnie.nom
-            elif hasattr(self.fleet, 'assureur') and self.fleet.assureur and hasattr(self.controller, 'session'):
+            compagnie = None
+            try:
+                compagnie = self.fleet.__dict__.get('compagnie', None)
+            except Exception:
+                compagnie = None
+
+            if compagnie is None:
+                try:
+                    compagnie = getattr(self.fleet, 'compagnie', None)
+                except Exception:
+                    compagnie = None
+
+            if compagnie:
+                self.compagnie_nom = getattr(compagnie, 'nom', '—')
+            elif getattr(self.fleet, 'assureur', None) and hasattr(self.controller, 'session'):
                 try:
                     from addons.Automobiles.models import Compagnie
-                    compagnie = self.controller.session.query(Compagnie).get(self.fleet.assureur)
+                    compagnie_query = self.controller.session.query(Compagnie)
+                    compagnie = compagnie_query.get(self.fleet.assureur)
                     if compagnie:
-                        self.compagnie_nom = compagnie.nom
-                except:
+                        self.compagnie_nom = getattr(compagnie, 'nom', '—')
+                except Exception:
                     pass
-            
+
             # Récupérer le nom du propriétaire
             self.owner_name = '—'
-            if hasattr(self.fleet, 'owner') and self.fleet.owner:
-                owner = self.fleet.owner
-                self.owner_name = f"{getattr(owner, 'nom', '')} {getattr(owner, 'prenom', '')}".strip()
+            self.owner_phone = '—'
+            self.owner_email = '—'
+            owner = None
+            try:
+                owner = self.fleet.__dict__.get('owner', None)
+            except Exception:
+                owner = None
+
+            if owner is None:
+                try:
+                    owner = getattr(self.fleet, 'owner', None)
+                except Exception:
+                    owner = None
+
+            if owner:
+                self.owner_name = f"{getattr(owner, 'nom', '')} {getattr(owner, 'prenom', '')}".strip() or '—'
                 self.owner_phone = getattr(owner, 'telephone', '—')
                 self.owner_email = getattr(owner, 'email', '—')
-            
+
             # ⭐ Mettre à jour les totaux des garanties depuis la flotte
             self.total_rc = getattr(self.fleet, 'total_rc', 0) or 0
             self.total_dr = getattr(self.fleet, 'total_dr', 0) or 0
@@ -322,9 +367,9 @@ class FleetDetailView(QWidget):
             self.total_bris = getattr(self.fleet, 'total_bris', 0) or 0
             self.total_ar = getattr(self.fleet, 'total_ar', 0) or 0
             self.total_dta = getattr(self.fleet, 'total_dta', 0) or 0
-            
+
             print(f"📊 Statistiques flotte - Total PTTC: {self.total_premium}, Total véhicules: {self.total_vehicles}")
-            
+
         except Exception as e:
             print(f"Erreur chargement données flotte: {e}")
             self.vehicles = []
@@ -332,6 +377,18 @@ class FleetDetailView(QWidget):
             self.total_vehicles = 0
             self.total_premium = 0
             self.avg_premium = 0
+            self.compagnie_nom = '—'
+            self.owner_name = '—'
+            self.owner_phone = '—'
+            self.owner_email = '—'
+            self.total_rc = 0
+            self.total_dr = 0
+            self.total_vol = 0
+            self.total_vb = 0
+            self.total_in = 0
+            self.total_bris = 0
+            self.total_ar = 0
+            self.total_dta = 0
 
     def setup_ui(self):
         """Configure l'interface principale"""

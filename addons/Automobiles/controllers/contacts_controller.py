@@ -1,9 +1,14 @@
+from sqlalchemy.orm import selectinload
+
 from addons.Automobiles.models.contact_models import Contact, ContactAuditLog
 from addons.Automobiles.models import Fleet
+from core import logger
 import socket
 from sqlalchemy import func, or_  # <--- C'est cette ligne qui manque
 from datetime import datetime
 import os
+
+from core.workers.query_cache import query_cache
 
 class ContactController:
     def __init__(self, db_session, current_user_id):
@@ -14,12 +19,33 @@ class ContactController:
         self.current_user_id = getattr(current_user_id, 'id', current_user_id)
 
     # --- LECTURE ---
-    def get_all_contacts(self):
-        """Récupère tous les contacts (Assurés, Prospects, etc.)"""
+    # def get_all_contacts(self):
+    #     """Récupère tous les contacts (Assurés, Prospects, etc.)"""
+    #     try:
+    #         return self.db.query(Contact).all()
+    #     except Exception as e:
+    #         print(f"ERREUR get_all: {e}")
+    #         return []
+
+    def get_all_contacts(self, force_refresh: bool = False):
+        """Récupère tous les contacts avec cache simple"""
+        
+        cache_key = "contacts_all"
+        
+        if not force_refresh:
+            cached = query_cache.get(cache_key)
+            if cached is not None:
+                logger.info(f"📦 Cache hit: {len(cached)} contacts")
+                return cached
+        
+        # Charger depuis la base
         try:
-            return self.db.query(Contact).all()
+            contacts = self.db.query(Contact).all()
+            query_cache.set(cache_key, contacts, ttl=300)
+            logger.info(f"💾 Cache miss: {len(contacts)} contacts chargés")
+            return contacts
         except Exception as e:
-            print(f"ERREUR get_all: {e}")
+            logger.error(f"Erreur chargement contacts: {e}")
             return []
 
     def get_contact_by_id(self, contact_id):

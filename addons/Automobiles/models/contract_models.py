@@ -60,7 +60,7 @@ class Contrat(Base):
     company = relationship("Compagnie", lazy="joined")
     vehicle = relationship("Vehicle", lazy="joined", back_populates="contract")
     paiements = relationship("Paiement", lazy="selectin", back_populates="contrat", cascade="all, delete-orphan")
-    fleet = relationship("Fleet", back_populates="contract")
+    fleet = relationship("Fleet", lazy="joined", back_populates="contract")
 
 
 class AuditContratLog(Base):

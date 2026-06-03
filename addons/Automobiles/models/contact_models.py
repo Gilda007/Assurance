@@ -43,9 +43,9 @@ class Contact(Base):
     photo_path = Column(String(255))      
     
     # --- RELATIONS (Utilisation stricte de chaînes de caractères) ---
-    vehicles = relationship("Vehicle", back_populates="owner", cascade="all, delete-orphan")
-    fleets = relationship("Fleet", back_populates="owner", cascade="all, delete-orphan")
-    contracts = relationship("Contrat", back_populates="owner", cascade="all, delete-orphan")
+    vehicles = relationship("Vehicle", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
+    fleets = relationship("Fleet", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
+    contracts = relationship("Contrat", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
 
     # --- TRAÇABILITÉ ---
     created_at = Column(DateTime, default=datetime.now)

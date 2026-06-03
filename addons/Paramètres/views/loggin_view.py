@@ -23,7 +23,7 @@ class LoginView(QWidget):
         # Chemin vers l'image logo.png
         self.image_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logo.webp")
 
-        self.settings = QSettings("LOMETA", "Login") 
+        self.settings = QSettings("LOMETA", "Login")
         
         self.setup_ui()
         self.load_saved_session()  # NOUVEAU : Charger les identifiants sauvegardés
@@ -232,7 +232,6 @@ class LoginView(QWidget):
             self.remember_checkbox.setChecked(True)
             self.edit_pass.field.setFocus()
 
-
     def save_session(self, username, remember):
         """Sauvegarde les identifiants si demandé"""
         if remember:
@@ -241,7 +240,6 @@ class LoginView(QWidget):
         else:
             self.settings.remove("username")
             self.settings.setValue("remember", False)
-
 
     def handle_login_submission(self):
         """Version modifiée de handle_login_submission avec remember"""

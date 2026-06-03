@@ -7,3 +7,4 @@ from addons.Automobiles.models.tarif_models import AutomobileTarif
 from addons.Automobiles.models.automobile_tranche import AutomobileTranche
 from addons.Automobiles.models.paiement_models import Paiement
 # Importez tous vos modèles ici pour que SQLAlchemy les enregistre tous en même temps
+

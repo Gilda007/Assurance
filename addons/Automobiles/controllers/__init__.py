@@ -21,3 +21,7 @@ class AutomobileMainController:
         self.tarifs = TarifController(self.session)
         self.paiements = PaymentController(self.session)
         # self.compagnies = FleetController(session, current_user_id)
+
+    def is_asac_available(self):
+        """Vérifie si l'API ASAC est disponible"""
+        return self.asac_service is not None

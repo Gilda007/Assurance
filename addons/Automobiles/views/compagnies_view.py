@@ -103,7 +103,7 @@ class CompanyTariffView(QWidget):
             QPushButton:hover { background-color: #1d4ed8; }
         """)
 
-        self.btn_import = QPushButton("📥 Importer les tarif")
+        self.btn_import = QPushButton("📥 Importer les tarifs")
         self.btn_import.setStyleSheet("""
             QPushButton {
                 background-color: #f8fafc; border: 1px solid #e2e8f0;

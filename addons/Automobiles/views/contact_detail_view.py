@@ -735,9 +735,83 @@ class ContactDetailView(QDialog):
         self.fleet_batch_print_manager.start_batch_print(fleets_data)
 
 
+    # def _on_import_fleet(self):
+    #     """Importe des flottes"""
+    #     QMessageBox.information(self, "Importer flottes", "Fonctionnalité à implémenter")
+
+
+    # def _on_import_fleet(self):
+    #     """Importe des flottes depuis un fichier Excel/CSV avec prévisualisation complète"""
+    #     try:
+    #         # Vérifier que le contrôleur a les méthodes nécessaires
+    #         if not hasattr(self.controller, 'fleets'):
+    #             QMessageBox.warning(self, "Erreur", "Module flottes non disponible")
+    #             return
+            
+    #         if not hasattr(self.controller, 'vehicles'):
+    #             QMessageBox.warning(self, "Erreur", "Module véhicules non disponible")
+    #             return
+            
+    #         # Stocker l'ID du contact dans le contrôleur pour l'import
+    #         self.controller.current_contact_id = self.contact.id
+            
+    #         # Ouvrir le dialogue d'importation
+    #         from addons.Automobiles.views.fleet_import_dialog import FleetImportDialog
+    #         dialog = FleetImportDialog(self.controller, self)
+            
+    #         if dialog.exec():
+    #             # Recharger les données après l'import
+    #             self.load_flottes()
+    #             self.load_vehicules()
+    #             self._update_summary_cards()
+    #             QMessageBox.information(self, "Succès", "Importation terminée avec succès!")
+                
+    #     except ImportError as e:
+    #         print(f"Erreur import du module: {e}")
+    #         QMessageBox.warning(self, "Information", 
+    #                         "La fonctionnalité d'importation avancée sera bientôt disponible.\n"
+    #                         "Pour l'instant, vous pouvez créer les flottes manuellement.")
+    #     except Exception as e:
+    #         print(f"Erreur import flotte: {e}")
+    #         traceback.print_exc()
+    #         QMessageBox.critical(self, "Erreur", f"Erreur lors de l'importation: {str(e)}")
+
     def _on_import_fleet(self):
-        """Importe des flottes"""
-        QMessageBox.information(self, "Importer flottes", "Fonctionnalité à implémenter")
+        """Importe des flottes depuis un fichier Excel/CSV avec calcul des garanties"""
+        try:
+            # Vérifier que le contrôleur a les méthodes nécessaires
+            if not hasattr(self.controller, 'fleets'):
+                QMessageBox.warning(self, "Erreur", "Module flottes non disponible")
+                return
+            
+            if not hasattr(self.controller, 'vehicles'):
+                QMessageBox.warning(self, "Erreur", "Module véhicules non disponible")
+                return
+            
+            # Stocker l'ID du contact dans le contrôleur pour l'import
+            self.controller.current_contact_id = self.contact.id
+            
+            # Ouvrir le dialogue d'importation avancée
+            from addons.Automobiles.views.fleet_import_avanced_dialog import FleetImportAdvancedDialog
+            dialog = FleetImportAdvancedDialog(self.controller, self)
+            
+            if dialog.exec():
+                # Recharger les données après l'import
+                self.load_flottes()
+                self.load_vehicules()
+                self._update_summary_cards()
+                QMessageBox.information(self, "Succès", "Importation terminée avec succès!")
+                
+        except ImportError as e:
+            print(f"Erreur import du module: {e}")
+            traceback.print_exc()
+            QMessageBox.warning(self, "Information", 
+                            "La fonctionnalité d'importation avancée sera bientôt disponible.\n"
+                            "Pour l'instant, vous pouvez créer les flottes manuellement.")
+        except Exception as e:
+            print(f"Erreur import flotte: {e}")
+            traceback.print_exc()
+            QMessageBox.critical(self, "Erreur", f"Erreur lors de l'importation: {str(e)}")
 
     def _create_documents_tab(self):
         """Onglet documents"""

@@ -14,6 +14,7 @@ from addons.Automobiles.security.access_control import Permissions, SecurityMana
 from addons.Automobiles.views.contact_form_view import ContactForm
 from addons.Automobiles.reports.pdf_generator import generate_contact_pdf
 from core.logger import logger
+from core.workers.database_worker import async_query
 
 
 class ContactListView(QWidget):
@@ -26,6 +27,7 @@ class ContactListView(QWidget):
         super().__init__()
         self.controller = controller
         self.current_user = current_user
+        self._data_loaded = False  # ✅ AJOUTER CETTE LIGNE
         self.all_contacts = []
         self.filtered_contacts = []
         self.selected_contacts = []
@@ -34,6 +36,24 @@ class ContactListView(QWidget):
         self.apply_security_policy()
         self.load_contacts()
         self.setup_shortcuts()
+
+    def showEvent(self, event):
+        """Appelé quand la vue est affichée"""
+        super().showEvent(event)
+        if not self._data_loaded:
+            self._data_loaded = True
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(50, self.load_contacts_async)
+
+    def load_contacts_async(self):
+        """Charge les contacts de manière asynchrone"""
+        async_query.execute(
+            self.controller.contacts.get_all,
+            on_finished=self.on_contacts_loaded,
+            on_error=self.on_load_error,
+            show_loader=True,
+            loader_message="Chargement des contacts..."
+        )
     
     def setup_ui(self):
         """Configure l'interface utilisateur avec ScrollArea"""
@@ -373,6 +393,10 @@ class ContactListView(QWidget):
         
         self.container_layout.addWidget(toolbar_frame)
     
+    def on_load_error(self, error):
+        """Gère les erreurs"""
+        QMessageBox.warning(self, "Erreur", f"Erreur de chargement: {error}")
+
     def _create_action_button(self, text, color):
         btn = QPushButton(text)
         btn.setMinimumHeight(42)
@@ -650,6 +674,42 @@ class ContactListView(QWidget):
         search_shortcut.triggered.connect(lambda: self.search_input.setFocus())
         self.addAction(search_shortcut)
     
+    # def on_contacts_loaded(self, contacts):
+    #     """Callback quand les contacts sont chargés"""
+    #     # Cache le loader si tu utilises un loading_overlay
+    #     # self.loading_overlay.hide_loading()
+        
+    #     # Affiche les contacts dans ton tableau
+    #     self.display_contacts(contacts)
+
+    def on_contacts_loaded(self, contacts):
+        """Callback quand les contacts sont chargés"""
+        # Stocker les contacts dans les variables d'instance
+        self.all_contacts = contacts
+        self.filtered_contacts = contacts.copy()
+        
+        # Appeler display_contacts SANS paramètre
+        self.display_contacts()
+        self.update_statistics()
+        self.update_last_update_time()
+        
+        # Mettre à jour les compteurs
+        count = len(contacts)
+        self.counter_label.setText(f"{count} contact(s)")
+        self.total_rows_label.setText(f"Affichage de {count} contact(s)")
+        self.set_status(f"{count} contact(s) chargé(s) avec succès", "success")
+        self.info_label.setText(f"Total: {count} contacts")
+        logger.info(f"Contacts chargés: {count}")
+    
+    def on_contacts_error(self, error):
+        """Callback en cas d'erreur de chargement"""
+        # Cache le loader
+        # self.loading_overlay.hide_loading()
+        
+        # Affiche l'erreur
+        from PySide6.QtWidgets import QMessageBox
+        QMessageBox.warning(self, "Erreur", f"Erreur de chargement des contacts: {error}")
+
     def load_contacts(self):
         try:
             self.set_status("Chargement des contacts...", "info")

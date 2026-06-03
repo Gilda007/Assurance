@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <title>Rapport de Mission Complet - Douala</title> -->
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #3b82f6;
+            --text-dark: #1f2937;
+            --text-light: #4b5563;
+            --bg-light: #f9fafb;
+            --border-color: #e5e7eb;
+            --accent-color: #f59e0b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-dark);
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 850px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 50px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            border-bottom: 3px solid var(--primary-color);
+            padding-bottom: 20px;
+            margin-bottom: 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            color: var(--primary-color);
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .meta-box {
+            background-color: var(--bg-light);
+            border-left: 4px solid var(--secondary-color);
+            padding: 15px;
+            border-radius: 0 4px 4px 0;
+            margin-bottom: 30px;
+            font-size: 14px;
+            color: var(--text-light);
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        h2 {
+            font-size: 16px;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 35px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        p {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        /* Tableaux */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        th, td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:nth-child(even) {
+            background-color: var(--bg-light);
+        }
+
+        /* Listes de modules */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .module-card {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 6px;
+        }
+
+        .module-card strong {
+            color: var(--primary-color);
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .hospital-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .hospital-item {
+            background: var(--bg-light);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 0 6px 6px 0;
+        }
+
+        .hospital-name {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 5px;
+        }
+
+        .alert-box {
+            background-color: #fffbeb;
+            border: 1px solid #fef3c7;
+            border-left: 4px solid var(--accent-color);
+            padding: 15px;
+            border-radius: 0 6px 6px 0;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .reco-list {
+            padding-left: 20px;
+            color: var(--text-light);
+            font-size: 14px;
+        }
+
+        .reco-list li {
+            margin-bottom: 10px;
+        }
+
+        .footer-signature {
+            margin-top: 60px;
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        .signature-line {
+            margin-top: 40px;
+            border-top: 1px dashed var(--text-light);
+            width: 200px;
+        }
+
+        @media print {
+            body { background-color: #ffffff; padding: 0; }
+            .container { box-shadow: none; padding: 0; max-width: 100%; }
+            button { display: none; }
+            .hospital-item, .module-card, table { page-break-inside: avoid; }
+        }
+
+        .no-print-btn {
+            display: block;
+            width: 220px;
+            margin: 0 auto 20px auto;
+            padding: 12px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .no-print-btn:hover { background-color: var(--secondary-color); }
+    </style>
+</head>
+<body>
+
+    <!-- <button class="no-print-btn" onclick="window.print()">Télécharger le PDF complet</button> -->
+
+    <div class="container">
+        <div class="header">
+            <div class="header-title">
+                <h1>Rapport de Mission</h1>
+                <div style="color: var(--secondary-color); font-weight: 600; letter-spacing: 0.5px;">Déploiement, Formation & Alignement Assurances</div>
+            </div>
+            <div style="font-size: 14px; color: var(--text-light); text-align: right;">
+                <strong>Réf:</strong> RM-2026-EG-01
+            </div>
+        </div>
+
+        <div class="meta-box">
+            <div class="meta-item"><strong>Période :</strong> Du 25 mai 2026 au 30 mai 2026</div>
+            <div class="meta-item"><strong>Lieu d'exécution :</strong> Douala, Cameroun</div>
+            <div class="meta-item"><strong>Objet :</strong> Renforcement des capacités & Validation processus</div>
+            <div class="meta-item"><strong>Rédacteur :</strong> ENADA Gilda</div>
+        </div>
+
+        <h2>1. Contexte et Objectifs</h2>
+        <p>
+            Cette mission s'inscrit dans le cadre du déploiement stratégique et de l'opérationnalisation de nos solutions logicielles de gestion hospitalière dans la région du Littoral. L'axe principal de l'intervention consistait à standardiser l'utilisation du système, à former le personnel clé (médical et administratif) et à optimiser la gestion des flux de prises en charge avec les organismes d'assurances afin de réduire les délais de traitement des dossiers.
+        </p>
+
+        <h2>2. Programme et Modules Éduqués</h2>
+        <p>Les sessions de renforcement des compétences ont été structurées autour de quatre axes majeurs :</p>
+        <div class="module-grid">
+            <div class="module-card">
+                <strong>Module 1 : Parcours Patient & Flux</strong>
+                <p style="margin:0; font-size:13px;">Admissions, planification des consultations, circuits de facturation et d'encaissement.</p>
+            </div>
+            <div class="module-card">
+                <strong>Module 2 : Gestion Ophtalmologique</strong>
+                <p style="margin:0; font-size:13px;">Saisie des fiches cliniques spécialisées et suivi des actes spécifiques (adapté pour Acha EYE).</p>
+            </div>
+            <div class="module-card">
+                <strong>Module 3 : Tiers-Payant & Assurances</strong>
+                <p style="margin:0; font-size:13px;">Vérification des droits, édition des bons de prise en charge, télétransmission des flux.</p>
+            </div>
+        </div>
+
+        <h2>3. Synthèse Quantitative des Formations</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Établissement Sanitaire</th>
+                    <th>Profils Formés</th>
+                    <th>Effectif</th>
+                    <th>Statut Opérationnel</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Hôpital de district de Bangue</strong></td>
+                    <td>Personnel du service des assurances</td>
+                    <td>01</td>
+                    <td style="color: green; font-weight:600;">100% Autonome</td>
+                </tr>
+                <tr>
+                    <td><strong>Hôpital de district de Bonassama</strong></td>
+                    <td>Personnel du service des assurances</td>
+                    <td>01</td>
+                    <td style="color: green; font-weight:600;">100% Autonome</td>
+                </tr>
+                <tr>
+                    <td><strong>Hôpital Bethesda</strong></td>
+                    <td>Personnels infirmiers</td>
+                    <td>01</td>
+                    <td style="color: green; font-weight:600;">100% Autonome</td>
+                </tr>
+                <tr>
+                    <td><strong>Hôpital Acha EYE</strong></td>
+                    <td>Accueil</td>
+                    <td>03</td>
+                    <td style="color: green; font-weight:600;">100% Autonome</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>4. Observations Clés par Établissement</h2>
+        <ul class="hospital-list">
+            <li class="hospital-item">
+                <div class="hospital-name">Hôpital de district de Bangue & Bonassama</div>
+                <p style="margin: 0; font-size: 13px;">Le personnel du service recontre des soucis avec leur connexion internet. ceci rend l'utilisation de la plateforme et le service à rendre aux patients fastidieux</p>
+            </li>
+            <li class="hospital-item">
+                <div class="hospital-name">Hôpital Bethesda</div>
+                <p style="margin: 0; font-size: 13px;">Forte implication du personnel médical. Le module de prescription connectée a été éprouvé avec succès lors de simulations de flux réels.</p>
+            </li>
+            <li class="hospital-item">
+                <div class="hospital-name">Hôpital Acha EYE</div>
+                <p style="margin: 0; font-size: 13px;">L'intégration des formulaires cliniques spécifiques aux soins oculaires a été validée.</p>
+            </li>
+        </ul>
+
+        <h2>5. Situation Spécifique : Hôpital de district de Cité des Palmiers</h2>
+        <p>
+            Au sein de cette structure, les étapes préliminaires d'évaluation des besoins et de cadrage des processus d'assurance ont été menées à bien en étroite collaboration avec la Responsable des Assurances.
+        </p>
+        <div class="alert-box">
+            <strong>Statut du blocage administratif :</strong>
+            Bien que la Responsable des Assurances ait émis une recommandation favorable et validé l'adéquation technique de la solution, la phase active de déploiement et de formation du personnel demeure en attente. Nous sommes suspendus à la décision finale et à la signature de l'accord officiel par le <strong>Directeur Général</strong> de l'établissement.
+            <br>
+            <span class="badge">En attente d'arbitrage Direction Générale</span>
+        </div>
+
+        <h2>6. Recommandations et Prochaines Étapes</h2>
+        <ol class="reco-list">
+            <li><strong>Suivi Administratif Étroit (Cité des Palmiers) :</strong> Initier une relance officielle auprès du secrétariat du Directeur Général de l'Hôpital de la Cité des Palmiers d'ici le début de la semaine prochaine, en capitalisant sur l'avis technique favorable de la responsable des assurances.</li>
+            <li><strong>Supervision à Distance (Post-Formation) :</strong> Mettre en place un dispositif d'accompagnement technique de proximité (J+15) pour les quatre hôpitaux opérationnels afin de consolider l'autonomie et de traiter les éventuelles questions d'usage résiduelles.</li>
+        </ol>
+
+        <div class="footer-signature">
+            <div>
+                <strong>Fait à Douala, le 30 mai 2026</strong>
+                <br>Le Responsable de Mission
+                <div class="signature-line"></div>
+            </div>
+            <div style="text-align: right;">
+                <strong>Visa de l'Entité / Hiérarchie</strong>
+                <br>Pour Approbation
+                <div class="signature-line" style="margin-left: auto;"></div>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

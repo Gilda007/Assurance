@@ -1,0 +1,10 @@
+[Unit]
+Description=LOMETA Database Backup Timer
+Requires=lometa-backup.service
+
+[Timer]
+OnCalendar=*-*-* 00:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

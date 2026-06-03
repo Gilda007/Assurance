@@ -570,6 +570,173 @@ class VehicleDetailView(QWidget):
 
         main_layout.addWidget(self.tab_widget)
 
+        
+    
+    # def export_to_asac(self):
+    #     """Exporte le véhicule vers ASAC"""
+    #     from addons.Automobiles.api.asac_client import AsacClient, AsacCredentials
+    #     from addons.Automobiles.api.lometa_client import LometaDataProvider
+    #     from core.database import SessionLocal
+        
+    #     vehicle_id = self.vehicle_data.get('id')
+    #     if not vehicle_id:
+    #         QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
+    #         return
+        
+    #     # Récupérer les credentials ASAC
+    #     credentials = AsacCredentials(
+    #         app_key="TEST_APP_KEY_2024",
+    #         username="asac_admin",
+    #         api_url="http://localhost:8001"
+    #     )
+        
+    #     # Construire la requête à partir des données LOMETA
+    #     db = SessionLocal()
+    #     try:
+    #         provider = LometaDataProvider(db)
+    #         production_request = provider.build_production_from_vehicle(vehicle_id)
+            
+    #         if not production_request:
+    #             QMessageBox.warning(self, "Erreur", "Impossible de construire la requête ASAC")
+    #             return
+            
+    #         # Envoyer à l'API ASAC
+    #         client = AsacClient(credentials)
+    #         client.authenticate()
+    #         response = client.create_production(production_request)
+            
+    #         QMessageBox.information(
+    #             self, 
+    #             "Export réussi", 
+    #             f"Attestation générée avec succès!\n"
+    #             f"Référence: {response.reference}\n"
+    #             f"Téléchargement: {response.download_link}"
+    #         )
+            
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Erreur", f"Erreur lors de l'export: {str(e)}")
+    #     finally:
+    #         db.close()
+
+    # def export_to_asac(self):
+    #     """Exporte le véhicule vers ASAC"""
+    #     from addons.Automobiles.api.lometa_client import LometaDataProvider
+    #     from core.database import SessionLocal
+    #     import requests
+        
+    #     vehicle_id = self.data.get('id')
+    #     if not vehicle_id:
+    #         QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
+    #         return
+        
+    #     # Construire la requête à partir des données LOMETA
+    #     db = SessionLocal()
+    #     try:
+    #         provider = LometaDataProvider(db)
+    #         production_request = provider.build_production_from_vehicle(vehicle_id)
+            
+    #         if not production_request:
+    #             QMessageBox.warning(self, "Erreur", "Impossible de construire la requête ASAC")
+    #             return
+            
+    #         # Appeler directement l'API ASAC avec requests
+    #         api_url = "http://localhost:8001/api/v1/auth/tokens/app-key"
+    #         params = {
+    #             "app_key": "TEST_APP_KEY_2024",
+    #             "username": "asac_admin"
+    #         }
+            
+    #         # 1. Obtenir le token
+    #         auth_response = requests.post(api_url, params=params)
+    #         if auth_response.status_code != 200:
+    #             QMessageBox.warning(self, "Erreur", f"Erreur d'authentification: {auth_response.text}")
+    #             return
+            
+    #         token = auth_response.json().get("token")
+            
+    #         # 2. Envoyer la production
+    #         prod_url = "http://localhost:8001/api/v1/productions"
+    #         headers = {"Authorization": f"Bearer {token}"}
+            
+    #         prod_response = requests.post(prod_url, json=production_request, headers=headers)
+            
+    #         if prod_response.status_code == 201:
+    #             data = prod_response.json()
+    #             QMessageBox.information(
+    #                 self, 
+    #                 "Export réussi", 
+    #                 f"Attestation générée avec succès!\n"
+    #                 f"Référence: {data.get('data', {}).get('reference', 'N/A')}"
+    #             )
+    #         else:
+    #             QMessageBox.warning(self, "Erreur", f"Erreur API: {prod_response.text}")
+            
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Erreur", f"Erreur lors de l'export: {str(e)}")
+    #     finally:
+    #         db.close()
+
+    def export_to_asac(self):
+        """Exporte le véhicule vers ASAC"""
+        from addons.Automobiles.api.asac_client import AsacClient, AsacCredentials, AsacAPIError
+        from addons.Automobiles.api.lometa_client import LometaDataProvider
+        
+        vehicle_id = self.data.get('id')
+        if not vehicle_id:
+            QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
+            return
+        
+        # Récupérer les credentials ASAC
+        credentials = AsacCredentials(
+            app_key="TEST_APP_KEY_2024",
+            username="asac_admin",
+            api_url="http://localhost:8001"
+        )
+        
+        if not self.controller:
+            QMessageBox.warning(self, "Erreur", "Contrôleur non disponible")
+            return
+        
+        try:
+            provider = LometaDataProvider(self.controller.vehicles)
+            production_request = provider.build_production_from_vehicle(vehicle_id)
+            
+            if not production_request:
+                QMessageBox.warning(self, "Erreur", "Impossible de construire la requête ASAC")
+                return
+            
+            # Afficher la requête pour déboguer
+            print("=" * 50)
+            print("📤 REQUÊTE ENVOYÉE À ASAC:")
+            print("=" * 50)
+            import json
+            print(json.dumps(production_request, indent=2, default=str))
+            print("=" * 50)
+            
+            # Envoyer à l'API ASAC
+            client = AsacClient(credentials)
+            client.authenticate()
+            response = client.create_production(production_request)
+            
+            QMessageBox.information(
+                self, 
+                "Export réussi", 
+                f"Attestation générée avec succès!\n"
+                f"Référence: {response.get('data', {}).get('reference', 'N/A')}"
+            )
+            
+        except AsacAPIError as e:
+            # Afficher les erreurs détaillées
+            error_msg = f"Erreur API: {e}\n"
+            if e.errors:
+                error_msg += f"\nDétails:\n{json.dumps(e.errors, indent=2)}"
+            QMessageBox.critical(self, "Erreur API", error_msg)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Erreur lors de l'export: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
     def create_info_tab(self):
         """Onglet des informations générales"""
         tab = QWidget()
@@ -600,6 +767,9 @@ class VehicleDetailView(QWidget):
             QMessageBox.information(self, "Envoi email", "Fonction d'envoi par email à implémenter")
         elif action == "export":
             QMessageBox.information(self, "Export PDF", "Fonction d'export PDF à implémenter")
+        elif action == "asac":
+            QMessageBox.information(self, "Export Asac", "Processus en cours...")
+            self.export_to_asac() 
     
     def print_document(self, doc_type):
         """Gère l'impression des documents"""
@@ -1142,6 +1312,7 @@ class VehicleDetailView(QWidget):
             ("✏️ Modifier", "edit", "#3b82f6"),
             ("🔄 Renouveler", "renew", "#10b981"),
             ("📧 Email", "email", "#8b5cf6"),
+            ("📤 Exporter vers ASAC", "asac", "#8b5cf6"),
             ("📥 PDF", "export", "#f59e0b")
         ]
         

@@ -1816,6 +1816,44 @@ class VehicleMainView(QWidget):
             self._style_nav_btn(b, False)
         self._style_nav_btn(btn, True)
 
+
+    def refresh_all_data(self):
+        """Rafraîchit toutes les données avec cache"""
+        # Forcer le rafraîchissement du cache
+        if hasattr(self.controller, 'vehicles'):
+            self.controller.vehicles.refresh_cache()
+        
+        if hasattr(self.controller, 'fleets'):
+            self.controller.fleets.refresh_cache()
+        
+        if hasattr(self.controller, 'contacts'):
+            self.controller.contacts.refresh_cache()
+        
+        # Recharger les KPI
+        self.refresh_kpi_cards()
+        
+        # Recharger les pages
+        if hasattr(self, 'page_vehicles'):
+            self.page_vehicles.refresh_data()
+            self.page_vehicles.refresh_fleets()
+        
+        if hasattr(self, 'page_clients'):
+            self.page_clients.refresh_data()
+
+    def refresh_kpi_cards(self):
+        """Rafraîchit les cartes KPI avec les dernières données"""
+        stats = self.get_real_time_stats()
+        
+        kpi_updates = [
+            ('vehicules', stats.get('vehicules', 0), stats.get('vehicules_trend', '+0'), stats.get('vehicules_trend_up', True)),
+            ('flottes', stats.get('flottes', 0), stats.get('flottes_trend', '+0'), stats.get('flottes_trend_up', True)),
+            ('entreprises', stats.get('entreprises', 0), stats.get('entreprises_trend', '+0'), stats.get('entreprises_trend_up', True)),
+            ('particuliers', stats.get('particuliers', 0), stats.get('particuliers_trend', '+0'), stats.get('particuliers_trend_up', True))
+        ]
+        
+        for i, (title, value, trend, trend_up) in enumerate(kpi_updates):
+            if i < len(self.kpi_cards):
+                self._update_kpi_card_value(self.kpi_cards[i], value, trend, trend_up)
     # ========== PAGES ==========
 
     def _init_dashboard_page(self):
@@ -1877,7 +1915,25 @@ class VehicleMainView(QWidget):
         
         return page
 
+    # def _init_vehicles_page(self):
+    #     if not self.controller:
+    #         return QWidget()
+        
+    #     page = QWidget()
+    #     page.setStyleSheet("background: transparent;")
+    #     layout = QVBoxLayout(page)
+    #     layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     full_management_page = VehiculeModuleView(
+    #         controller=self.controller, 
+    #         current_user=self.user
+    #     )
+    #     layout.addWidget(full_management_page)
+        
+    #     return page
+
     def _init_vehicles_page(self):
+        """Page des véhicules avec chargement initial asynchrone"""
         if not self.controller:
             return QWidget()
         
@@ -1892,9 +1948,39 @@ class VehicleMainView(QWidget):
         )
         layout.addWidget(full_management_page)
         
+        # ✅ FORCER LE CHARGEMENT ASYNCHRONE APRÈS LA CRÉATION
+        # Utiliser QTimer.singleShot pour s'assurer que la page est complètement créée
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._trigger_vehicles_load(full_management_page))
+        
         return page
+    
+    def _trigger_vehicles_load(self, page):
+        """Déclenche le chargement asynchrone des données véhicules"""
+        if hasattr(page, 'load_vehicles_async'):
+            page.load_vehicles_async()
+        if hasattr(page, 'load_fleets_async'):
+            page.load_fleets_async()
+
+    # def _init_contacts_page(self):
+    #     if not self.controller:
+    #         return QWidget()
+        
+    #     page = QWidget()
+    #     page.setStyleSheet("background: transparent;")
+    #     layout = QVBoxLayout(page)
+    #     layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     client_page = ContactListView(
+    #         controller=self.controller, 
+    #         current_user=self.user
+    #     )
+    #     layout.addWidget(client_page)
+        
+    #     return page
 
     def _init_contacts_page(self):
+        """Page des contacts avec chargement initial asynchrone"""
         if not self.controller:
             return QWidget()
         
@@ -1909,7 +1995,16 @@ class VehicleMainView(QWidget):
         )
         layout.addWidget(client_page)
         
+        # ✅ FORCER LE CHARGEMENT ASYNCHRONE APRÈS LA CRÉATION
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(100, lambda: self._trigger_contacts_load(client_page))
+        
         return page
+
+    def _trigger_contacts_load(self, page):
+        """Déclenche le chargement asynchrone des données contacts"""
+        if hasattr(page, 'load_contacts_async'):
+            page.load_contacts_async()
 
     def _init_compagnies_page(self):
         if not self.controller:

@@ -1,16 +1,18 @@
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Any
 import json
 import socket
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 from addons.Automobiles.models.contact_models import Contact
 from addons.Automobiles.models.compagnies_models import Compagnie
 from addons.Automobiles.models.automobile_models import Vehicle, AuditVehicleLog
 from addons.Automobiles.controllers.contract_controller import ContractController
+from core.workers.query_cache import query_cache
 from datetime import date, datetime
 import requests
 
+from addons.Automobiles.models.contract_models import Contrat
 from core import logger
 
 
@@ -25,20 +27,65 @@ class VehicleController:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()  # Correction: session au lieu de db
 
-    def get_all_vehicles(self):
-        """Récupère uniquement les véhicules actifs."""
-        from sqlalchemy.orm import joinedload
-        return self.session.query(Vehicle)\
-            .options(joinedload(Vehicle.owner))\
-            .filter(Vehicle.is_active == True).all()
+    def get_all_vehicles(self, force_refresh: bool = False):
+        """
+        Récupère tous les véhicules avec cache mémoire
+        """
+        cache_key = "automobiles:vehicles:list"
+        
+        # 1. Essayer le cache
+        if not force_refresh:
+            cached = self._get_cached(cache_key)
+            if cached is not None:
+                logger.info(f"📦 Cache hit: {len(cached)} véhicules")
+                return cached
+        
+        # 2. Charger depuis la base
+        logger.info(f"💾 Cache miss: Chargement depuis la base")
+        
+        try:
+            vehicles = self.session.query(Vehicle).options(
+                selectinload(Vehicle.contract).selectinload(Contrat.paiements),
+                joinedload(Vehicle.owner),
+                joinedload(Vehicle.compagny),
+                selectinload(Vehicle.fleet)
+            ).filter(Vehicle.is_active == True).all()
+            
+            # 3. Sauvegarder en cache
+            self._set_cache(cache_key, vehicles)
+            
+            logger.info(f"✅ {len(vehicles)} véhicules chargés")
+            return vehicles
+            
+        except Exception as e:
+            logger.error(f"Erreur chargement véhicules: {e}")
+            return []
     
     def get_vehicles_by_id(self, vehicle_id):
         """Récupère un véhicule par son ID."""
         return self.session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
-    
-    def get_vehicles_by_owner_id(self, owner_id):
-        """Récupère un véhicule par son ID de propriétaire."""
-        return self.session.query(Vehicle).filter(Vehicle.owner_id == owner_id).all()
+
+    def get_vehicles_by_owner_id(self, owner_id: int, force_refresh: bool = False):
+        """Récupère les véhicules d'un propriétaire (avec cache)"""
+        
+        def load_vehicles():
+            return self.session.query(Vehicle).options(
+                selectinload(Vehicle.contract),
+                joinedload(Vehicle.owner)
+            ).filter(
+                Vehicle.owner_id == owner_id,
+                Vehicle.is_active == True
+            ).all()
+        
+        if force_refresh:
+            query_cache.invalidate(f"owner_{owner_id}")
+            return load_vehicles()
+        
+        return query_cache.get_or_compute(
+            f"vehicles_by_owner_{owner_id}",
+            compute_func=load_vehicles,
+            ttl=300
+        )
 
     def get_dashboard_stats(self, fleet_id=None):
         """Calcule les KPI pour les widgets du haut de l'interface."""
@@ -95,6 +142,17 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur lors de la récupération du contact {compagnie_id}: {e}")
             return None
+
+    def get_client_by_id(self, contact_id: int):
+        """Récupère un contact (personne physique/morale) par son ID"""
+        try:
+            # Utiliser le modèle Contact, pas Compagnie
+            from addons.Automobiles.models.contact_models import Contact
+            return self.session.query(Contact).filter(Contact.id == contact_id).first()
+        except Exception as e:
+            print(f"Erreur lors de la récupération du contact {contact_id}: {e}")
+            return None
+
 
     def get_report_data(self):
         """Méthode requise par ContactListView pour les statistiques et le PDF"""
@@ -539,6 +597,26 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur lors de la récupération des catégories tarif : {e}")
             return []
+
+    def get_tarif_categories_by_compagnie_and_code(self, cie_id, code_tarif):
+        """
+        Récupère les catégories disponibles pour un code tarif et une compagnie.
+        """
+        try:
+            from addons.Automobiles.models.tarif_models import AutomobileTarif
+
+            categories = self.session.query(AutomobileTarif.categorie)\
+                .filter(
+                    AutomobileTarif.cie_id == cie_id,
+                    AutomobileTarif.tarif_code == str(code_tarif).strip()
+                )\
+                .distinct()\
+                .all()
+
+            return [c.categorie for c in categories if c.categorie]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des catégories tarif pour le code {code_tarif}: {e}")
+            return []
     
     def add_tranche(self, libelle, max_cv, user_id, local_ip, network_ip):
         from addons.Automobiles.models.tarif_models import AutomobileTarif
@@ -892,6 +970,433 @@ class VehicleController:
             session.rollback()
             print(f"Erreur update_vehicle: {e}")
             return False, str(e)
+
+    # addons/Automobiles/controllers/automobile_controller.py
+# Ajouter ces méthodes à la classe VehicleController
+
+    # ============================================================================
+    # MÉTHODES SQLITE PERSISTANT (entre deux sessions)
+    # ============================================================================
+    
+    def get_all_vehicles_persistent(self, force_refresh: bool = False, 
+                                     async_callback: callable = None) -> list[Vehicle]:
+        """
+        Récupère les véhicules avec cache SQLite persistant
+        Les données restent disponibles même après redémarrage de l'application
+        """
+        from core.local_db import cache
+        import json
+        
+        cache_key = "automobiles:vehicles:persistent"
+        
+        if not force_refresh:
+            # Essayer le cache SQLite
+            cached_data = cache.get(cache_key)
+            if cached_data:
+                # Reconstruire les objets à partir des dictionnaires
+                vehicles = [self._dict_to_vehicle(v) for v in cached_data]
+                if async_callback:
+                    async_callback(vehicles)
+                return vehicles
+        
+        # Charger depuis la base
+        vehicles = self.get_all_vehicles(force_refresh=True)
+        
+        # Sérialiser pour SQLite
+        serialized = [self._vehicle_to_dict(v) for v in vehicles]
+        
+        # Sauvegarder en cache (TTL 24h = 86400 secondes)
+        cache.set(cache_key, serialized, module="automobiles", ttl_seconds=86400)
+        
+        if async_callback:
+            async_callback(vehicles)
+        return vehicles
+    
+    def get_vehicle_by_id_persistent(self, vehicle_id: int):
+        """
+        Récupère un véhicule depuis le cache SQLite par ID
+        Utile pour les accès rapides sans base de données
+        """
+        from core.local_db import cache
+        
+        cache_key = f"automobiles:vehicles:id:{vehicle_id}"
+        
+        # Essayer le cache
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        # Charger depuis la base
+        vehicle = self.get_vehicles_by_id(vehicle_id)
+        if vehicle:
+            vehicle_dict = self._vehicle_to_dict(vehicle)
+            cache.set(cache_key, vehicle_dict, module="automobiles", ttl_seconds=86400)
+            return vehicle_dict
+        
+        return None
+    
+    def get_vehicles_owner_persistent(self, owner_id: int):
+        """
+        Récupère les véhicules d'un propriétaire depuis le cache SQLite
+        """
+        from core.local_db import cache
+        
+        cache_key = f"automobiles:vehicles:owner:{owner_id}"
+        
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        vehicles = self.get_vehicles_by_owner_id(owner_id)
+        result = [self._vehicle_to_dict(v) for v in vehicles]
+        
+        cache.set(cache_key, result, module="automobiles", ttl_seconds=86400)
+        return result
+    
+    def get_dashboard_stats_persistent(self, fleet_id: int = None):
+        """
+        Récupère les statistiques dashboard depuis le cache SQLite
+        """
+        from core.local_db import cache
+        
+        cache_key = f"automobiles:dashboard:stats:fleet:{fleet_id}"
+        
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        stats = self.get_dashboard_stats(fleet_id, force_refresh=True)
+        cache.set(cache_key, stats, module="automobiles", ttl_seconds=3600)  # 1 heure
+        
+        return stats
+    
+    def get_compagnies_persistent(self):
+        """
+        Récupère toutes les compagnies depuis le cache SQLite
+        (Référentiel - rarement modifié)
+        """
+        from core.local_db import cache
+        
+        cache_key = "automobiles:compagnies:persistent"
+        
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        compagnies = self.get_all_compagnies()
+        result = [self._compagnie_to_dict(c) for c in compagnies]
+        
+        # TTL plus long pour les référentiels (7 jours)
+        cache.set(cache_key, result, module="automobiles", ttl_seconds=604800)
+        
+        return result
+    
+    def get_contacts_persistent(self):
+        """
+        Récupère tous les contacts depuis le cache SQLite
+        """
+        from core.local_db import cache
+        
+        cache_key = "automobiles:contacts:persistent"
+        
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        contacts = self.get_all_contacts()
+        result = [self._contact_to_dict(c) for c in contacts]
+        
+        cache.set(cache_key, result, module="automobiles", ttl_seconds=86400)
+        
+        return result
+    
+    def get_tarif_compagnie_persistent(self, cie_id: int):
+        """
+        Récupère les tarifs d'une compagnie depuis le cache SQLite
+        """
+        from core.local_db import cache
+        
+        cache_key = f"automobiles:tarifs:compagnie:{cie_id}"
+        
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        from addons.Automobiles.models.tarif_models import AutomobileTarif
+        
+        tarifs = self.session.query(AutomobileTarif).filter(
+            AutomobileTarif.cie_id == cie_id,
+            AutomobileTarif.is_active == True
+        ).all()
+        
+        result = [self._tarif_to_dict(t) for t in tarifs]
+        
+        # TTL plus long pour les tarifs (peu modifiés)
+        cache.set(cache_key, result, module="automobiles", ttl_seconds=604800)
+        
+        return result
+    
+    def get_rc_premium_from_matrix_persistent(self, cie_id: int, zone_saisie: str, 
+                                               categorie: str, energie: str, 
+                                               cv_saisi: int, avec_remorque: bool = False,
+                                               code_tarif: str = None) -> Dict:
+        """
+        Version avec cache SQLite pour le calcul des primes RC
+        Évite de recalculer à chaque fois
+        """
+        from core.local_db import cache
+        
+        # Générer une clé unique pour ce calcul
+        cache_key = f"automobiles:rc:calc:{cie_id}:{zone_saisie}:{categorie}:{energie}:{cv_saisi}:{avec_remorque}:{code_tarif}"
+        
+        # Essayer le cache
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        # Calculer
+        result = self.get_rc_premium_from_matrix(
+            cie_id, zone_saisie, categorie, energie, 
+            cv_saisi, avec_remorque, code_tarif
+        )
+        
+        # Mettre en cache (TTL 24h car dépend des tarifs, rarement modifiés)
+        cache.set(cache_key, result, module="automobiles", ttl_seconds=86400)
+        
+        return result
+    
+    # ============================================================================
+    # MÉTHODES D'INVALIDATION DU CACHE SQLITE
+    # ============================================================================
+    
+    def invalidate_all_cache(self):
+        """
+        Invalide tout le cache SQLite pour le module automobiles
+        À appeler après des modifications importantes (création, modification, suppression)
+        """
+        from core.local_db import cache
+        
+        # Supprimer tout le module
+        cache.clear_module("automobiles")
+        
+        # Supprimer aussi le cache mémoire
+        self._invalidate_cache()
+        
+        logger.info("🗑️ Cache SQLite du module automobiles invalidé")
+    
+    def invalidate_vehicle_cache(self, vehicle_id: int = None):
+        """
+        Invalide le cache spécifique aux véhicules
+        """
+        from core.local_db import cache
+        
+        # Supprimer la liste générale
+        cache.delete("automobiles:vehicles:persistent")
+        
+        # Supprimer un véhicule spécifique si fourni
+        if vehicle_id:
+            cache.delete(f"automobiles:vehicles:id:{vehicle_id}")
+        
+        # Supprimer les stats dashboard
+        cache.delete("automobiles:dashboard:stats:fleet:None")
+        
+        self._invalidate_cache("automobiles:vehicles")
+        
+        logger.info(f"🗑️ Cache véhicules invalidé (id={vehicle_id})")
+    
+    def invalidate_compagnies_cache(self):
+        """Invalide le cache des compagnies"""
+        from core.local_db import cache
+        
+        cache.delete("automobiles:compagnies:persistent")
+        self._invalidate_cache("automobiles:compagnies")
+        
+        logger.info("🗑️ Cache compagnies invalidé")
+    
+    def invalidate_contacts_cache(self):
+        """Invalide le cache des contacts"""
+        from core.local_db import cache
+        
+        cache.delete("automobiles:contacts:persistent")
+        self._invalidate_cache("automobiles:contacts")
+        
+        logger.info("🗑️ Cache contacts invalidé")
+    
+
+    
+    def _get_cached(self, key: str) -> Optional[Any]:
+        """Récupère une valeur du cache mémoire"""
+        if not hasattr(self, '_cache'):
+            self._cache = {}
+        
+        cached = self._cache.get(key)
+        if cached and 'timestamp' in cached:
+            import time
+            # Cache valide 5 minutes (300 secondes)
+            if time.time() - cached['timestamp'] < 300:
+                return cached['data']
+            else:
+                del self._cache[key]
+        return None
+    
+    def _set_cache(self, key: str, data: Any):
+        """Sauvegarde une valeur dans le cache mémoire"""
+        if not hasattr(self, '_cache'):
+            self._cache = {}
+        
+        import time
+        self._cache[key] = {
+            'data': data,
+            'timestamp': time.time()
+        }
+    
+    def _invalidate_cache(self, pattern: str = None):
+        """Invalide le cache mémoire"""
+        if not hasattr(self, '_cache'):
+            self._cache = {}
+        
+        if pattern:
+            keys_to_remove = [k for k in self._cache.keys() if pattern in k]
+            for key in keys_to_remove:
+                del self._cache[key]
+        else:
+            self._cache.clear()
+        
+        logger.info(f"🗑️ Cache invalidé: {pattern or 'tous'}")
+    
+    def refresh_cache(self):
+        """Force le rafraîchissement du cache"""
+        self._invalidate_cache()
+        return self.get_all_vehicles(force_refresh=True)
+    # ============================================================================
+    # MÉTHODES DE SÉRIALISATION
+    # ============================================================================
+    
+    def _vehicle_to_dict(self, vehicle: Vehicle) -> Dict:
+        """Convertit un véhicule en dictionnaire pour SQLite"""
+        return {
+            'id': vehicle.id,
+            'immatriculation': vehicle.immatriculation,
+            'chassis': vehicle.chassis,
+            'marque': vehicle.marque,
+            'modele': vehicle.modele,
+            'annee': vehicle.annee,
+            'energie': vehicle.energie,
+            'categorie': vehicle.categorie,
+            'zone': vehicle.zone,
+            'usage': vehicle.usage,
+            'places': vehicle.places,
+            'statut': vehicle.statut,
+            'owner_id': vehicle.owner_id,
+            'compagny_id': vehicle.compagny_id,
+            'fleet_id': vehicle.fleet_id,
+            'prime_nette': vehicle.prime_nette,
+            'prime_brute': vehicle.prime_brute,
+            'pttc': vehicle.pttc,
+            'is_active': vehicle.is_active,
+            'created_at': vehicle.created_at.isoformat() if vehicle.created_at else None,
+            # Garanties
+            'amt_rc': vehicle.amt_rc,
+            'amt_dr': vehicle.amt_dr,
+            'amt_vol': vehicle.amt_vol,
+            'amt_vb': vehicle.amt_vb,
+            'amt_in': vehicle.amt_in,
+            'amt_bris': vehicle.amt_bris,
+            'amt_ar': vehicle.amt_ar,
+            'amt_dta': vehicle.amt_dta,
+            'amt_ipt': vehicle.amt_ipt,
+        }
+    
+    def _dict_to_vehicle(self, data: Dict) -> Vehicle:
+        """Reconstruit un véhicule à partir d'un dictionnaire"""
+        # Créer un objet Vehicle temporaire
+        vehicle = Vehicle()
+        
+        # Remplir les attributs
+        for key, value in data.items():
+            if hasattr(vehicle, key):
+                setattr(vehicle, key, value)
+        
+        return vehicle
+    
+    def _compagnie_to_dict(self, compagnie: Compagnie) -> Dict:
+        """Convertit une compagnie en dictionnaire"""
+        return {
+            'id': compagnie.id,
+            'code': compagnie.code,
+            'nom': compagnie.nom,
+            'email': compagnie.email,
+            'telephone': compagnie.telephone,
+            'adresse': compagnie.adresse,
+            'num_debut': compagnie.num_debut,
+            'num_fin': compagnie.num_fin,
+            'is_active': compagnie.is_active,
+        }
+    
+    def _contact_to_dict(self, contact: Contact) -> Dict:
+        """Convertit un contact en dictionnaire"""
+        return {
+            'id': contact.id,
+            'nom': contact.nom,
+            'prenom': contact.prenom,
+            'telephone': contact.telephone,
+            'email': contact.email,
+            'adresse': contact.adresse,
+            'ville': contact.ville,
+            'type_client': contact.type_client,
+            'nature': contact.nature,
+            'code_client': contact.code_client,
+            'vip_status': contact.vip_status,
+        }
+    
+    def _tarif_to_dict(self, tarif) -> Dict:
+        """Convertit un tarif en dictionnaire"""
+        return {
+            'id': tarif.id,
+            'cie_id': tarif.cie_id,
+            'tarif_code': tarif.tarif_code,
+            'lib_tarif': tarif.lib_tarif,
+            'categorie': tarif.categorie,
+            'zone': tarif.zone,
+        }
+    
+    # ============================================================================
+    # MÉTHODES DE SYNCHRONISATION
+    # ============================================================================
+
+    def sync_from_server(self):
+        """
+        Synchronise les données du cache SQLite avec le serveur
+        Appelé périodiquement ou au démarrage
+        """
+        from core.local_db import cache
+        import threading
+        
+        def sync():
+            logger.info("🔄 Synchronisation des données automobiles...")
+            
+            # Forcer le rafraîchissement des listes principales
+            self.get_all_vehicles_persistent(force_refresh=True)
+            self.get_compagnies_persistent(force_refresh=True)
+            self.get_contacts_persistent(force_refresh=True)
+            self.get_dashboard_stats_persistent(force_refresh=True)
+            
+            logger.info("✅ Synchronisation terminée")
+        
+        thread = threading.Thread(target=sync, daemon=True)
+        thread.start()
+    
+    def get_cache_stats(self) -> Dict:
+        """Retourne les statistiques du cache SQLite"""
+        from core.local_db import cache
+        
+        stats = cache.get_stats()
+        return {
+            'sqlite_size_mb': stats.get('db_size_mb', 0),
+            'sqlite_entries': stats.get('total_entries', 0),
+            'memory_entries': len(self._object_cache),
+            'memory_keys': list(self._object_cache.keys())
+        }
 
     def get_vehicle_guarantees(self, vehicle_id):
         """

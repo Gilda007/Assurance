@@ -15,6 +15,7 @@ from core.alerts import AlertManager
 from core.logger import logger
 from core.loader import AddonLoader
 import os
+import threading
 
 # Imports pour les graphiques
 try:
@@ -33,10 +34,7 @@ from addons.Paramètres.models.models import User
 from update_manager import UpdateManager
 from update_client import UpdateClient
 from update_widget import UpdateWidget
-import threading
-
-
-from core.database import engine, Base
+from core.widgets.global_loader import get_global_loader
 from core.local_db import cache
 # import addons.Automobiles.models as models
 
@@ -1465,8 +1463,11 @@ class MainWindow(QMainWindow):
         self.resize(1280, 800)
         self.setMinimumSize(1200, 800)
         self.setStyleSheet(STYLE_SHEET)
+
         
         self.setup_ui()
+        self.loader = get_global_loader()
+        self.loader.setParent(self)
         self.init_modules()
         cache_stats = cache.get_stats()
         print(f"📊 Cache local: {cache_stats.get('total_entries', 0)} entrées, {cache_stats.get('db_size_mb', 0)} MB")

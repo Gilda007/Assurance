@@ -770,32 +770,40 @@ class FleetForm(QDialog):
         splitter.setSizes([350, 450])
         client_layout.addWidget(splitter)
         form_layout.addWidget(group_client)
-        
-        # SECTION 3: ASSURANCE ET CONTRAT
+                
+                # SECTION 3: ASSURANCE ET CONTRAT - Version corrigée
+
         group_contract = QGroupBox("📄 Contrat & Assurance")
         group_contract.setStyleSheet(group_style)
         contract_layout = QGridLayout(group_contract)
         contract_layout.setSpacing(20)
         contract_layout.setContentsMargins(25, 25, 25, 25)
-        
+
         contract_layout.addWidget(self.create_label_with_icon("🏦", "Assureur Principal"), 0, 0)
         self.assureur_input = QComboBox()
         self.assureur_input.setStyleSheet(field_style)
-        self.assureur_input.setMaximumHeight(100)  
+        self.assureur_input.setMaximumHeight(100)
+
+        # ✅ CORRECTION ICI - Ajouter directement les items avec addItem(text, userData)
         for cie in self.compagnies_list:
             # cie est un tuple (id, nom)
             if isinstance(cie, tuple) and len(cie) >= 2:
                 comp_id = cie[0]   # Premier élément = ID
                 comp_nom = cie[1]  # Deuxième élément = Nom
-                self.assureur_input.addItem(comp_nom, comp_id)
+                self.assureur_input.addItem(comp_nom, comp_id)  # ✅ Utiliser addItem avec text et userData
+            elif isinstance(cie, dict):
+                # Si c'est un dictionnaire
+                comp_id = cie.get('id')
+                comp_nom = cie.get('nom', '')
+                if comp_id:
+                    self.assureur_input.addItem(comp_nom, comp_id)
             else:
                 # Fallback si c'est un objet
                 comp_id = getattr(cie, 'id', None)
                 comp_nom = getattr(cie, 'nom', str(cie))
                 if comp_id:
-                    item = QListWidgetItem(comp_nom)
-                    item.setData(Qt.UserRole, comp_id)
-                    self.assureur_input.addItem(item)
+                    self.assureur_input.addItem(comp_nom, comp_id)
+
         contract_layout.addWidget(self.assureur_input, 1, 0)
         
         contract_layout.addWidget(self.create_label_with_icon("💰", "Mode de Facturation"), 0, 1)

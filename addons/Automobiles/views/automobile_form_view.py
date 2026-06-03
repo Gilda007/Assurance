@@ -9,6 +9,9 @@ import socket
 import platform
 import requests
 
+from core.widgets.global_loader import get_global_loader
+from core.workers.database_worker import async_query
+
 # from main import AppColors
 
 class VehicleForm(QDialog):
@@ -1662,62 +1665,97 @@ class VehicleForm(QDialog):
 
     def validate_and_save(self):
         """Valide et sauvegarde le véhicule"""
+        try:
+            self._prepare_save_ui()
+            data = self.get_form_data()
+            current_user_id = getattr(self, "current_user_id", 1)
+            vehicle_id = None
+            if hasattr(self, 'vehicle_to_edit') and self.vehicle_to_edit and hasattr(self.vehicle_to_edit, 'id'):
+                vehicle_id = self.vehicle_to_edit.id
+
+            self.progress_bar.setValue(30)
+
+            async_query.execute(
+                self._save_vehicle,
+                on_finished=self._on_save_finished,
+                on_error=self._on_save_error,
+                show_loader=True,
+                loader_message="Enregistrement du véhicule...",
+                data=data,
+                vehicle_id=vehicle_id,
+                current_user_id=current_user_id
+            )
+        except Exception as e:
+            self._reset_save_ui()
+            QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {str(e)}")
+
+    def _prepare_save_ui(self):
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         self.btn_save.setEnabled(False)
         self.btn_save.setText("⏳ Traitement en cours...")
-        
         self.progress_bar.setVisible(True)
         self.progress_bar.setValue(10)
         QApplication.processEvents()
-        
+
+    def _reset_save_ui(self):
+        QApplication.restoreOverrideCursor()
+        self.btn_save.setEnabled(True)
+        self.btn_save.setText("💾 ENREGISTRER LE VÉHICULE")
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setValue(0)
+
+    def _save_vehicle(self, data, vehicle_id, current_user_id):
+        from addons.Automobiles.controllers.automobile_controller import VehicleController
+        from core.database import SessionLocal
+
+        session = SessionLocal()
         try:
-            data = self.get_form_data()
-            ip_local = socket.gethostbyname(socket.gethostname())
-            ip_public = None
+            vehicle_ctrl = VehicleController(session)
+            local_ip = socket.gethostbyname(socket.gethostname())
+            public_ip = None
             try:
-                ip_public = requests.get('https://api.ipify.org', timeout=1).text
-            except:
-                ip_public = "Non disponible"
-            
-            self.progress_bar.setValue(30)
-            current_user_id = getattr(self, "current_user_id", 1)
-            
-            if hasattr(self, 'vehicle_to_edit') and self.vehicle_to_edit and hasattr(self.vehicle_to_edit, 'id'):
-                self.progress_bar.setValue(50)
-                success, message = self.controller.vehicles.update_vehicle(
-                    vehicle_id=self.vehicle_to_edit.id, 
-                    new_data=data, 
+                public_ip = requests.get('https://api.ipify.org', timeout=1).text
+            except Exception:
+                public_ip = "Non disponible"
+
+            if vehicle_id:
+                return vehicle_ctrl.update_vehicle(
+                    vehicle_id=vehicle_id,
+                    new_data=data,
                     user_id=current_user_id,
-                    local_ip=ip_local,
-                    public_ip=ip_public
+                    local_ip=local_ip,
+                    public_ip=public_ip
                 )
-            else:
-                self.progress_bar.setValue(50)
-                success, vehicle_id, message = self.controller.vehicles.create_vehicle(
-                    data=data, 
-                    user_id=current_user_id,
-                    local_ip=ip_local,
-                    public_ip=ip_public
-                )
-            
-            self.progress_bar.setValue(90)
-            QApplication.processEvents()
-            
-            if success:
-                self.progress_bar.setValue(100)
-                QApplication.restoreOverrideCursor()
-                import time
-                time.sleep(0.3)
-                self.accept()
-            else:
-                raise Exception(message)
-                
-        except Exception as e:
-            QApplication.restoreOverrideCursor()
-            self.btn_save.setEnabled(True)
-            self.btn_save.setText("💾 ENREGISTRER LE VÉHICULE")
-            self.progress_bar.setVisible(False)
-            QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {str(e)}")
+            return vehicle_ctrl.create_vehicle(
+                data=data,
+                user_id=current_user_id,
+                local_ip=local_ip,
+                public_ip=public_ip
+            )
+        finally:
+            session.close()
+
+    def _on_save_finished(self, result):
+        QApplication.restoreOverrideCursor()
+        self.progress_bar.setValue(100)
+
+        if not isinstance(result, (tuple, list)) or len(result) == 0:
+            self._reset_save_ui()
+            QMessageBox.critical(self, "Erreur de sauvegarde", "Résultat inattendu lors de l'enregistrement")
+            return
+
+        success = result[0]
+        if success:
+            self.accept()
+            return
+
+        message = result[1] if len(result) > 1 else "Erreur inconnue"
+        self._reset_save_ui()
+        QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {message}")
+
+    def _on_save_error(self, error):
+        self._reset_save_ui()
+        QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {error}")
 
     def get_data(self):
         """Récupère les données du formulaire pour la sauvegarde"""
@@ -2064,7 +2102,7 @@ class VehicleForm(QDialog):
                 self.update_garantie_price(key, 2)
 
     def on_code_tarif_changed(self, code):
-        """Lorsque le code tarif change, met à jour le libellé et la catégorie correspondants"""
+        """Lorsque le code tarif change, met à jour le libellé, la catégorie et relance le calcul."""
         if code and self.selected_cie_id:
             # Chercher le libellé correspondant dans les données chargées
             for item in [self.code_tarif.itemData(i) for i in range(self.code_tarif.count())]:
@@ -2074,42 +2112,166 @@ class VehicleForm(QDialog):
                         self.combo_fleet.setCurrentText(libelle)
                     break
 
-            # Si un code tarif est sélectionné, recalculer la RC pour récupérer la catégorie
-            self.update_rc_calculation()
+            # Charger les catégories liées à ce code tarif
+            self.load_tarif_categories_by_code_async(code)
+            # Recalculer la RC sans bloquer l'interface
+            self.update_rc_calculation_async()
 
     def load_tarif_codes(self):
         """Charge la liste des codes tarif pour la compagnie sélectionnée"""
+        self.load_tarif_codes_async()
+
+    def load_tarif_codes_async(self):
+        """Charge les codes tarif et catégories de manière asynchrone."""
         if not self.selected_cie_id or not self.controller:
             return
-        
-        try:
-            codes = self.controller.vehicles.get_tarif_codes_by_compagnie(self.selected_cie_id)
-            
-            # Vider et remplir la combo box
-            self.code_tarif.clear()
-            self.code_tarif.addItem("", "")  # Option vide
-            
-            for code, libelle in codes:
-                self.code_tarif.addItem(code, {"code": code, "libelle": libelle})
-                # Stocker le libellé comme user data
-            
-            # Mettre à jour aussi la combo_fleet
-            self.combo_fleet.clear()
-            self.combo_fleet.addItem("", "")
-            for code, libelle in codes:
-                self.combo_fleet.addItem(libelle, {"code": code, "libelle": libelle})
 
-            # Mettre à jour la combo_cat avec les catégories disponibles
-            self.combo_cat.clear()
-            self.combo_cat.addItem("", "")
-            categories = []
-            if self.controller:
-                categories = self.controller.vehicles.get_tarif_categories_by_compagnie(self.selected_cie_id)
-            for categorie in categories:
-                self.combo_cat.addItem(str(categorie))
-                
-        except Exception as e:
-            print(f"Erreur lors du chargement des codes tarif : {e}")
+        loader = get_global_loader()
+        loader.show_loading("Chargement des tarifs...")
+
+        def fetch():
+            codes = self.controller.vehicles.get_tarif_codes_by_compagnie(self.selected_cie_id)
+            categories = self.controller.vehicles.get_tarif_categories_by_compagnie(self.selected_cie_id)
+            return {
+                "codes": codes,
+                "categories": categories
+            }
+
+        async_query.execute(
+            fetch,
+            on_finished=self._on_tarif_codes_loaded,
+            on_error=self._on_tarif_codes_error
+        )
+
+    def _on_tarif_codes_loaded(self, result):
+        get_global_loader().hide_loading()
+
+        if not isinstance(result, dict):
+            print("Erreur interne : résultat inattendu lors du chargement des codes tarif")
+            return
+
+        self._populate_tarif_code_fleet(result.get("codes", []))
+        self._populate_category_combobox(result.get("categories", []), keep_current=False)
+
+    def _on_tarif_codes_error(self, error):
+        get_global_loader().hide_loading()
+        print(f"Erreur lors du chargement des codes tarif : {error}")
+
+    def _populate_tarif_code_fleet(self, codes):
+        self.code_tarif.clear()
+        self.code_tarif.addItem("", "")
+
+        self.combo_fleet.clear()
+        self.combo_fleet.addItem("", "")
+
+        for code, libelle in codes:
+            self.code_tarif.addItem(code, {"code": code, "libelle": libelle})
+            self.combo_fleet.addItem(libelle, {"code": code, "libelle": libelle})
+
+    def _populate_category_combobox(self, categories, keep_current=False):
+        current_value = self.combo_cat.currentText() if keep_current else None
+        self.combo_cat.clear()
+        self.combo_cat.addItem("", "")
+
+        unique_categories = sorted({str(c).strip() for c in categories if c})
+        for categorie in unique_categories:
+            self.combo_cat.addItem(categorie)
+
+        if current_value:
+            self.combo_cat.setCurrentText(current_value)
+
+    def load_tarif_categories_by_code_async(self, code):
+        """Charge les catégories associées à un code tarif sélectionné."""
+        if not self.selected_cie_id or not self.controller or not code:
+            return
+
+        loader = get_global_loader()
+        loader.show_loading("Chargement des catégories...")
+
+        def fetch():
+            return self.controller.vehicles.get_tarif_categories_by_compagnie_and_code(
+                self.selected_cie_id,
+                code
+            )
+
+        async_query.execute(
+            fetch,
+            on_finished=self._on_tarif_categories_loaded,
+            on_error=self._on_tarif_codes_error
+        )
+
+    def _on_tarif_categories_loaded(self, categories):
+        get_global_loader().hide_loading()
+        self._populate_category_combobox(categories, keep_current=False)
+
+        if categories:
+            first_category = str(categories[0]).strip()
+            if first_category:
+                self.combo_cat.setCurrentText(first_category)
+
+    def update_rc_calculation_async(self):
+        """Met à jour le calcul de la RC en tâche de fond."""
+        if not self.controller or not self.selected_cie_id:
+            return
+
+        loader = get_global_loader()
+        loader.show_loading("Calcul de la RC...")
+
+        cie_id = self.selected_cie_id
+        zone = self.combo_zone.currentText()
+        categorie = self.combo_cat.currentText()
+        energie = self.energie_combo.currentText()
+        cv = self.get_int_value(self.usage_input)
+        avec_remorque = self.check_remorque.isChecked()
+        code_tarif = self.code_tarif.currentText().strip() if self.code_tarif.currentText() else None
+
+        def fetch():
+            return self.controller.vehicles.get_rc_premium_from_matrix(
+                cie_id=cie_id,
+                zone_saisie=zone,
+                categorie=categorie,
+                energie=energie,
+                cv_saisi=cv,
+                avec_remorque=avec_remorque,
+                code_tarif=code_tarif
+            )
+
+        async_query.execute(
+            fetch,
+            on_finished=self._on_rc_calculation_finished,
+            on_error=self._on_rc_calculation_error
+        )
+
+    def _on_rc_calculation_finished(self, res_rc):
+        get_global_loader().hide_loading()
+        if not isinstance(res_rc, dict):
+            print("Erreur interne : résultat inattendu lors du calcul RC")
+            return
+
+        montant_rc = res_rc.get('rc', 0.0)
+        libelle = res_rc.get('libelle', '')
+        categorie_retournee = res_rc.get('categorie', '')
+
+        if categorie_retournee and self.combo_cat.currentText() != categorie_retournee:
+            if self.combo_cat.findText(categorie_retournee) == -1:
+                self.combo_cat.addItem(categorie_retournee)
+            self.combo_cat.setCurrentText(categorie_retournee)
+
+        if libelle and self.combo_fleet.currentText() != libelle:
+            self.combo_fleet.setCurrentText(libelle)
+
+        garantie_data = self.result_labels.get('rc')
+        if garantie_data:
+            if montant_rc > 0:
+                garantie_data['montant_brut'].setText(f"{montant_rc:,.0f} FCFA")
+                garantie_data['montant_net'].setText(f"{montant_rc:,.0f} FCFA")
+            else:
+                garantie_data['montant_brut'].setText("Tarif introuvable")
+                garantie_data['montant_net'].setText("Tarif introuvable")
+
+    def _on_rc_calculation_error(self, error):
+        get_global_loader().hide_loading()
+        print(f"Erreur lors du calcul RC : {error}")
 
     def update_garantie_price(self, key, state):
         """
@@ -2226,7 +2388,7 @@ class VehicleForm(QDialog):
                 garantie_data['montant_taux'].setVisible(True)
                 garantie_data['montant_net'].setVisible(True)
                 if key == "rc":
-                    self.update_rc_calculation()
+                    self.update_rc_calculation_async()
             else:
                 garantie_data['montant_brut'].setVisible(False)
                 garantie_data['taux'].setVisible(False)
