@@ -14,6 +14,7 @@ __pycache__/
 logs/
 uploads/
 *.log
+*backup_*
 
 # Editor settings
 .vscode/

@@ -676,66 +676,67 @@ class VehicleDetailView(QWidget):
     #     finally:
     #         db.close()
 
+    # def export_to_asac(self):
+    #     """Exporte le véhicule vers ASAC"""
+    #     from addons.Automobiles.api.asac_client import AsacClient, AsacCredentials
+    #     from addons.Automobiles.api.lometa_client import LometaDataProvider
+        
+    #     vehicle_id = self.data.get('id')
+    #     if not vehicle_id:
+    #         QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
+    #         return
+        
+    #     credentials = AsacCredentials(
+    #         app_key="TEST_APP_KEY_2024",
+    #         username="asac_admin",
+    #         api_url="http://localhost:8001"
+    #     )
+        
+    #     if not self.controller:
+    #         QMessageBox.warning(self, "Erreur", "Contrôleur non disponible")
+    #         return
+        
+    #     try:
+    #         # ⚠️ CRITIQUE: Passer self.controller, pas self.controller.vehicles
+    #         # self.controller est AutomobileMainController
+    #         provider = LometaDataProvider(self.controller)
+    #         production_request = provider.build_production_from_vehicle(vehicle_id)
+            
+    #         if not production_request:
+    #             QMessageBox.warning(self, "Erreur", "Impossible de construire la requête ASAC")
+    #             return
+            
+    #         client = AsacClient(credentials)
+    #         client.authenticate()
+    #         response = client.create_production(production_request)
+            
+    #         QMessageBox.information(self, "Export réussi", 
+    #             f"Attestation générée avec succès!\n"
+    #             f"Référence: {response.get('data', {}).get('reference', 'N/A')}")
+            
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Erreur", f"Erreur lors de l'export: {str(e)}")
+
     def export_to_asac(self):
-        """Exporte le véhicule vers ASAC"""
-        from addons.Automobiles.api.asac_client import AsacClient, AsacCredentials, AsacAPIError
-        from addons.Automobiles.api.lometa_client import LometaDataProvider
+        """Ouvre le gestionnaire ASAC (Import/Export)"""
+        from addons.Automobiles.views.asac_manager import AsacManager
         
-        vehicle_id = self.data.get('id')
-        if not vehicle_id:
-            QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
-            return
+        # Créer et afficher le gestionnaire ASAC avec les données du véhicule
+        asac_manager = AsacManager(self.controller, self.data, self)  # ← passer self.data au lieu de self
         
-        # Récupérer les credentials ASAC
-        credentials = AsacCredentials(
-            app_key="TEST_APP_KEY_2024",
-            username="asac_admin",
-            api_url="http://localhost:8001"
-        )
+        asac_manager.setWindowTitle("ASAC Export")
+        asac_manager.resize(1100, 800)
+        asac_manager.exec()  # Utiliser exec() pour QDialog au lieu de show()
+
+    # def export_to_asac(self):
+    #     """Ouvre le gestionnaire ASAC (Import/Export)"""
+    #     from addons.Automobiles.views.asac_manager import AsacManager
         
-        if not self.controller:
-            QMessageBox.warning(self, "Erreur", "Contrôleur non disponible")
-            return
-        
-        try:
-            provider = LometaDataProvider(self.controller.vehicles)
-            production_request = provider.build_production_from_vehicle(vehicle_id)
-            
-            if not production_request:
-                QMessageBox.warning(self, "Erreur", "Impossible de construire la requête ASAC")
-                return
-            
-            # Afficher la requête pour déboguer
-            print("=" * 50)
-            print("📤 REQUÊTE ENVOYÉE À ASAC:")
-            print("=" * 50)
-            import json
-            print(json.dumps(production_request, indent=2, default=str))
-            print("=" * 50)
-            
-            # Envoyer à l'API ASAC
-            client = AsacClient(credentials)
-            client.authenticate()
-            response = client.create_production(production_request)
-            
-            QMessageBox.information(
-                self, 
-                "Export réussi", 
-                f"Attestation générée avec succès!\n"
-                f"Référence: {response.get('data', {}).get('reference', 'N/A')}"
-            )
-            
-        except AsacAPIError as e:
-            # Afficher les erreurs détaillées
-            error_msg = f"Erreur API: {e}\n"
-            if e.errors:
-                error_msg += f"\nDétails:\n{json.dumps(e.errors, indent=2)}"
-            QMessageBox.critical(self, "Erreur API", error_msg)
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur", f"Erreur lors de l'export: {str(e)}")
-            import traceback
-            traceback.print_exc()
+    #     asac_manager = AsacManager(self.controller, self.data, self)
+    #     asac_manager.setWindowTitle("ASAC Export")
+    #     asac_manager.resize(1100, 800)
+    #     asac_manager.setModal(False)  # Non modal
+    #     asac_manager.show()
 
     def create_info_tab(self):
         """Onglet des informations générales"""
@@ -768,7 +769,6 @@ class VehicleDetailView(QWidget):
         elif action == "export":
             QMessageBox.information(self, "Export PDF", "Fonction d'export PDF à implémenter")
         elif action == "asac":
-            QMessageBox.information(self, "Export Asac", "Processus en cours...")
             self.export_to_asac() 
     
     def print_document(self, doc_type):
@@ -5798,85 +5798,6 @@ class VehicleDetailView(QWidget):
             return float(cleaned)
         except (ValueError, AttributeError):
             return 0.0
-
-    # def _validate_payment(self):
-    #     """Version utilisant le contrôleur"""
-    #     montant_verse = self._get_montant_verse_value()
-        
-    #     if montant_verse <= 0:
-    #         QMessageBox.warning(self, "Erreur", "Veuillez saisir un montant valide")
-    #         return
-        
-    #     if not self.payment_ctrl:
-    #         QMessageBox.warning(self, "Erreur", "Contrôleur de paiement non disponible")
-    #         return
-        
-    #     # Récupérer l'ID du véhicule
-    #     vehicle_id = self.data.get('id')
-    #     if not vehicle_id and hasattr(self.data, 'id'):
-    #         vehicle_id = self.data.id
-        
-    #     if not vehicle_id:
-    #         QMessageBox.warning(self, "Erreur", "ID du véhicule non trouvé")
-    #         return
-        
-    #     # Récupérer le contrat via le contrôleur
-    #     contrat = self.contract_ctrl.get_contract_by_vehicle(vehicle_id)
-        
-    #     if not contrat:
-    #         QMessageBox.warning(self, "Erreur", f"Aucun contrat trouvé pour le véhicule {vehicle_id}")
-    #         return
-        
-    #     print(f"Contrat trouvé: ID={contrat.id}")
-        
-    #     reste_a_payer = contrat.prime_totale_ttc - contrat.montant_paye
-        
-    #     if montant_verse > reste_a_payer + 0.01:
-    #         reply = QMessageBox.question(
-    #             self,
-    #             "Montant excessif",
-    #             f"Le montant versé ({montant_verse:,.0f} FCFA) dépasse le solde restant ({reste_a_payer:,.0f} FCFA).\n\nSouhaitez-vous continuer ?",
-    #             QMessageBox.Yes | QMessageBox.No
-    #         )
-    #         if reply == QMessageBox.No:
-    #             return
-        
-    #     # Mode de paiement
-    #     mode_text = self.payment_mode.currentText()
-    #     mode_mapping = {
-    #         "Espèces": "CASH",
-    #         "Carte bancaire": "CARD",
-    #         "Virement": "TRANSFER",
-    #         "Chèque": "CHECK",
-    #         "Orange Money": "ORANGE_MONEY",
-    #         "MTN Mobile Money": "MTN_MONEY",
-    #     }
-    #     mode = mode_mapping.get(mode_text, "CASH")
-        
-    #     # Appeler le contrôleur AVEC contrat_id
-    #     success, payment, message = self.payment_ctrl.create_payment(
-    #         data={
-    #             'contrat_id': contrat.id,  # ← CRUCIAL: passer l'ID du contrat
-    #             'montant': montant_verse,
-    #             'mode_paiement': mode,
-    #             'notes': f"Paiement effectué via {mode_text}"
-    #         },
-    #         user_id=self._get_current_user_id(),
-    #         ip=self._get_local_ip()
-    #     )
-        
-    #     if success:
-    #         QMessageBox.information(
-    #             self,
-    #             "Paiement validé",
-    #             f"Paiement de {montant_verse:,.0f} FCFA effectué par {mode_text}\n\n"
-    #             f"Reçu: {payment.numero_recu}\n\n"
-    #             f"Solde restant : {max(0, reste_a_payer - montant_verse):,.0f} FCFA"
-    #         )
-    #         self.montant_verse.clear()
-    #         self._load_contract_data()
-    #     else:
-    #         QMessageBox.warning(self, "Erreur", f"Erreur: {message}")
          
     def _validate_payment(self):
         """Valide un paiement avec attribution du numéro de police si nécessaire"""

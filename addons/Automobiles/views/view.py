@@ -1447,6 +1447,7 @@ class VehicleMainView(QWidget):
         self.btn_vehicles.clicked.connect(lambda: self._switch_page(1, self.btn_vehicles))
         self.btn_clients.clicked.connect(lambda: self._switch_page(2, self.btn_clients))
         self.btn_comp.clicked.connect(lambda: self._switch_page(3, self.btn_comp))
+        self.btn_asac.clicked.connect(lambda: self._switch_page(4, self.btn_asac)) 
 
     def setup_sidebar(self):
         """Configure la sidebar avec un design moderne"""
@@ -1504,11 +1505,13 @@ class VehicleMainView(QWidget):
         self.btn_vehicles = self._create_nav_btn("🚗 Véhicules")
         self.btn_comp = self._create_nav_btn("🏢 Compagnies et Tarifs")
         self.btn_clients = self._create_nav_btn("👥 Clients")
+        self.btn_asac = self._create_nav_btn("🌐 API ASAC")
 
         nav_layout.addWidget(self.btn_dash)
         nav_layout.addWidget(self.btn_vehicles)
         nav_layout.addWidget(self.btn_comp)
         nav_layout.addWidget(self.btn_clients)
+        nav_layout.addWidget(self.btn_asac) 
         nav_layout.addStretch()
 
         sidebar_layout.addWidget(nav_container)
@@ -1809,7 +1812,7 @@ class VehicleMainView(QWidget):
         """Change la page active avec animation"""
         self.stack.setCurrentIndex(index)
         
-        titles = ["Tableau de Bord", "Gestion des Véhicules", "Gestion des Clients", "Compagnies et Tarifs"]
+        titles = ["Tableau de Bord", "Gestion des Véhicules", "Gestion des Clients", "Compagnies et Tarifs", "API ASAC - Import/Export" ]
         self.page_title.setText(titles[index])
         
         for b in [self.btn_dash, self.btn_vehicles, self.btn_comp, self.btn_clients]:
@@ -1915,22 +1918,6 @@ class VehicleMainView(QWidget):
         
         return page
 
-    # def _init_vehicles_page(self):
-    #     if not self.controller:
-    #         return QWidget()
-        
-    #     page = QWidget()
-    #     page.setStyleSheet("background: transparent;")
-    #     layout = QVBoxLayout(page)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-        
-    #     full_management_page = VehiculeModuleView(
-    #         controller=self.controller, 
-    #         current_user=self.user
-    #     )
-    #     layout.addWidget(full_management_page)
-        
-    #     return page
 
     def _init_vehicles_page(self):
         """Page des véhicules avec chargement initial asynchrone"""
@@ -1961,23 +1948,6 @@ class VehicleMainView(QWidget):
             page.load_vehicles_async()
         if hasattr(page, 'load_fleets_async'):
             page.load_fleets_async()
-
-    # def _init_contacts_page(self):
-    #     if not self.controller:
-    #         return QWidget()
-        
-    #     page = QWidget()
-    #     page.setStyleSheet("background: transparent;")
-    #     layout = QVBoxLayout(page)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-        
-    #     client_page = ContactListView(
-    #         controller=self.controller, 
-    #         current_user=self.user
-    #     )
-    #     layout.addWidget(client_page)
-        
-    #     return page
 
     def _init_contacts_page(self):
         """Page des contacts avec chargement initial asynchrone"""
