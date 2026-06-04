@@ -545,11 +545,10 @@ class AsacManager(QDialog):
         title_layout.addStretch()
         vehicle_layout.addLayout(title_layout)
         
-        # Champs info
-        self.vehicle_info = {}
+        # Champs info - CORRECTION : utiliser des clés simples sans espaces
         info_fields = [
             ("Immatriculation", "immatriculation"),
-            ("Marque / Modèle", lambda d: f"{d.get('marque', '')} {d.get('modele', '')}"),
+            ("Marque / Modèle", "marque_modele"),
             ("Châssis", "chassis"),
             ("Année", "annee"),
             ("Énergie", "energie"),
@@ -557,9 +556,10 @@ class AsacManager(QDialog):
             ("Propriétaire", "owner"),
             ("Téléphone", "phone"),
             ("Email", "email"),
-            ("Prime nette", lambda d: f"{d.get('prime_nette', 0):,.0f} FCFA")
+            ("Prime nette", "prime_nette")
         ]
         
+        self.vehicle_info = {}
         for label, key in info_fields:
             row = QHBoxLayout()
             lbl = QLabel(label)
@@ -737,18 +737,18 @@ class AsacManager(QDialog):
         self.vehicle_info["immatriculation"].setText(self.vehicle_data.get("immatriculation", "N/A"))
         
         marque_modele = f"{self.vehicle_data.get('marque', '')} {self.vehicle_data.get('modele', '')}".strip()
-        self.vehicle_info["marque / modèle"].setText(marque_modele or "N/A")
+        self.vehicle_info["marque_modele"].setText(marque_modele or "N/A")  # ← Clé corrigée
         
-        self.vehicle_info["châssis"].setText(self.vehicle_data.get("chassis", "N/A"))
-        self.vehicle_info["année"].setText(str(self.vehicle_data.get("annee", "N/A")))
-        self.vehicle_info["énergie"].setText(self.vehicle_data.get("energie", "N/A"))
-        self.vehicle_info["catégorie"].setText(self.vehicle_data.get("categorie", "N/A"))
-        self.vehicle_info["propriétaire"].setText(self.vehicle_data.get("owner", "N/A"))
-        self.vehicle_info["téléphone"].setText(self.vehicle_data.get("phone", "N/A"))
+        self.vehicle_info["chassis"].setText(self.vehicle_data.get("chassis", "N/A"))
+        self.vehicle_info["annee"].setText(str(self.vehicle_data.get("annee", "N/A")))
+        self.vehicle_info["energie"].setText(self.vehicle_data.get("energie", "N/A"))
+        self.vehicle_info["categorie"].setText(self.vehicle_data.get("categorie", "N/A"))
+        self.vehicle_info["owner"].setText(self.vehicle_data.get("owner", "N/A"))
+        self.vehicle_info["phone"].setText(self.vehicle_data.get("phone", "N/A"))
         self.vehicle_info["email"].setText(self.vehicle_data.get("email", "N/A"))
         
         prime = self.vehicle_data.get("prime_nette", 0)
-        self.vehicle_info["prime nette"].setText(f"{prime:,.0f} FCFA" if prime else "N/A")
+        self.vehicle_info["prime_nette"].setText(f"{prime:,.0f} FCFA" if prime else "N/A")
         
         # Garanties
         garanties = [
@@ -763,12 +763,14 @@ class AsacManager(QDialog):
             ("Individuelle Chauffeur", "amt_ipt")
         ]
         
-        for i, (name, key) in enumerate(garanties):
+        self.garanties_table.setRowCount(0)  # ← Vider avant de remplir
+        for name, key in garanties:
             montant = self.vehicle_data.get(key, 0)
             if montant and float(montant) > 0:
-                self.garanties_table.insertRow(self.garanties_table.rowCount())
-                self.garanties_table.setItem(i, 0, QTableWidgetItem(name))
-                self.garanties_table.setItem(i, 1, QTableWidgetItem(f"{float(montant):,.0f} FCFA"))
+                row = self.garanties_table.rowCount()
+                self.garanties_table.insertRow(row)
+                self.garanties_table.setItem(row, 0, QTableWidgetItem(name))
+                self.garanties_table.setItem(row, 1, QTableWidgetItem(f"{float(montant):,.0f} FCFA"))
         
         # Générer l'aperçu JSON
         self.update_json_preview()
@@ -852,7 +854,7 @@ class AsacManager(QDialog):
         
         self.config_status.style().unpolish(self.config_status)
         self.config_status.style().polish(self.config_status)
-    
+
     def open_config(self):
         """Ouvre la fenêtre de configuration"""
         dialog = ConfigDialog(self)
