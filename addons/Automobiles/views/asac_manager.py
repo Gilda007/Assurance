@@ -1,21 +1,23 @@
 # addons/Automobiles/views/asac_manager.py
 """
-Interface ASAC - Export et suivi des attestations d'assurance
-Design moderne et professionnel
+Interface ASAC - Export et import des données d'assurance
+Design moderne et professionnel avec système de notifications
 """
 
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
     QMessageBox, QProgressBar, QTabWidget, QTextEdit,
-    QLineEdit, QComboBox, QGroupBox, QGridLayout,
-    QDialog, QScrollArea, QApplication, QSplitter
+    QLineEdit, QComboBox, QCheckBox, QGridLayout,
+    QDialog, QScrollArea, QApplication, QSplitter,
+    QGraphicsDropShadowEffect, QListWidgetItem
 )
 from PySide6.QtCore import Qt, QThread, Signal, QDateTime, QSettings, QTimer, QUrl
-from PySide6.QtGui import QColor, QFont, QDesktopServices
+from PySide6.QtGui import QColor, QFont, QDesktopServices, QIcon
 from datetime import datetime
 import json
 import os
+import re
 
 
 # ============================================================================
@@ -216,6 +218,23 @@ MODERN_STYLE = """
         background: #fee2e2;
         color: #dc2626;
     }
+    
+    .StatusWarning {
+        background: #fef3c7;
+        color: #d97706;
+    }
+    
+    .NotificationItem {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 12px;
+        margin: 4px 0;
+        border-left: 3px solid #3b82f6;
+    }
+    
+    .NotificationItem:hover {
+        background: #f1f5f9;
+    }
 """
 
 
@@ -236,12 +255,10 @@ class ExportWorker(QThread):
         try:
             self.progress.emit(10, "📋 Préparation des données...")
             
-            # Construction de la requête ASAC
             request = self.build_asac_request()
             
             self.progress.emit(30, "🔐 Authentification ASAC...")
             
-            # Appel API
             import requests
             auth_url = f"{self.config['url']}/api/v1/auth/tokens/app-key"
             auth_response = requests.post(
@@ -273,53 +290,142 @@ class ExportWorker(QThread):
                 
         except Exception as e:
             self.finished.emit(False, {}, str(e))
-    
+
     def build_asac_request(self):
-        """Construit la requête ASAC à partir des données du véhicule"""
+        """Construit la requête ASAC selon le format exact exigé"""
         vehicle = self.vehicle_data
         
+        # Construction du format exact requis
         return {
-            "attestation": {
-                "numero_police": vehicle.get("numero_police", ""),
-                "immatriculation": vehicle.get("immatriculation", ""),
-                "chassis": vehicle.get("chassis", ""),
-                "marque": vehicle.get("marque", ""),
-                "modele": vehicle.get("modele", ""),
-                "date_premiere_mise_circulation": vehicle.get("annee", ""),
-                "energie": vehicle.get("energie", "Essence"),
-                "categorie": vehicle.get("categorie", "VP"),
-                "places": vehicle.get("places", 5),
-                "valeur_neuf": vehicle.get("valeur_neuf", 0),
-                "valeur_venale": vehicle.get("valeur_venale", 0)
-            },
-            "assure": {
-                "nom": vehicle.get("owner", ""),
-                "telephone": vehicle.get("phone", ""),
-                "email": vehicle.get("email", ""),
-                "adresse": vehicle.get("city", "")
-            },
-            "garanties": {
-                "responsabilite_civile": float(vehicle.get("amt_rc", 0)),
-                "defense_recours": float(vehicle.get("amt_dr", 0)),
-                "vol": float(vehicle.get("amt_vol", 0)),
-                "incendie": float(vehicle.get("amt_in", 0)),
-                "bris_de_glace": float(vehicle.get("amt_bris", 0))
-            },
-            "prime": {
-                "prime_nette": float(vehicle.get("prime_nette", 0)),
-                "prime_brute": float(vehicle.get("prime_brute", 0)),
-                "tva": float(vehicle.get("tva", 0)),
-                "total_ttc": float(vehicle.get("pttc", vehicle.get("prime_nette", 0)))
-            },
-            "periode": {
-                "date_debut": str(vehicle.get("date_debut", "")),
-                "date_fin": str(vehicle.get("date_fin", ""))
-            }
+            "office_code": self.config.get("office_code", "AG-DLA-001"),
+            "organization_code": self.config.get("org_code", "ACTIVA"),
+            "certificate_type": "cima",
+            "channel": "api",
+            "productions": [
+                {
+                    "certificate_variant_code": "JAUNE",
+                    "rc": int(vehicle.get("rc_number", 0)) or 63784,
+                    "police_number": vehicle.get("numero_police", f"POL-{datetime.now().year}-{vehicle.get('id', '00000')}"),
+                    "starts_at": str(vehicle.get("date_debut", datetime.now().strftime("%Y-%m-%d"))),
+                    "ends_at": str(vehicle.get("date_fin", (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d"))),
+                    "customer_name": vehicle.get("owner", ""),
+                    "customer_phone": vehicle.get("phone", ""),
+                    "customer_email": vehicle.get("email", ""),
+                    "customer_postal_code": vehicle.get("postal_code", f"BP {vehicle.get('city', 'Douala')}"),
+                    "customer_type": "TSPM",
+                    "insured_name": vehicle.get("owner", ""),
+                    "insured_phone": vehicle.get("phone", ""),
+                    "insured_email": vehicle.get("email", ""),
+                    "insured_postal_code": vehicle.get("postal_code", f"BP {vehicle.get('city', 'Douala')}"),
+                    "licence_plate": vehicle.get("immatriculation", "").upper(),
+                    "vehicle_chassis": vehicle.get("chassis", f"VF1{vehicle.get('id', '00000')}ABCD123456"),
+                    "vehicle_brand": vehicle.get("marque", "").upper(),
+                    "vehicle_model": vehicle.get("modele", "").upper(),
+                    "vehicle_category": self._get_vehicle_category(vehicle.get("categorie", "01")),
+                    "vehicle_genre": self._get_vehicle_genre(vehicle.get("genre", "GV04")),
+                    "vehicle_type": self._get_vehicle_type(vehicle.get("type", "TV10")),
+                    "vehicule_usage": self._get_vehicle_usage(vehicle.get("usage", "UV01")),
+                    "vehicle_energy": self._get_vehicle_energy(vehicle.get("energie", "SEES")),
+                    "nb_of_seats": int(vehicle.get("places", 5)),
+                    "fiscal_power": int(vehicle.get("fiscal_power", 5)),
+                    "circulation_zone": vehicle.get("zone", "A").upper(),
+                    "driver_name": vehicle.get("driver_name", vehicle.get("owner", "")),
+                    "driver_birthdate": vehicle.get("driver_birthdate", "1990-01-01"),
+                    "driver_licence_issued_at": vehicle.get("licence_issued_at", "2010-01-01"),
+                    "vehicle_has_trailer": bool(vehicle.get("has_trailer", False))
+                }
+            ]
         }
+
+    def _get_vehicle_category(self, categorie):
+        """Convertit la catégorie en code standard"""
+        mapping = {"VP": "01", "VU": "02", "VL": "03", "PL": "04", "01": "01", "02": "02", "03": "03", "04": "04"}
+        return mapping.get(str(categorie).upper(), "01")
+
+    def _get_vehicle_genre(self, genre):
+        """Convertit le genre en code standard"""
+        mapping = {"GV04": "GV04", "GV05": "GV05", "GV06": "GV06", "GP01": "GP01", "GP02": "GP02"}
+        return mapping.get(str(genre).upper(), "GV04")
+
+    def _get_vehicle_type(self, type_):
+        """Convertit le type en code standard"""
+        mapping = {"TV10": "TV10", "TV20": "TV20", "TV30": "TV30", "TC10": "TC10", "TC20": "TC20"}
+        return mapping.get(str(type_).upper(), "TV10")
+
+    def _get_vehicle_usage(self, usage):
+        """Convertit l'usage en code standard"""
+        mapping = {"UV01": "UV01", "UV02": "UV02", "UV03": "UV03", "UP01": "UP01", "UP02": "UP02"}
+        return mapping.get(str(usage).upper(), "UV01")
+
+    def _get_vehicle_energy(self, energy):
+        """Convertit l'énergie en code standard ASAC"""
+        mapping = {"Essence": "SEES", "Diesel": "DIESEL", "Electrique": "ELECTRIC", "Hybride": "HYBRID", "SEES": "SEES"}
+        return mapping.get(str(energy).capitalize(), "SEES")
+
+
+class ReceiveWorker(QThread):
+    """Thread pour recevoir les données du serveur ASAC"""
+    progress = Signal(int, str)
+    finished = Signal(bool, dict, str)
+    
+    def __init__(self, config, search_params):
+        super().__init__()
+        self.config = config
+        self.search_params = search_params
+    
+    def run(self):
+        try:
+            self.progress.emit(10, "🔐 Authentification...")
+            
+            import requests
+            auth_url = f"{self.config['url']}/api/v1/auth/tokens/app-key"
+            auth_response = requests.post(
+                auth_url,
+                params={"app_key": self.config["app_key"], "username": self.config["username"]},
+                timeout=10
+            )
+            
+            if auth_response.status_code != 200:
+                self.finished.emit(False, {}, f"Authentification échouée: {auth_response.text[:100]}")
+                return
+            
+            token = auth_response.json().get("token")
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            # Construction de la requête de recherche
+            search_type = self.search_params.get("type", "police")
+            search_value = self.search_params.get("value", "")
+            
+            self.progress.emit(30, f"🔍 Recherche par {search_type}...")
+            
+            if search_type == "police":
+                url = f"{self.config['url']}/api/v1/attestations/police/{search_value}"
+            elif search_type == "immatriculation":
+                url = f"{self.config['url']}/api/v1/attestations/immatriculation/{search_value}"
+            elif search_type == "periode":
+                url = f"{self.config['url']}/api/v1/attestations?date_debut={self.search_params.get('date_debut', '')}&date_fin={self.search_params.get('date_fin', '')}"
+            else:
+                url = f"{self.config['url']}/api/v1/attestations"
+            
+            self.progress.emit(60, "📥 Téléchargement des données...")
+            
+            response = requests.get(url, headers=headers, timeout=30)
+            
+            self.progress.emit(90, "📋 Traitement des données...")
+            
+            if response.status_code == 200:
+                data = response.json()
+                self.progress.emit(100, "✅ Données récupérées !")
+                self.finished.emit(True, data, "")
+            else:
+                self.finished.emit(False, {}, f"Erreur {response.status_code}: {response.text[:200]}")
+                
+        except Exception as e:
+            self.finished.emit(False, {}, str(e))
 
 
 # ============================================================================
-# DIALOGUE DE CONFIGURATION
+# DIALOGUES
 # ============================================================================
 
 class ConfigDialog(QDialog):
@@ -337,7 +443,6 @@ class ConfigDialog(QDialog):
         layout.setSpacing(20)
         layout.setContentsMargins(24, 24, 24, 24)
         
-        # En-tête
         header = QFrame()
         header.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1e293b,stop:1 #0f172a); border-radius: 20px;")
         header_layout = QHBoxLayout(header)
@@ -353,7 +458,6 @@ class ConfigDialog(QDialog):
         header_layout.addStretch()
         layout.addWidget(header)
         
-        # Formulaire
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -362,7 +466,6 @@ class ConfigDialog(QDialog):
         form_layout = QVBoxLayout(form_widget)
         form_layout.setSpacing(16)
         
-        # Carte des paramètres
         card = QFrame()
         card.setProperty("class", "InfoCard")
         card_layout = QVBoxLayout(card)
@@ -391,7 +494,6 @@ class ConfigDialog(QDialog):
         
         form_layout.addWidget(card)
         
-        # Bouton test
         test_btn = QPushButton("🔌 Tester la connexion")
         test_btn.setProperty("class", "BtnSecondary")
         test_btn.clicked.connect(self.test_connection)
@@ -400,7 +502,6 @@ class ConfigDialog(QDialog):
         scroll.setWidget(form_widget)
         layout.addWidget(scroll)
         
-        # Boutons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         cancel_btn = QPushButton("Annuler")
@@ -418,6 +519,18 @@ class ConfigDialog(QDialog):
         settings = QSettings("LOMETA", "ASAC")
         for key, inp in self.inputs.items():
             inp.setText(settings.value(key, ""))
+        last_search = settings.value("last_search_params", "")
+        if last_search:
+            try:
+                params = json.loads(last_search)
+                if params.get("type") == "police":
+                    self.search_type.setCurrentText("Numéro de police")
+                    self.search_value.setText(params.get("value", ""))
+                elif params.get("type") == "immatriculation":
+                    self.search_type.setCurrentText("Immatriculation")
+                    self.search_value.setText(params.get("value", ""))
+            except:
+                pass
     
     def save_config(self):
         settings = QSettings("LOMETA", "ASAC")
@@ -454,21 +567,201 @@ class ConfigDialog(QDialog):
         return {key: inp.text() for key, inp in self.inputs.items()}
 
 
+class NotificationDialog(QDialog):
+    """Dialogue de notification pour les réponses du serveur"""
+    def __init__(self, title, message, details=None, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumSize(500, 400)
+        self.setModal(False)
+        self.setStyleSheet(MODERN_STYLE)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+        
+        # Icône
+        icon_label = QLabel("📨")
+        icon_label.setStyleSheet("font-size: 48px;")
+        layout.addWidget(icon_label, alignment=Qt.AlignCenter)
+        
+        # Message principal
+        msg_label = QLabel(message)
+        msg_label.setStyleSheet("font-size: 14px; font-weight: 600; color: #1e293b;")
+        msg_label.setWordWrap(True)
+        layout.addWidget(msg_label)
+        
+        # Détails
+        if details:
+            text_edit = QTextEdit()
+            text_edit.setPlainText(json.dumps(details, indent=2, default=str, ensure_ascii=False))
+            text_edit.setFont(QFont("Courier New", 10))
+            text_edit.setStyleSheet("background: #1e1e2e; color: #cdd6f4; border-radius: 12px; padding: 16px;")
+            text_edit.setMinimumHeight(250)
+            layout.addWidget(text_edit)
+        
+        btn = QPushButton("Fermer")
+        btn.setProperty("class", "BtnPrimary")
+        btn.clicked.connect(self.accept)
+        layout.addWidget(btn, alignment=Qt.AlignRight)
+
+
+
+# ============================================================================
+# VALIDATEUR DE CONFORMITÉ ASAC
+# ============================================================================
+
+class AsacDataValidator:
+    """Valide la conformité des données selon le format ASAC exigé"""
+    
+    # Champs obligatoires
+    REQUIRED_FIELDS = [
+        "office_code", "organization_code", "certificate_type", "channel", "productions"
+    ]
+    
+    # Champs obligatoires dans productions
+    REQUIRED_PRODUCTION_FIELDS = [
+        "certificate_variant_code", "rc", "police_number", "starts_at", "ends_at",
+        "customer_name", "customer_phone", "licence_plate", "vehicle_chassis",
+        "vehicle_brand", "vehicle_model", "vehicle_category", "vehicle_genre",
+        "vehicle_type", "vehicule_usage", "vehicle_energy", "nb_of_seats",
+        "fiscal_power", "circulation_zone"
+    ]
+    
+    # Valeurs autorisées
+    VALID_CERTIFICATE_VARIANTS = ["JAUNE", "VERTE", "BLEUE", "ROSE"]
+    VALID_CERTIFICATE_TYPES = ["cima", "non_cima"]
+    VALID_CHANNELS = ["api", "web", "mobile"]
+    VALID_ENERGIES = ["SEES", "DIESEL", "ELECTRIC", "HYBRID"]
+    VALID_CATEGORIES = ["01", "02", "03", "04"]
+    VALID_GENRES = ["GV04", "GV05", "GV06", "GP01", "GP02"]
+    VALID_TYPES = ["TV10", "TV20", "TV30", "TC10", "TC20"]
+    VALID_USAGES = ["UV01", "UV02", "UV03", "UP01", "UP02"]
+    VALID_ZONES = ["A", "B", "C", "D"]
+    
+    @classmethod
+    def validate_request(cls, data):
+        """Valide complètement la requête"""
+        errors = []
+        warnings = []
+        
+        # Validation des champs racine
+        for field in cls.REQUIRED_FIELDS:
+            if field not in data:
+                errors.append(f"❌ Champ obligatoire manquant: '{field}'")
+        
+        # Validation des valeurs racine
+        if data.get("certificate_type") not in cls.VALID_CERTIFICATE_TYPES:
+            errors.append(f"❌ certificate_type invalide: '{data.get('certificate_type')}' (attendu: {', '.join(cls.VALID_CERTIFICATE_TYPES)})")
+        
+        if data.get("channel") not in cls.VALID_CHANNELS:
+            errors.append(f"❌ channel invalide: '{data.get('channel')}' (attendu: {', '.join(cls.VALID_CHANNELS)})")
+        
+        # Validation des productions
+        productions = data.get("productions", [])
+        if not productions:
+            errors.append("❌ La liste 'productions' est vide")
+        
+        for idx, prod in enumerate(productions):
+            prod_errors = cls._validate_production(prod, idx)
+            errors.extend(prod_errors)
+        
+        return errors, warnings
+    
+    @classmethod
+    def _validate_production(cls, prod, idx):
+        """Valide une production individuelle"""
+        errors = []
+        
+        # Vérification des champs obligatoires
+        for field in cls.REQUIRED_PRODUCTION_FIELDS:
+            if field not in prod:
+                errors.append(f"❌ Production[{idx}]: Champ obligatoire manquant '{field}'")
+            elif prod[field] in [None, "", 0] and field not in ["rc", "fiscal_power"]:
+                if field not in ["customer_email", "insured_email", "driver_name", "driver_birthdate", "driver_licence_issued_at", "vehicle_has_trailer"]:
+                    errors.append(f"⚠️ Production[{idx}]: Champ '{field}' est vide ou nul")
+        
+        # Validation des valeurs
+        if prod.get("certificate_variant_code") not in cls.VALID_CERTIFICATE_VARIANTS:
+            errors.append(f"❌ Production[{idx}]: certificate_variant_code invalide (attendu: {', '.join(cls.VALID_CERTIFICATE_VARIANTS)})")
+        
+        # Validation des formats
+        if prod.get("starts_at"):
+            if not cls._validate_date(prod["starts_at"]):
+                errors.append(f"❌ Production[{idx}]: starts_at invalide (format YYYY-MM-DD requis)")
+        
+        if prod.get("ends_at"):
+            if not cls._validate_date(prod["ends_at"]):
+                errors.append(f"❌ Production[{idx}]: ends_at invalide (format YYYY-MM-DD requis)")
+        
+        if prod.get("customer_phone"):
+            if not cls._validate_phone(prod["customer_phone"]):
+                errors.append(f"⚠️ Production[{idx}]: customer_phone format recommandé: +237XXXXXXXXX")
+        
+        if prod.get("licence_plate"):
+            if not cls._validate_licence_plate(prod["licence_plate"]):
+                errors.append(f"⚠️ Production[{idx}]: licence_plate format recommandé: XX-XXXX-XX")
+        
+        if prod.get("vehicle_chassis"):
+            if len(prod["vehicle_chassis"]) < 10:
+                errors.append(f"⚠️ Production[{idx}]: vehicle_chassis trop court (minimum 10 caractères)")
+        
+        return errors
+    
+    @staticmethod
+    def _validate_date(date_str):
+        """Valide le format de date YYYY-MM-DD"""
+        pattern = r'^\d{4}-\d{2}-\d{2}$'
+        return bool(re.match(pattern, date_str))
+    
+    @staticmethod
+    def _validate_phone(phone):
+        """Valide le format de téléphone"""
+        pattern = r'^\+237[0-9]{9}$'
+        return bool(re.match(pattern, phone))
+    
+    @staticmethod
+    def _validate_licence_plate(plate):
+        """Valide le format de plaque d'immatriculation"""
+        pattern = r'^[A-Z]{2}-\d{4}-[A-Z]{2}$'
+        return bool(re.match(pattern, plate))
+    
+    @classmethod
+    def get_compliance_report(cls, data):
+        """Génère un rapport de conformité détaillé"""
+        errors, warnings = cls.validate_request(data)
+        
+        total_fields = len(cls.REQUIRED_FIELDS) + len(cls.REQUIRED_PRODUCTION_FIELDS)
+        valid_fields = total_fields - len(errors)
+        
+        return {
+            "is_compliant": len(errors) == 0,
+            "errors_count": len(errors),
+            "warnings_count": len(warnings),
+            "errors": errors,
+            "warnings": warnings,
+            "compliance_rate": int((valid_fields / total_fields) * 100) if total_fields > 0 else 0
+        }
+
+
 # ============================================================================
 # WIDGET PRINCIPAL
 # ============================================================================
 
 class AsacManager(QDialog):
-    """Interface d'export ASAC pour un véhicule"""
+    """Interface ASAC avec onglets Export et Import"""
     
     def __init__(self, controller, vehicle_data, parent=None):
         super().__init__(parent)
         self.controller = controller
         self.vehicle_data = vehicle_data
         self.export_worker = None
+        self.receive_worker = None
+        self.last_search_params = None
+        self.current_attestations = []
         
-        self.setWindowTitle(f"ASAC Export - {vehicle_data.get('immatriculation', 'Véhicule')}")
-        self.setMinimumSize(1000, 750)
+        self.setWindowTitle(f"ASAC Manager - {vehicle_data.get('immatriculation', 'Véhicule')}")
+        self.setMinimumSize(1100, 800)
         self.setStyleSheet(MODERN_STYLE)
         
         self.setup_ui()
@@ -480,19 +773,16 @@ class AsacManager(QDialog):
         layout.setContentsMargins(24, 24, 24, 24)
         layout.setSpacing(20)
         
-        # Splitter principal
-        splitter = QSplitter(Qt.Horizontal)
+        # En-tête
+        header = self._create_header()
+        layout.addWidget(header)
         
-        # Panneau gauche - Informations véhicule
-        left_panel = self.create_left_panel()
-        splitter.addWidget(left_panel)
+        # Onglets principaux
+        self.tab_widget = QTabWidget()
+        self.tab_widget.addTab(self._create_export_tab(), "📤 Export (Envoi)")
+        self.tab_widget.addTab(self._create_import_tab(), "📥 Import (Réception)")
         
-        # Panneau droit - Export et historique
-        right_panel = self.create_right_panel()
-        splitter.addWidget(right_panel)
-        
-        splitter.setSizes([400, 600])
-        layout.addWidget(splitter)
+        layout.addWidget(self.tab_widget)
         
         # Barre de statut
         self.status_bar = QFrame()
@@ -510,16 +800,452 @@ class AsacManager(QDialog):
         status_layout.addWidget(self.status_label)
         status_layout.addStretch()
         
-        # Boutons fermeture
         close_btn = QPushButton("Fermer")
         close_btn.setProperty("class", "BtnSecondary")
         close_btn.clicked.connect(self.close)
         status_layout.addWidget(close_btn)
         
         layout.addWidget(self.status_bar)
+        self.apply_shadows_to_all_cards()
     
-    def create_left_panel(self):
-        """Panneau gauche - Informations du véhicule"""
+    def _create_header(self):
+        header = QFrame()
+        header.setProperty("class", "HeaderCard")
+        
+        layout = QHBoxLayout(header)
+        layout.setContentsMargins(24, 16, 24, 16)
+        
+        logo_container = QHBoxLayout()
+        logo = QLabel("🔄")
+        logo.setStyleSheet("font-size: 32px;")
+        logo_container.addWidget(logo)
+        logo_container.addSpacing(12)
+        
+        title_container = QVBoxLayout()
+        title = QLabel("Interface ASAC")
+        title.setStyleSheet("font-size: 20px; font-weight: 800; color: #0f172a;")
+        subtitle = QLabel("Export et import des données d'assurance")
+        subtitle.setStyleSheet("color: #64748b; font-size: 12px;")
+        title_container.addWidget(title)
+        title_container.addWidget(subtitle)
+        
+        logo_container.addLayout(title_container)
+        
+        layout.addLayout(logo_container)
+        layout.addStretch()
+        
+        # Statut serveur
+        status_frame = QFrame()
+        status_frame.setProperty("class", "InfoCard")
+        status_layout = QHBoxLayout(status_frame)
+        status_layout.setContentsMargins(16, 8, 16, 8)
+        
+        self.server_indicator = QLabel("●")
+        self.server_indicator.setStyleSheet("font-size: 12px; color: #f59e0b;")
+        self.server_status_label = QLabel("Non configuré")
+        self.server_status_label.setStyleSheet("font-weight: 600; font-size: 12px; color: #64748b;")
+        
+        status_layout.addWidget(self.server_indicator)
+        status_layout.addWidget(self.server_status_label)
+        
+        layout.addWidget(status_frame)
+        
+        config_btn = QPushButton("⚙️")
+        config_btn.setFixedSize(44, 44)
+        config_btn.setProperty("class", "BtnSecondary")
+        config_btn.setToolTip("Configuration du serveur")
+        config_btn.clicked.connect(self.open_config)
+        layout.addWidget(config_btn)
+        
+        return header
+    
+    def _create_export_tab(self):
+        """Onglet d'export (envoi vers ASAC)"""
+        tab = QWidget()
+        
+        splitter = QSplitter(Qt.Horizontal)
+        
+        # Panneau gauche - Informations véhicule
+        left_panel = self._create_vehicle_info_panel()
+        splitter.addWidget(left_panel)
+        
+        # Panneau droit - Export
+        right_panel = self._create_export_panel()
+        splitter.addWidget(right_panel)
+        
+        splitter.setSizes([400, 600])
+        
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(splitter)
+        
+        return tab
+
+    def apply_shadows_to_all_cards(self):
+        """Applique une ombre portée à toutes les cartes (InfoCard, HeaderCard)"""
+        # Ombre standard pour les cartes
+        card_shadow = QGraphicsDropShadowEffect()
+        card_shadow.setBlurRadius(15)
+        card_shadow.setXOffset(0)
+        card_shadow.setYOffset(4)
+        card_shadow.setColor(QColor(0, 0, 0, 40))
+        
+        # Ombre plus légère pour les petites cartes
+        light_shadow = QGraphicsDropShadowEffect()
+        light_shadow.setBlurRadius(10)
+        light_shadow.setXOffset(0)
+        light_shadow.setYOffset(2)
+        light_shadow.setColor(QColor(0, 0, 0, 30))
+        
+        # Parcourir tous les enfants du widget principal
+        def apply_to_children(widget):
+            for child in widget.findChildren(QFrame):
+                class_name = child.property("class")
+                if class_name in ["InfoCard", "HeaderCard", "MainCard"]:
+                    # Vérifier si c'est une grande carte ou une petite
+                    if child.minimumHeight() > 100 or child.height() > 150:
+                        child.setGraphicsEffect(card_shadow)
+                    else:
+                        child.setGraphicsEffect(light_shadow)
+        
+        apply_to_children(self)
+
+    def _create_import_tab(self):
+        """Onglet d'import (réception depuis ASAC) avec disposition:
+        - Gauche (30%): Panneau de recherche, Filtres avancés
+        - Droite (70%): divisée VERTICALEMENT en deux parties
+            - Haut (40% de la droite): Aperçu des données reçues + Rapport de conformité
+            - Bas (60% de la droite): Rafraîchissement auto, Progression, Export, Statistiques, Recherche, Actions, Tableau
+        """
+        
+        # Widget principal avec disposition horizontale
+        main_widget = QWidget()
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(16)
+        
+        # ========== PARTIE GAUCHE (30%) ==========
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(16)
+        
+        # ---- 1. Panneau de recherche ----
+        search_card = QFrame()
+        search_card.setProperty("class", "InfoCard")
+        search_layout = QVBoxLayout(search_card)
+        search_layout.setSpacing(16)
+        
+        search_title = QLabel("🔍 Rechercher des attestations")
+        search_title.setStyleSheet("font-size: 14px; font-weight: 700;")
+        search_layout.addWidget(search_title)
+        
+        # Type de recherche
+        options_layout = QHBoxLayout()
+        options_layout.setSpacing(12)
+        
+        self.search_type = QComboBox()
+        self.search_type.addItems(["Numéro de police", "Immatriculation", "Période"])
+        options_layout.addWidget(self.search_type)
+        
+        self.search_value = QLineEdit()
+        self.search_value.setPlaceholderText("Entrez la valeur de recherche...")
+        options_layout.addWidget(self.search_value)
+        
+        self.date_debut = QLineEdit()
+        self.date_debut.setPlaceholderText("Date début (YYYY-MM-DD)")
+        self.date_debut.setVisible(False)
+        options_layout.addWidget(self.date_debut)
+        
+        self.date_fin = QLineEdit()
+        self.date_fin.setPlaceholderText("Date fin (YYYY-MM-DD)")
+        self.date_fin.setVisible(False)
+        options_layout.addWidget(self.date_fin)
+        
+        search_layout.addLayout(options_layout)
+        
+        # Boutons
+        btn_layout = QHBoxLayout()
+        self.search_btn = QPushButton("🔍 Rechercher")
+        self.search_btn.setProperty("class", "BtnPrimary")
+        self.search_btn.clicked.connect(self.start_receive)
+        
+        self.clear_btn = QPushButton("Effacer")
+        self.clear_btn.setProperty("class", "BtnSecondary")
+        self.clear_btn.clicked.connect(self.clear_search)
+        
+        btn_layout.addWidget(self.search_btn)
+        btn_layout.addWidget(self.clear_btn)
+        btn_layout.addStretch()
+        search_layout.addLayout(btn_layout)
+        
+        left_layout.addWidget(search_card)
+        
+        # ---- 2. Filtres avancés ----
+        advanced_filters_card = QFrame()
+        advanced_filters_card.setProperty("class", "InfoCard")
+        advanced_filters_layout = QVBoxLayout(advanced_filters_card)
+        advanced_filters_layout.setSpacing(12)
+        
+        filters_title = QLabel("🔧 Filtres avancés")
+        filters_title.setStyleSheet("font-size: 13px; font-weight: 700; color: #475569;")
+        advanced_filters_layout.addWidget(filters_title)
+        
+        filters_grid = QGridLayout()
+        filters_grid.setSpacing(10)
+        
+        # Statut
+        filters_grid.addWidget(QLabel("Statut:"), 0, 0)
+        self.filter_status = QComboBox()
+        self.filter_status.addItems(["Tous", "VALIDE", "EN_ATTENTE", "REJETE", "EXPIRE"])
+        self.filter_status.currentTextChanged.connect(self.apply_filters)
+        filters_grid.addWidget(self.filter_status, 0, 1)
+        
+        # Type certificat
+        filters_grid.addWidget(QLabel("Type certificat:"), 1, 0)
+        self.filter_cert_type = QComboBox()
+        self.filter_cert_type.addItems(["Tous", "cima", "non_cima"])
+        self.filter_cert_type.currentTextChanged.connect(self.apply_filters)
+        filters_grid.addWidget(self.filter_cert_type, 1, 1)
+        
+        # Variante
+        filters_grid.addWidget(QLabel("Variante:"), 2, 0)
+        self.filter_variant = QComboBox()
+        self.filter_variant.addItems(["Tous", "JAUNE", "VERTE", "BLEUE", "ROSE"])
+        self.filter_variant.currentTextChanged.connect(self.apply_filters)
+        filters_grid.addWidget(self.filter_variant, 2, 1)
+        
+        advanced_filters_layout.addLayout(filters_grid)
+        left_layout.addWidget(advanced_filters_card)
+        left_layout.addStretch()
+        
+        # ========== PARTIE DROITE (70%) - DIVISION VERTICALE ==========
+        right_widget = QWidget()
+        right_layout = QHBoxLayout(right_widget)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(16)
+        
+        # ----- PARTIE HAUTE (40% de la droite) : Aperçu + Conformité -----
+        top_widget = QWidget()
+        top_layout = QVBoxLayout(top_widget)
+        top_layout.setContentsMargins(0, 0, 0, 0)
+        top_layout.setSpacing(16)
+        
+        # ---- Aperçu des données reçues ----
+        preview_received_card = QFrame()
+        preview_received_card.setProperty("class", "InfoCard")
+        preview_received_layout = QVBoxLayout(preview_received_card)
+        preview_received_layout.setSpacing(12)
+        
+        preview_received_title = QLabel("👁️ Aperçu des données reçues")
+        preview_received_title.setStyleSheet("font-size: 14px; font-weight: 700;")
+        preview_received_layout.addWidget(preview_received_title)
+        
+        self.received_preview = QTextEdit()
+        self.received_preview.setReadOnly(True)
+        self.received_preview.setFont(QFont("Courier New", 10))
+        self.received_preview.setMinimumHeight(200)
+        self.received_preview.setStyleSheet("""
+            QTextEdit {
+                background: #1e1e2e;
+                color: #cdd6f4;
+                border-radius: 12px;
+                padding: 16px;
+                font-family: monospace;
+            }
+        """)
+        preview_received_layout.addWidget(self.received_preview)
+        
+        top_layout.addWidget(preview_received_card)
+        
+        # ---- Rapport de conformité ----
+        top_layout.addWidget(self._create_compliance_panel())
+        
+        # ----- PARTIE BASSE (60% de la droite) : Résultats et actions AVEC SCROLL -----
+        bottom_scroll = QScrollArea()
+        bottom_scroll.setWidgetResizable(True)
+        bottom_scroll.setFrameShape(QFrame.NoFrame)
+        bottom_scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: #e2e8f0;
+                width: 6px;
+                border-radius: 3px;
+            }
+            QScrollBar::handle:vertical {
+                background: #94a3b8;
+                border-radius: 3px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #64748b;
+            }
+        """)
+        
+        bottom_content = QWidget()
+        bottom_layout = QVBoxLayout(bottom_content)
+        bottom_layout.setContentsMargins(0, 0, 0, 0)
+        bottom_layout.setSpacing(16)
+        
+        # ---- Rafraîchissement automatique ----
+        refresh_card = QFrame()
+        refresh_card.setProperty("class", "InfoCard")
+        refresh_layout = QHBoxLayout(refresh_card)
+        refresh_layout.setContentsMargins(20, 12, 20, 12)
+        
+        self.auto_refresh_cb = QCheckBox("🔄 Rafraîchissement automatique (30s)")
+        self.auto_refresh_cb.setStyleSheet("font-size: 12px;")
+        self.auto_refresh_cb.stateChanged.connect(self.toggle_auto_refresh)
+        
+        refresh_layout.addWidget(self.auto_refresh_cb)
+        refresh_layout.addStretch()
+        bottom_layout.addWidget(refresh_card)
+        
+        # ---- Progression ----
+        progress_card = QFrame()
+        progress_card.setProperty("class", "InfoCard")
+        progress_layout = QVBoxLayout(progress_card)
+        progress_layout.setContentsMargins(20, 12, 20, 12)
+        
+        self.receive_progress = QProgressBar()
+        self.receive_progress.setVisible(False)
+        self.receive_status = QLabel("")
+        self.receive_status.setStyleSheet("color: #64748b; font-size: 12px;")
+        
+        progress_layout.addWidget(self.receive_progress)
+        progress_layout.addWidget(self.receive_status)
+        bottom_layout.addWidget(progress_card)
+        
+        # ---- Export des résultats ----
+        export_results_card = QFrame()
+        export_results_card.setProperty("class", "InfoCard")
+        export_results_layout = QHBoxLayout(export_results_card)
+        export_results_layout.setContentsMargins(20, 12, 20, 12)
+        
+        export_csv_btn = QPushButton("📊 Exporter en CSV")
+        export_csv_btn.setProperty("class", "BtnSecondary")
+        export_csv_btn.clicked.connect(self.export_results_to_csv)
+        
+        export_json_btn = QPushButton("📋 Exporter en JSON")
+        export_json_btn.setProperty("class", "BtnSecondary")
+        export_json_btn.clicked.connect(self.export_results_to_json)
+        
+        export_results_layout.addWidget(export_csv_btn)
+        export_results_layout.addWidget(export_json_btn)
+        export_results_layout.addStretch()
+        bottom_layout.addWidget(export_results_card)
+        
+        # ---- Statistiques des résultats ----
+        stats_card = QFrame()
+        stats_card.setProperty("class", "InfoCard")
+        stats_layout = QHBoxLayout(stats_card)
+        stats_layout.setContentsMargins(20, 12, 20, 12)
+        
+        self.stats_total = QLabel("📊 Total: 0")
+        self.stats_total.setStyleSheet("font-weight: 700; color: #3b82f6;")
+        
+        self.stats_valid = QLabel("✅ Valides: 0")
+        self.stats_valid.setStyleSheet("color: #10b981;")
+        
+        self.stats_expired = QLabel("⏰ Expirés: 0")
+        self.stats_expired.setStyleSheet("color: #f59e0b;")
+        
+        stats_layout.addWidget(self.stats_total)
+        stats_layout.addWidget(self.stats_valid)
+        stats_layout.addWidget(self.stats_expired)
+        stats_layout.addStretch()
+        bottom_layout.addWidget(stats_card)
+        
+        # ---- Recherche dans les résultats ----
+        search_results_card = QFrame()
+        search_results_card.setProperty("class", "InfoCard")
+        search_results_layout = QHBoxLayout(search_results_card)
+        search_results_layout.setContentsMargins(20, 12, 20, 12)
+        
+        search_results_label = QLabel("🔎 Filtrer résultats:")
+        search_results_label.setStyleSheet("font-size: 12px; font-weight: 600;")
+        
+        self.results_filter = QLineEdit()
+        self.results_filter.setPlaceholderText("Rechercher dans les résultats...")
+        self.results_filter.textChanged.connect(self.filter_results)
+        
+        search_results_layout.addWidget(search_results_label)
+        search_results_layout.addWidget(self.results_filter)
+        bottom_layout.addWidget(search_results_card)
+        
+        # ---- Actions en masse ----
+        bulk_actions_card = QFrame()
+        bulk_actions_card.setProperty("class", "InfoCard")
+        bulk_actions_layout = QHBoxLayout(bulk_actions_card)
+        bulk_actions_layout.setContentsMargins(20, 12, 20, 12)
+        
+        self.select_all_cb = QCheckBox("☑️ Tout sélectionner")
+        self.select_all_cb.setStyleSheet("font-size: 12px;")
+        self.select_all_cb.stateChanged.connect(self.select_all_results)
+        
+        self.bulk_import_btn = QPushButton("📥 Importer sélection")
+        self.bulk_import_btn.setProperty("class", "BtnPrimary")
+        self.bulk_import_btn.setEnabled(False)
+        self.bulk_import_btn.clicked.connect(self.bulk_import)
+        
+        bulk_actions_layout.addWidget(self.select_all_cb)
+        bulk_actions_layout.addWidget(self.bulk_import_btn)
+        bulk_actions_layout.addStretch()
+        bottom_layout.addWidget(bulk_actions_card)
+        
+        # ---- Tableau des résultats ----
+        results_card = QFrame()
+        results_card.setProperty("class", "InfoCard")
+        results_layout = QVBoxLayout(results_card)
+        results_layout.setSpacing(12)
+        
+        results_title = QLabel("📋 Résultats des attestations")
+        results_title.setStyleSheet("font-size: 14px; font-weight: 700;")
+        results_layout.addWidget(results_title)
+        
+        self.results_table = QTableWidget(0, 6)
+        self.results_table.setHorizontalHeaderLabels(["Police", "Immatriculation", "Propriétaire", "Période", "Statut", "Actions"])
+        self.results_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        self.results_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeToContents)
+        self.results_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
+        self.results_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
+        self.results_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.ResizeToContents)
+        self.results_table.horizontalHeader().setSectionResizeMode(5, QHeaderView.ResizeToContents)
+        self.results_table.setAlternatingRowColors(True)
+        self.results_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.results_table.setMinimumHeight(250)
+        
+        results_layout.addWidget(self.results_table)
+        bottom_layout.addWidget(results_card)
+        
+        # Espace flexible
+        bottom_layout.addStretch()
+        
+        bottom_scroll.setWidget(bottom_content)
+        
+        # Assemblage de la partie droite (top + bottom)
+        right_layout.addWidget(top_widget, 40)      # 40% pour la partie haute
+        right_layout.addWidget(bottom_scroll, 60)   # 60% pour la partie basse avec scroll
+        
+        # Assemblage des deux parties principales
+        main_layout.addWidget(left_widget, 30)      # 30% pour la gauche
+        main_layout.addWidget(right_widget, 70)     # 70% pour la droite
+        
+        # Widget principal
+        tab = QWidget()
+        tab_layout = QVBoxLayout(tab)
+        tab_layout.setContentsMargins(0, 16, 0, 16)
+        tab_layout.addWidget(main_widget)
+        
+        # Connecter les signaux
+        self.search_type.currentTextChanged.connect(self._on_search_type_changed)
+        
+        return tab
+
+    def _create_vehicle_info_panel(self):
+        """Panneau des informations véhicule"""
         panel = QScrollArea()
         panel.setWidgetResizable(True)
         panel.setFrameShape(QFrame.NoFrame)
@@ -534,7 +1260,6 @@ class AsacManager(QDialog):
         vehicle_layout = QVBoxLayout(vehicle_card)
         vehicle_layout.setSpacing(12)
         
-        # Titre
         title_layout = QHBoxLayout()
         title_icon = QLabel("🚗")
         title_icon.setStyleSheet("font-size: 24px;")
@@ -545,7 +1270,6 @@ class AsacManager(QDialog):
         title_layout.addStretch()
         vehicle_layout.addLayout(title_layout)
         
-        # Champs info - CORRECTION : utiliser des clés simples sans espaces
         info_fields = [
             ("Immatriculation", "immatriculation"),
             ("Marque / Modèle", "marque_modele"),
@@ -629,12 +1353,99 @@ class AsacManager(QDialog):
         panel.setWidget(container)
         return panel
     
-    def create_right_panel(self):
-        """Panneau droit - Export et historique"""
-        panel = QWidget()
-        layout = QVBoxLayout(panel)
-        layout.setSpacing(16)
-        layout.setContentsMargins(0, 0, 0, 0)
+    def export_results_to_csv(self):
+        """Exporte les résultats de la recherche en CSV"""
+        if self.results_table.rowCount() == 0:
+            QMessageBox.warning(self, "Aucune donnée", "Il n'y a aucune donnée à exporter.")
+            return
+        
+        from PySide6.QtWidgets import QFileDialog
+        import csv
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Exporter en CSV", "attestations.csv", "CSV (*.csv)"
+        )
+        
+        if file_path:
+            try:
+                with open(file_path, 'w', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    # En-têtes
+                    headers = ["Police", "Immatriculation", "Propriétaire", "Date début", "Date fin", "Statut"]
+                    writer.writerow(headers)
+                    
+                    # Données
+                    for row in range(self.results_table.rowCount()):
+                        police = self.results_table.item(row, 0).text()
+                        immat = self.results_table.item(row, 1).text()
+                        proprietaire = self.results_table.item(row, 2).text()
+                        periode = self.results_table.item(row, 3).text()
+                        statut = self.results_table.item(row, 4).text()
+                        
+                        # Séparer les dates
+                        dates = periode.split(" → ")
+                        date_debut = dates[0] if len(dates) > 0 else ""
+                        date_fin = dates[1] if len(dates) > 1 else ""
+                        
+                        writer.writerow([police, immat, proprietaire, date_debut, date_fin, statut])
+                
+                self._show_notification("Export réussi", f"✅ {file_path} a été sauvegardé", "success")
+            except Exception as e:
+                self._show_notification("Erreur", f"❌ Erreur lors de l'export: {str(e)}", "error")
+
+    def export_results_to_json(self):
+        """Exporte les résultats de la recherche en JSON"""
+        if self.results_table.rowCount() == 0:
+            QMessageBox.warning(self, "Aucune donnée", "Il n'y a aucune donnée à exporter.")
+            return
+        
+        from PySide6.QtWidgets import QFileDialog
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Exporter en JSON", "attestations.json", "JSON (*.json)"
+        )
+        
+        if file_path:
+            try:
+                results = []
+                for row in range(self.results_table.rowCount()):
+                    police = self.results_table.item(row, 0).text()
+                    immat = self.results_table.item(row, 1).text()
+                    proprietaire = self.results_table.item(row, 2).text()
+                    periode = self.results_table.item(row, 3).text()
+                    statut = self.results_table.item(row, 4).text()
+                    
+                    dates = periode.split(" → ")
+                    results.append({
+                        "police_number": police,
+                        "licence_plate": immat,
+                        "owner": proprietaire,
+                        "start_date": dates[0] if len(dates) > 0 else "",
+                        "end_date": dates[1] if len(dates) > 1 else "",
+                        "status": statut
+                    })
+                
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(results, f, indent=2, ensure_ascii=False)
+                
+                self._show_notification("Export réussi", f"✅ {file_path} a été sauvegardé", "success")
+            except Exception as e:
+                self._show_notification("Erreur", f"❌ Erreur lors de l'export: {str(e)}", "error")
+
+    def _create_export_panel(self):
+        """Panneau d'export avec disposition horizontale divisée en deux parties"""
+        
+        # Widget principal
+        main_widget = QWidget()
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(16)
+        
+        # ========== PARTIE GAUCHE (40%) ==========
+        left_widget = QWidget()
+        left_layout = QVBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.setSpacing(16)
         
         # Carte d'aperçu JSON
         preview_card = QFrame()
@@ -659,7 +1470,7 @@ class AsacManager(QDialog):
         self.json_preview = QTextEdit()
         self.json_preview.setReadOnly(True)
         self.json_preview.setFont(QFont("Courier New", 10))
-        self.json_preview.setMinimumHeight(250)
+        self.json_preview.setMinimumHeight(350)
         self.json_preview.setStyleSheet("""
             QTextEdit {
                 background: #1e1e2e;
@@ -671,7 +1482,38 @@ class AsacManager(QDialog):
         """)
         preview_layout.addWidget(self.json_preview)
         
-        layout.addWidget(preview_card)
+        left_layout.addWidget(preview_card)
+        
+        # Panneau de conformité
+        left_layout.addWidget(self._create_compliance_panel())
+        
+        # ========== PARTIE DROITE (60%) AVEC SCROLL ==========
+        right_scroll = QScrollArea()
+        right_scroll.setWidgetResizable(True)
+        right_scroll.setFrameShape(QFrame.NoFrame)
+        right_scroll.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                background: #e2e8f0;
+                width: 6px;
+                border-radius: 3px;
+            }
+            QScrollBar::handle:vertical {
+                background: #94a3b8;
+                border-radius: 3px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #64748b;
+            }
+        """)
+        
+        right_content = QWidget()
+        right_layout = QVBoxLayout(right_content)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(16)
         
         # Zone d'export
         export_card = QFrame()
@@ -687,7 +1529,6 @@ class AsacManager(QDialog):
         self.export_progress.setVisible(False)
         export_layout.addWidget(self.export_progress)
         
-        # Boutons d'export
         btn_layout = QHBoxLayout()
         btn_layout.setSpacing(12)
         
@@ -705,7 +1546,7 @@ class AsacManager(QDialog):
         btn_layout.addWidget(self.view_certificate_btn)
         export_layout.addLayout(btn_layout)
         
-        layout.addWidget(export_card)
+        right_layout.addWidget(export_card)
         
         # Historique
         history_card = QFrame()
@@ -722,22 +1563,37 @@ class AsacManager(QDialog):
         self.history_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
         self.history_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.history_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-        self.history_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        self.history_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeToContents)
         self.history_table.setAlternatingRowColors(True)
-        self.history_table.setMinimumHeight(180)
+        self.history_table.setMinimumHeight(200)
         
         history_layout.addWidget(self.history_table)
-        layout.addWidget(history_card)
+        right_layout.addWidget(history_card)
         
-        return panel
+        # Ajouter un espace flexible en bas
+        right_layout.addStretch()
+        
+        right_scroll.setWidget(right_content)
+        
+        # Assemblage des deux parties
+        main_layout.addWidget(left_widget, 40)
+        main_layout.addWidget(right_scroll, 60)
+        
+        return main_widget
+
+    def _on_search_type_changed(self, text):
+        """Change les champs de recherche selon le type"""
+        is_period = (text == "Période")
+        self.search_value.setVisible(not is_period)
+        self.date_debut.setVisible(is_period)
+        self.date_fin.setVisible(is_period)
     
     def display_vehicle_info(self):
         """Affiche les informations du véhicule"""
-        # Infos générales
         self.vehicle_info["immatriculation"].setText(self.vehicle_data.get("immatriculation", "N/A"))
         
         marque_modele = f"{self.vehicle_data.get('marque', '')} {self.vehicle_data.get('modele', '')}".strip()
-        self.vehicle_info["marque_modele"].setText(marque_modele or "N/A")  # ← Clé corrigée
+        self.vehicle_info["marque_modele"].setText(marque_modele or "N/A")
         
         self.vehicle_info["chassis"].setText(self.vehicle_data.get("chassis", "N/A"))
         self.vehicle_info["annee"].setText(str(self.vehicle_data.get("annee", "N/A")))
@@ -750,7 +1606,6 @@ class AsacManager(QDialog):
         prime = self.vehicle_data.get("prime_nette", 0)
         self.vehicle_info["prime_nette"].setText(f"{prime:,.0f} FCFA" if prime else "N/A")
         
-        # Garanties
         garanties = [
             ("Responsabilité Civile", "amt_rc"),
             ("Défense et Recours", "amt_dr"),
@@ -763,7 +1618,7 @@ class AsacManager(QDialog):
             ("Individuelle Chauffeur", "amt_ipt")
         ]
         
-        self.garanties_table.setRowCount(0)  # ← Vider avant de remplir
+        self.garanties_table.setRowCount(0)
         for name, key in garanties:
             montant = self.vehicle_data.get(key, 0)
             if montant and float(montant) > 0:
@@ -772,11 +1627,10 @@ class AsacManager(QDialog):
                 self.garanties_table.setItem(row, 0, QTableWidgetItem(name))
                 self.garanties_table.setItem(row, 1, QTableWidgetItem(f"{float(montant):,.0f} FCFA"))
         
-        # Générer l'aperçu JSON
         self.update_json_preview()
     
     def update_json_preview(self):
-        """Met à jour l'aperçu JSON de la requête"""
+        """Met à jour l'aperçu JSON avec validation de conformité"""
         settings = QSettings("LOMETA", "ASAC")
         config = {
             "url": settings.value("url", ""),
@@ -786,59 +1640,118 @@ class AsacManager(QDialog):
             "org_code": settings.value("org_code", "ACTIVA")
         }
         
+        # Valeurs par défaut pour les codes ASAC
+        vehicle_category = self.vehicle_data.get("categorie", "01")
+        if vehicle_category == "VP":
+            vehicle_category = "01"
+        elif vehicle_category == "VU":
+            vehicle_category = "02"
+        elif vehicle_category == "VL":
+            vehicle_category = "03"
+        elif vehicle_category == "PL":
+            vehicle_category = "04"
+        
+        vehicle_energy = self.vehicle_data.get("energie", "SEES")
+        if vehicle_energy == "Essence":
+            vehicle_energy = "SEES"
+        elif vehicle_energy == "Diesel":
+            vehicle_energy = "DIESEL"
+        
+        vehicle_usage = self.vehicle_data.get("usage", "UV01")
+        
+        # Construire la requête selon le format exact
         request = {
-            "attestation": {
-                "numero_police": self.vehicle_data.get("numero_police", ""),
-                "immatriculation": self.vehicle_data.get("immatriculation", ""),
-                "chassis": self.vehicle_data.get("chassis", ""),
-                "marque": self.vehicle_data.get("marque", ""),
-                "modele": self.vehicle_data.get("modele", ""),
-                "energie": self.vehicle_data.get("energie", "Essence"),
-                "categorie": self.vehicle_data.get("categorie", "VP"),
-                "places": self.vehicle_data.get("places", 5)
-            },
-            "assure": {
-                "nom": self.vehicle_data.get("owner", ""),
-                "telephone": self.vehicle_data.get("phone", ""),
-                "email": self.vehicle_data.get("email", "")
-            },
-            "garanties": {
-                "responsabilite_civile": float(self.vehicle_data.get("amt_rc", 0)),
-                "defense_recours": float(self.vehicle_data.get("amt_dr", 0)),
-                "vol": float(self.vehicle_data.get("amt_vol", 0)),
-                "incendie": float(self.vehicle_data.get("amt_in", 0))
-            },
-            "prime": {
-                "prime_nette": float(self.vehicle_data.get("prime_nette", 0)),
-                "prime_brute": float(self.vehicle_data.get("prime_brute", 0))
-            },
-            "period": {
-                "date_debut": str(self.vehicle_data.get("date_debut", "")),
-                "date_fin": str(self.vehicle_data.get("date_fin", ""))
-            },
-            "meta": {
-                "office_code": config.get("office_code", "AG-DLA-001"),
-                "organization_code": config.get("org_code", "ACTIVA")
-            }
+            "office_code": config.get("office_code", "AG-DLA-001"),
+            "organization_code": config.get("org_code", "ACTIVA"),
+            "certificate_type": "cima",
+            "channel": "api",
+            "productions": [
+                {
+                    "certificate_variant_code": "JAUNE",
+                    "rc": int(self.vehicle_data.get("rc_number", 0)) or 63784,
+                    "police_number": self.vehicle_data.get("numero_police", f"POL-{datetime.now().year}-{self.vehicle_data.get('id', '00000')}"),
+                    "starts_at": str(self.vehicle_data.get("date_debut", datetime.now().strftime("%Y-%m-%d"))),
+                    "ends_at": str(self.vehicle_data.get("date_fin", (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d"))),
+                    "customer_name": self.vehicle_data.get("owner", ""),
+                    "customer_phone": self.vehicle_data.get("phone", ""),
+                    "customer_email": self.vehicle_data.get("email", ""),
+                    "customer_postal_code": f"BP {self.vehicle_data.get('city', 'Douala')}",
+                    "customer_type": "TSPM",
+                    "insured_name": self.vehicle_data.get("owner", ""),
+                    "insured_phone": self.vehicle_data.get("phone", ""),
+                    "insured_email": self.vehicle_data.get("email", ""),
+                    "insured_postal_code": f"BP {self.vehicle_data.get('city', 'Douala')}",
+                    "licence_plate": self.vehicle_data.get("immatriculation", "").upper(),
+                    "vehicle_chassis": self.vehicle_data.get("chassis", f"VF1{self.vehicle_data.get('id', '00000')}ABCD123456"),
+                    "vehicle_brand": self.vehicle_data.get("marque", "").upper(),
+                    "vehicle_model": self.vehicle_data.get("modele", "").upper(),
+                    "vehicle_category": vehicle_category,
+                    "vehicle_genre": self.vehicle_data.get("genre", "GV04"),
+                    "vehicle_type": self.vehicle_data.get("type", "TV10"),
+                    "vehicule_usage": vehicle_usage,
+                    "vehicle_energy": vehicle_energy,
+                    "nb_of_seats": int(self.vehicle_data.get("places", 5)),
+                    "fiscal_power": int(self.vehicle_data.get("fiscal_power", 5)),
+                    "circulation_zone": self.vehicle_data.get("zone", "A").upper(),
+                    "driver_name": self.vehicle_data.get("driver_name", self.vehicle_data.get("owner", "")),
+                    "driver_birthdate": self.vehicle_data.get("driver_birthdate", "1990-01-01"),
+                    "driver_licence_issued_at": self.vehicle_data.get("licence_issued_at", "2010-01-01"),
+                    "vehicle_has_trailer": bool(self.vehicle_data.get("has_trailer", False))
+                }
+            ]
         }
         
-        self.json_preview.setText(json.dumps(request, indent=2, default=str, ensure_ascii=False))
-    
+        # Validation de conformité
+        try:
+            compliance = AsacDataValidator.get_compliance_report(request)
+        except ImportError:
+            # Si le validateur n'existe pas, créer un rapport simple
+            compliance = {"is_compliant": True, "errors_count": 0, "warnings_count": 0, "errors": [], "warnings": [], "compliance_rate": 100}
+        
+        # Ajouter le rapport de conformité à l'affichage
+        preview_text = json.dumps(request, indent=2, default=str, ensure_ascii=False)
+        
+        if not compliance.get("is_compliant", True):
+            compliance_text = f"\n\n{'='*60}\n⚠️ RAPPORT DE CONFORMITÉ\n{'='*60}\n"
+            compliance_text += f"Taux de conformité: {compliance.get('compliance_rate', 0)}%\n"
+            compliance_text += f"❌ Erreurs ({compliance.get('errors_count', 0)}):\n"
+            for err in compliance.get("errors", [])[:10]:
+                compliance_text += f"  {err}\n"
+            if compliance.get("warnings"):
+                compliance_text += f"\n⚠️ Avertissements ({compliance.get('warnings_count', 0)}):\n"
+                for warn in compliance.get("warnings", [])[:5]:
+                    compliance_text += f"  {warn}\n"
+            
+            preview_text += compliance_text
+            
+            # Mettre à jour le panneau de conformité
+            if hasattr(self, 'compliance_status'):
+                self.compliance_status.setText(f"⚠️ Conformité: {compliance.get('compliance_rate', 0)}% - {compliance.get('errors_count', 0)} erreur(s)")
+                self.compliance_details.setText(compliance_text)
+                self.status_label.setText(f"⚠️ Conformité: {compliance.get('compliance_rate', 0)}%")
+                self.status_icon.setStyleSheet("color: #ef4444; font-size: 12px;")
+        else:
+            if hasattr(self, 'compliance_status'):
+                self.compliance_status.setText("✅ Données conformes au format ASAC")
+                self.compliance_details.clear()
+                self.status_label.setText("✅ Données conformes")
+                self.status_icon.setStyleSheet("color: #10b981; font-size: 12px;")
+        
+        self.json_preview.setText(preview_text)
+
     def copy_json(self):
-        """Copie le JSON dans le presse-papier"""
         clipboard = QApplication.clipboard()
         clipboard.setText(self.json_preview.toPlainText())
-        
-        self.status_label.setText("✅ JSON copié dans le presse-papier")
-        self.status_icon.setStyleSheet("color: #10b981; font-size: 12px;")
-        QTimer.singleShot(3000, self.reset_status)
+        self._show_notification("Copie réussie", "✅ JSON copié dans le presse-papier", "info")
     
-    def reset_status(self):
-        self.status_label.setText("Prêt")
-        self.status_icon.setStyleSheet("color: #f59e0b; font-size: 12px;")
+    def clear_search(self):
+        self.search_value.clear()
+        self.date_debut.clear()
+        self.date_fin.clear()
+        self.results_table.setRowCount(0)
+        self.receive_status.setText("")
     
     def load_config(self):
-        """Charge la configuration et met à jour l'affichage"""
         settings = QSettings("LOMETA", "ASAC")
         url = settings.value("url", "")
         app_key = settings.value("app_key", "")
@@ -847,23 +1760,25 @@ class AsacManager(QDialog):
             self.config_status.setText("Connecté")
             self.config_status.setProperty("class", "StatusBadge StatusSuccess")
             self.server_info_label.setText(f"Serveur: {url}")
+            self.server_status_label.setText("Connecté")
+            self.server_indicator.setStyleSheet("font-size: 12px; color: #10b981;")
         else:
             self.config_status.setText("Non configuré")
             self.config_status.setProperty("class", "StatusBadge StatusError")
             self.server_info_label.setText("Configuration requise avant export")
+            self.server_status_label.setText("Non configuré")
+            self.server_indicator.setStyleSheet("font-size: 12px; color: #f59e0b;")
         
         self.config_status.style().unpolish(self.config_status)
         self.config_status.style().polish(self.config_status)
-
+    
     def open_config(self):
-        """Ouvre la fenêtre de configuration"""
         dialog = ConfigDialog(self)
         if dialog.exec():
             self.load_config()
             self.update_json_preview()
     
     def start_export(self):
-        """Démarre l'export vers ASAC"""
         settings = QSettings("LOMETA", "ASAC")
         config = {
             "url": settings.value("url", ""),
@@ -875,11 +1790,7 @@ class AsacManager(QDialog):
         
         if not config["url"] or not config["app_key"] or not config["username"]:
             QMessageBox.warning(self, "Configuration manquante", 
-                "Veuillez configurer le serveur ASAC avant d'exporter.\n\n"
-                "Cliquez sur 'Configurer le serveur' pour définir:\n"
-                "• URL de l'API\n"
-                "• Clé applicative (App Key)\n"
-                "• Nom d'utilisateur")
+                "Veuillez configurer le serveur ASAC avant d'exporter.")
             self.open_config()
             return
         
@@ -887,9 +1798,6 @@ class AsacManager(QDialog):
         self.export_btn.setText("⏳ Export en cours...")
         self.export_progress.setVisible(True)
         self.export_progress.setValue(0)
-        
-        self.status_label.setText("Export en cours...")
-        self.status_icon.setStyleSheet("color: #3b82f6; font-size: 12px;")
         
         self.export_worker = ExportWorker(self.vehicle_data, config)
         self.export_worker.progress.connect(self.on_export_progress)
@@ -907,34 +1815,145 @@ class AsacManager(QDialog):
         
         if success:
             reference = response.get("data", {}).get("reference", response.get("reference", "N/A"))
-            
-            # Sauvegarder dans l'historique
             self.save_to_history(reference, response)
-            
-            self.status_label.setText("✅ Export réussi !")
-            self.status_icon.setStyleSheet("color: #10b981; font-size: 12px;")
-            
-            # Afficher le certificat
             self.last_certificate_url = response.get("data", {}).get("download_link", 
                                     response.get("download_link", ""))
             self.view_certificate_btn.setVisible(True)
             
-            QMessageBox.information(self, "Export réussi", 
-                f"✅ Le véhicule {self.vehicle_data.get('immatriculation', '')} a été exporté avec succès !\n\n"
-                f"📄 Référence: {reference}\n\n"
-                f"L'attestation a été générée sur le serveur ASAC.")
+            # Notification
+            self._show_notification(
+                "Export réussi",
+                f"✅ Le véhicule {self.vehicle_data.get('immatriculation', '')} a été exporté avec succès!\nRéférence: {reference}",
+                "success",
+                response
+            )
         else:
-            self.status_label.setText(f"❌ Erreur: {error[:80]}")
-            self.status_icon.setStyleSheet("color: #ef4444; font-size: 12px;")
-            
-            QMessageBox.critical(self, "Erreur d'export", 
-                f"❌ L'export a échoué.\n\n{error}")
+            self._show_notification("Erreur d'export", f"❌ L'export a échoué.\n\n{error}", "error")
         
-        QTimer.singleShot(5000, self.reset_status)
         self.refresh_history()
     
+    def start_receive(self):
+        """Démarre la réception des données depuis ASAC"""
+        settings = QSettings("LOMETA", "ASAC")
+        config = {
+            "url": settings.value("url", ""),
+            "app_key": settings.value("app_key", ""),
+            "username": settings.value("username", "")
+        }
+        
+        if not config["url"] or not config["app_key"] or not config["username"]:
+            QMessageBox.warning(self, "Configuration manquante", "Veuillez configurer le serveur ASAC.")
+            self.open_config()
+            return
+        
+        search_type = self.search_type.currentText()
+        search_params = {"type": "police"}
+        
+        if search_type == "Numéro de police":
+            if not self.search_value.text():
+                QMessageBox.warning(self, "Erreur", "Veuillez entrer un numéro de police")
+                return
+            search_params = {"type": "police", "value": self.search_value.text()}
+        elif search_type == "Immatriculation":
+            if not self.search_value.text():
+                QMessageBox.warning(self, "Erreur", "Veuillez entrer une immatriculation")
+                return
+            search_params = {"type": "immatriculation", "value": self.search_value.text()}
+        elif search_type == "Période":
+            if not self.date_debut.text() or not self.date_fin.text():
+                QMessageBox.warning(self, "Erreur", "Veuillez entrer une période valide")
+                return
+            search_params = {
+                "type": "periode",
+                "date_debut": self.date_debut.text(),
+                "date_fin": self.date_fin.text()
+            }
+
+        self.last_search_params = search_params
+        settings = QSettings("LOMETA", "ASAC")
+        settings.setValue("last_search_params", json.dumps(search_params))
+        
+        self.search_btn.setEnabled(False)
+        self.search_btn.setText("⏳ Recherche en cours...")
+        self.receive_progress.setVisible(True)
+        self.receive_progress.setValue(0)
+        
+        self.receive_worker = ReceiveWorker(config, search_params)
+        self.receive_worker.progress.connect(self.on_receive_progress)
+        self.receive_worker.finished.connect(self.on_receive_finished)
+        self.receive_worker.start()
+    
+    def on_receive_progress(self, value, message):
+        self.receive_progress.setValue(value)
+        self.receive_status.setText(message)
+        self.status_label.setText(message)
+    
+
+    def on_receive_finished(self, success, data, error):
+        self.search_btn.setEnabled(True)
+        self.search_btn.setText("🔍 Rechercher")
+        self.receive_progress.setVisible(False)
+        
+        if success:
+            # Afficher l'aperçu des données reçues
+            self.received_preview.setText(json.dumps(data, indent=2, default=str, ensure_ascii=False))
+            
+            attestations = data.get("data", []) if isinstance(data, dict) else data
+            if isinstance(attestations, dict):
+                attestations = [attestations]
+            
+            # Remplir le tableau
+            self._populate_results_table(attestations)
+            
+            # Mettre à jour les stats
+            self.update_results_stats()
+            
+            # Sauvegarder les paramètres de recherche
+            self.last_search_params = self.search_params if hasattr(self, 'search_params') else None
+            
+            if attestations:
+                self._show_notification(
+                    "Données reçues",
+                    f"✅ {len(attestations)} attestation(s) trouvée(s)",
+                    "success",
+                    {"count": len(attestations), "data": attestations[:5]}
+                )
+            else:
+                self._show_notification("Aucun résultat", "🔍 Aucune attestation trouvée pour ces critères", "warning")
+        else:
+            self.received_preview.setText(f"❌ Erreur: {error}")
+            self.results_table.setRowCount(0)
+            self.update_results_stats()
+            self._show_notification("Erreur de réception", f"❌ Échec de la réception: {error}", "error")
+    
+    def view_attestation_details(self, attestation):
+        """Affiche les détails d'une attestation"""
+        content = json.dumps(attestation, indent=2, default=str, ensure_ascii=False)
+        dialog = NotificationDialog("Détails de l'attestation", "Informations complètes", attestation, self)
+        dialog.exec()
+    
+    def _show_notification(self, title, message, level="info", details=None):
+        """Affiche une notification"""
+        dialog = NotificationDialog(title, message, details, self)
+        dialog.show()
+        
+        self.status_label.setText(message)
+        if level == "success":
+            self.status_icon.setStyleSheet("color: #10b981; font-size: 12px;")
+        elif level == "error":
+            self.status_icon.setStyleSheet("color: #ef4444; font-size: 12px;")
+        elif level == "warning":
+            self.status_icon.setStyleSheet("color: #f59e0b; font-size: 12px;")
+        else:
+            self.status_icon.setStyleSheet("color: #3b82f6; font-size: 12px;")
+        
+        QTimer.singleShot(5000, self.reset_status)
+    
+    def reset_status(self):
+        self.status_label.setText("Prêt")
+        self.status_icon.setStyleSheet("color: #f59e0b; font-size: 12px;")
+    
     def save_to_history(self, reference, response):
-        """Sauvegarde l'export dans l'historique"""
         settings = QSettings("LOMETA", "ASAC")
         history = settings.value(f"history_{self.vehicle_data.get('immatriculation', 'unknown')}", [])
         if isinstance(history, str):
@@ -956,8 +1975,304 @@ class AsacManager(QDialog):
         settings.setValue(f"history_{self.vehicle_data.get('immatriculation', 'unknown')}", 
                          json.dumps(history, default=str))
     
+    def toggle_auto_refresh(self, state):
+        """Active/désactive le rafraîchissement automatique"""
+        if hasattr(self, 'refresh_timer'):
+            self.refresh_timer.stop()
+        if state == Qt.Checked:
+            self.refresh_timer = QTimer()
+            self.refresh_timer.timeout.connect(self.auto_refresh_search)
+            self.refresh_timer.start(30000)
+
+    def apply_filters(self):
+        """Applique les filtres aux résultats (statut, type certificat, variante)"""
+        if not hasattr(self, 'current_attestations') or not self.current_attestations:
+            return
+        
+        filtered_attestations = []
+        
+        for att in self.current_attestations:
+            # Filtrer par statut
+            status_filter = self.filter_status.currentText()
+            if status_filter != "Tous":
+                att_status = att.get("statut", att.get("status", "INCONNU"))
+                if att_status != status_filter:
+                    continue
+            
+            # Filtrer par type certificat
+            cert_filter = self.filter_cert_type.currentText()
+            if cert_filter != "Tous":
+                att_cert = att.get("certificate_type", att.get("type", ""))
+                if att_cert != cert_filter:
+                    continue
+            
+            # Filtrer par variante
+            variant_filter = self.filter_variant.currentText()
+            if variant_filter != "Tous":
+                att_variant = att.get("certificate_variant_code", att.get("variant", ""))
+                if att_variant != variant_filter:
+                    continue
+            
+            filtered_attestations.append(att)
+        
+        self._populate_results_table(filtered_attestations)
+        self.update_results_stats()
+        
+        self._show_notification(
+            "Filtres appliqués",
+            f"🔍 {len(filtered_attestations)}/{len(self.current_attestations)} attestations affichées",
+            "info"
+        )
+
+    def export_results_to_csv(self):
+        """Exporte les résultats en CSV"""
+        if self.results_table.rowCount() == 0:
+            QMessageBox.warning(self, "Aucune donnée", "Il n'y a aucune donnée à exporter.")
+            return
+        
+        from PySide6.QtWidgets import QFileDialog
+        import csv
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Exporter en CSV", f"attestations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv", 
+            "CSV (*.csv)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            with open(file_path, 'w', newline='', encoding='utf-8-sig') as f:
+                writer = csv.writer(f)
+                
+                # En-têtes
+                headers = ["Numéro Police", "Immatriculation", "Propriétaire", "Téléphone", 
+                        "Email", "Date Début", "Date Fin", "Statut", "Type Certificat", "Variante"]
+                writer.writerow(headers)
+                
+                # Données
+                for row in range(self.results_table.rowCount()):
+                    police = self.results_table.item(row, 0).text() if self.results_table.item(row, 0) else ""
+                    immat = self.results_table.item(row, 1).text() if self.results_table.item(row, 1) else ""
+                    proprietaire = self.results_table.item(row, 2).text() if self.results_table.item(row, 2) else ""
+                    
+                    periode = self.results_table.item(row, 3).text() if self.results_table.item(row, 3) else ""
+                    dates = periode.split(" → ")
+                    date_debut = dates[0] if len(dates) > 0 else ""
+                    date_fin = dates[1] if len(dates) > 1 else ""
+                    
+                    statut = self.results_table.item(row, 4).text() if self.results_table.item(row, 4) else ""
+                    
+                    # Récupérer les données supplémentaires depuis l'attestation source
+                    att = self.current_attestations[row] if hasattr(self, 'current_attestations') and row < len(self.current_attestations) else {}
+                    telephone = att.get("customer_phone", att.get("phone", ""))
+                    email = att.get("customer_email", att.get("email", ""))
+                    cert_type = att.get("certificate_type", att.get("type", ""))
+                    variant = att.get("certificate_variant_code", att.get("variant", ""))
+                    
+                    writer.writerow([police, immat, proprietaire, telephone, email, 
+                                    date_debut, date_fin, statut, cert_type, variant])
+            
+            self._show_notification("Export réussi", f"✅ {len(self.results_table.rowCount())} attestations exportées en CSV", "success")
+            
+        except Exception as e:
+            self._show_notification("Erreur", f"❌ Erreur lors de l'export: {str(e)}", "error")
+
+    def export_results_to_json(self):
+        """Exporte les résultats en JSON"""
+        if self.results_table.rowCount() == 0:
+            QMessageBox.warning(self, "Aucune donnée", "Il n'y a aucune donnée à exporter.")
+            return
+        
+        from PySide6.QtWidgets import QFileDialog
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Exporter en JSON", f"attestations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", 
+            "JSON (*.json)"
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            results = []
+            for row in range(self.results_table.rowCount()):
+                police = self.results_table.item(row, 0).text() if self.results_table.item(row, 0) else ""
+                immat = self.results_table.item(row, 1).text() if self.results_table.item(row, 1) else ""
+                proprietaire = self.results_table.item(row, 2).text() if self.results_table.item(row, 2) else ""
+                
+                periode = self.results_table.item(row, 3).text() if self.results_table.item(row, 3) else ""
+                dates = periode.split(" → ")
+                date_debut = dates[0] if len(dates) > 0 else ""
+                date_fin = dates[1] if len(dates) > 1 else ""
+                
+                statut = self.results_table.item(row, 4).text() if self.results_table.item(row, 4) else ""
+                
+                # Récupérer l'attestation source
+                att = self.current_attestations[row] if hasattr(self, 'current_attestations') and row < len(self.current_attestations) else {}
+                
+                results.append({
+                    "police_number": police,
+                    "licence_plate": immat,
+                    "owner": proprietaire,
+                    "customer_phone": att.get("customer_phone", att.get("phone", "")),
+                    "customer_email": att.get("customer_email", att.get("email", "")),
+                    "start_date": date_debut,
+                    "end_date": date_fin,
+                    "status": statut,
+                    "certificate_type": att.get("certificate_type", att.get("type", "")),
+                    "certificate_variant_code": att.get("certificate_variant_code", att.get("variant", "")),
+                    "full_data": att
+                })
+            
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump({
+                    "export_date": datetime.now().isoformat(),
+                    "total_count": len(results),
+                    "attestations": results
+                }, f, indent=2, ensure_ascii=False, default=str)
+            
+            self._show_notification("Export réussi", f"✅ {len(results)} attestations exportées en JSON", "success")
+            
+        except Exception as e:
+            self._show_notification("Erreur", f"❌ Erreur lors de l'export: {str(e)}", "error")
+
+    def filter_results(self, text):
+        """Filtre les résultats dans le tableau en temps réel"""
+        if not text or text.strip() == "":
+            # Afficher toutes les lignes
+            for row in range(self.results_table.rowCount()):
+                self.results_table.setRowHidden(row, False)
+            # Mettre à jour les stats avec le nombre visible
+            self.update_results_stats()
+            return
+        
+        text_lower = text.lower().strip()
+        visible_count = 0
+        
+        for row in range(self.results_table.rowCount()):
+            show = False
+            # Rechercher dans les colonnes: Police, Immatriculation, Propriétaire
+            for col in range(3):
+                item = self.results_table.item(row, col)
+                if item and text_lower in item.text().lower():
+                    show = True
+                    break
+            
+            self.results_table.setRowHidden(row, not show)
+            if show:
+                visible_count += 1
+        
+        # Mettre à jour les stats avec le nombre visible
+        total = self.results_table.rowCount()
+        hidden = total - visible_count
+        self.stats_total.setText(f"📊 Total: {visible_count}/{total}")
+        
+        # Mettre à jour les compteurs de statut sur les lignes visibles uniquement
+        valid = 0
+        expired = 0
+        for row in range(self.results_table.rowCount()):
+            if not self.results_table.isRowHidden(row):
+                statut = self.results_table.item(row, 4).text() if self.results_table.item(row, 4) else ""
+                if "VALIDE" in statut or "Succès" in statut:
+                    valid += 1
+                elif "EXPIRE" in statut or "Expiré" in statut:
+                    expired += 1
+        
+        self.stats_valid.setText(f"✅ Valides: {valid}")
+        self.stats_expired.setText(f"⏰ Expirés: {expired}")
+
+    def _populate_results_table(self, attestations):
+        """Remplit le tableau des résultats avec les attestations"""
+        self.results_table.setRowCount(0)
+        
+        for i, att in enumerate(attestations):
+            row = self.results_table.rowCount()
+            self.results_table.insertRow(row)
+            
+            # Police
+            police = att.get("numero_police", att.get("police_number", "N/A"))
+            self.results_table.setItem(row, 0, QTableWidgetItem(str(police)))
+            
+            # Immatriculation
+            immat = att.get("immatriculation", att.get("licence_plate", "N/A"))
+            self.results_table.setItem(row, 1, QTableWidgetItem(str(immat)))
+            
+            # Propriétaire
+            proprietaire = att.get("proprietaire", att.get("customer_name", att.get("owner", "N/A")))
+            self.results_table.setItem(row, 2, QTableWidgetItem(str(proprietaire)))
+            
+            # Période
+            date_debut = att.get("date_debut", att.get("starts_at", ""))
+            date_fin = att.get("date_fin", att.get("ends_at", ""))
+            periode = f"{date_debut} → {date_fin}" if date_debut or date_fin else "N/A"
+            self.results_table.setItem(row, 3, QTableWidgetItem(periode))
+            
+            # Statut avec badge coloré
+            statut = att.get("statut", att.get("status", "INCONNU"))
+            status_item = QTableWidgetItem()
+            
+            if statut == "VALIDE" or statut == "SUCCESS":
+                status_item.setText("✅ Valide")
+                status_item.setForeground(QColor("#10b981"))
+            elif statut == "EN_ATTENTE" or statut == "PENDING":
+                status_item.setText("⏳ En attente")
+                status_item.setForeground(QColor("#f59e0b"))
+            elif statut == "REJETE" or statut == "REJECTED":
+                status_item.setText("❌ Rejeté")
+                status_item.setForeground(QColor("#ef4444"))
+            elif statut == "EXPIRE" or statut == "EXPIRED":
+                status_item.setText("⚠️ Expiré")
+                status_item.setForeground(QColor("#ef4444"))
+            else:
+                status_item.setText(f"📄 {statut}")
+            
+            self.results_table.setItem(row, 4, status_item)
+            
+            # Bouton Voir détails
+            view_btn = QPushButton("👁️ Détails")
+            view_btn.setProperty("class", "BtnSecondary")
+            view_btn.setFixedSize(80, 28)
+            view_btn.clicked.connect(lambda checked, a=att: self.view_attestation_details(a))
+            self.results_table.setCellWidget(row, 5, view_btn)
+        
+        # Sauvegarder les attestations pour les filtres
+        self.current_attestations = attestations
+
+    def select_all_results(self, state):
+        """Sélectionne/désélectionne toutes les lignes"""
+        self.results_table.setSelectionMode(QTableWidget.MultiSelection)
+        if state == Qt.Checked:
+            self.results_table.selectAll()
+            self.bulk_import_btn.setEnabled(True)
+        else:
+            self.results_table.clearSelection()
+            self.bulk_import_btn.setEnabled(False)
+
+    def bulk_import(self):
+        """Importe les attestations sélectionnées"""
+        selected_rows = set()
+        for item in self.results_table.selectedItems():
+            selected_rows.add(item.row())
+        if selected_rows:
+            QMessageBox.information(self, "Import en masse", f"{len(selected_rows)} attestation(s) sélectionnée(s)")
+
+    def update_results_stats(self):
+        """Met à jour les statistiques"""
+        total = self.results_table.rowCount()
+        valid = 0
+        expired = 0
+        for row in range(total):
+            statut = self.results_table.item(row, 4).text() if self.results_table.item(row, 4) else ""
+            if "VALIDE" in statut:
+                valid += 1
+            elif "EXPIRE" in statut:
+                expired += 1
+        self.stats_total.setText(f"📊 Total: {total}")
+        self.stats_valid.setText(f"✅ Valides: {valid}")
+        self.stats_expired.setText(f"⏰ Expirés: {expired}")
+
     def refresh_history(self):
-        """Rafraîchit l'historique des exports"""
         settings = QSettings("LOMETA", "ASAC")
         history = settings.value(f"history_{self.vehicle_data.get('immatriculation', 'unknown')}", [])
         if isinstance(history, str):
@@ -975,7 +2290,6 @@ class AsacManager(QDialog):
             status_item.setForeground(QColor("#10b981"))
             self.history_table.setItem(i, 2, status_item)
             
-            # Bouton détails
             btn = QPushButton("👁️ Détails")
             btn.setProperty("class", "BtnSecondary")
             btn.setFixedSize(80, 28)
@@ -983,7 +2297,6 @@ class AsacManager(QDialog):
             self.history_table.setCellWidget(i, 3, btn)
     
     def show_details(self, record):
-        """Affiche les détails d'un export"""
         content = json.dumps(record, indent=2, default=str, ensure_ascii=False)
         dialog = QDialog(self)
         dialog.setWindowTitle("Détails de l'export")
@@ -1007,8 +2320,47 @@ class AsacManager(QDialog):
         
         dialog.exec()
     
+    def _create_compliance_panel(self):
+        """Crée le panneau de rapport de conformité"""
+        panel = QFrame()
+        panel.setProperty("class", "InfoCard")
+        layout = QVBoxLayout(panel)
+        layout.setSpacing(10)
+        
+        title = QLabel("📋 Rapport de conformité ASAC")
+        title.setStyleSheet("font-size: 14px; font-weight: 700; color: #3b82f6;")
+        layout.addWidget(title)
+        
+        self.compliance_status = QLabel("En attente de validation...")
+        self.compliance_status.setWordWrap(True)
+        self.compliance_status.setStyleSheet("font-size: 12px; padding: 8px; background: #f8fafc; border-radius: 10px;")
+        layout.addWidget(self.compliance_status)
+        
+        self.compliance_details = QTextEdit()
+        self.compliance_details.setReadOnly(True)
+        self.compliance_details.setMaximumHeight(150)
+        self.compliance_details.setStyleSheet("font-size: 11px; font-family: monospace;")
+        self.compliance_details.setVisible(False)
+        layout.addWidget(self.compliance_details)
+        
+        toggle_btn = QPushButton("Afficher les détails")
+        toggle_btn.setProperty("class", "BtnSecondary")
+        toggle_btn.setFixedSize(120, 30)
+        toggle_btn.clicked.connect(lambda: self.compliance_details.setVisible(not self.compliance_details.isVisible()))
+        layout.addWidget(toggle_btn, alignment=Qt.AlignRight)
+        
+        return panel
+
+    def apply_shadow(self, widget, blur_radius=15, offset_x=0, offset_y=4, color=QColor(0, 0, 0, 50)):
+        """Applique une ombre portée à un widget"""
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(blur_radius)
+        shadow.setXOffset(offset_x)
+        shadow.setYOffset(offset_y)
+        shadow.setColor(color)
+        widget.setGraphicsEffect(shadow)
+
     def view_certificate(self):
-        """Ouvre l'attestation dans le navigateur"""
         if hasattr(self, 'last_certificate_url') and self.last_certificate_url:
             QDesktopServices.openUrl(QUrl(self.last_certificate_url))
         else:
