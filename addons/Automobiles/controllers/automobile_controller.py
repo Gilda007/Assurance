@@ -153,6 +153,17 @@ class VehicleController:
             print(f"Erreur lors de la récupération du contact {contact_id}: {e}")
             return None
 
+    def get_vehicles_by_fleet(self, fleet_id: int):
+        """Récupère tous les véhicules d'une flotte"""
+        try:
+            vehicles = self.session.query(Vehicle).filter(
+                Vehicle.fleet_id == fleet_id,
+                Vehicle.is_active == True
+            ).all()
+            return vehicles
+        except Exception as e:
+            print(f"Erreur récupération véhicules par flotte: {e}")
+            return []
 
     def get_report_data(self):
         """Méthode requise par ContactListView pour les statistiques et le PDF"""

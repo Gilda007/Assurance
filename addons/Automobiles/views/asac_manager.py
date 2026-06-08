@@ -14,6 +14,8 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QThread, Signal, QDateTime, QSettings, QTimer, QUrl
 from PySide6.QtGui import QColor, QFont, QDesktopServices, QIcon
+from PySide6.QtTextToSpeech import QTextToSpeech
+from PySide6.QtCore import QLocale  # Ajoutez cet import
 from datetime import datetime
 import json
 import os
@@ -428,6 +430,206 @@ class ReceiveWorker(QThread):
 # DIALOGUES
 # ============================================================================
 
+# class ConfigDialog(QDialog):
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.setWindowTitle("Configuration ASAC")
+#         self.setMinimumSize(550, 500)
+#         self.setModal(True)
+#         self.setStyleSheet(MODERN_STYLE)
+        
+#         # Initialiser le synthétiseur vocal avec gestion d'erreur
+#         try:
+#             self.tts = QTextToSpeech()
+#             # Optionnel : Définir la langue française
+#             self.tts.setLocale(Qt.QLocale(Qt.QLocale.French))
+#         except Exception as e:
+#             self.tts = None
+#             print(f"QTextToSpeech non disponible: {e}")
+        
+#         self.setup_ui()
+#         self.load_config()
+
+#     def setup_ui(self):
+#         layout = QVBoxLayout(self)
+#         layout.setSpacing(20)
+#         layout.setContentsMargins(24, 24, 24, 24)
+        
+#         header = QFrame()
+#         header.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1e293b,stop:1 #0f172a); border-radius: 20px;")
+#         header_layout = QHBoxLayout(header)
+#         header_layout.setContentsMargins(24, 20, 24, 20)
+        
+#         icon = QLabel("⚙️")
+#         icon.setStyleSheet("font-size: 32px;")
+#         title = QLabel("Configuration du serveur ASAC")
+#         title.setStyleSheet("font-size: 18px; font-weight: 800; color: white;")
+        
+#         header_layout.addWidget(icon)
+#         header_layout.addWidget(title)
+#         header_layout.addStretch()
+#         layout.addWidget(header)
+        
+#         scroll = QScrollArea()
+#         scroll.setWidgetResizable(True)
+#         scroll.setFrameShape(QFrame.NoFrame)
+        
+#         form_widget = QWidget()
+#         form_layout = QVBoxLayout(form_widget)
+#         form_layout.setSpacing(16)
+        
+#         card = QFrame()
+#         card.setProperty("class", "InfoCard")
+#         card_layout = QVBoxLayout(card)
+#         card_layout.setSpacing(16)
+        
+#         fields = [
+#             ("🌐 URL API", "url", "https://ppeatt-api.asac.cm"),
+#             ("🔑 Clé applicative (App Key)", "app_key", ""),
+#             ("👤 Nom d'utilisateur", "username", ""),
+#             ("🏢 Code bureau", "office_code", "AG-DLA-001"),
+#             ("📋 Organisation", "org_code", "ACTIVA")
+#         ]
+        
+#         self.inputs = {}
+#         for label, key, placeholder in fields:
+#             lbl = QLabel(label)
+#             lbl.setProperty("class", "LabelPrimary")
+#             inp = QLineEdit()
+#             inp.setPlaceholderText(placeholder)
+#             if key == "app_key":
+#                 inp.setEchoMode(QLineEdit.Password)
+            
+#             card_layout.addWidget(lbl)
+#             card_layout.addWidget(inp)
+#             self.inputs[key] = inp
+        
+#         form_layout.addWidget(card)
+        
+#         test_btn = QPushButton("🔌 Tester la connexion")
+#         test_btn.setProperty("class", "BtnSecondary")
+#         test_btn.clicked.connect(self.test_connection)
+#         form_layout.addWidget(test_btn)
+        
+#         scroll.setWidget(form_widget)
+#         layout.addWidget(scroll)
+        
+#         btn_layout = QHBoxLayout()
+#         btn_layout.addStretch()
+#         cancel_btn = QPushButton("Annuler")
+#         cancel_btn.setProperty("class", "BtnSecondary")
+#         cancel_btn.clicked.connect(self.reject)
+#         save_btn = QPushButton("💾 Sauvegarder")
+#         save_btn.setProperty("class", "BtnSuccess")
+#         save_btn.clicked.connect(self.save_config)
+        
+#         btn_layout.addWidget(cancel_btn)
+#         btn_layout.addWidget(save_btn)
+#         layout.addLayout(btn_layout)
+    
+#     def load_config(self):
+#         settings = QSettings("LOMETA", "ASAC")
+#         for key, inp in self.inputs.items():
+#             inp.setText(settings.value(key, ""))
+#         last_search = settings.value("last_search_params", "")
+#         if last_search:
+#             try:
+#                 params = json.loads(last_search)
+#                 if params.get("type") == "police":
+#                     self.search_type.setCurrentText("Numéro de police")
+#                     self.search_value.setText(params.get("value", ""))
+#                 elif params.get("type") == "immatriculation":
+#                     self.search_type.setCurrentText("Immatriculation")
+#                     self.search_value.setText(params.get("value", ""))
+#             except:
+#                 pass
+    
+#     def save_config(self):
+#             settings = QSettings("LOMETA", "ASAC")
+#             for key, inp in self.inputs.items():
+#                 settings.setValue(key, inp.text())
+            
+#             # Message de succès
+#             success_message = "Configuration sauvegardée avec succès !"
+            
+#             # Afficher la boîte de dialogue
+#             QMessageBox.information(self, "Succès", success_message)
+            
+#             # Lire le message à voix haute si disponible
+#             if self.tts is not None:
+#                 # Arrêter toute lecture en cours
+#                 self.tts.stop()
+#                 # Lire le nouveau message
+#                 self.tts.say(success_message)
+            
+#             self.accept()
+
+#     def test_connection(self):
+#         import requests
+#         url = self.inputs["url"].text()
+#         app_key = self.inputs["app_key"].text()
+#         username = self.inputs["username"].text()
+        
+#         if not url or not app_key or not username:
+#             QMessageBox.warning(self, "Erreur", "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur")
+#             return
+        
+#         try:
+#             response = requests.post(
+#                 f"{url}/api/v1/auth/tokens/app-key",
+#                 params={"app_key": app_key, "username": username},
+#                 timeout=5
+#             )
+#             if response.status_code == 200:
+#                 QMessageBox.information(self, "Succès", "✅ Connexion au serveur ASAC réussie !")
+#             else:
+#                 QMessageBox.warning(self, "Erreur", f"❌ Erreur HTTP {response.status_code}")
+#         except Exception as e:
+#             QMessageBox.warning(self, "Erreur", f"❌ {str(e)}")
+    
+#     def test_connection(self):
+#         import requests
+#         url = self.inputs["url"].text()
+#         app_key = self.inputs["app_key"].text()
+#         username = self.inputs["username"].text()
+        
+#         if not url or not app_key or not username:
+#             warning_msg = "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur"
+#             QMessageBox.warning(self, "Erreur", warning_msg)
+#             if self.tts is not None:
+#                 self.tts.say(warning_msg)
+#             return
+        
+#         try:
+#             response = requests.post(
+#                 f"{url}/api/v1/auth/tokens/app-key",
+#                 params={"app_key": app_key, "username": username},
+#                 timeout=5
+#             )
+#             if response.status_code == 200:
+#                 success_msg = "Connexion au serveur ASAC réussie !"
+#                 QMessageBox.information(self, "Succès", f"✅ {success_msg}")
+#                 if self.tts is not None:
+#                     self.tts.say(success_msg)
+#             else:
+#                 error_msg = f"Erreur HTTP {response.status_code}"
+#                 QMessageBox.warning(self, "Erreur", f"❌ {error_msg}")
+#                 if self.tts is not None:
+#                     self.tts.say(error_msg)
+#         except Exception as e:
+#             error_msg = str(e)
+#             QMessageBox.warning(self, "Erreur", f"❌ {error_msg}")
+#             if self.tts is not None:
+#                 self.tts.say(f"Erreur de connexion : {error_msg}")
+
+#     def get_config(self):
+#         return {key: inp.text() for key, inp in self.inputs.items()}
+
+from PySide6.QtTextToSpeech import QTextToSpeech
+import sys
+import subprocess
+import platform
+
 class ConfigDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -435,14 +637,63 @@ class ConfigDialog(QDialog):
         self.setMinimumSize(550, 500)
         self.setModal(True)
         self.setStyleSheet(MODERN_STYLE)
+        
+        # Initialiser le synthétiseur vocal avec diagnostic
+        self.tts = None
+        self.tts_available = self.init_tts()
+        
         self.setup_ui()
         self.load_config()
+    
+    def init_tts(self):
+        """Initialise le TTS avec diagnostic détaillé"""
+        try:
+            print("Tentative d'initialisation de QTextToSpeech...")
+            self.tts = QTextToSpeech()
+            
+            # Vérifier si des voix sont disponibles
+            available_voices = self.tts.availableVoices()
+            print(f"Voix disponibles: {len(available_voices)}")
+            
+            if available_voices:
+                # Sélectionner la première voix
+                self.tts.setVoice(available_voices[0])
+                voice_name = available_voices[0].name()
+                print(f"Voix sélectionnée: {voice_name}")
+                return True
+            else:
+                print("Aucune voix disponible sur le système")
+                self.tts = None
+                return False
+                
+        except Exception as e:
+            print(f"Erreur d'initialisation TTS: {e}")
+            self.tts = None
+            return False
+    
+    def speak(self, message):
+        """Lit un message vocalement avec vérification"""
+        if not self.tts_available or self.tts is None:
+            print(f"TTS non disponible - Message non lu: {message}")
+            return False
+        
+        try:
+            # Arrêter toute lecture en cours
+            self.tts.stop()
+            # Lire le nouveau message
+            self.tts.say(message)
+            print(f"Lecture vocale: {message}")
+            return True
+        except Exception as e:
+            print(f"Erreur lors de la lecture vocale: {e}")
+            return False
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
         layout.setContentsMargins(24, 24, 24, 24)
         
+        # En-tête
         header = QFrame()
         header.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1e293b,stop:1 #0f172a); border-radius: 20px;")
         header_layout = QHBoxLayout(header)
@@ -453,11 +704,18 @@ class ConfigDialog(QDialog):
         title = QLabel("Configuration du serveur ASAC")
         title.setStyleSheet("font-size: 18px; font-weight: 800; color: white;")
         
+        # Indicateur de statut TTS
+        tts_status = QLabel("🔊" if self.tts_available else "🔇")
+        tts_status.setStyleSheet("font-size: 20px; background: transparent;")
+        tts_status.setToolTip("Synthèse vocale disponible" if self.tts_available else "Synthèse vocale non disponible")
+        
         header_layout.addWidget(icon)
         header_layout.addWidget(title)
         header_layout.addStretch()
+        header_layout.addWidget(tts_status)
         layout.addWidget(header)
         
+        # Zone de défilement
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -466,6 +724,7 @@ class ConfigDialog(QDialog):
         form_layout = QVBoxLayout(form_widget)
         form_layout.setSpacing(16)
         
+        # Carte des champs de configuration
         card = QFrame()
         card.setProperty("class", "InfoCard")
         card_layout = QVBoxLayout(card)
@@ -494,6 +753,14 @@ class ConfigDialog(QDialog):
         
         form_layout.addWidget(card)
         
+        # Bouton de test TTS
+        test_tts_btn = QPushButton("🔊 Tester la synthèse vocale")
+        test_tts_btn.setProperty("class", "BtnSecondary")
+        test_tts_btn.clicked.connect(self.test_tts)
+        test_tts_btn.setEnabled(self.tts_available)
+        form_layout.addWidget(test_tts_btn)
+        
+        # Bouton de test de connexion
         test_btn = QPushButton("🔌 Tester la connexion")
         test_btn.setProperty("class", "BtnSecondary")
         test_btn.clicked.connect(self.test_connection)
@@ -502,11 +769,14 @@ class ConfigDialog(QDialog):
         scroll.setWidget(form_widget)
         layout.addWidget(scroll)
         
+        # Boutons de bas de page
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
+        
         cancel_btn = QPushButton("Annuler")
         cancel_btn.setProperty("class", "BtnSecondary")
         cancel_btn.clicked.connect(self.reject)
+        
         save_btn = QPushButton("💾 Sauvegarder")
         save_btn.setProperty("class", "BtnSuccess")
         save_btn.clicked.connect(self.save_config)
@@ -515,57 +785,126 @@ class ConfigDialog(QDialog):
         btn_layout.addWidget(save_btn)
         layout.addLayout(btn_layout)
     
+    def test_tts(self):
+        """Teste la synthèse vocale"""
+        if self.tts_available and self.tts:
+            test_message = "Test de la synthèse vocale. Si vous entendez ce message, la voix fonctionne correctement."
+            self.speak(test_message)
+            QMessageBox.information(self, "Test vocal", "Lecture du message de test en cours...")
+        else:
+            QMessageBox.warning(self, "Test vocal", "La synthèse vocale n'est pas disponible sur ce système.")
+    
     def load_config(self):
         settings = QSettings("LOMETA", "ASAC")
         for key, inp in self.inputs.items():
-            inp.setText(settings.value(key, ""))
-        last_search = settings.value("last_search_params", "")
-        if last_search:
-            try:
-                params = json.loads(last_search)
-                if params.get("type") == "police":
-                    self.search_type.setCurrentText("Numéro de police")
-                    self.search_value.setText(params.get("value", ""))
-                elif params.get("type") == "immatriculation":
-                    self.search_type.setCurrentText("Immatriculation")
-                    self.search_value.setText(params.get("value", ""))
-            except:
-                pass
+            value = settings.value(key, "")
+            if value:
+                inp.setText(value)
     
     def save_config(self):
+        # Vérifier que les champs obligatoires sont remplis
+        required_fields = ["url", "app_key", "username"]
+        missing_fields = []
+        
+        for field in required_fields:
+            if not self.inputs[field].text().strip():
+                missing_fields.append(field)
+        
+        if missing_fields:
+            field_names = {
+                "url": "URL API",
+                "app_key": "Clé applicative",
+                "username": "Nom d'utilisateur"
+            }
+            missing_names = [field_names[f] for f in missing_fields]
+            error_msg = f"Les champs suivants sont obligatoires: {', '.join(missing_names)}"
+            QMessageBox.warning(self, "Champs manquants", error_msg)
+            
+            # Lecture vocale de l'erreur
+            self.speak(error_msg)
+            return
+        
+        # Sauvegarder la configuration
         settings = QSettings("LOMETA", "ASAC")
         for key, inp in self.inputs.items():
             settings.setValue(key, inp.text())
         
-        QMessageBox.information(self, "Succès", "Configuration sauvegardée !")
+        # Message de succès
+        success_message = "Configuration sauvegardée avec succès !"
+        
+        # Afficher la boîte de dialogue
+        QMessageBox.information(self, "Succès", success_message)
+        
+        # Lire le message à voix haute
+        self.speak(success_message)
+        
         self.accept()
     
     def test_connection(self):
         import requests
-        url = self.inputs["url"].text()
-        app_key = self.inputs["app_key"].text()
-        username = self.inputs["username"].text()
         
+        url = self.inputs["url"].text().strip()
+        app_key = self.inputs["app_key"].text().strip()
+        username = self.inputs["username"].text().strip()
+        
+        # Vérifier les champs requis pour le test
         if not url or not app_key or not username:
-            QMessageBox.warning(self, "Erreur", "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur")
+            warning_msg = "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur avant de tester la connexion"
+            QMessageBox.warning(self, "Champs manquants", warning_msg)
+            self.speak(warning_msg)
             return
         
+        # Désactiver le bouton pendant le test
+        test_btn = self.sender()
+        if test_btn:
+            test_btn.setEnabled(False)
+            test_btn.setText("⏳ Test en cours...")
+        
         try:
+            # Effectuer la requête d'authentification
             response = requests.post(
                 f"{url}/api/v1/auth/tokens/app-key",
                 params={"app_key": app_key, "username": username},
-                timeout=5
+                timeout=10
             )
+            
             if response.status_code == 200:
-                QMessageBox.information(self, "Succès", "✅ Connexion au serveur ASAC réussie !")
+                success_msg = "Connexion au serveur ASAC réussie !"
+                QMessageBox.information(self, "Succès", f"✅ {success_msg}")
+                
+                # Lecture vocale du succès
+                self.speak(success_msg)
             else:
-                QMessageBox.warning(self, "Erreur", f"❌ Erreur HTTP {response.status_code}")
+                error_msg = f"Erreur HTTP {response.status_code}: La connexion a échoué"
+                QMessageBox.warning(self, "Erreur", f"❌ {error_msg}\n\nDétails: {response.text[:200]}")
+                
+                # Lecture vocale de l'erreur
+                self.speak(error_msg)
+                        
+        except requests.exceptions.Timeout:
+            error_msg = "La requête a expiré. Vérifiez que l'URL est correcte et que le serveur est accessible."
+            QMessageBox.warning(self, "Timeout", f"❌ {error_msg}")
+            self.speak(error_msg)
+                    
+        except requests.exceptions.ConnectionError:
+            error_msg = "Impossible de se connecter au serveur. Vérifiez l'URL et votre connexion internet."
+            QMessageBox.warning(self, "Erreur de connexion", f"❌ {error_msg}")
+            self.speak(error_msg)
+                    
         except Exception as e:
-            QMessageBox.warning(self, "Erreur", f"❌ {str(e)}")
+            error_msg = f"Erreur inattendue: {str(e)}"
+            QMessageBox.warning(self, "Erreur", f"❌ {error_msg}")
+            self.speak(error_msg)
+        
+        finally:
+            # Réactiver le bouton
+            if test_btn:
+                test_btn.setEnabled(True)
+                test_btn.setText("🔌 Tester la connexion")
     
     def get_config(self):
+        """Retourne la configuration actuelle sous forme de dictionnaire"""
         return {key: inp.text() for key, inp in self.inputs.items()}
-
 
 class NotificationDialog(QDialog):
     """Dialogue de notification pour les réponses du serveur"""

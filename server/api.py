@@ -45,7 +45,7 @@ def check_updates():
             'name': 'Application principale',
             'current_version': client_app_version,
             'new_version': server_manifest['app_version'],
-            'download_url': f"http://192.168.42.254:5000/updates/MonApp.zip",
+            'download_url': f"http://localhost:5000/updates/MonApp.zip",
             'changelog': server_manifest.get('app_changelog', ''),
             'size': server_manifest.get('app_size', 0)
         }
@@ -114,5 +114,5 @@ def is_newer_version(server_version, client_version):
 if __name__ == '__main__':
     print(f"📁 Dossier addons: {ADDONS_DIR}")
     print(f"📄 Fichier manifest: {MANIFEST_FILE}")
-    print(f"🚀 Serveur démarré sur http://192.168.42.254:5000")
+    print(f"🚀 Serveur démarré sur http://localhost:5000")
     app.run(host='0.0.0.0', port=5000, debug=True)

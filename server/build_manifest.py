@@ -47,7 +47,7 @@ def build_manifest(addons_dir, output_file="versions.json"):
                 "changelog": manifest.get("changelog", ""),
                 "size": zip_size,
                 "checksum": checksum,
-                "download_url": f"http://192.168.100.17:5000/addons/{module_name}.zip",
+                "download_url": f"http://localhost:5000/addons/{module_name}.zip",
                 "min_app_version": manifest.get("min_app_version", "1.0.0"),
                 "dependencies": manifest.get("dependencies", []),
                 "required": manifest.get("required", False)
@@ -59,7 +59,7 @@ def build_manifest(addons_dir, output_file="versions.json"):
         "last_updated": datetime.now().isoformat(),
         "modules": modules_info,
         "server_info": {
-            "url": "http://192.168.100.17:5000",
+            "url": "http://localhost:5000",
             "api_version": "1.0"
         }
     }
