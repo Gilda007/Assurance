@@ -4,7 +4,7 @@ import os
 from PySide6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFileDialog, QTableWidget, QTableWidgetItem, QProgressBar,
-    QMessageBox, QFrame, QComboBox, QRadioButton, QButtonGroup,
+    QMessageBox, QFrame, QComboBox, QRadioButton, QTabWidget,
     QScrollArea, QSplitter, QTextEdit, QCheckBox, QHeaderView,
     QWidget, QApplication, QLineEdit, QDateEdit, QGridLayout,
     QGroupBox, QSizePolicy, QSpacerItem
@@ -473,21 +473,370 @@ class GarantieCard(QFrame):
             self.checkbox.setChecked(False)
 
 
+# class VehicleGarantieDialog(QDialog):
+#     """Dialogue de personnalisation des garanties pour un véhicule"""
+    
+#     def __init__(self, vehicle, garanties, parent=None):
+#         super().__init__(parent)
+#         self.vehicle = vehicle
+#         self.garanties = garanties
+#         self.garantie_cards = {}
+#         self.setWindowTitle(f"Garanties - {vehicle.get('immatriculation', 'Véhicule')}")
+#         self.setMinimumSize(800, 700)
+#         self.setModal(True)
+#         self.setStyleSheet(STYLESHEET)
+        
+#         self.setup_ui()
+#         self.load_garanties()
+    
+#     def setup_ui(self):
+#         layout = QVBoxLayout(self)
+#         layout.setSpacing(16)
+#         layout.setContentsMargins(20, 20, 20, 20)
+        
+#         # En-tête
+#         header = QFrame()
+#         header.setStyleSheet(f"""
+#             background: {AppColors.PRIMARY_LIGHT};
+#             border-radius: 10px;
+#             padding: 10px;
+#         """)
+#         header_layout = QHBoxLayout(header)
+        
+#         info = QLabel(f"🚗 {self.vehicle.get('immatriculation')} - {self.vehicle.get('marque')} {self.vehicle.get('modele')}")
+#         info.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {AppColors.PRIMARY_DARK};")
+#         header_layout.addWidget(info)
+#         header_layout.addStretch()
+#         layout.addWidget(header)
+        
+#         # Splitter horizontal pour diviser garanties et récapitulatif
+#         splitter = QSplitter(Qt.Horizontal)
+        
+#         # ========== PARTIE GAUCHE : Garanties ==========
+#         left_widget = QWidget()
+#         left_layout = QVBoxLayout(left_widget)
+#         left_layout.setContentsMargins(0, 0, 10, 0)
+        
+#         garanties_label = QLabel("🛡️ GARANTIES")
+#         garanties_label.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px;")
+#         left_layout.addWidget(garanties_label)
+        
+#         # Zone scrollable pour les garanties
+#         scroll = QScrollArea()
+#         scroll.setWidgetResizable(True)
+#         scroll.setFrameShape(QFrame.NoFrame)
+        
+#         scroll_content = QWidget()
+#         scroll_layout = QVBoxLayout(scroll_content)
+#         scroll_layout.setSpacing(12)
+        
+#         # Créer les cartes de garanties
+#         garanties_list = [
+#             ('rc', 'Responsabilité Civile', '🛡️'),
+#             ('dr', 'Défense Recours', '⚖️'),
+#             ('vol', 'Vol', '🚗'),
+#             ('vb', 'Vol à main armée', '🔫'),
+#             ('incendie', 'Incendie', '🔥'),
+#             ('bris_glace', 'Bris de glace', '🪟'),
+#             ('ar', 'Assistance Réparation', '🔧'),
+#             ('dta', 'Dommages Tous Accidents', '💥'),
+#             ('ipt', 'Individuelle Personnes Transportées', '👥'),
+#         ]
+        
+#         for key, label, icon in garanties_list:
+#             card = GarantieCard(key, label, icon)
+#             scroll_layout.addWidget(card)
+#             self.garantie_cards[key] = card
+        
+#         scroll_layout.addStretch()
+#         scroll.setWidget(scroll_content)
+#         left_layout.addWidget(scroll)
+        
+#         # ========== PARTIE DROITE : Récapitulatif financier ==========
+#         right_widget = QWidget()
+#         right_layout = QVBoxLayout(right_widget)
+#         right_layout.setContentsMargins(10, 0, 0, 0)
+        
+#         recap_label = QLabel("💰 RÉCAPITULATIF FINANCIER")
+#         recap_label.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px;")
+#         right_layout.addWidget(recap_label)
+        
+#         # Scroll pour le récapitulatif
+#         recap_scroll = QScrollArea()
+#         recap_scroll.setWidgetResizable(True)
+#         recap_scroll.setFrameShape(QFrame.NoFrame)
+        
+#         recap_content = QWidget()
+#         recap_form_layout = QVBoxLayout(recap_content)
+#         recap_form_layout.setSpacing(12)
+        
+#         # Styles
+#         style_primary = """
+#             QLineEdit {
+#                 background-color: #eff6ff;
+#                 color: #1e40af;
+#                 font-weight: bold;
+#                 border: 2px solid #bfdbfe;
+#                 border-radius: 12px;
+#                 padding: 10px;
+#                 font-size: 13px;
+#             }
+#         """
+#         style_success = """
+#             QLineEdit {
+#                 background-color: #f0fdf4;
+#                 color: #166534;
+#                 font-weight: bold;
+#                 border: 2px solid #bbf7d0;
+#                 border-radius: 12px;
+#                 padding: 10px;
+#                 font-size: 14px;
+#             }
+#         """
+#         style_warning = """
+#             QLineEdit {
+#                 background-color: #fffbeb;
+#                 color: #b45309;
+#                 font-weight: bold;
+#                 border: 2px solid #fde68a;
+#                 border-radius: 12px;
+#                 padding: 10px;
+#                 font-size: 13px;
+#             }
+#         """
+#         style_info = """
+#             QLineEdit {
+#                 background-color: #f8fafc;
+#                 color: #334155;
+#                 font-weight: 500;
+#                 border: 2px solid #e2e8f0;
+#                 border-radius: 12px;
+#                 padding: 10px;
+#                 font-size: 12px;
+#             }
+#         """
+        
+#         # Montants principaux
+#         prime_brute_group = self.create_labeled_field("Montant Brut", "0", style_info)
+#         prime_nette_group = self.create_labeled_field("Prime Nette", "0", style_success)
+#         reduction_group = self.create_labeled_field("Réduction", "0", style_warning)
+        
+#         recap_form_layout.addWidget(prime_brute_group)
+#         recap_form_layout.addWidget(reduction_group)
+#         recap_form_layout.addWidget(prime_nette_group)
+        
+#         # Séparateur
+#         sep = QFrame()
+#         sep.setFrameShape(QFrame.HLine)
+#         sep.setStyleSheet("background: #e2e8f0; margin: 5px 0;")
+#         recap_form_layout.addWidget(sep)
+        
+#         # Taxes et frais
+#         accessoire_group = self.create_labeled_field("Accessoires", "0", style_info)
+#         asac_group = self.create_labeled_field("Fichier ASAC", "0", style_info)
+#         tva_group = self.create_labeled_field("TVA (19.25%)", "0", style_info)
+        
+#         recap_form_layout.addWidget(accessoire_group)
+#         recap_form_layout.addWidget(asac_group)
+#         recap_form_layout.addWidget(tva_group)
+        
+#         # Séparateur
+#         sep2 = QFrame()
+#         sep2.setFrameShape(QFrame.HLine)
+#         sep2.setStyleSheet("background: #e2e8f0; margin: 5px 0;")
+#         recap_form_layout.addWidget(sep2)
+        
+#         # Autres frais
+#         carte_rose_group = self.create_labeled_field("Carte Rose", "0", style_info)
+#         vignette_group = self.create_labeled_field("Vignette", "0", style_info)
+#         pttc_group = self.create_labeled_field("PTTC", "0", style_primary)
+        
+#         recap_form_layout.addWidget(carte_rose_group)
+#         recap_form_layout.addWidget(vignette_group)
+#         recap_form_layout.addWidget(pttc_group)
+        
+#         recap_form_layout.addStretch()
+#         recap_scroll.setWidget(recap_content)
+#         right_layout.addWidget(recap_scroll)
+        
+#         # Ajouter les deux parties au splitter
+#         splitter.addWidget(left_widget)
+#         splitter.addWidget(right_widget)
+#         splitter.setSizes([450, 300])
+        
+#         layout.addWidget(splitter)
+        
+#         # Total général
+#         total_frame = QFrame()
+#         total_frame.setStyleSheet(f"""
+#             background: {AppColors.SUCCESS_LIGHT};
+#             border-radius: 10px;
+#             padding: 10px;
+#         """)
+#         total_layout = QHBoxLayout(total_frame)
+#         total_layout.addWidget(QLabel("<b>💰 TOTAL GÉNÉRAL DES GARANTIES :</b>"))
+#         self.total_label = QLabel("0 FCFA")
+#         self.total_label.setStyleSheet(f"font-size: 16px; font-weight: 800; color: {AppColors.SUCCESS_DARK};")
+#         total_layout.addWidget(self.total_label)
+#         total_layout.addStretch()
+#         layout.addWidget(total_frame)
+        
+#         # Boutons
+#         btn_layout = QHBoxLayout()
+#         btn_layout.addStretch()
+        
+#         ok_btn = QPushButton("Valider")
+#         ok_btn.setProperty("class", "BtnSuccess")
+#         ok_btn.setFixedSize(120, 35)
+#         ok_btn.clicked.connect(self.accept)
+        
+#         cancel_btn = QPushButton("Annuler")
+#         cancel_btn.setProperty("class", "BtnSecondary")
+#         cancel_btn.setFixedSize(120, 35)
+#         cancel_btn.clicked.connect(self.reject)
+        
+#         btn_layout.addWidget(cancel_btn)
+#         btn_layout.addWidget(ok_btn)
+#         layout.addLayout(btn_layout)
+        
+#         # Stocker les références des champs pour y accéder plus tard
+#         self.prime_brute = prime_brute_group.findChild(QLineEdit)
+#         self.prime_nette = prime_nette_group.findChild(QLineEdit)
+#         self.reduction = reduction_group.findChild(QLineEdit)
+#         self.accessoire = accessoire_group.findChild(QLineEdit)
+#         self.asac = asac_group.findChild(QLineEdit)
+#         self.tva = tva_group.findChild(QLineEdit)
+#         self.carte_rose = carte_rose_group.findChild(QLineEdit)
+#         self.vignette = vignette_group.findChild(QLineEdit)
+#         self.pttc = pttc_group.findChild(QLineEdit)
+        
+#         # Connecter les signaux
+#         self.accessoire.textChanged.connect(self.calculate_tva)
+#         self.asac.textChanged.connect(self.calculate_tva)
+#         self.accessoire.textChanged.connect(self.calculate_pttc)
+#         self.asac.textChanged.connect(self.calculate_pttc)
+#         self.carte_rose.textChanged.connect(self.calculate_pttc)
+#         self.vignette.textChanged.connect(self.calculate_pttc)
+    
+#     def create_labeled_field(self, label_text, default_value, style):
+#         """Crée un widget contenant un label et un champ"""
+#         container = QWidget()
+#         layout = QVBoxLayout(container)
+#         layout.setContentsMargins(0, 0, 0, 0)
+#         layout.setSpacing(4)
+        
+#         label = QLabel(label_text)
+#         label.setStyleSheet("""
+#             font-size: 11px;
+#             font-weight: 600;
+#             color: #64748b;
+#             letter-spacing: 0.3px;
+#         """)
+        
+#         field = QLineEdit(default_value)
+#         field.setStyleSheet(style)
+#         field.setAlignment(Qt.AlignRight)
+        
+#         layout.addWidget(label)
+#         layout.addWidget(field)
+        
+#         return container
+    
+#     def calculate_tva(self):
+#         """Calcule la TVA"""
+#         try:
+#             prime_nette = self.get_float_value(self.prime_nette)
+#             accessoires = self.get_float_value(self.accessoire)
+#             asac = self.get_float_value(self.asac)
+            
+#             base_tva = prime_nette + accessoires + asac
+#             tva = base_tva * 0.1925
+            
+#             self.tva.setText(f"{tva:,.0f}".replace(",", " "))
+#             return tva
+#         except:
+#             return 0
+    
+#     def calculate_pttc(self):
+#         """Calcule le PTTC"""
+#         try:
+#             prime_nette = self.get_float_value(self.prime_nette)
+#             accessoires = self.get_float_value(self.accessoire)
+#             asac = self.get_float_value(self.asac)
+#             tva = self.get_float_value(self.tva)
+#             vignette = self.get_float_value(self.vignette)
+#             carte_rose = self.get_float_value(self.carte_rose)
+            
+#             pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
+#             self.pttc.setText(f"{pttc:,.0f}".replace(",", " "))
+#             return pttc
+#         except:
+#             return 0
+    
+#     def get_float_value(self, widget):
+#         """Récupère une valeur float d'un widget"""
+#         try:
+#             if not widget or not widget.text():
+#                 return 0.0
+#             txt = widget.text().strip().replace(" ", "").replace(",", ".")
+#             return float(txt) if txt else 0.0
+#         except:
+#             return 0.0
+    
+#     def load_garanties(self):
+#         for key, card in self.garantie_cards.items():
+#             amount = self.garanties.get(key, 0)
+#             reduction = self.garanties.get(f'reduction_{key}', 0)
+#             card.set_values(amount, reduction)
+#             card.garantie_changed.connect(self.on_garantie_changed)
+    
+#     def on_garantie_changed(self, key, checked, net_amount):
+#         self.update_total()
+    
+#     def update_total(self):
+#         total = sum(card.get_net_amount() for card in self.garantie_cards.values())
+#         self.total_label.setText(f"{total:,.0f} FCFA".replace(",", " "))
+        
+#         # Mettre à jour les champs du récapitulatif
+#         self.prime_brute.setText(f"{total:,.0f}".replace(",", " "))
+#         self.prime_nette.setText(f"{total:,.0f}".replace(",", " "))
+#         self.calculate_tva()
+#         self.calculate_pttc()
+    
+#     def get_garanties(self):
+#         result = {}
+#         for key, card in self.garantie_cards.items():
+#             result[key] = card.get_net_amount()
+#             result[f'brut_{key}'] = card.current_amount
+#             result[f'reduction_{key}'] = card.current_reduction
+#         result['total'] = sum(v for k, v in result.items() if not k.startswith(('brut_', 'reduction_', 'total')))
+        
+#         # Ajouter les valeurs du récapitulatif
+#         result['carte_rose'] = self.get_float_value(self.carte_rose)
+#         result['accessoires'] = self.get_float_value(self.accessoire)
+#         result['asac'] = self.get_float_value(self.asac)
+#         result['vignette'] = self.get_float_value(self.vignette)
+#         result['tva'] = self.get_float_value(self.tva)
+#         result['pttc'] = self.get_float_value(self.pttc)
+        
+#         return result
+
 class VehicleGarantieDialog(QDialog):
-    """Dialogue de personnalisation des garanties pour un véhicule"""
+    """Dialogue de personnalisation complète d'un véhicule"""
     
     def __init__(self, vehicle, garanties, parent=None):
         super().__init__(parent)
         self.vehicle = vehicle
         self.garanties = garanties
         self.garantie_cards = {}
-        self.setWindowTitle(f"Garanties - {vehicle.get('immatriculation', 'Véhicule')}")
-        self.setMinimumSize(800, 700)
+        self.setWindowTitle(f"Gestion du véhicule - {vehicle.get('immatriculation', 'Véhicule')}")
+        self.setMinimumSize(900, 750)
         self.setModal(True)
         self.setStyleSheet(STYLESHEET)
         
         self.setup_ui()
         self.load_garanties()
+        self.load_vehicle_infos()
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -509,162 +858,26 @@ class VehicleGarantieDialog(QDialog):
         header_layout.addStretch()
         layout.addWidget(header)
         
-        # Splitter horizontal pour diviser garanties et récapitulatif
-        splitter = QSplitter(Qt.Horizontal)
+        # Utiliser un QTabWidget pour organiser les informations
+        tab_widget = QTabWidget()
         
-        # ========== PARTIE GAUCHE : Garanties ==========
-        left_widget = QWidget()
-        left_layout = QVBoxLayout(left_widget)
-        left_layout.setContentsMargins(0, 0, 10, 0)
+        # ========== ONGLET 1 : GARANTIES ==========
+        garanties_tab = self.create_garanties_tab()
+        tab_widget.addTab(garanties_tab, "🛡️ Garanties")
         
-        garanties_label = QLabel("🛡️ GARANTIES")
-        garanties_label.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px;")
-        left_layout.addWidget(garanties_label)
+        # ========== ONGLET 2 : INFORMATIONS VÉHICULE ==========
+        vehicle_tab = self.create_vehicle_info_tab()
+        tab_widget.addTab(vehicle_tab, "🚗 Véhicule")
         
-        # Zone scrollable pour les garanties
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
+        # ========== ONGLET 3 : FRAIS ET TAXES ==========
+        frais_tab = self.create_frais_tab()
+        tab_widget.addTab(frais_tab, "💰 Frais & Taxes")
         
-        scroll_content = QWidget()
-        scroll_layout = QVBoxLayout(scroll_content)
-        scroll_layout.setSpacing(12)
+        # ========== ONGLET 4 : DATES ET STATUT ==========
+        dates_tab = self.create_dates_tab()
+        tab_widget.addTab(dates_tab, "📅 Dates")
         
-        # Créer les cartes de garanties
-        garanties_list = [
-            ('rc', 'Responsabilité Civile', '🛡️'),
-            ('dr', 'Défense Recours', '⚖️'),
-            ('vol', 'Vol', '🚗'),
-            ('vb', 'Vol à main armée', '🔫'),
-            ('incendie', 'Incendie', '🔥'),
-            ('bris_glace', 'Bris de glace', '🪟'),
-            ('ar', 'Assistance Réparation', '🔧'),
-            ('dta', 'Dommages Tous Accidents', '💥'),
-            ('ipt', 'Individuelle Personnes Transportées', '👥'),
-        ]
-        
-        for key, label, icon in garanties_list:
-            card = GarantieCard(key, label, icon)
-            scroll_layout.addWidget(card)
-            self.garantie_cards[key] = card
-        
-        scroll_layout.addStretch()
-        scroll.setWidget(scroll_content)
-        left_layout.addWidget(scroll)
-        
-        # ========== PARTIE DROITE : Récapitulatif financier ==========
-        right_widget = QWidget()
-        right_layout = QVBoxLayout(right_widget)
-        right_layout.setContentsMargins(10, 0, 0, 0)
-        
-        recap_label = QLabel("💰 RÉCAPITULATIF FINANCIER")
-        recap_label.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 10px;")
-        right_layout.addWidget(recap_label)
-        
-        # Scroll pour le récapitulatif
-        recap_scroll = QScrollArea()
-        recap_scroll.setWidgetResizable(True)
-        recap_scroll.setFrameShape(QFrame.NoFrame)
-        
-        recap_content = QWidget()
-        recap_form_layout = QVBoxLayout(recap_content)
-        recap_form_layout.setSpacing(12)
-        
-        # Styles
-        style_primary = """
-            QLineEdit {
-                background-color: #eff6ff;
-                color: #1e40af;
-                font-weight: bold;
-                border: 2px solid #bfdbfe;
-                border-radius: 12px;
-                padding: 10px;
-                font-size: 13px;
-            }
-        """
-        style_success = """
-            QLineEdit {
-                background-color: #f0fdf4;
-                color: #166534;
-                font-weight: bold;
-                border: 2px solid #bbf7d0;
-                border-radius: 12px;
-                padding: 10px;
-                font-size: 14px;
-            }
-        """
-        style_warning = """
-            QLineEdit {
-                background-color: #fffbeb;
-                color: #b45309;
-                font-weight: bold;
-                border: 2px solid #fde68a;
-                border-radius: 12px;
-                padding: 10px;
-                font-size: 13px;
-            }
-        """
-        style_info = """
-            QLineEdit {
-                background-color: #f8fafc;
-                color: #334155;
-                font-weight: 500;
-                border: 2px solid #e2e8f0;
-                border-radius: 12px;
-                padding: 10px;
-                font-size: 12px;
-            }
-        """
-        
-        # Montants principaux
-        prime_brute_group = self.create_labeled_field("Montant Brut", "0", style_info)
-        prime_nette_group = self.create_labeled_field("Prime Nette", "0", style_success)
-        reduction_group = self.create_labeled_field("Réduction", "0", style_warning)
-        
-        recap_form_layout.addWidget(prime_brute_group)
-        recap_form_layout.addWidget(reduction_group)
-        recap_form_layout.addWidget(prime_nette_group)
-        
-        # Séparateur
-        sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
-        sep.setStyleSheet("background: #e2e8f0; margin: 5px 0;")
-        recap_form_layout.addWidget(sep)
-        
-        # Taxes et frais
-        accessoire_group = self.create_labeled_field("Accessoires", "0", style_info)
-        asac_group = self.create_labeled_field("Fichier ASAC", "0", style_info)
-        tva_group = self.create_labeled_field("TVA (19.25%)", "0", style_info)
-        
-        recap_form_layout.addWidget(accessoire_group)
-        recap_form_layout.addWidget(asac_group)
-        recap_form_layout.addWidget(tva_group)
-        
-        # Séparateur
-        sep2 = QFrame()
-        sep2.setFrameShape(QFrame.HLine)
-        sep2.setStyleSheet("background: #e2e8f0; margin: 5px 0;")
-        recap_form_layout.addWidget(sep2)
-        
-        # Autres frais
-        carte_rose_group = self.create_labeled_field("Carte Rose", "0", style_info)
-        vignette_group = self.create_labeled_field("Vignette", "0", style_info)
-        pttc_group = self.create_labeled_field("PTTC", "0", style_primary)
-        
-        recap_form_layout.addWidget(carte_rose_group)
-        recap_form_layout.addWidget(vignette_group)
-        recap_form_layout.addWidget(pttc_group)
-        
-        recap_form_layout.addStretch()
-        recap_scroll.setWidget(recap_content)
-        right_layout.addWidget(recap_scroll)
-        
-        # Ajouter les deux parties au splitter
-        splitter.addWidget(left_widget)
-        splitter.addWidget(right_widget)
-        splitter.setSizes([450, 300])
-        
-        layout.addWidget(splitter)
+        layout.addWidget(tab_widget)
         
         # Total général
         total_frame = QFrame()
@@ -698,80 +911,439 @@ class VehicleGarantieDialog(QDialog):
         btn_layout.addWidget(cancel_btn)
         btn_layout.addWidget(ok_btn)
         layout.addLayout(btn_layout)
-        
-        # Stocker les références des champs pour y accéder plus tard
-        self.prime_brute = prime_brute_group.findChild(QLineEdit)
-        self.prime_nette = prime_nette_group.findChild(QLineEdit)
-        self.reduction = reduction_group.findChild(QLineEdit)
-        self.accessoire = accessoire_group.findChild(QLineEdit)
-        self.asac = asac_group.findChild(QLineEdit)
-        self.tva = tva_group.findChild(QLineEdit)
-        self.carte_rose = carte_rose_group.findChild(QLineEdit)
-        self.vignette = vignette_group.findChild(QLineEdit)
-        self.pttc = pttc_group.findChild(QLineEdit)
-        
-        # Connecter les signaux
-        self.accessoire.textChanged.connect(self.calculate_tva)
-        self.asac.textChanged.connect(self.calculate_tva)
-        self.accessoire.textChanged.connect(self.calculate_pttc)
-        self.asac.textChanged.connect(self.calculate_pttc)
-        self.carte_rose.textChanged.connect(self.calculate_pttc)
-        self.vignette.textChanged.connect(self.calculate_pttc)
     
-    def create_labeled_field(self, label_text, default_value, style):
-        """Crée un widget contenant un label et un champ"""
-        container = QWidget()
-        layout = QVBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
+    def create_garanties_tab(self):
+        """Crée l'onglet des garanties"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setSpacing(12)
         
-        label = QLabel(label_text)
-        label.setStyleSheet("""
-            font-size: 11px;
-            font-weight: 600;
-            color: #64748b;
-            letter-spacing: 0.3px;
-        """)
+        # Zone scrollable pour les garanties
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QFrame.NoFrame)
         
-        field = QLineEdit(default_value)
-        field.setStyleSheet(style)
-        field.setAlignment(Qt.AlignRight)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_layout.setSpacing(12)
         
-        layout.addWidget(label)
-        layout.addWidget(field)
+        # Créer les cartes de garanties
+        garanties_list = [
+            ('rc', 'Responsabilité Civile', '🛡️'),
+            ('dr', 'Défense Recours', '⚖️'),
+            ('vol', 'Vol', '🚗'),
+            ('vb', 'Vol à main armée', '🔫'),
+            ('incendie', 'Incendie', '🔥'),
+            ('bris_glace', 'Bris de glace', '🪟'),
+            ('ar', 'Assistance Réparation', '🔧'),
+            ('dta', 'Dommages Tous Accidents', '💥'),
+            ('ipt', 'Individuelle Personnes Transportées', '👥'),
+        ]
         
-        return container
+        for key, label, icon in garanties_list:
+            card = GarantieCard(key, label, icon)
+            scroll_layout.addWidget(card)
+            self.garantie_cards[key] = card
+        
+        scroll_layout.addStretch()
+        scroll.setWidget(scroll_content)
+        layout.addWidget(scroll)
+        
+        return tab
     
-    def calculate_tva(self):
-        """Calcule la TVA"""
-        try:
-            prime_nette = self.get_float_value(self.prime_nette)
-            accessoires = self.get_float_value(self.accessoire)
-            asac = self.get_float_value(self.asac)
+    def create_vehicle_info_tab(self):
+        """Crée l'onglet des informations du véhicule"""
+        tab = QWidget()
+        layout = QGridLayout(tab)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Styles
+        style_field = """
+            QLineEdit {
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 8px 12px;
+                background: white;
+                font-size: 13px;
+            }
+            QLineEdit:focus {
+                border-color: #2563eb;
+            }
+        """
+        
+        # Identifiants
+        layout.addWidget(QLabel("Immatriculation :"), 0, 0)
+        self.info_immatriculation = QLineEdit(self.vehicle.get('immatriculation', ''))
+        self.info_immatriculation.setStyleSheet(style_field)
+        layout.addWidget(self.info_immatriculation, 0, 1)
+        
+        layout.addWidget(QLabel("Châssis :"), 1, 0)
+        self.info_chassis = QLineEdit(self.vehicle.get('chassis', ''))
+        self.info_chassis.setStyleSheet(style_field)
+        layout.addWidget(self.info_chassis, 1, 1)
+        
+        # Marque et modèle
+        layout.addWidget(QLabel("Marque :"), 2, 0)
+        self.info_marque = QLineEdit(self.vehicle.get('marque', ''))
+        self.info_marque.setStyleSheet(style_field)
+        layout.addWidget(self.info_marque, 2, 1)
+        
+        layout.addWidget(QLabel("Modèle :"), 3, 0)
+        self.info_modele = QLineEdit(self.vehicle.get('modele', ''))
+        self.info_modele.setStyleSheet(style_field)
+        layout.addWidget(self.info_modele, 3, 1)
+        
+        # Caractéristiques
+        layout.addWidget(QLabel("Catégorie :"), 4, 0)
+        self.info_categorie = QLineEdit(self.vehicle.get('categorie', 'VP'))
+        self.info_categorie.setStyleSheet(style_field)
+        layout.addWidget(self.info_categorie, 4, 1)
+        
+        layout.addWidget(QLabel("Année :"), 5, 0)
+        self.info_annee = QLineEdit(str(self.vehicle.get('annee', '')) if self.vehicle.get('annee') else '')
+        self.info_annee.setStyleSheet(style_field)
+        layout.addWidget(self.info_annee, 5, 1)
+        
+        layout.addWidget(QLabel("Énergie :"), 6, 0)
+        self.info_energie = QLineEdit(self.vehicle.get('energie', 'Essence'))
+        self.info_energie.setStyleSheet(style_field)
+        layout.addWidget(self.info_energie, 6, 1)
+        
+        layout.addWidget(QLabel("Puissance (CV) :"), 7, 0)
+        self.info_puissance = QLineEdit(str(self.vehicle.get('puissance', 0)))
+        self.info_puissance.setStyleSheet(style_field)
+        layout.addWidget(self.info_puissance, 7, 1)
+        
+        layout.addWidget(QLabel("Places :"), 8, 0)
+        self.info_places = QLineEdit(str(self.vehicle.get('places', 5)))
+        self.info_places.setStyleSheet(style_field)
+        layout.addWidget(self.info_places, 8, 1)
+        
+        # Valeurs financières
+        layout.addWidget(QLabel("Valeur à neuf (FCFA) :"), 9, 0)
+        self.info_valeur_neuf = QLineEdit(f"{self.vehicle.get('valeur_neuf', 0):,.0f}".replace(",", " "))
+        self.info_valeur_neuf.setStyleSheet(style_field)
+        layout.addWidget(self.info_valeur_neuf, 9, 1)
+        
+        layout.addWidget(QLabel("Valeur vénale (FCFA) :"), 10, 0)
+        self.info_valeur_venale = QLineEdit(f"{self.vehicle.get('valeur_venale', 0):,.0f}".replace(",", " "))
+        self.info_valeur_venale.setStyleSheet(style_field)
+        layout.addWidget(self.info_valeur_venale, 10, 1)
+        
+        layout.addWidget(QLabel("Zone :"), 11, 0)
+        self.info_zone = QLineEdit(self.vehicle.get('zone', 'A'))
+        self.info_zone.setStyleSheet(style_field)
+        layout.addWidget(self.info_zone, 11, 1)
+        
+        # Remplacer layout.addStretch() par rowStretch
+        layout.setRowStretch(12, 1)
+        
+        return tab
+
+    # def create_frais_tab(self):
+    #     """Crée l'onglet des frais et taxes"""
+    #     tab = QWidget()
+    #     layout = QGridLayout(tab)
+    #     layout.setSpacing(15)
+    #     layout.setContentsMargins(20, 20, 20, 20)
+        
+    #     style_field = """
+    #         QLineEdit {
+    #             border: 1px solid #e2e8f0;
+    #             border-radius: 8px;
+    #             padding: 8px 12px;
+    #             background: white;
+    #             font-size: 13px;
+    #         }
+    #         QLineEdit:focus {
+    #             border-color: #2563eb;
+    #         }
+    #     """
+        
+    #     # Frais supplémentaires
+    #     layout.addWidget(QLabel("Accessoires (FCFA) :"), 0, 0)
+    #     self.frais_accessoires = QLineEdit(str(self.vehicle.get('accessoires', 0)))
+    #     self.frais_accessoires.setStyleSheet(style_field)
+    #     self.frais_accessoires.textChanged.connect(self.calculate_tva_pttc)
+    #     layout.addWidget(self.frais_accessoires, 0, 1)
+        
+    #     layout.addWidget(QLabel("Fichier ASAC (FCFA) :"), 1, 0)
+    #     self.frais_asac = QLineEdit(str(self.vehicle.get('asac', 0)))
+    #     self.frais_asac.setStyleSheet(style_field)
+    #     self.frais_asac.textChanged.connect(self.calculate_tva_pttc)
+    #     layout.addWidget(self.frais_asac, 1, 1)
+        
+    #     layout.addWidget(QLabel("Carte Rose (FCFA) :"), 2, 0)
+    #     self.frais_carte_rose = QLineEdit(str(self.vehicle.get('carte_rose', 0)))
+    #     self.frais_carte_rose.setStyleSheet(style_field)
+    #     self.frais_carte_rose.textChanged.connect(self.calculate_pttc)
+    #     layout.addWidget(self.frais_carte_rose, 2, 1)
+        
+    #     layout.addWidget(QLabel("Vignette (FCFA) :"), 3, 0)
+    #     self.frais_vignette = QLineEdit(str(self.vehicle.get('vignette', 0)))
+    #     self.frais_vignette.setStyleSheet(style_field)
+    #     self.frais_vignette.textChanged.connect(self.calculate_pttc)
+    #     layout.addWidget(self.frais_vignette, 3, 1)
+        
+    #     # Séparateur
+    #     sep = QFrame()
+    #     sep.setFrameShape(QFrame.HLine)
+    #     sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+    #     layout.addWidget(sep, 4, 0, 1, 2)
+        
+    #     # Résultats des calculs
+    #     layout.addWidget(QLabel("TVA (19.25%) :"), 5, 0)
+    #     self.frais_tva = QLineEdit("0")
+    #     self.frais_tva.setReadOnly(True)
+    #     self.frais_tva.setStyleSheet("background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px;")
+    #     layout.addWidget(self.frais_tva, 5, 1)
+        
+    #     layout.addWidget(QLabel("PTTC (Total) :"), 6, 0)
+    #     self.frais_pttc = QLineEdit("0")
+    #     self.frais_pttc.setReadOnly(True)
+    #     self.frais_pttc.setStyleSheet("background-color: #d1fae5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; font-weight: bold;")
+    #     layout.addWidget(self.frais_pttc, 6, 1)
+        
+    #     layout.addStretch()
+        
+    #     return tab
+
+    def create_frais_tab(self):
+        """Crée l'onglet des frais et taxes"""
+        tab = QWidget()
+        layout = QGridLayout(tab)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        style_field = """
+            QLineEdit {
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 8px 12px;
+                background: white;
+                font-size: 13px;
+            }
+            QLineEdit:focus {
+                border-color: #2563eb;
+            }
+        """
+        
+        # Frais supplémentaires
+        layout.addWidget(QLabel("Accessoires (FCFA) :"), 0, 0)
+        self.frais_accessoires = QLineEdit(str(self.vehicle.get('accessoires', 0)))
+        self.frais_accessoires.setStyleSheet(style_field)
+        self.frais_accessoires.textChanged.connect(self.calculate_tva_pttc)
+        layout.addWidget(self.frais_accessoires, 0, 1)
+        
+        layout.addWidget(QLabel("Fichier ASAC (FCFA) :"), 1, 0)
+        self.frais_asac = QLineEdit(str(self.vehicle.get('asac', 0)))
+        self.frais_asac.setStyleSheet(style_field)
+        self.frais_asac.textChanged.connect(self.calculate_tva_pttc)
+        layout.addWidget(self.frais_asac, 1, 1)
+        
+        layout.addWidget(QLabel("Carte Rose (FCFA) :"), 2, 0)
+        self.frais_carte_rose = QLineEdit(str(self.vehicle.get('carte_rose', 0)))
+        self.frais_carte_rose.setStyleSheet(style_field)
+        self.frais_carte_rose.textChanged.connect(self.calculate_pttc)
+        layout.addWidget(self.frais_carte_rose, 2, 1)
+        
+        layout.addWidget(QLabel("Vignette (FCFA) :"), 3, 0)
+        self.frais_vignette = QLineEdit(str(self.vehicle.get('vignette', 0)))
+        self.frais_vignette.setStyleSheet(style_field)
+        self.frais_vignette.textChanged.connect(self.calculate_pttc)
+        layout.addWidget(self.frais_vignette, 3, 1)
+        
+        # Séparateur
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+        layout.addWidget(sep, 4, 0, 1, 2)
+        
+        # Résultats des calculs
+        layout.addWidget(QLabel("TVA (19.25%) :"), 5, 0)
+        self.frais_tva = QLineEdit("0")
+        self.frais_tva.setReadOnly(True)
+        self.frais_tva.setStyleSheet("background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 12px;")
+        layout.addWidget(self.frais_tva, 5, 1)
+        
+        layout.addWidget(QLabel("PTTC (Total) :"), 6, 0)
+        self.frais_pttc = QLineEdit("0")
+        self.frais_pttc.setReadOnly(True)
+        self.frais_pttc.setStyleSheet("background-color: #d1fae5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; font-weight: bold;")
+        layout.addWidget(self.frais_pttc, 6, 1)
+        
+        # Remplacer layout.addStretch() par rowStretch
+        layout.setRowStretch(7, 1)
+        
+        return tab
+
+    def create_dates_tab(self):
+        """Crée l'onglet des dates et statut"""
+        tab = QWidget()
+        layout = QGridLayout(tab)
+        layout.setSpacing(15)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        style_field = """
+            QDateEdit {
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 8px 12px;
+                background: white;
+                font-size: 13px;
+            }
+        """
+        
+        # Date début
+        layout.addWidget(QLabel("Date de début :"), 0, 0)
+        self.dates_date_debut = QDateEdit()
+        self.dates_date_debut.setCalendarPopup(True)
+        self.dates_date_debut.setDisplayFormat("dd/MM/yyyy")
+        self.dates_date_debut.dateChanged.connect(self.update_dates_calculations)
+        layout.addWidget(self.dates_date_debut, 0, 1)
+        
+        # Date fin
+        layout.addWidget(QLabel("Date de fin :"), 1, 0)
+        self.dates_date_fin = QDateEdit()
+        self.dates_date_fin.setCalendarPopup(True)
+        self.dates_date_fin.setDisplayFormat("dd/MM/yyyy")
+        self.dates_date_fin.dateChanged.connect(self.update_dates_calculations)
+        layout.addWidget(self.dates_date_fin, 1, 1)
+        
+        # Séparateur
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+        layout.addWidget(sep, 2, 0, 1, 2)
+        
+        # Durée
+        layout.addWidget(QLabel("Durée (jours) :"), 3, 0)
+        self.dates_duree = QLabel("365")
+        self.dates_duree.setStyleSheet("font-weight: bold; color: #2563eb; font-size: 14px;")
+        layout.addWidget(self.dates_duree, 3, 1)
+        
+        # Prorata
+        layout.addWidget(QLabel("Prorata :"), 4, 0)
+        self.dates_prorata = QLabel("100%")
+        self.dates_prorata.setStyleSheet("font-weight: bold; color: #10b981;")
+        layout.addWidget(self.dates_prorata, 4, 1)
+        
+        # Statut
+        layout.addWidget(QLabel("Statut :"), 5, 0)
+        self.dates_statut = QLabel("En Circulation")
+        self.dates_statut.setStyleSheet("font-weight: bold;")
+        layout.addWidget(self.dates_statut, 5, 1)
+        
+        # Remplacer layout.addStretch() par rowStretch
+        layout.setRowStretch(6, 1)
+        
+        # Charger les dates
+        self.load_dates()
+        
+        return tab
+
+    def load_dates(self):
+        """Charge les dates du véhicule"""
+        date_debut = self.vehicle.get('date_debut')
+        date_fin = self.vehicle.get('date_fin')
+        
+        if date_debut:
+            if isinstance(date_debut, datetime):
+                self.dates_date_debut.setDate(QDate(date_debut.year, date_debut.month, date_debut.day))
+            elif isinstance(date_debut, QDate):
+                self.dates_date_debut.setDate(date_debut)
+        else:
+            self.dates_date_debut.setDate(QDate.currentDate())
+        
+        if date_fin:
+            if isinstance(date_fin, datetime):
+                self.dates_date_fin.setDate(QDate(date_fin.year, date_fin.month, date_fin.day))
+            elif isinstance(date_fin, QDate):
+                self.dates_date_fin.setDate(date_fin)
+        else:
+            self.dates_date_fin.setDate(QDate.currentDate().addYears(1))
+        
+        self.update_dates_calculations()
+    
+    def update_dates_calculations(self):
+        """Met à jour les calculs des dates"""
+        debut = self.dates_date_debut.date()
+        fin = self.dates_date_fin.date()
+        
+        if fin >= debut:
+            jours = debut.daysTo(fin)
+            prorata = (jours / 365.0) * 100
             
-            base_tva = prime_nette + accessoires + asac
+            self.dates_duree.setText(f"{jours} jours")
+            self.dates_prorata.setText(f"{prorata:.1f}%")
+            
+            today = QDate.currentDate()
+            if fin < today:
+                self.dates_statut.setText("Expiré")
+                self.dates_statut.setStyleSheet("color: #ef4444; font-weight: bold;")
+            elif debut > today:
+                self.dates_statut.setText("À venir")
+                self.dates_statut.setStyleSheet("color: #f59e0b; font-weight: bold;")
+            else:
+                self.dates_statut.setText("En Circulation")
+                self.dates_statut.setStyleSheet("color: #10b981; font-weight: bold;")
+        else:
+            self.dates_duree.setText("Invalide")
+            self.dates_prorata.setText("0%")
+            self.dates_statut.setText("Invalide")
+            self.dates_statut.setStyleSheet("color: #ef4444; font-weight: bold;")
+    
+    def load_vehicle_infos(self):
+        """Charge les informations du véhicule"""
+        # Les valeurs sont déjà chargées dans les widgets via les text()
+        pass
+    
+    def load_garanties(self):
+        for key, card in self.garantie_cards.items():
+            amount = self.garanties.get(key, 0)
+            reduction = self.garanties.get(f'reduction_{key}', 0)
+            card.set_values(amount, reduction)
+            card.garantie_changed.connect(self.on_garantie_changed)
+    
+    def on_garantie_changed(self, key, checked, net_amount):
+        self.update_total()
+        self.calculate_tva_pttc()
+    
+    def update_total(self):
+        total = sum(card.get_net_amount() for card in self.garantie_cards.values())
+        self.total_label.setText(f"{total:,.0f} FCFA".replace(",", " "))
+        self.calculate_tva_pttc()
+    
+    def calculate_tva_pttc(self):
+        """Calcule la TVA et le PTTC"""
+        try:
+            total_garanties = sum(card.get_net_amount() for card in self.garantie_cards.values())
+            accessoires = self.get_float_value(self.frais_accessoires)
+            asac = self.get_float_value(self.frais_asac)
+            
+            base_tva = total_garanties + accessoires + asac
             tva = base_tva * 0.1925
             
-            self.tva.setText(f"{tva:,.0f}".replace(",", " "))
-            return tva
+            self.frais_tva.setText(f"{tva:,.0f}".replace(",", " "))
+            self.calculate_pttc()
         except:
-            return 0
+            pass
     
     def calculate_pttc(self):
         """Calcule le PTTC"""
         try:
-            prime_nette = self.get_float_value(self.prime_nette)
-            accessoires = self.get_float_value(self.accessoire)
-            asac = self.get_float_value(self.asac)
-            tva = self.get_float_value(self.tva)
-            vignette = self.get_float_value(self.vignette)
-            carte_rose = self.get_float_value(self.carte_rose)
+            total_garanties = sum(card.get_net_amount() for card in self.garantie_cards.values())
+            accessoires = self.get_float_value(self.frais_accessoires)
+            asac = self.get_float_value(self.frais_asac)
+            tva = self.get_float_value(self.frais_tva)
+            vignette = self.get_float_value(self.frais_vignette)
+            carte_rose = self.get_float_value(self.frais_carte_rose)
             
-            pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
-            self.pttc.setText(f"{pttc:,.0f}".replace(",", " "))
-            return pttc
+            pttc = total_garanties + accessoires + asac + tva + vignette + carte_rose
+            self.frais_pttc.setText(f"{pttc:,.0f}".replace(",", " "))
         except:
-            return 0
+            pass
     
     def get_float_value(self, widget):
         """Récupère une valeur float d'un widget"""
@@ -783,26 +1355,6 @@ class VehicleGarantieDialog(QDialog):
         except:
             return 0.0
     
-    def load_garanties(self):
-        for key, card in self.garantie_cards.items():
-            amount = self.garanties.get(key, 0)
-            reduction = self.garanties.get(f'reduction_{key}', 0)
-            card.set_values(amount, reduction)
-            card.garantie_changed.connect(self.on_garantie_changed)
-    
-    def on_garantie_changed(self, key, checked, net_amount):
-        self.update_total()
-    
-    def update_total(self):
-        total = sum(card.get_net_amount() for card in self.garantie_cards.values())
-        self.total_label.setText(f"{total:,.0f} FCFA".replace(",", " "))
-        
-        # Mettre à jour les champs du récapitulatif
-        self.prime_brute.setText(f"{total:,.0f}".replace(",", " "))
-        self.prime_nette.setText(f"{total:,.0f}".replace(",", " "))
-        self.calculate_tva()
-        self.calculate_pttc()
-    
     def get_garanties(self):
         result = {}
         for key, card in self.garantie_cards.items():
@@ -811,13 +1363,34 @@ class VehicleGarantieDialog(QDialog):
             result[f'reduction_{key}'] = card.current_reduction
         result['total'] = sum(v for k, v in result.items() if not k.startswith(('brut_', 'reduction_', 'total')))
         
-        # Ajouter les valeurs du récapitulatif
-        result['carte_rose'] = self.get_float_value(self.carte_rose)
-        result['accessoires'] = self.get_float_value(self.accessoire)
-        result['asac'] = self.get_float_value(self.asac)
-        result['vignette'] = self.get_float_value(self.vignette)
-        result['tva'] = self.get_float_value(self.tva)
-        result['pttc'] = self.get_float_value(self.pttc)
+        # Ajouter les valeurs des frais
+        result['accessoires'] = self.get_float_value(self.frais_accessoires)
+        result['asac'] = self.get_float_value(self.frais_asac)
+        result['carte_rose'] = self.get_float_value(self.frais_carte_rose)
+        result['vignette'] = self.get_float_value(self.frais_vignette)
+        result['tva'] = self.get_float_value(self.frais_tva)
+        result['pttc'] = self.get_float_value(self.frais_pttc)
+        
+        # Ajouter les informations du véhicule
+        result['immatriculation'] = self.info_immatriculation.text().strip().upper()
+        result['chassis'] = self.info_chassis.text().strip()
+        result['marque'] = self.info_marque.text().strip()
+        result['modele'] = self.info_modele.text().strip()
+        result['categorie'] = self.info_categorie.text().strip().upper()
+        result['annee'] = self.get_float_value(self.info_annee)
+        result['energie'] = self.info_energie.text().strip()
+        result['puissance'] = self.get_float_value(self.info_puissance)
+        result['places'] = int(self.get_float_value(self.info_places)) if self.get_float_value(self.info_places) else 5
+        result['valeur_neuf'] = self.get_float_value(self.info_valeur_neuf)
+        result['valeur_venale'] = self.get_float_value(self.info_valeur_venale)
+        result['zone'] = self.info_zone.text().strip().upper()
+        
+        # Ajouter les dates
+        result['date_debut'] = self.dates_date_debut.date().toPython()
+        result['date_fin'] = self.dates_date_fin.date().toPython()
+        result['nbr_jour'] = self.dates_date_debut.date().daysTo(self.dates_date_fin.date())
+        result['statut'] = self.dates_statut.text()
+        result['prorata'] = result['nbr_jour'] / 365.0 if result['nbr_jour'] > 0 else 0
         
         return result
 
@@ -931,11 +1504,12 @@ class CalculationThread(QThread):
 class VehicleActionsWidget(QWidget):
     """Widget contenant les deux boutons d'action pour un véhicule"""
     
-    def __init__(self, vehicle_id, on_garanties_clicked, on_dates_clicked, parent=None):
+    def __init__(self, vehicle_id, on_garanties_clicked, on_dates_clicked, on_modified_clicked, parent=None):
         super().__init__(parent)
         self.vehicle_id = vehicle_id
         self.on_garanties_clicked = on_garanties_clicked
         self.on_dates_clicked = on_dates_clicked
+        self.on_modified_clicked = on_modified_clicked
         
         self.setFixedHeight(40)
         self.setMinimumWidth(110)
@@ -986,9 +1560,30 @@ class VehicleActionsWidget(QWidget):
             }
         """)
         self.dates_btn.clicked.connect(lambda: self.on_dates_clicked(self.vehicle_id))
+
+        # Bouton Dates
+        self.update_btn = QPushButton("✏️")
+        self.update_btn.setToolTip("Modifier les données du véhicule")
+        self.update_btn.setFixedSize(38, 34)
+        self.update_btn.setCursor(Qt.PointingHandCursor)
+        self.update_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #10b981;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #059669;
+            }
+        """)
+        self.update_btn.clicked.connect(lambda: self.on_modified_clicked(self.vehicle_id))
         
         layout.addWidget(self.garanties_btn)
         layout.addWidget(self.dates_btn)
+        layout.addWidget(self.update_btn)
         layout.setAlignment(Qt.AlignCenter)
 
 class FleetImportAdvancedDialog(QDialog):
@@ -1080,6 +1675,12 @@ class FleetImportAdvancedDialog(QDialog):
         
         # 3. Assurance
         layout.addWidget(self.create_insurance_section())
+
+        # Bouton Appliquer les frais
+        apply_frais_btn = QPushButton("💰 Appliquer les frais aux véhicules sélectionnés")
+        apply_frais_btn.setProperty("class", "BtnPrimary")
+        apply_frais_btn.clicked.connect(self.apply_global_frais_to_selected)
+        layout.addWidget(apply_frais_btn)
         
         # 4. Garanties globales
         layout.addWidget(self.create_global_garanties_section())
@@ -1226,6 +1827,66 @@ class FleetImportAdvancedDialog(QDialog):
         get_global_loader().hide_loading()
         print(f"Erreur chargement catégories: {error}")
 
+    # def create_insurance_section(self):
+    #     """Section des paramètres d'assurance"""
+    #     group = QGroupBox("🛡️ 3. Paramètres d'assurance")
+    #     layout = QGridLayout(group)
+    #     layout.setSpacing(12)
+        
+    #     # Compagnie
+    #     layout.addWidget(QLabel("Compagnie :"), 0, 0)
+    #     self.compagny_combo = QComboBox()
+    #     self.compagny_combo.currentIndexChanged.connect(self.on_compagny_changed)
+    #     layout.addWidget(self.compagny_combo, 0, 1)
+        
+    #     # Zone
+    #     layout.addWidget(QLabel("Zone :"), 1, 0)
+    #     self.zone_combo = QComboBox()
+    #     self.zone_combo.addItems(["A", "B", "C"])
+    #     layout.addWidget(self.zone_combo, 1, 1)
+        
+    #     # Catégorie (comme dans automobile_form_view)
+    #     layout.addWidget(QLabel("Catégorie :"), 2, 0)
+    #     self.categorie_combo = QComboBox()  # ← Garder categorie_combo
+    #     self.categorie_combo.setStyleSheet("""
+    #         QComboBox {
+    #             border: 1px solid #e2e8f0;
+    #             border-radius: 8px;
+    #             padding: 8px 12px;
+    #             background: white;
+    #             font-size: 13px;
+    #         }
+    #     """)
+    #     self.categorie_combo.setEditable(True)
+    #     self.categorie_combo.setPlaceholderText("Sélectionnez une catégorie...")
+    #     layout.addWidget(self.categorie_combo, 2, 1)
+        
+    #     # Code tarif
+    #     layout.addWidget(QLabel("Code tarif :"), 3, 0)
+    #     self.code_tarif_combo = QComboBox()
+    #     self.code_tarif_combo.setEditable(True)
+    #     self.code_tarif_combo.currentTextChanged.connect(self.on_code_tarif_changed)  # ← Ajouter connexion
+    #     layout.addWidget(self.code_tarif_combo, 3, 1)
+        
+    #     # Dates
+    #     layout.addWidget(QLabel("Date début :"), 4, 0)
+    #     self.date_debut = QDateEdit()
+    #     self.date_debut.setDate(QDate.currentDate())
+    #     self.date_debut.setCalendarPopup(True)
+    #     layout.addWidget(self.date_debut, 4, 1)
+        
+    #     layout.addWidget(QLabel("Date fin :"), 5, 0)
+    #     self.date_fin = QDateEdit()
+    #     self.date_fin.setDate(QDate.currentDate().addYears(1))
+    #     self.date_fin.setCalendarPopup(True)
+    #     layout.addWidget(self.date_fin, 5, 1)
+        
+    #     # Options
+    #     self.remorque_check = QCheckBox("🚛 Véhicule avec remorque")
+    #     layout.addWidget(self.remorque_check, 6, 0, 1, 2)
+        
+    #     return group
+
     def create_insurance_section(self):
         """Section des paramètres d'assurance"""
         group = QGroupBox("🛡️ 3. Paramètres d'assurance")
@@ -1244,9 +1905,9 @@ class FleetImportAdvancedDialog(QDialog):
         self.zone_combo.addItems(["A", "B", "C"])
         layout.addWidget(self.zone_combo, 1, 1)
         
-        # Catégorie (comme dans automobile_form_view)
+        # Catégorie
         layout.addWidget(QLabel("Catégorie :"), 2, 0)
-        self.categorie_combo = QComboBox()  # ← Garder categorie_combo
+        self.categorie_combo = QComboBox()
         self.categorie_combo.setStyleSheet("""
             QComboBox {
                 border: 1px solid #e2e8f0;
@@ -1264,7 +1925,7 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(QLabel("Code tarif :"), 3, 0)
         self.code_tarif_combo = QComboBox()
         self.code_tarif_combo.setEditable(True)
-        self.code_tarif_combo.currentTextChanged.connect(self.on_code_tarif_changed)  # ← Ajouter connexion
+        self.code_tarif_combo.currentTextChanged.connect(self.on_code_tarif_changed)
         layout.addWidget(self.code_tarif_combo, 3, 1)
         
         # Dates
@@ -1280,11 +1941,87 @@ class FleetImportAdvancedDialog(QDialog):
         self.date_fin.setCalendarPopup(True)
         layout.addWidget(self.date_fin, 5, 1)
         
-        # Options
+        # ========== NOUVEAUX CHAMPS DE FRAIS ==========
+        # Séparateur
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+        layout.addWidget(sep, 6, 0, 1, 2)
+        
+        # Titre des frais
+        frais_title = QLabel("📋 FRAIS SUPPLÉMENTAIRES (par véhicule)")
+        frais_title.setStyleSheet("font-weight: 700; color: #475569; margin-top: 5px;")
+        layout.addWidget(frais_title, 7, 0, 1, 2)
+        
+        # Accessoires
+        layout.addWidget(QLabel("Accessoires (FCFA) :"), 8, 0)
+        self.global_accessoires = QLineEdit("0")
+        self.global_accessoires.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;")
+        layout.addWidget(self.global_accessoires, 8, 1)
+        
+        # Fichier ASAC
+        layout.addWidget(QLabel("Fichier ASAC (FCFA) :"), 9, 0)
+        self.global_asac = QLineEdit("0")
+        self.global_asac.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;")
+        layout.addWidget(self.global_asac, 9, 1)
+        
+        # Carte Rose
+        layout.addWidget(QLabel("Carte Rose (FCFA) :"), 10, 0)
+        self.global_carte_rose = QLineEdit("0")
+        self.global_carte_rose.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;")
+        layout.addWidget(self.global_carte_rose, 10, 1)
+        
+        # Vignette
+        layout.addWidget(QLabel("Vignette (FCFA) :"), 11, 0)
+        self.global_vignette = QLineEdit("0")
+        self.global_vignette.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px;")
+        layout.addWidget(self.global_vignette, 11, 1)
+        
+        # Option remorque
+        layout.addWidget(QLabel(""), 12, 0)
         self.remorque_check = QCheckBox("🚛 Véhicule avec remorque")
-        layout.addWidget(self.remorque_check, 6, 0, 1, 2)
+        layout.addWidget(self.remorque_check, 12, 1)
         
         return group
+
+    def apply_global_frais_to_selected(self):
+        """Applique les frais globaux (accessoires, asac, carte rose, vignette) aux véhicules sélectionnés"""
+        selected_rows = []
+        for row in range(self.vehicles_table.rowCount()):
+            item = self.vehicles_table.item(row, 0)
+            if item and item.checkState() == Qt.Checked:
+                selected_rows.append(row)
+        
+        if not selected_rows:
+            QMessageBox.warning(self, "Aucune sélection", "Veuillez sélectionner au moins un véhicule")
+            return
+        
+        try:
+            accessoires = float(self.global_accessoires.text().replace(" ", "").replace(",", "") or 0)
+            asac = float(self.global_asac.text().replace(" ", "").replace(",", "") or 0)
+            carte_rose = float(self.global_carte_rose.text().replace(" ", "").replace(",", "") or 0)
+            vignette = float(self.global_vignette.text().replace(" ", "").replace(",", "") or 0)
+            
+            for row in selected_rows:
+                vehicle = self.vehicles_data[row]
+                vehicle['accessoires'] = accessoires
+                vehicle['asac'] = asac
+                vehicle['carte_rose'] = carte_rose
+                vehicle['vignette'] = vignette
+                
+                # Recalculer TVA et PTTC
+                garanties = vehicle.get('garanties', {})
+                total_garanties = garanties.get('total', 0)
+                vehicle['tva'] = (total_garanties + accessoires + asac) * 0.1925
+                vehicle['pttc'] = total_garanties + accessoires + asac + vehicle['tva'] + vignette + carte_rose
+            
+            self.update_summary()
+            self.update_garanties_summary()
+            
+            QMessageBox.information(self, "Succès", f"Frais appliqués à {len(selected_rows)} véhicule(s)")
+            
+        except ValueError as e:
+            QMessageBox.warning(self, "Erreur", f"Valeur invalide: {str(e)}")
 
     def create_global_garanties_section(self):
         """Section des garanties globales de la flotte"""
@@ -1340,49 +2077,7 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(apply_btn)
         
         return group
-    
-    # def edit_vehicle_dates(self, vehicle_id):
-    #     """Modifie les dates d'un véhicule"""
-    #     row = self.find_row_by_vehicle_id(vehicle_id)
-    #     if row == -1:
-    #         QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
-    #         return
-
-    #     vehicle = self.vehicles_data[row]
-        
-    #     dialog = VehicleDatesDialog(vehicle, self)
-    #     if dialog.exec():
-    #         new_dates = dialog.get_dates()
-            
-    #         # Sauvegarder les montants annuels si pas encore fait
-    #         if 'garanties_annuelles' not in vehicle:
-    #             vehicle['garanties_annuelles'] = vehicle.get('garanties', {}).copy()
-            
-    #         # Mettre à jour les dates
-    #         vehicle['date_debut'] = new_dates['date_debut']
-    #         vehicle['date_fin'] = new_dates['date_fin']
-    #         vehicle['nbr_jour'] = new_dates['nbr_jour']
-    #         vehicle['statut'] = new_dates['statut']
-            
-    #         # Recalculer les garanties au prorata
-    #         prorata = new_dates['prorata']
-    #         garanties_annuelles = vehicle['garanties_annuelles']
-    #         new_garanties = {}
-    #         for key, amount in garanties_annuelles.items():
-    #             if key != 'total':
-    #                 new_garanties[key] = amount * prorata
-            
-    #         new_garanties['total'] = sum(new_garanties.values())
-    #         vehicle['garanties'] = new_garanties
-            
-    #         # Mettre à jour l'affichage du tableau
-    #         self.update_vehicle_row_display(row, vehicle, new_dates)
-            
-    #         self.update_summary()
-    #         self.update_garanties_summary()
-            
-    #         QMessageBox.information(self, "Succès", f"Dates mises à jour pour {vehicle['immatriculation']}\nPrime recalculée au prorata de {prorata*100:.1f}%")
-    
+   
     def edit_vehicle_dates(self, vehicle_id):
         """Modifie les dates d'un véhicule à partir de son ID"""
         row = self.find_row_by_vehicle_id(vehicle_id)
@@ -1513,22 +2208,6 @@ class FleetImportAdvancedDialog(QDialog):
 
         layout.addWidget(self.vehicles_table)
         
-        # Récapitulatif des garanties (Tableau détaillé)
-        recap_garanties_group = QGroupBox("📊 Récapitulatif détaillé des garanties")
-        recap_garanties_layout = QVBoxLayout(recap_garanties_group)
-        
-        # Tableau des totaux par garantie - CRÉER L'ATTRIBUT DE CLASSE
-        self.garanties_summary_table = QTableWidget()
-        self.garanties_summary_table.setColumnCount(4)
-        self.garanties_summary_table.setHorizontalHeaderLabels([
-            "Garantie", "Total (FCFA)", "Sélectionné (FCFA)", "%"
-        ])
-        self.garanties_summary_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.garanties_summary_table.setAlternatingRowColors(True)
-        self.garanties_summary_table.setMaximumHeight(250)
-        recap_garanties_layout.addWidget(self.garanties_summary_table)
-        layout.addWidget(recap_garanties_group)
-        
         # Récapitulatif général avec toutes les garanties en cartes
         recap_group = QGroupBox("📊 Récapitulatif des garanties")
         recap_layout = QGridLayout(recap_group)
@@ -1552,6 +2231,12 @@ class FleetImportAdvancedDialog(QDialog):
             ('dta', "Dommage Tout Accident", "0 FCFA", "💥"),
             ('ipt', "IPT", "0 FCFA", "👥"),
             ('prime_total', "Prime totale", "0 FCFA", "💰"),
+            ('carte_rose', "Carte Rose", "0 FCFA", "📄"),
+            ('accessoires', "Accessoires", "0 FCFA", "🔧"),
+            ('asac', "Fichier ASAC", "0 FCFA", "📁"),
+            ('vignette', "Vignette", "0 FCFA", "🏷️"),
+            ('tva', "TVA", "0 FCFA", "📊"),
+            ('pttc_total', "PTTC Total", "0 FCFA", "💰"),
         ]
         
         row = 0
@@ -1704,36 +2389,6 @@ class FleetImportAdvancedDialog(QDialog):
                             selected_totals[key] += amount
                     except ValueError:
                         pass
-        
-        # Remplir le tableau
-        self.garanties_summary_table.setRowCount(len(garanties_list))
-        
-        for i, (key, label) in enumerate(garanties_list):
-            # Garantie
-            self.garanties_summary_table.setItem(i, 0, QTableWidgetItem(label))
-            
-            # Total général
-            total_item = QTableWidgetItem(f"{totals[key]:,.0f}".replace(",", " "))
-            total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.garanties_summary_table.setItem(i, 1, total_item)
-            
-            # Total sélectionné
-            selected_item = QTableWidgetItem(f"{selected_totals[key]:,.0f}".replace(",", " "))
-            selected_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            if selected_totals[key] > 0:
-                selected_item.setForeground(QColor(AppColors.SUCCESS))
-            self.garanties_summary_table.setItem(i, 2, selected_item)
-            
-            # Pourcentage
-            percent = 0
-            if totals[key] > 0:
-                percent = (selected_totals[key] / totals[key]) * 100
-            percent_item = QTableWidgetItem(f"{percent:.1f}%")
-            percent_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.garanties_summary_table.setItem(i, 3, percent_item)
-        
-        # Ajuster les colonnes
-        self.garanties_summary_table.resizeColumnsToContents()
 
     def create_footer(self):
         """Crée le pied de page"""
@@ -1808,6 +2463,29 @@ class FleetImportAdvancedDialog(QDialog):
                 if 'zone_tarifaire' in df.columns and pd.notna(row.get('zone_tarifaire')):
                     zone_value = str(row.get('zone_tarifaire', '')).strip().upper()
                 
+                # Récupérer les dates depuis le fichier si disponibles
+                date_debut_value = None
+                date_fin_value = None
+                nbr_jour_value = 365
+                statut_value = "En Circulation"
+                
+                if 'date_debut' in df.columns and pd.notna(row.get('date_debut')):
+                    try:
+                        date_debut_value = pd.to_datetime(row.get('date_debut')).to_pydatetime()
+                    except:
+                        date_debut_value = None
+                
+                if 'date_fin' in df.columns and pd.notna(row.get('date_fin')):
+                    try:
+                        date_fin_value = pd.to_datetime(row.get('date_fin')).to_pydatetime()
+                    except:
+                        date_fin_value = None
+                
+                if date_debut_value and date_fin_value:
+                    nbr_jour_value = (date_fin_value - date_debut_value).days
+                    if nbr_jour_value <= 0:
+                        nbr_jour_value = 365
+                
                 vehicle = {
                     # OBLIGATOIRES
                     'immatriculation': str(row.get('immatriculation', '')).strip().upper(),
@@ -1836,10 +2514,20 @@ class FleetImportAdvancedDialog(QDialog):
                     'conducteur_nom': str(row.get('conducteur_nom', '')).strip() if pd.notna(row.get('conducteur_nom')) else '',
                     'conducteur_naissance': str(row.get('conducteur_naissance', '')).strip() if pd.notna(row.get('conducteur_naissance')) else '',
                     'conducteur_permis': str(row.get('conducteur_permis', '')).strip() if pd.notna(row.get('conducteur_permis')) else '',
-                    'date_debut': vehicle.date_debut,
-                    'date_fin': vehicle.date_fin,
-                    'nbr_jour': vehicle.nbr_jour,
-                    'statut': vehicle.statut,
+                    
+                    # Dates (CORRECTION : utiliser les variables définies)
+                    'date_debut': date_debut_value,
+                    'date_fin': date_fin_value,
+                    'nbr_jour': nbr_jour_value,
+                    'statut': statut_value,
+                    
+                    # Initialiser les frais
+                    'accessoires': 0,
+                    'asac': 0,
+                    'carte_rose': 0,
+                    'vignette': 0,
+                    'tva': 0,
+                    'pttc': 0,
                 }
                 
                 if vehicle['immatriculation']:
@@ -1856,215 +2544,6 @@ class FleetImportAdvancedDialog(QDialog):
         except Exception as e:
             self.file_info.setText(f"❌ Erreur: {str(e)}")
             traceback.print_exc()
-
-    def import_fleet(self):
-        """Importe la flotte"""
-        selected = []
-        for row in range(self.vehicles_table.rowCount()):
-            item = self.vehicles_table.item(row, 0)
-            if item and item.checkState() == Qt.Checked:
-                selected.append(self.vehicles_data[row])
-        
-        if not selected:
-            QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
-            return
-        
-        try:
-            owner_id = None
-            current_user_id = 1
-            
-            if hasattr(self.parent(), 'contact'):
-                owner_id = self.parent().contact.id
-            
-            if hasattr(self.controller, 'current_user_id'):
-                current_user_id = self.controller.current_user_id
-            
-            # Créer ou récupérer la flotte
-            fleet_id = None
-            
-            if self.mode_new.isChecked():
-                fleet_name = self.fleet_name.text().strip()
-                if not fleet_name:
-                    QMessageBox.warning(self, "Erreur", "Veuillez entrer un nom de flotte")
-                    return
-                
-                fleet_data = {
-                    'nom_flotte': fleet_name,
-                    'code_flotte': self.fleet_code.text().strip(),
-                    'owner_id': owner_id,
-                    'statut': 'Actif',
-                    'assureur': self.compagny_combo.currentData(),
-                    'date_debut': self.date_debut.date().toPython(),
-                    'date_fin': self.date_fin.date().toPython(),
-                }
-                
-                success, result = self.controller.fleets.create_fleet(fleet_data, current_user_id)
-                if not success:
-                    QMessageBox.critical(self, "Erreur", f"Erreur création flotte: {result}")
-                    return
-                fleet_id = result.id if hasattr(result, 'id') else result
-            else:
-                fleet_id = self.existing_fleet_combo.currentData()
-                if not fleet_id:
-                    QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une flotte")
-                    return
-            
-            # Importer les véhicules
-            imported = 0
-            errors = []
-            
-            for vehicle in selected:
-                garanties = vehicle.get('garanties', {})
-                
-                chassis_value = vehicle.get('chassis', '')
-                if not chassis_value or chassis_value == '':
-                    chassis_value = f"CH-{vehicle['immatriculation']}"
-                
-                debut = self.date_debut.date().toPython()
-                fin = self.date_fin.date().toPython()
-                jours = max(1, (fin - debut).days)
-                
-                # Utiliser la catégorie du véhicule ou celle du combo
-                categorie_value = vehicle.get('categorie', '')
-                if not categorie_value:
-                    categorie_value = self.categorie_combo.currentText().strip().upper()
-                    if not categorie_value:
-                        categorie_value = "VP"
-                
-                tva_rate = 0.1925
-                total_garanties = garanties.get('total', 0)
-                tva_amount = total_garanties * tva_rate
-                
-                vehicle_data = {
-                    'immatriculation': vehicle['immatriculation'],
-                    'chassis': chassis_value,
-                    'zone': self.zone_combo.currentText(),
-                    'marque': vehicle['marque'],
-                    'categorie': categorie_value,
-                    'modele': vehicle['modele'],
-                    'annee': vehicle.get('annee'),
-                    'energie': vehicle.get('energie', 'Essence'),
-                    'usage': vehicle.get('puissance', 0),
-                    'places': vehicle.get('places', 5),
-                    'has_remorque': self.remorque_check.isChecked(),
-                    'libele_tarif': "",
-                    'code_tarif': self.code_tarif_combo.currentText(),
-                    'owner_id': owner_id,
-                    'compagny_id': self.compagny_combo.currentData(),
-                    'fleet_id': fleet_id,
-                    'tarif_id': None,
-                    'date_debut': debut,
-                    'date_fin': fin,
-                    'statut': 'En Circulation',
-                    'nbr_jour': jours,
-                    'valeur_neuf': vehicle.get('valeur_neuf', 0),
-                    'valeur_venale': vehicle.get('valeur_venale', 0),
-                    'prime_brute': total_garanties,
-                    'reduction': 0,
-                    'prime_nette': total_garanties,
-                    'prime_emise': total_garanties,
-                    'carte_rose': 0,
-                    'accessoires': 0,
-                    'tva': tva_amount,
-                    'fichier_asac': 0,
-                    'vignette': 0,
-                    'pttc': total_garanties + tva_amount,
-                    # Garanties
-                    'check_rc': True,
-                    'amt_rc': garanties.get('rc', 0),
-                    'red_rc': 0,
-                    'amt_red_rc': garanties.get('rc', 0),
-                    'amt_val_red_rc': 0,
-                    'amt_fleet_rc_val': garanties.get('rc', 0),
-                    'check_dr': True,
-                    'amt_dr': garanties.get('dr', 0),
-                    'red_dr': 0,
-                    'amt_red_dr': garanties.get('dr', 0),
-                    'amt_val_red_dr': 0,
-                    'amt_fleet_dr_val': garanties.get('dr', 0),
-                    'check_vol': garanties.get('vol', 0) > 0,
-                    'amt_vol': garanties.get('vol', 0),
-                    'red_vol': 0,
-                    'amt_red_vol': garanties.get('vol', 0),
-                    'amt_val_red_vol': 0,
-                    'amt_fleet_vol_val': garanties.get('vol', 0),
-                    'check_vb': garanties.get('vb', 0) > 0,
-                    'amt_vb': garanties.get('vb', 0),
-                    'red_vb': 0,
-                    'amt_red_vb': garanties.get('vb', 0),
-                    'amt_val_red_vb': 0,
-                    'amt_fleet_vb_val': garanties.get('vb', 0),
-                    'check_in': garanties.get('incendie', 0) > 0,
-                    'amt_in': garanties.get('incendie', 0),
-                    'red_in': 0,
-                    'amt_red_in': garanties.get('incendie', 0),
-                    'amt_val_red_in': 0,
-                    'amt_fleet_in_val': garanties.get('incendie', 0),
-                    'check_bris': garanties.get('bris_glace', 0) > 0,
-                    'amt_bris': garanties.get('bris_glace', 0),
-                    'red_bris': 0,
-                    'amt_red_bris': garanties.get('bris_glace', 0),
-                    'amt_val_red_bris': 0,
-                    'amt_fleet_bris_val': garanties.get('bris_glace', 0),
-                    'check_ar': garanties.get('ar', 0) > 0,
-                    'amt_ar': garanties.get('ar', 0),
-                    'red_ar': 0,
-                    'amt_red_ar': garanties.get('ar', 0),
-                    'amt_val_red_ar': 0,
-                    'amt_fleet_ar_val': garanties.get('ar', 0),
-                    'check_dta': garanties.get('dta', 0) > 0,
-                    'amt_dta': garanties.get('dta', 0),
-                    'red_dta': 0,
-                    'amt_red_dta': garanties.get('dta', 0),
-                    'amt_val_red_dta': 0,
-                    'amt_fleet_dta_val': garanties.get('dta', 0),
-                    'check_ipt': garanties.get('ipt', 0) > 0,
-                    'amt_ipt': garanties.get('ipt', 0),
-                    'red_ipt': 0,
-                    'amt_red_ipt': garanties.get('ipt', 0),
-                    'amt_val_red_ipt': 0,
-                    'amt_fleet_ipt_val': garanties.get('ipt', 0),
-                    'created_by': current_user_id,
-                    'updated_by': None,
-                    'created_ip': 'Offline',
-                    'last_ip': None,
-                    'is_active': True
-                }
-                
-                try:
-                    result = self.controller.vehicles.create_vehicle(vehicle_data, current_user_id)
-                    
-                    if isinstance(result, tuple):
-                        if len(result) == 2:
-                            success, message = result
-                        elif len(result) == 3:
-                            success, _, message = result
-                        else:
-                            success = False
-                            message = "Format de retour inattendu"
-                    else:
-                        success = bool(result)
-                        message = "Succès" if success else "Erreur"
-                    
-                    if success:
-                        imported += 1
-                        print(f"✅ Véhicule {vehicle['immatriculation']} importé avec succès")
-                    else:
-                        errors.append(f"{vehicle['immatriculation']}: {message}")
-                except Exception as e:
-                    errors.append(f"{vehicle['immatriculation']}: {str(e)}")
-            
-            if imported > 0:
-                msg = f"✅ {imported} véhicule(s) importés avec succès"
-                if errors:
-                    msg += f"\n\n⚠️ {len(errors)} erreur(s):\n" + "\n".join(errors[:5])
-                QMessageBox.information(self, "Importation terminée", msg)
-                self.accept()
-            else:
-                QMessageBox.critical(self, "Erreur", "\n".join(errors[:5]))
-            
-        except Exception as e:
-            QMessageBox.critical(self, "Erreur", str(e))
 
     def show_preview(self):
         """Affiche un aperçu des véhicules"""
@@ -2109,9 +2588,14 @@ class FleetImportAdvancedDialog(QDialog):
             actions_widget = VehicleActionsWidget(
                 vehicle_id,
                 self.edit_vehicle_garanties,
-                self.edit_vehicle_dates
+                self.edit_vehicle_dates,
+                self.on_modify_vehicle
             )
             self.vehicles_table.setCellWidget(i, 18, actions_widget)
+            v['accessoires'] = 0
+            v['asac'] = 0
+            v['carte_rose'] = 0
+            v['vignette'] = 0
         
         # Ajuster la hauteur des lignes
         self.adjust_row_heights()
@@ -2158,7 +2642,7 @@ class FleetImportAdvancedDialog(QDialog):
         QMessageBox.information(self, "Succès", f"Garanties appliquées à {applied} véhicules")
     
     def edit_vehicle_garanties(self, vehicle_id):
-        """Modifie les garanties d'un véhicule à partir de son ID"""
+        """Modifie les garanties et informations d'un véhicule à partir de son ID"""
         row = self.find_row_by_vehicle_id(vehicle_id)
         if row == -1:
             QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
@@ -2169,8 +2653,38 @@ class FleetImportAdvancedDialog(QDialog):
         
         dialog = VehicleGarantieDialog(vehicle, garanties, self)
         if dialog.exec():
-            new_garanties = dialog.get_garanties()
-            vehicle['garanties'] = new_garanties
+            new_data = dialog.get_garanties()
+            
+            # Mettre à jour les garanties
+            vehicle['garanties'] = new_data
+            
+            # Mettre à jour les informations du véhicule
+            vehicle['immatriculation'] = new_data.get('immatriculation', vehicle.get('immatriculation'))
+            vehicle['chassis'] = new_data.get('chassis', vehicle.get('chassis'))
+            vehicle['marque'] = new_data.get('marque', vehicle.get('marque'))
+            vehicle['modele'] = new_data.get('modele', vehicle.get('modele'))
+            vehicle['categorie'] = new_data.get('categorie', vehicle.get('categorie'))
+            vehicle['annee'] = new_data.get('annee', vehicle.get('annee'))
+            vehicle['energie'] = new_data.get('energie', vehicle.get('energie'))
+            vehicle['puissance'] = new_data.get('puissance', vehicle.get('puissance'))
+            vehicle['places'] = new_data.get('places', vehicle.get('places'))
+            vehicle['valeur_neuf'] = new_data.get('valeur_neuf', vehicle.get('valeur_neuf'))
+            vehicle['valeur_venale'] = new_data.get('valeur_venale', vehicle.get('valeur_venale'))
+            vehicle['zone'] = new_data.get('zone', vehicle.get('zone'))
+            
+            # Mettre à jour les frais
+            vehicle['accessoires'] = new_data.get('accessoires', 0)
+            vehicle['asac'] = new_data.get('asac', 0)
+            vehicle['carte_rose'] = new_data.get('carte_rose', 0)
+            vehicle['vignette'] = new_data.get('vignette', 0)
+            vehicle['tva'] = new_data.get('tva', 0)
+            vehicle['pttc'] = new_data.get('pttc', 0)
+            
+            # Mettre à jour les dates
+            vehicle['date_debut'] = new_data.get('date_debut', vehicle.get('date_debut'))
+            vehicle['date_fin'] = new_data.get('date_fin', vehicle.get('date_fin'))
+            vehicle['nbr_jour'] = new_data.get('nbr_jour', vehicle.get('nbr_jour', 365))
+            vehicle['statut'] = new_data.get('statut', vehicle.get('statut', 'En Circulation'))
             
             # Mettre à jour l'affichage dans le tableau
             garanties_mapping = [
@@ -2179,19 +2693,132 @@ class FleetImportAdvancedDialog(QDialog):
             ]
             
             for key, col in garanties_mapping:
-                amount = new_garanties.get(key, 0)
+                amount = new_data.get(key, 0)
                 item = QTableWidgetItem(f"{amount:,.0f}".replace(",", " "))
                 item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 self.vehicles_table.setItem(row, col, item)
             
-            total_amount = new_garanties.get('total', 0)
+            total_amount = new_data.get('total', 0)
             total_item = QTableWidgetItem(f"{total_amount:,.0f}".replace(",", " "))
             total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.vehicles_table.setItem(row, 17, total_item)
             
+            # Mettre à jour les dates dans le tableau
+            date_debut = vehicle.get('date_debut')
+            date_fin = vehicle.get('date_fin')
+            if date_debut:
+                date_debut_str = date_debut.strftime("%d/%m/%Y") if isinstance(date_debut, datetime) else str(date_debut)
+            else:
+                date_debut_str = "-"
+            if date_fin:
+                date_fin_str = date_fin.strftime("%d/%m/%Y") if isinstance(date_fin, datetime) else str(date_fin)
+            else:
+                date_fin_str = "-"
+            
+            self.vehicles_table.setItem(row, 5, QTableWidgetItem(date_debut_str))
+            self.vehicles_table.setItem(row, 6, QTableWidgetItem(date_fin_str))
+            
+            jours_item = QTableWidgetItem(str(vehicle.get('nbr_jour', 0)))
+            jours_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.vehicles_table.setItem(row, 7, jours_item)
+            
+            # Mettre à jour la catégorie
+            self.vehicles_table.setItem(row, 4, QTableWidgetItem(vehicle.get('categorie', 'VP')))
+            
             self.update_summary()
             self.update_garanties_summary()
+            
+            QMessageBox.information(self, "Succès", f"Véhicule {vehicle['immatriculation']} mis à jour avec succès")
     
+    def on_modify_vehicle(self, vehicle_id):
+        """Modifie les garanties et informations d'un véhicule à partir de son ID"""
+        row = self.find_row_by_vehicle_id(vehicle_id)
+        if row == -1:
+            QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
+            return
+        
+        vehicle = self.vehicles_data[row]
+        garanties = vehicle.get('garanties', {})
+        
+        dialog = VehicleGarantieDialog(vehicle, garanties, self)
+        if dialog.exec():
+            new_data = dialog.get_garanties()
+            
+            # Mettre à jour les garanties
+            vehicle['garanties'] = new_data
+            
+            # Mettre à jour les informations du véhicule
+            vehicle['immatriculation'] = new_data.get('immatriculation', vehicle.get('immatriculation'))
+            vehicle['chassis'] = new_data.get('chassis', vehicle.get('chassis'))
+            vehicle['marque'] = new_data.get('marque', vehicle.get('marque'))
+            vehicle['modele'] = new_data.get('modele', vehicle.get('modele'))
+            vehicle['categorie'] = new_data.get('categorie', vehicle.get('categorie'))
+            vehicle['annee'] = new_data.get('annee', vehicle.get('annee'))
+            vehicle['energie'] = new_data.get('energie', vehicle.get('energie'))
+            vehicle['puissance'] = new_data.get('puissance', vehicle.get('puissance'))
+            vehicle['places'] = new_data.get('places', vehicle.get('places'))
+            vehicle['valeur_neuf'] = new_data.get('valeur_neuf', vehicle.get('valeur_neuf'))
+            vehicle['valeur_venale'] = new_data.get('valeur_venale', vehicle.get('valeur_venale'))
+            vehicle['zone'] = new_data.get('zone', vehicle.get('zone'))
+            
+            # Mettre à jour les frais
+            vehicle['accessoires'] = new_data.get('accessoires', 0)
+            vehicle['asac'] = new_data.get('asac', 0)
+            vehicle['carte_rose'] = new_data.get('carte_rose', 0)
+            vehicle['vignette'] = new_data.get('vignette', 0)
+            vehicle['tva'] = new_data.get('tva', 0)
+            vehicle['pttc'] = new_data.get('pttc', 0)
+            
+            # Mettre à jour les dates
+            vehicle['date_debut'] = new_data.get('date_debut', vehicle.get('date_debut'))
+            vehicle['date_fin'] = new_data.get('date_fin', vehicle.get('date_fin'))
+            vehicle['nbr_jour'] = new_data.get('nbr_jour', vehicle.get('nbr_jour', 365))
+            vehicle['statut'] = new_data.get('statut', vehicle.get('statut', 'En Circulation'))
+            
+            # Mettre à jour l'affichage dans le tableau
+            garanties_mapping = [
+                ('rc', 8), ('dr', 9), ('vol', 10), ('vb', 11),
+                ('incendie', 12), ('bris_glace', 13), ('ar', 14), ('dta', 15), ('ipt', 16)
+            ]
+            
+            for key, col in garanties_mapping:
+                amount = new_data.get(key, 0)
+                item = QTableWidgetItem(f"{amount:,.0f}".replace(",", " "))
+                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                self.vehicles_table.setItem(row, col, item)
+            
+            total_amount = new_data.get('total', 0)
+            total_item = QTableWidgetItem(f"{total_amount:,.0f}".replace(",", " "))
+            total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.vehicles_table.setItem(row, 17, total_item)
+            
+            # Mettre à jour les dates dans le tableau
+            date_debut = vehicle.get('date_debut')
+            date_fin = vehicle.get('date_fin')
+            if date_debut:
+                date_debut_str = date_debut.strftime("%d/%m/%Y") if isinstance(date_debut, datetime) else str(date_debut)
+            else:
+                date_debut_str = "-"
+            if date_fin:
+                date_fin_str = date_fin.strftime("%d/%m/%Y") if isinstance(date_fin, datetime) else str(date_fin)
+            else:
+                date_fin_str = "-"
+            
+            self.vehicles_table.setItem(row, 5, QTableWidgetItem(date_debut_str))
+            self.vehicles_table.setItem(row, 6, QTableWidgetItem(date_fin_str))
+            
+            jours_item = QTableWidgetItem(str(vehicle.get('nbr_jour', 0)))
+            jours_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            self.vehicles_table.setItem(row, 7, jours_item)
+            
+            # Mettre à jour la catégorie
+            self.vehicles_table.setItem(row, 4, QTableWidgetItem(vehicle.get('categorie', 'VP')))
+            
+            self.update_summary()
+            self.update_garanties_summary()
+            
+            QMessageBox.information(self, "Succès", f"Véhicule {vehicle['immatriculation']} mis à jour avec succès")
+ 
     def refresh_vehicles_table(self):
         """Rafraîchit l'affichage du tableau avec toutes les garanties"""
         garanties_mapping = [
@@ -2287,6 +2914,14 @@ class FleetImportAdvancedDialog(QDialog):
         self.vehicles_table.setItem(row, 2, QTableWidgetItem(self.vehicles_data[row].get('marque', '')))
         self.vehicles_table.setItem(row, 3, QTableWidgetItem(self.vehicles_data[row].get('modele', '')))
         self.vehicles_table.setItem(row, 4, QTableWidgetItem(self.vehicles_data[row].get('categorie', 'VP')))
+
+        # ========== AJOUT : Initialiser les frais pour ce véhicule ==========
+        self.vehicles_data[row]['accessoires'] = 0
+        self.vehicles_data[row]['asac'] = 0
+        self.vehicles_data[row]['carte_rose'] = 0
+        self.vehicles_data[row]['vignette'] = 0
+        self.vehicles_data[row]['tva'] = 0
+        self.vehicles_data[row]['pttc'] = 0
         
         # Dates
         date_debut = self.vehicles_data[row].get('date_debut')
@@ -2367,7 +3002,7 @@ class FleetImportAdvancedDialog(QDialog):
         self.update_summary()
    
     def update_summary(self):
-        """Met à jour le récapitulatif avec toutes les garanties"""
+        """Met à jour le récapitulatif avec toutes les garanties et frais"""
         total = len(self.vehicles_data)
         selected = 0
         
@@ -2376,7 +3011,13 @@ class FleetImportAdvancedDialog(QDialog):
         totals = {key: 0.0 for key in garanties_keys}
         selected_totals = {key: 0.0 for key in garanties_keys}
         
+        # Initialiser les totaux pour les frais
+        frais_keys = ['carte_rose', 'accessoires', 'asac', 'vignette', 'tva', 'pttc']
+        frais_totals = {key: 0.0 for key in frais_keys}
+        selected_frais_totals = {key: 0.0 for key in frais_keys}
+        
         total_prime = 0
+        total_pttc = 0
         
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
@@ -2394,11 +3035,20 @@ class FleetImportAdvancedDialog(QDialog):
                     if is_selected:
                         selected_totals[key] += amount
                 
-                # Total prime (PTTC) pour les sélectionnés
+                # Total prime pour les sélectionnés
                 if is_selected:
                     total_prime += garanties.get('total', 0)
+                
+                # Frais
+                for key in frais_keys:
+                    amount = vehicle.get(key, 0)
+                    frais_totals[key] += amount
+                    if is_selected:
+                        selected_frais_totals[key] += amount
+                        if key == 'pttc':
+                            total_pttc += amount
         
-        # Mettre à jour les cartes
+        # Mettre à jour les cartes des garanties
         self.recap_cards['total'].setText(str(total))
         self.recap_cards['selected'].setText(str(selected))
         self.recap_cards['rc'].setText(f"{selected_totals['rc']:,.0f}".replace(",", " ") + " FCFA")
@@ -2412,7 +3062,21 @@ class FleetImportAdvancedDialog(QDialog):
         self.recap_cards['ipt'].setText(f"{selected_totals['ipt']:,.0f}".replace(",", " ") + " FCFA")
         self.recap_cards['prime_total'].setText(f"{total_prime:,.0f}".replace(",", " ") + " FCFA")
         
-        # Mettre à jour le tableau détaillé des garanties
+        # Mettre à jour les cartes des frais (si vous les avez ajoutées dans recap_cards)
+        # Sinon, ajoutez ces lignes après avoir ajouté les cartes correspondantes dans create_right_panel
+        if 'carte_rose' in self.recap_cards:
+            self.recap_cards['carte_rose'].setText(f"{selected_frais_totals['carte_rose']:,.0f}".replace(",", " ") + " FCFA")
+        if 'accessoires' in self.recap_cards:
+            self.recap_cards['accessoires'].setText(f"{selected_frais_totals['accessoires']:,.0f}".replace(",", " ") + " FCFA")
+        if 'asac' in self.recap_cards:
+            self.recap_cards['asac'].setText(f"{selected_frais_totals['asac']:,.0f}".replace(",", " ") + " FCFA")
+        if 'vignette' in self.recap_cards:
+            self.recap_cards['vignette'].setText(f"{selected_frais_totals['vignette']:,.0f}".replace(",", " ") + " FCFA")
+        if 'tva' in self.recap_cards:
+            self.recap_cards['tva'].setText(f"{selected_frais_totals['tva']:,.0f}".replace(",", " ") + " FCFA")
+        if 'pttc_total' in self.recap_cards:
+            self.recap_cards['pttc_total'].setText(f"{total_pttc:,.0f}".replace(",", " ") + " FCFA")
+        
         self.update_garanties_summary()
 
     def import_fleet(self):
@@ -2421,7 +3085,11 @@ class FleetImportAdvancedDialog(QDialog):
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
             if item and item.checkState() == Qt.Checked:
-                selected.append(self.vehicles_data[row])
+                # Vérifier que row existe dans self.vehicles_data
+                if row < len(self.vehicles_data):
+                    selected.append(self.vehicles_data[row])
+                else:
+                    print(f"Warning: row {row} out of range for vehicles_data (len={len(self.vehicles_data)})")
         
         if not selected:
             QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
@@ -2478,9 +3146,22 @@ class FleetImportAdvancedDialog(QDialog):
                 if not chassis_value or chassis_value == '':
                     chassis_value = f"CH-{vehicle['immatriculation']}"
                 
-                debut = self.date_debut.date().toPython()
-                fin = self.date_fin.date().toPython()
-                jours = max(1, (fin - debut).days)
+                # Utiliser les dates du véhicule si disponibles, sinon les dates globales
+                if vehicle.get('date_debut'):
+                    debut = vehicle['date_debut']
+                    if isinstance(debut, datetime):
+                        debut = debut.date()
+                else:
+                    debut = self.date_debut.date().toPython()
+                
+                if vehicle.get('date_fin'):
+                    fin = vehicle['date_fin']
+                    if isinstance(fin, datetime):
+                        fin = fin.date()
+                else:
+                    fin = self.date_fin.date().toPython()
+                
+                jours = max(1, (fin - debut).days) if fin and debut else 365
                 
                 # Utiliser la catégorie du véhicule ou celle du combo
                 categorie_value = vehicle.get('categorie', '')
@@ -2492,6 +3173,12 @@ class FleetImportAdvancedDialog(QDialog):
                 tva_rate = 0.1925
                 total_garanties = garanties.get('total', 0)
                 tva_amount = total_garanties * tva_rate
+                
+                # Récupérer les frais du véhicule
+                accessoires = vehicle.get('accessoires', 0)
+                asac = vehicle.get('asac', 0)
+                carte_rose = vehicle.get('carte_rose', 0)
+                vignette = vehicle.get('vignette', 0)
                 
                 vehicle_data = {
                     'immatriculation': vehicle['immatriculation'],
@@ -2521,12 +3208,12 @@ class FleetImportAdvancedDialog(QDialog):
                     'reduction': 0,
                     'prime_nette': total_garanties,
                     'prime_emise': total_garanties,
-                    'carte_rose': 0,
-                    'accessoires': 0,
+                    'carte_rose': carte_rose,
+                    'accessoires': accessoires,
                     'tva': tva_amount,
-                    'fichier_asac': 0,
-                    'vignette': 0,
-                    'pttc': total_garanties + tva_amount,
+                    'fichier_asac': asac,
+                    'vignette': vignette,
+                    'pttc': total_garanties + accessoires + asac + tva_amount + vignette + carte_rose,
                     # Garanties
                     'check_rc': True,
                     'amt_rc': garanties.get('rc', 0),
@@ -2974,48 +3661,19 @@ class FleetImportAdvancedDialog(QDialog):
                 self.edit_vehicle_dates
             )
             self.vehicles_table.setCellWidget(row, 18, actions_widget)
+            if 'accessoires' not in vehicle:
+                vehicle['accessoires'] = 0
+            if 'asac' not in vehicle:
+                vehicle['asac'] = 0
+            if 'carte_rose' not in vehicle:
+                vehicle['carte_rose'] = 0
+            if 'vignette' not in vehicle:
+                vehicle['vignette'] = 0
         
         self.adjust_row_heights()
         self.vehicles_table.resizeColumnsToContents()
         self.update_summary()
         self.update_garanties_summary()
-
-    def edit_vehicle_garanties(self, vehicle_id):
-        """Modifie les garanties d'un véhicule à partir de son ID"""
-        row = self.find_row_by_vehicle_id(vehicle_id)
-        if row == -1:
-            QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
-            return
-        
-        vehicle = self.vehicles_data[row]
-        garanties = vehicle.get('garanties', {})
-        
-        dialog = VehicleGarantieDialog(vehicle, garanties, self)
-        if dialog.exec():
-            new_garanties = dialog.get_garanties()
-            vehicle['garanties'] = new_garanties
-            
-            # Mettre à jour l'affichage dans le tableau
-            garanties_mapping = [
-                ('rc', 8), ('dr', 9), ('vol', 10), ('vb', 11),
-                ('incendie', 12), ('bris_glace', 13), ('ar', 14), ('dta', 15), ('ipt', 16)
-            ]
-            
-            for key, col in garanties_mapping:
-                amount = new_garanties.get(key, 0)
-                item = QTableWidgetItem(f"{amount:,.0f}".replace(",", " "))
-                item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                self.vehicles_table.setItem(row, col, item)
-            
-            total_amount = new_garanties.get('total', 0)
-            total_item = QTableWidgetItem(f"{total_amount:,.0f}".replace(",", " "))
-            total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-            self.vehicles_table.setItem(row, 17, total_item)
-            
-            self.update_summary()
-            self.update_garanties_summary()
-            
-            QMessageBox.information(self, "Succès", f"Garanties mises à jour pour {vehicle['immatriculation']}")
 
     def recalculate_vehicle_garanties(self, row, new_days):
         """Recalcule les garanties au prorata des nouveaux jours"""

@@ -4,7 +4,7 @@ from addons.Automobiles.api.schemas import ProductionRequestSchema, CustomerType
 # Test de validation
 test_data = {
     "office_code": "AG-DLA-001",
-    "organization_code": "ACTIVA",
+    "organization_code": "711",
     "certificate_type": "cima",
     "channel": "api",
     "productions": [

@@ -7,7 +7,7 @@ from PySide6.QtCore import QObject
 class UpdateClient(QObject):
     """Client pour interagir avec le serveur de modules LOMETA"""
 
-    def __init__(self, session_token: str = None, server_url: str = "http://192.168.100.17:8000"):
+    def __init__(self, session_token: str = None, server_url: str = "http://localhost:8000"):
         super().__init__()
         self.session_token = session_token
         self.server_url = server_url.rstrip('/')

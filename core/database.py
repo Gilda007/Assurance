@@ -1,85 +1,3 @@
-# import os
-# from sqlalchemy import create_engine
-# from sqlalchemy.ext.declarative import declarative_base
-# from sqlalchemy.orm import configure_mappers, sessionmaker
-# from sqlalchemy.engine import URL
-# from dotenv import load_dotenv
-# from core.logger import logger
-# from sqlalchemy.exc import SQLAlchemyError
-
-# # Charger les variables d'environnement
-# load_dotenv()
-
-# # Création de l'URL de manière structurée
-# # Priorité à DATABASE_URL (par exemple pour PyInstaller/onefile), sinon variables séparées
-# database_url = os.getenv("DATABASE_URL")
-# if database_url:
-#     url_object = database_url
-# else:
-#     drivername = os.getenv("DRIVERNAME", "postgresql")
-#     if not isinstance(drivername, str) or not drivername.strip():
-#         raise RuntimeError("DRIVERNAME doit être défini et une chaîne non vide")
-
-#     username = os.getenv("DB_USER")
-#     password = os.getenv("DB_PASS")
-#     host = os.getenv("DB_HOST", "212.47.73.151")
-#     port = os.getenv("DB_PORT", "5432")
-#     database = os.getenv("DB_NAME", "ams_db")
-
-#     if not database:
-#         raise RuntimeError("DB_NAME doit être défini")
-
-#     url_object = URL.create(
-#         drivername=drivername,
-#         username=username,
-#         password=password,
-#         host=host,
-#         port=port,
-#         database=database,
-#     )
-
-# # On ajoute explicitement le paramètre client_encoding
-# try:
-#     engine = create_engine(url_object)
-#     with engine.connect() as conn:
-#         logger.info("✅ Connexion à PostgreSQL établie avec succès.")
-# except SQLAlchemyError as e:
-#     logger.error(f"❌ Erreur critique de base de données : {str(e)}")
-# except Exception as e:
-#     logger.critical(f"❌ Erreur inattendue lors du démarrage : {str(e)}")
-
-# # Création de la fabrique de sessions
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# # Classe de base pour les modèles (ORM)
-# Base = declarative_base()
-
-# def get_db():
-#     """Fournit une session de base de données."""
-#     db = SessionLocal()
-#     try:
-#         return db
-#     finally:
-#         db.close()
-
-# # core/database.py
-
-# def init_db():
-#     try:
-#         from addons.Paramètres.models.models import User
-#         # from addons.contact_manager.models.models import Contact # (ton models.py)
-#         # from addons.vehicule_management.models.models import Fleet, Vehicle# (ton models1.py)
-#         # from addons.contrats_management.models.models import Contract # (ton models2.py)
-        
-#         from sqlalchemy.orm import configure_mappers
-#         configure_mappers() # Scelle les relations 'owner' et 'vehicles'
-        
-#         Base.metadata.create_all(bind=engine)
-#         logger.info("✅ Mappers configurés et base de données synchronisée.")
-#     except Exception as e:
-#         logger.error(f"❌ Erreur configuration mappers : {str(e)}")
-#         raise e
-
 
 # core/database.py - Version optimisée avec pool de connexions
 import os
@@ -92,6 +10,11 @@ from dotenv import load_dotenv
 from core.logger import logger
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
+import threading
+import ctypes
+from contextlib import contextmanager
+from functools import wraps
+import time
 
 # Charger les variables d'environnement
 load_dotenv()
@@ -231,8 +154,8 @@ def init_db():
     try:
         # Importer les modèles (forcer leur enregistrement)
         from addons.Paramètres.models.models import User
-        # Ajoutez vos autres modèles ici
-        # from addons.Automobiles.models import ...
+        from addons.Automobiles import models as automobiles_models
+        # Ajoutez vos autres modèles ici si besoin
         
         # Configurer les mappers
         configure_mappers()
@@ -271,3 +194,164 @@ def after_cursor_execute(conn, cursor, statement, parameters, context, executema
         total = datetime.now() - conn.info['query_start_time'].pop()
         if total.total_seconds() > 1:
             logger.warning(f"⚠️ Requête lente ({total.total_seconds():.2f}s): {statement[:100]}")
+
+
+class TimeoutError(Exception):
+    """Exception levée quand une opération dépasse le délai"""
+    pass
+
+
+def _raise_timeout(thread_id, exception):
+    """Lève une exception dans un thread cible en utilisant ctypes."""
+    if thread_id is None:
+        return
+    res = ctypes.pythonapi.PyThreadState_SetAsyncExc(
+        ctypes.c_long(thread_id), ctypes.py_object(exception)
+    )
+    if res == 0:
+        return
+    if res > 1:
+        # Annuler si plusieurs états ont été modifiés
+        ctypes.pythonapi.PyThreadState_SetAsyncExc(ctypes.c_long(thread_id), None)
+        raise SystemError("PyThreadState_SetAsyncExc a modifié plusieurs threads")
+
+
+@contextmanager
+def timeout(seconds):
+    """Context manager pour limiter le temps d'exécution d'une opération
+    Version thread-safe utilisant threading.Timer au lieu de signal
+    """
+    if seconds <= 0:
+        yield
+        return
+
+    timer = threading.Timer(
+        seconds,
+        _raise_timeout,
+        args=(threading.current_thread().ident, TimeoutError(f"L'opération a dépassé le délai de {seconds} secondes")),
+    )
+    timer.daemon = True
+    timer.start()
+
+    try:
+        yield
+    finally:
+        timer.cancel()
+
+
+def db_timeout(seconds=30):
+    """Décorateur pour ajouter un timeout aux opérations DB
+    
+    Utilisation:
+        @db_timeout(30)
+        def get_vehicles(self, fleet_id):
+            return self.session.query(Vehicle).filter(Vehicle.fleet_id == fleet_id).all()
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            with timeout(seconds):
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+# core/database.py - Ajoutez ces fonctions à la fin du fichier
+
+# ============================================================================
+# FONCTIONS DE CONNEXION ROBUSTE AVEC RETRY
+# ============================================================================
+
+def get_db_with_retry(max_retries=3, delay=1):
+    """
+    Obtient une session DB avec mécanisme de retry
+    Utilisation: db = get_db_with_retry()
+    """
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            db = SessionLocal()
+            # Tester la connexion
+            db.execute("SELECT 1")
+            return db
+        except Exception as e:
+            last_error = e
+            logger.warning(f"Tentative connexion DB {attempt + 1}/{max_retries} échouée: {e}")
+            
+            if attempt < max_retries - 1:
+                time.sleep(delay)  # MAINTENANT time est défini
+                # Forcer la fermeture des connexions existantes
+                try:
+                    engine.dispose()
+                except:
+                    pass
+    
+    logger.error(f"Impossible de se connecter à la DB après {max_retries} tentatives")
+    raise last_error
+
+
+def execute_with_retry(func, *args, max_retries=3, delay=1, **kwargs):
+    """
+    Exécute une fonction DB avec retry automatique
+    
+    Utilisation:
+        result = execute_with_retry(session.query, Vehicle).filter(...).all
+    """
+    last_error = None
+    
+    for attempt in range(max_retries):
+        try:
+            return func(*args, **kwargs)
+        except SQLAlchemyError as e:
+            last_error = e
+            logger.warning(f"Tentative {attempt + 1}/{max_retries} échouée: {e}")
+            
+            if attempt < max_retries - 1:
+                time.sleep(delay)
+                # Recréer la session si nécessaire
+                if 'session' in kwargs:
+                    kwargs['session'].rollback()
+    
+    raise last_error
+
+
+class RobustSession:
+    """Wrapper pour une session DB avec gestion automatique des erreurs"""
+    
+    def __init__(self, session):
+        self.session = session
+        self._closed = False
+    
+    def __enter__(self):
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+    
+    def execute(self, query, *args, **kwargs):
+        """Exécute une requête avec retry"""
+        return execute_with_retry(self.session.execute, query, *args, **kwargs)
+    
+    def commit(self):
+        try:
+            self.session.commit()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+    
+    def rollback(self):
+        self.session.rollback()
+    
+    def close(self):
+        if not self._closed:
+            self.session.close()
+            self._closed = True
+    
+    def refresh(self, obj):
+        self.session.refresh(obj)
+
+
+def get_robust_db():
+    """Obtient une session DB robuste avec retry"""
+    db = get_db_with_retry()
+    return RobustSession(db)

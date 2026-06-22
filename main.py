@@ -8,14 +8,20 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, 
                                QTableWidgetItem, QHeaderView, QLineEdit, QProgressBar,
                                QStatusBar, QMenu, QMessageBox, QComboBox, QScrollArea,
                                QSplitter)
-from PySide6.QtCore import QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QEvent, QMetaObject
+from PySide6.QtCore import Q_ARG, QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QEvent, QMetaObject, QThread
 from PySide6.QtGui import QFont, QColor, QKeySequence, QShortcut, QPainter
 from core.database import SessionLocal, engine, Base, init_db
 from core.alerts import AlertManager
 from core.logger import logger
 from core.loader import AddonLoader
+import platform
 import os
 import threading
+import traceback
+import signal
+from functools import wraps
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
+import time
 
 # Imports pour les graphiques
 try:
@@ -37,6 +43,211 @@ from update_widget import UpdateWidget
 from core.widgets.global_loader import get_global_loader
 from core.local_db import cache
 # import addons.Automobiles.models as models
+
+
+def global_exception_handler(exc_type, exc_value, exc_traceback):
+    """Gestionnaire global d'exceptions"""
+    error_msg = ''.join(traceback.format_exception(exc_type, exc_value, exc_traceback))
+    logger.error(f"Exception non capturée: {error_msg}")
+    
+    # Afficher une boîte de dialogue d'erreur (optionnel)
+    from PySide6.QtWidgets import QMessageBox
+    QMessageBox.critical(None, "Erreur", 
+                         f"Une erreur inattendue s'est produite:\n{str(exc_value)}\n\n"
+                         f"Consultez les logs pour plus de détails.")
+    
+    # Ne pas quitter immédiatement, laisser l'application gérer
+    # sys.exit(1)
+
+# Installer le gestionnaire
+sys.excepthook = global_exception_handler
+
+# Gestionnaire pour les signaux Unix (segmentation fault)
+def signal_handler(signum, frame):
+    logger.error(f"Signal reçu: {signum}")
+    QMessageBox.critical(None, "Erreur système", 
+                         "L'application a rencontré une erreur critique.\n"
+                         "Veuillez redémarrer l'application.")
+
+signal.signal(signal.SIGSEGV, signal_handler)
+
+def db_operation_with_retry(max_retries=3, delay=1):
+    """Décorateur pour les opérations DB avec réessai"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            last_error = None
+            for attempt in range(max_retries):
+                try:
+                    return func(*args, **kwargs)
+                except OperationalError as e:
+                    last_error = e
+                    if "server closed the connection" in str(e) or "connection was closed" in str(e):
+                        logger.warning(f"Connexion DB perdue, tentative {attempt + 1}/{max_retries}")
+                        time.sleep(delay)
+                        # Forcer la recréation de la session
+                        from core.database import SessionLocal
+                        if args and hasattr(args[0], 'db_session'):
+                            try:
+                                args[0].db_session.close()
+                            except:
+                                pass
+                            args[0].db_session = SessionLocal()
+                    else:
+                        raise
+                except Exception as e:
+                    raise
+            raise last_error
+        return wrapper
+    return decorator
+
+
+# main.py - Ajoutez cette fonction utilitaire
+
+def safe_emit(signal, *args, **kwargs):
+    """
+    Émet un signal de manière sécurisée (évite les crashes si l'objet est supprimé)
+    
+    Utilisation:
+        safe_emit(self.my_signal, value1, value2)
+    """
+    try:
+        signal.emit(*args, **kwargs)
+    except RuntimeError as e:
+        if "wrapped C/C++ object has been deleted" in str(e):
+            logger.warning(f"Signal émis vers un objet supprimé: {e}")
+        else:
+            logger.error(f"Erreur lors de l'émission du signal: {e}")
+    except Exception as e:
+        logger.error(f"Erreur inattendue lors de l'émission du signal: {e}")
+
+
+def safe_call(func, *args, default=None, **kwargs):
+    """
+    Appelle une fonction de manière sécurisée (avec try/except)
+    
+    Utilisation:
+        result = safe_call(self.update_ui, arg1, default=[])
+    """
+    try:
+        return func(*args, **kwargs)
+    except RuntimeError as e:
+        if "wrapped C/C++ object has been deleted" in str(e):
+            logger.warning(f"Appel à {func.__name__} sur un objet supprimé")
+        else:
+            logger.error(f"Erreur dans {func.__name__}: {e}")
+        return default
+    except Exception as e:
+        logger.error(f"Erreur inattendue dans {func.__name__}: {e}")
+        return default
+
+
+# Décorateur pour sécuriser les méthodes Qt
+def safe_slot(func):
+    """Décorateur pour sécuriser les slots Qt"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except RuntimeError as e:
+            if "wrapped C/C++ object has been deleted" in str(e):
+                logger.warning(f"Slot {func.__name__} appelé sur objet supprimé")
+            else:
+                logger.error(f"Erreur dans le slot {func.__name__}: {e}")
+        except Exception as e:
+            logger.error(f"Erreur inattendue dans le slot {func.__name__}: {e}")
+    return wrapper
+
+# main.py - Ajoutez cette classe après les imports
+
+class Watchdog(QThread):
+    """Thread de surveillance pour redémarrer l'application en cas de plantage"""
+    
+    application_frozen = Signal()
+    
+    def __init__(self, main_window, check_interval=5, timeout_seconds=30):
+        super().__init__()
+        self.main_window = main_window
+        self.check_interval = check_interval
+        self.timeout_seconds = timeout_seconds
+        self.last_heartbeat = time.time()
+        self._is_running = True
+    
+    def heartbeat(self):
+        """Appelé régulièrement par l'application pour signaler qu'elle fonctionne"""
+        self.last_heartbeat = time.time()
+    
+    def run(self):
+        while self._is_running:
+            time.sleep(self.check_interval)
+            if time.time() - self.last_heartbeat > self.timeout_seconds:
+                logger.error(f"Watchdog: Application non responsive depuis {self.timeout_seconds}s")
+                self.application_frozen.emit()
+                self.restart_application()
+                break
+    
+    def restart_application(self):
+        """Redémarre l'application"""
+        python = sys.executable
+        os.execl(python, python, *sys.argv)
+    
+    def stop(self):
+        self._is_running = False
+
+
+class CrashHandler:
+    """Gestionnaire des crashes pour redémarrage automatique"""
+    
+    @staticmethod
+    def setup_crash_reporting(app_name="LOMETA"):
+        """Configure le rapport de crash"""
+        import signal
+        
+        def crash_handler(signum, frame):
+            logger.critical(f"💥 Crash détecté - Signal: {signum}")
+            # Sauvegarder l'état avant de quitter
+            CrashHandler.save_crash_report(signum)
+            sys.exit(1)
+        
+        # Capturer les signaux de crash
+        signal.signal(signal.SIGSEGV, crash_handler)
+        signal.signal(signal.SIGABRT, crash_handler)
+        signal.signal(signal.SIGFPE, crash_handler)
+        signal.signal(signal.SIGILL, crash_handler)
+    
+    @staticmethod
+    def save_crash_report(signum):
+        """Sauvegarde un rapport de crash"""
+        crash_dir = os.path.join(os.path.expanduser("~"), "Documents", "LOMETA", "crashes")
+        os.makedirs(crash_dir, exist_ok=True)
+        
+        crash_file = os.path.join(crash_dir, f"crash_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        with open(crash_file, 'w') as f:
+            f.write(f"Crash report - {datetime.now()}\n")
+            f.write(f"Signal: {signum}\n")
+            f.write(f"Python version: {sys.version}\n")
+            f.write(f"Platform: {platform.platform()}\n")
+        logger.info(f"📄 Rapport de crash sauvegardé: {crash_file}")
+
+class SafeThread(QThread):
+    """Thread sécurisé avec gestion des exceptions"""
+    
+    def __init__(self, target=None, args=(), kwargs=None):
+        super().__init__()
+        self.target = target
+        self.args = args
+        self.kwargs = kwargs or {}
+        self.error_occurred = Signal(str)
+    
+    def run(self):
+        try:
+            if self.target:
+                self.target(*self.args, **self.kwargs)
+        except Exception as e:
+            error_msg = f"Erreur dans le thread {self.__class__.__name__}: {str(e)}"
+            logger.error(error_msg)
+            traceback.print_exc()
+            self.error_occurred.emit(error_msg)
 
 # Palette de couleurs moderne
 class AppColors:
@@ -195,71 +406,159 @@ STYLE_SHEET = f"""
     }}
 """
 
+# class UpdateChecker(QObject):
+#     """Vérificateur de modules avec signal"""
+    
+#     # Définir le signal comme attribut de classe
+#     modules_available = Signal(object)  # Signal émis quand des modules sont trouvés
+#     no_modules = Signal()                # Signal émis quand aucun module
+#     server_error = Signal()              # Signal émis quand erreur serveur
+    
+#     def __init__(self, parent=None):
+#         super().__init__(parent)
+#         self.client = UpdateClient()
+    
+#     def check(self, server_url="http://localhost:8000"):
+#         """Vérifie les modules disponibles dans un thread séparé"""
+        
+#         def check_thread():
+#             client = UpdateClient(server_url=server_url)
+#             status_code, modules = client.get_available_modules()
+            
+#             if status_code == 200 and modules:
+#                 # Émettre le signal avec les modules trouvés
+#                 self.modules_available.emit(modules)
+#             elif status_code == 200:
+#                 self.no_modules.emit()
+#             elif status_code == 404:
+#                 self.server_error.emit()
+#             else:
+#                 print(f"⚠️ Erreur de vérification: code {status_code}")
+        
+#         thread = threading.Thread(target=check_thread, daemon=True)
+#         thread.start()
+
+# class ModuleChecker(QObject):
+#     """Vérificateur de modules avec session LOMETA"""
+#     modules_found = Signal(object)
+    
+#     def __init__(self, session_token: str = None, parent=None):
+#         super().__init__(parent)
+#         self.session_token = session_token
+#         print(f"🔧 ModuleChecker initialisé avec token: {session_token is not None}")
+    
+#     def check(self):
+#         def check_thread():
+#             print(f"🔍 Vérification des modules...")
+#             print(f"   Token: {self.session_token[:20] if self.session_token else 'None'}...")
+            
+#             client = UpdateClient(server_url="http://192.168.100.89:8000", session_token=self.session_token)
+#             code, modules = client.get_available_modules()
+            
+#             print(f"   Code retour: {code}")
+            
+#             if code == 200 and modules:
+#                 print(f"   ✅ {len(modules)} module(s) trouvé(s)")
+#                 self.modules_found.emit(modules)
+#             elif code == 200:
+#                 print("✅ Aucun module disponible")
+#             elif code == 401:
+#                 print("⚠️ Session expirée, veuillez vous reconnecter")
+#                 # Tenter de rafraîchir la session ?
+#             elif code == 404:
+#                 print("⚠️ Serveur de mise à jour non accessible")
+#             else:
+#                 print(f"⚠️ Code inattendu: {code}")
+        
+#         threading.Thread(target=check_thread, daemon=True).start()
+
 class UpdateChecker(QObject):
-    """Vérificateur de modules avec signal"""
-    
-    # Définir le signal comme attribut de classe
-    modules_available = Signal(object)  # Signal émis quand des modules sont trouvés
-    no_modules = Signal()                # Signal émis quand aucun module
-    server_error = Signal()              # Signal émis quand erreur serveur
-    
+    modules_available = Signal(object)
+    no_modules = Signal()
+    server_error = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.client = UpdateClient()
-    
+        self._threads = []
+
+    def _track_thread(self, thread):
+        thread.finished.connect(lambda: self._cleanup_thread(thread))
+        self._threads.append(thread)
+
+    def _cleanup_thread(self, thread):
+        if thread in self._threads:
+            self._threads.remove(thread)
+            thread.deleteLater()
+
+    def stop_all_threads(self):
+        for thread in list(self._threads):
+            if thread.isRunning():
+                thread.wait(2000)
+            self._threads.remove(thread)
+            thread.deleteLater()
+
     def check(self, server_url="http://localhost:8000"):
-        """Vérifie les modules disponibles dans un thread séparé"""
+        def safe_check():
+            try:
+                client = UpdateClient(server_url=server_url)
+                status_code, modules = client.get_available_modules()
+                
+                if status_code == 200 and modules:
+                    self.modules_available.emit(modules)
+                elif status_code == 200:
+                    self.no_modules.emit()
+                elif status_code == 404:
+                    self.server_error.emit()
+            except Exception as e:
+                logger.error(f"Erreur dans UpdateChecker: {e}")
+                traceback.print_exc()
         
-        def check_thread():
-            client = UpdateClient(server_url=server_url)
-            status_code, modules = client.get_available_modules()
-            
-            if status_code == 200 and modules:
-                # Émettre le signal avec les modules trouvés
-                self.modules_available.emit(modules)
-            elif status_code == 200:
-                self.no_modules.emit()
-            elif status_code == 404:
-                self.server_error.emit()
-            else:
-                print(f"⚠️ Erreur de vérification: code {status_code}")
-        
-        thread = threading.Thread(target=check_thread, daemon=True)
+        thread = SafeThread(target=safe_check)
+        self._track_thread(thread)
         thread.start()
 
 class ModuleChecker(QObject):
-    """Vérificateur de modules avec session LOMETA"""
     modules_found = Signal(object)
     
     def __init__(self, session_token: str = None, parent=None):
         super().__init__(parent)
         self.session_token = session_token
-        print(f"🔧 ModuleChecker initialisé avec token: {session_token is not None}")
-    
+        self._threads = []
+
+    def _track_thread(self, thread):
+        thread.finished.connect(lambda: self._cleanup_thread(thread))
+        self._threads.append(thread)
+
+    def _cleanup_thread(self, thread):
+        if thread in self._threads:
+            self._threads.remove(thread)
+            thread.deleteLater()
+
+    def stop_all_threads(self):
+        for thread in list(self._threads):
+            if thread.isRunning():
+                thread.wait(2000)
+            self._threads.remove(thread)
+            thread.deleteLater()
+
     def check(self):
-        def check_thread():
-            print(f"🔍 Vérification des modules...")
-            print(f"   Token: {self.session_token[:20] if self.session_token else 'None'}...")
-            
-            client = UpdateClient(server_url="http://192.168.100.17:8000", session_token=self.session_token)
-            code, modules = client.get_available_modules()
-            
-            print(f"   Code retour: {code}")
-            
-            if code == 200 and modules:
-                print(f"   ✅ {len(modules)} module(s) trouvé(s)")
-                self.modules_found.emit(modules)
-            elif code == 200:
-                print("✅ Aucun module disponible")
-            elif code == 401:
-                print("⚠️ Session expirée, veuillez vous reconnecter")
-                # Tenter de rafraîchir la session ?
-            elif code == 404:
-                print("⚠️ Serveur de mise à jour non accessible")
-            else:
-                print(f"⚠️ Code inattendu: {code}")
+        def safe_check():
+            try:
+                print(f"🔍 Vérification des modules...")
+                client = UpdateClient(server_url="http://localhost:8000", 
+                                     session_token=self.session_token)
+                code, modules = client.get_available_modules()
+                
+                if code == 200 and modules:
+                    print(f"   ✅ {len(modules)} module(s) trouvé(s)")
+                    self.modules_found.emit(modules)
+            except Exception as e:
+                logger.error(f"Erreur dans ModuleChecker: {e}")
+                traceback.print_exc()
         
-        threading.Thread(target=check_thread, daemon=True).start()
+        thread = SafeThread(target=safe_check)
+        self._track_thread(thread)
+        thread.start()
 
 class ModernChartWidget(QWidget):
     """Widget de graphique moderne avec pyqtgraph"""
@@ -1464,7 +1763,6 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1200, 800)
         self.setStyleSheet(STYLE_SHEET)
 
-        
         self.setup_ui()
         self.loader = get_global_loader()
         self.loader.setParent(self)
@@ -1474,15 +1772,50 @@ class MainWindow(QMainWindow):
         self.setup_shortcuts()
         self.check_environment()
         self.session_token = self._get_user_session_token()
-        print(f"🔑 Token de session récupéré: {self.session_token is not None}")  # Debug
+        print(f"🔑 Token de session récupéré: {self.session_token is not None}")
         
         # NOUVEAU : Passer le token au ModuleChecker
         self.module_checker = ModuleChecker(session_token=self.session_token)
         self.update_manager = UpdateManager(self, session_token=self.session_token)
         self.module_checker.modules_found.connect(self.show_update_dialog)
 
+        if hasattr(self, 'module_checker'):
+            self.module_checker.modules_found.connect(
+                self.show_update_dialog, 
+                Qt.QueuedConnection
+            )
         QTimer.singleShot(2000, self.module_checker.check)
-        # QTimer.singleShot(3000, self.update_manager.check_updates_auto)
+
+        # ============================================================
+        # WATCHDOG - Version CORRIGÉE
+        # ============================================================
+        # Augmenter le timeout à 60 secondes pour éviter les faux positifs
+        self.watchdog = Watchdog(self, check_interval=10, timeout_seconds=60)
+        self.watchdog.application_frozen.connect(self.on_application_frozen)
+        self.watchdog.start()
+        
+        # Démarrer le heartbeat APRÈS le watchdog
+        self.heartbeat_timer = QTimer()
+        self.heartbeat_timer.timeout.connect(self.update_heartbeat)
+        self.heartbeat_timer.start(10000)  # Heartbeat toutes les 10 secondes au lieu de 5
+        
+        # Envoyer un premier heartbeat immédiatement
+        self.update_heartbeat()
+
+    def update_heartbeat(self):
+        """Met à jour le heartbeat du watchdog"""
+        if hasattr(self, 'watchdog'):
+            self.watchdog.heartbeat()
+
+    def on_application_frozen(self):
+        """Appelé quand l'application est gelée"""
+        logger.error("Application gelée - Sauvegarde des données...")
+        # Sauvegarder l'état avant le redémarrage
+        if hasattr(self, 'db_session'):
+            try:
+                self.db_session.commit()
+            except:
+                pass
 
     def _get_user_session_token(self):
         """Récupère le token de session de l'utilisateur connecté"""
@@ -1499,8 +1832,8 @@ class MainWindow(QMainWindow):
             ).first()
             
             if session:
-                print(f"✅ Session trouvée: {session.token[:20]}... (expire le {session.expires_at})")
-                return session.token
+                print(f"✅ Session trouvée: {session.token_encrypted[:20]}... (expire le {session.expires_at})")
+                return session.token_encrypted
             else:
                 print("❌ Aucune session active trouvée")
                 return None
@@ -1871,6 +2204,20 @@ class MainWindow(QMainWindow):
     
     def closeEvent(self, event):
         """Fermeture"""
+        if hasattr(self, 'watchdog'):
+            self.watchdog.stop()
+            self.watchdog.quit()
+            self.watchdog.wait(2000)
+        if hasattr(self, 'heartbeat_timer'):
+            self.heartbeat_timer.stop()
+        if hasattr(self, 'module_checker'):
+            self.module_checker.stop_all_threads()
+        if hasattr(self, 'update_manager') and hasattr(self.update_manager, 'checker'):
+            if self.update_manager.checker is not None:
+                try:
+                    self.update_manager.checker.wait(2000)
+                except Exception:
+                    pass
         if hasattr(self, 'db_session'):
             self.db_session.close()
         event.accept()

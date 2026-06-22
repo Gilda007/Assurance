@@ -531,106 +531,267 @@ class ModuleInitThread(QThread):
     finished = Signal(object)
     error = Signal(str)
     progress = Signal(int, str)
+
+    # Cache statique pour les compteurs
+    _counters_cache = {}
+    _cache_time = {}
+    _CACHE_TTL = 30  # 30 secondes
     
     def __init__(self, db_session, user):
         super().__init__()
         self.db_session = db_session
         self.user = user
+    
+    def _get_cached_counter(self, key, query_func):
+        """Récupère un compteur depuis le cache ou le calcule"""
+        import time
+        now = time.time()
         
+        if key in self._counters_cache and (now - self._cache_time.get(key, 0)) < self._CACHE_TTL:
+            return self._counters_cache[key]
+        
+        result = query_func()
+        self._counters_cache[key] = result
+        self._cache_time[key] = now
+        return result
+        
+    # def run(self):
+    #     try:
+    #         user_id = self.user.id if hasattr(self.user, 'id') else self.user
+            
+    #         self.progress.emit(0, "🚀 Démarrage...")
+    #         self.progress.emit(5, "🔐 Vérification de la session...")
+    #         self.progress.emit(10, "💾 Connexion à la base de données...")
+            
+    #         # ========== OPTIMISATION 1: Ne charger que les compteurs, pas les données complètes ==========
+    #         self.progress.emit(20, "🚗 Comptage des véhicules...")
+    #         try:
+    #             from addons.Automobiles.models import Vehicle
+    #             # Utiliser count() au lieu de charger tous les objets
+    #             vehicle_count = self.db_session.query(Vehicle).filter(
+    #                 Vehicle.owner_id == user_id,
+    #                 Vehicle.is_active == True
+    #             ).count()
+    #             self.progress.emit(25, f"🚗 {vehicle_count} véhicules")
+    #         except Exception as e:
+    #             self.progress.emit(25, f"🚗 Véhicules: {str(e)[:40]}")
+            
+    #         # ========== OPTIMISATION 2: Comptage des contrats sans charger les objets ==========
+    #         self.progress.emit(35, "📄 Comptage des contrats...")
+    #         try:
+    #             from addons.Automobiles.models import Contrat
+    #             contrat_count = self.db_session.query(Contrat).filter(
+    #                 Contrat.owner_id == user_id
+    #             ).count()
+    #             self.progress.emit(40, f"📄 {contrat_count} contrats")
+    #         except Exception as e:
+    #             self.progress.emit(40, f"📄 Contrats: {str(e)[:40]}")
+            
+    #         # ========== OPTIMISATION 3: Ne pas charger les clients ici ==========
+    #         self.progress.emit(45, "👥 Vérification des clients...")
+    #         # Utiliser une requête légère avec timeout
+    #         client_count = 0
+    #         try:
+    #             from addons.Paramètres.models.models import User
+    #             # Utiliser exists() au lieu de count() - plus rapide
+    #             has_clients = self.db_session.query(User).filter(User.role == 'client').limit(1).first() is not None
+    #             client_count = 1 if has_clients else 0
+    #             self.progress.emit(50, f"👥 Clients: {client_count}+")
+    #         except Exception as e:
+    #             self.progress.emit(50, f"👥 Clients: ignoré")
+            
+    #         # ========== OPTIMISATION 4: Initialisation du contrôleur sans données préchargées ==========
+    #         self.progress.emit(60, "📊 Préparation des données...")
+    #         self.progress.emit(70, "⚙️ Initialisation du contrôleur...")
+            
+    #         controller = AutomobileMainController(
+    #             session=self.db_session,
+    #             current_user_id=user_id
+    #         )
+    #         self.progress.emit(85, "⚙️ Contrôleur initialisé")
+            
+    #         # ========== OPTIMISATION 5: NE PAS charger les données ici ==========
+    #         # Les données seront chargées à la demande via le cache
+    #         self.progress.emit(90, "🎨 Préparation de l'interface...")
+            
+    #         self.progress.emit(100, "✅ Module prêt !")
+    #         self.finished.emit(controller)
+            
+    #     except Exception as e:
+    #         self.error.emit(str(e))
+
+    #     def get_vehicle_count():
+    #         return self.db_session.query(Vehicle).filter(
+    #             Vehicle.owner_id == user_id,
+    #             Vehicle.is_active == True
+    #         ).count()
+        
+    #     vehicle_count = self._get_cached_counter(f"vehicles_{user_id}", get_vehicle_count)
+
+    # addons/Automobiles/main_ui.py - Modifier la méthode run de ModuleInitThread
+
     def run(self):
         try:
             user_id = self.user.id if hasattr(self.user, 'id') else self.user
             
-            # Progression linéaire
             self.progress.emit(0, "🚀 Démarrage...")
-            
-            # Étape 1: Vérification session
             self.progress.emit(5, "🔐 Vérification de la session...")
-            
-            # Étape 2: Connexion DB
             self.progress.emit(10, "💾 Connexion à la base de données...")
             
-            # Étape 3: Chargement des véhicules (avec timeout)
-            self.progress.emit(20, "🚗 Chargement des véhicules...")
+            # ========== OPTIMISATION 1: Ne charger que les compteurs, pas les données complètes ==========
+            self.progress.emit(20, "🚗 Comptage des véhicules...")
             try:
                 from addons.Automobiles.models import Vehicle
-                # Utiliser une requête plus légère
-                vehicles_query = self.db_session.query(Vehicle.id, Vehicle.immatriculation).filter_by(owner_id=user_id)
-                vehicle_count = vehicles_query.count()
-                self.progress.emit(25, f"🚗 {vehicle_count} véhicules chargés")
+                # ✅ ROLLBACK si une transaction est en cours
+                self.db_session.rollback()
+                
+                vehicle_count = self.db_session.query(Vehicle).filter(
+                    Vehicle.owner_id == user_id,
+                    Vehicle.is_active == True
+                ).count()
+                self.progress.emit(25, f"🚗 {vehicle_count} véhicules")
             except Exception as e:
-                self.progress.emit(25, f"🚗 Erreur chargement véhicules: {str(e)[:50]}")
+                self.db_session.rollback()  # ✅ Rollback en cas d'erreur
+                self.progress.emit(25, f"🚗 Véhicules: {str(e)[:40]}")
             
-            # Étape 4: Chargement des contrats (optimisé)
-            self.progress.emit(35, "📄 Chargement des contrats...")
+            # ========== OPTIMISATION 2: Comptage des contrats ==========
+            self.progress.emit(35, "📄 Comptage des contrats...")
             try:
                 from addons.Automobiles.models import Contrat
-                # Ne charger que les IDs et champs essentiels
-                contrats_query = self.db_session.query(Contrat.id, Contrat.numero_police).filter_by(owner_id=user_id)
-                contrat_count = contrats_query.count()
-                self.progress.emit(40, f"📄 {contrat_count} contrats chargés")
+                self.db_session.rollback()
+                contrat_count = self.db_session.query(Contrat).filter(
+                    Contrat.owner_id == user_id
+                ).count()
+                self.progress.emit(40, f"📄 {contrat_count} contrats")
             except Exception as e:
-                self.progress.emit(40, f"📄 Erreur chargement contrats: {str(e)[:50]}")
+                self.db_session.rollback()
+                self.progress.emit(40, f"📄 Contrats: {str(e)[:40]}")
             
-            # Étape 5: Chargement des clients - CORRECTION ICI
-            self.progress.emit(45, "👥 Chargement des clients...")
+            # ========== OPTIMISATION 3: Clients ==========
+            self.progress.emit(45, "👥 Vérification des clients...")
             try:
-                from addons.Paramètres.models.models import User
-                # OPTIMISATION 1: Utiliser une requête avec timeout
-                # OPTIMISATION 2: Ne compter que si nécessaire
-                # OPTIMISATION 3: Mettre en cache
-                
-                # Version avec timeout personnalisé (si possible)
-                import threading
-                import time
-                
+                self.db_session.rollback()
                 client_count = 0
-                def count_clients():
-                    nonlocal client_count
-                    try:
-                        # Utiliser une requête plus légère
-                        client_count = self.db_session.query(User.id).filter_by(role='client').count()
-                    except:
-                        client_count = -1
-                
-                # Exécuter avec timeout (5 secondes max)
-                thread = threading.Thread(target=count_clients)
-                thread.daemon = True
-                thread.start()
-                thread.join(timeout=5)
-                
-                if thread.is_alive():
-                    self.progress.emit(50, "👥 Chargement clients: timeout (trop long)...")
-                    client_count = 0  # Valeur par défaut
-                else:
-                    if client_count >= 0:
-                        self.progress.emit(50, f"👥 {client_count} clients chargés")
-                    else:
-                        self.progress.emit(50, "👥 Clients: non disponible")
-                        
+                self.progress.emit(50, f"👥 Clients: {client_count}")
             except Exception as e:
-                self.progress.emit(50, f"👥 Clients ignorés: {str(e)[:40]}")
+                self.db_session.rollback()
+                self.progress.emit(50, f"👥 Clients: ignoré")
             
-            # Étape 6: Calcul des statistiques (optionnel)
+            # ========== OPTIMISATION 4: Initialisation du contrôleur ==========
             self.progress.emit(60, "📊 Préparation des données...")
-            
-            # Étape 7: Initialisation du contrôleur
             self.progress.emit(70, "⚙️ Initialisation du contrôleur...")
+            
+            # ✅ Rollback final avant de créer le contrôleur
+            self.db_session.rollback()
+            
             controller = AutomobileMainController(
                 session=self.db_session,
                 current_user_id=user_id
             )
             self.progress.emit(85, "⚙️ Contrôleur initialisé")
             
-            # Étape 8: Préparation de l'interface
             self.progress.emit(90, "🎨 Préparation de l'interface...")
-            
-            # Finalisation
             self.progress.emit(100, "✅ Module prêt !")
             self.finished.emit(controller)
             
         except Exception as e:
+            self.db_session.rollback()  # ✅ Rollback en cas d'erreur
             self.error.emit(str(e))
+
+    # def run(self):
+    #     try:
+    #         user_id = self.user.id if hasattr(self.user, 'id') else self.user
+            
+    #         # Progression linéaire
+    #         self.progress.emit(0, "🚀 Démarrage...")
+            
+    #         # Étape 1: Vérification session
+    #         self.progress.emit(5, "🔐 Vérification de la session...")
+            
+    #         # Étape 2: Connexion DB
+    #         self.progress.emit(10, "💾 Connexion à la base de données...")
+            
+    #         # Étape 3: Chargement des véhicules (avec timeout)
+    #         self.progress.emit(20, "🚗 Chargement des véhicules...")
+    #         try:
+    #             from addons.Automobiles.models import Vehicle
+    #             # Utiliser une requête plus légère
+    #             vehicles_query = self.db_session.query(Vehicle.id, Vehicle.immatriculation).filter_by(owner_id=user_id)
+    #             vehicle_count = vehicles_query.count()
+    #             self.progress.emit(25, f"🚗 {vehicle_count} véhicules chargés")
+    #         except Exception as e:
+    #             self.progress.emit(25, f"🚗 Erreur chargement véhicules: {str(e)[:50]}")
+            
+    #         # Étape 4: Chargement des contrats (optimisé)
+    #         self.progress.emit(35, "📄 Chargement des contrats...")
+    #         try:
+    #             from addons.Automobiles.models import Contrat
+    #             # Ne charger que les IDs et champs essentiels
+    #             contrats_query = self.db_session.query(Contrat.id, Contrat.numero_police).filter_by(owner_id=user_id)
+    #             contrat_count = contrats_query.count()
+    #             self.progress.emit(40, f"📄 {contrat_count} contrats chargés")
+    #         except Exception as e:
+    #             self.progress.emit(40, f"📄 Erreur chargement contrats: {str(e)[:50]}")
+            
+    #         # Étape 5: Chargement des clients - CORRECTION ICI
+    #         self.progress.emit(45, "👥 Chargement des clients...")
+    #         try:
+    #             from addons.Paramètres.models.models import User
+    #             # OPTIMISATION 1: Utiliser une requête avec timeout
+    #             # OPTIMISATION 2: Ne compter que si nécessaire
+    #             # OPTIMISATION 3: Mettre en cache
+                
+    #             # Version avec timeout personnalisé (si possible)
+    #             import threading
+    #             import time
+                
+    #             client_count = 0
+    #             def count_clients():
+    #                 nonlocal client_count
+    #                 try:
+    #                     # Utiliser une requête plus légère
+    #                     client_count = self.db_session.query(User.id).filter_by(role='client').count()
+    #                 except:
+    #                     client_count = -1
+                
+    #             # Exécuter avec timeout (5 secondes max)
+    #             thread = threading.Thread(target=count_clients)
+    #             thread.daemon = True
+    #             thread.start()
+    #             thread.join(timeout=5)
+                
+    #             if thread.is_alive():
+    #                 self.progress.emit(50, "👥 Chargement clients: timeout (trop long)...")
+    #                 client_count = 0  # Valeur par défaut
+    #             else:
+    #                 if client_count >= 0:
+    #                     self.progress.emit(50, f"👥 {client_count} clients chargés")
+    #                 else:
+    #                     self.progress.emit(50, "👥 Clients: non disponible")
+                        
+    #         except Exception as e:
+    #             self.progress.emit(50, f"👥 Clients ignorés: {str(e)[:40]}")
+            
+    #         # Étape 6: Calcul des statistiques (optionnel)
+    #         self.progress.emit(60, "📊 Préparation des données...")
+            
+    #         # Étape 7: Initialisation du contrôleur
+    #         self.progress.emit(70, "⚙️ Initialisation du contrôleur...")
+    #         controller = AutomobileMainController(
+    #             session=self.db_session,
+    #             current_user_id=user_id
+    #         )
+    #         self.progress.emit(85, "⚙️ Contrôleur initialisé")
+            
+    #         # Étape 8: Préparation de l'interface
+    #         self.progress.emit(90, "🎨 Préparation de l'interface...")
+            
+    #         # Finalisation
+    #         self.progress.emit(100, "✅ Module prêt !")
+    #         self.finished.emit(controller)
+            
+    #     except Exception as e:
+    #         self.error.emit(str(e))
            
 
 class AutomobileModule(BaseModule):
@@ -809,236 +970,3 @@ class AutomobileModule(BaseModule):
             self._loading_overlay.deleteLater()
             self._loading_overlay = None
         self._controller = None
-
-
-# class AutomobileModule(BaseModule):
-#     """Module automobile - L'API ASAC est optionnelle et non bloquante"""
-    
-#     BUTTON_HEIGHT = 45
-#     BUTTON_STYLE = """
-#         QPushButton {
-#             background-color: transparent;
-#             color: #f8fafc;
-#             text-align: left;
-#             padding-left: 20px;
-#             border: none;
-#             border-radius: 8px;
-#             margin: 2px 10px;
-#             font-size: 13px;
-#             font-weight: 500;
-#         }
-#         QPushButton:hover {
-#             background-color: #334155;
-#         }
-#         QPushButton:pressed {
-#             background-color: #1e293b;
-#         }
-#     """
-    
-#     def __init__(self, main_window):
-#         super().__init__(main_window)
-#         self._view = None
-#         self._controller = None
-#         self._button = None
-#         self._loading_overlay = None
-#         self._init_thread = None
-#         self._asac_service = None
-#         self._asac_initializer = None
-#         self._asac_available = False
-        
-#     def setup(self):
-#         self._create_navigation_button()
-#         self._add_to_sidebar()
-#         # Démarrer l'initialisation ASAC en arrière-plan (non bloquante)
-#         self._start_asac_initialization()
-        
-#     def _create_navigation_button(self):
-#         self._button = QPushButton("🚗  Automobile")
-#         self._button.setFixedHeight(self.BUTTON_HEIGHT)
-#         self._button.setCursor(Qt.PointingHandCursor)
-#         self._button.setStyleSheet(self.BUTTON_STYLE)
-#         self._button.clicked.connect(self.activate_module)
-        
-#     def _add_to_sidebar(self):
-#         sidebar_layout = getattr(self.main_window, 'sidebar_layout', None)
-#         if sidebar_layout:
-#             sidebar_layout.addWidget(self._button)
-#             return
-#         sidebar = getattr(self.main_window, 'sidebar', None)
-#         if sidebar and hasattr(sidebar, 'layout'):
-#             sidebar.layout().addWidget(self._button)
-            
-#     def _ensure_loading_overlay(self):
-#         if self._loading_overlay:
-#             return self._loading_overlay
-#         parent = self.main_window.centralWidget() if self.main_window else None
-#         if parent:
-#             self._loading_overlay = LoadingOverlay(parent)
-#         return self._loading_overlay
-    
-#     def _start_asac_initialization(self):
-#         """Démarre l'initialisation de l'API ASAC en arrière-plan (NON BLOQUANT)"""
-#         if not ASAC_AVAILABLE:
-#             print("⚠️ Module ASAC non disponible")
-#             return
-            
-#         if self._asac_initializer and self._asac_initializer.isRunning():
-#             return
-        
-#         self._asac_initializer = AsacInitializer()
-#         self._asac_initializer.initialized.connect(self._on_asac_initialized)
-#         self._asac_initializer.start()
-#         print("🔄 Initialisation ASAC en arrière-plan...")
-    
-#     def _on_asac_initialized(self, success, message, service):
-#         """Callback quand ASAC est initialisé (ne bloque pas l'UI)"""
-#         if success:
-#             self._asac_service = service
-#             self._asac_available = True
-#             print(f"✅ {message}")
-#             # Mettre à jour la vue si elle existe déjà
-#             if self._view and hasattr(self._view, 'set_asac_service'):
-#                 self._view.set_asac_service(service)
-#         else:
-#             self._asac_service = None
-#             self._asac_available = False
-#             print(f"⚠️ {message}")
-        
-#         # Nettoyer le thread
-#         if self._asac_initializer:
-#             self._asac_initializer.deleteLater()
-#             self._asac_initializer = None
-        
-#     def activate_module(self):
-#         """Active le module - OUVERTURE IMMÉDIATE, ASAC en arrière-plan"""
-        
-#         loader = self._ensure_loading_overlay()
-#         if loader:
-#             loader.show_loading("Chargement du module Automobile...", "Initialisation", simulate=True)
-        
-#         QApplication.processEvents()
-        
-#         current_user = self._get_current_user()
-#         if not current_user:
-#             self._hide_loader_and_show_error(loader, "Accès Refusé", "Veuillez vous connecter.")
-#             return
-        
-#         content_stack = self._get_content_area()
-#         if not content_stack:
-#             self._hide_loader_and_show_error(loader, "Erreur", "Zone de contenu introuvable.")
-#             return
-        
-#         if not self._view or not self._controller:
-#             self._init_module_async(current_user, content_stack, loader)
-#         else:
-#             self._show_module(content_stack, loader)
-            
-#     def _init_module_async(self, current_user, content_stack, loader):
-#         """Initialisation dans un thread - UI reste réactive"""
-#         self._init_thread = ModuleInitThread(self.db_session, current_user)
-#         self._init_thread.finished.connect(
-#             lambda controller: self._on_module_initialized(controller, current_user, content_stack, loader)
-#         )
-#         self._init_thread.error.connect(lambda error: self._on_init_error(error, loader))
-#         self._init_thread.progress.connect(lambda value, step: self._on_progress(loader, value, step))
-#         self._init_thread.start()
-        
-#     def _on_progress(self, loader, value, step):
-#         """Mise à jour progression"""
-#         if loader:
-#             loader.update_progress(value, step)
-            
-#     def _on_module_initialized(self, controller, current_user, content_stack, loader):
-#         """Finalisation dans le thread principal"""
-#         self._controller = controller
-        
-#         # Ajouter le service ASAC au contrôleur s'il est disponible
-#         if hasattr(self._controller, 'asac_service'):
-#             self._controller.asac_service = self._asac_service
-        
-#         self._view = VehicleMainView(controller=self._controller, user=current_user)
-        
-#         # Passer le service ASAC à la vue si disponible
-#         if self._asac_service:
-#             if hasattr(self._view, 'set_asac_service'):
-#                 self._view.set_asac_service(self._asac_service)
-#             elif hasattr(self._view, 'asac_service'):
-#                 self._view.asac_service = self._asac_service
-        
-#         if content_stack.indexOf(self._view) == -1:
-#             content_stack.addWidget(self._view)
-        
-#         content_stack.setCurrentWidget(self._view)
-        
-#         if loader:
-#             loader.hide_loading()
-        
-#         if self._init_thread:
-#             self._init_thread.deleteLater()
-#             self._init_thread = None
-            
-#     def _show_module(self, content_stack, loader):
-#         if content_stack.indexOf(self._view) == -1:
-#             content_stack.addWidget(self._view)
-#         content_stack.setCurrentWidget(self._view)
-#         if loader:
-#             loader.hide_loading()
-            
-#     def _hide_loader_and_show_error(self, loader, title, message):
-#         if loader:
-#             loader.hide_loading()
-#         AlertManager.show_error(self.main_window, title, message)
-        
-#     def _on_init_error(self, error, loader):
-#         if loader:
-#             loader.hide_loading()
-#         AlertManager.show_error(self.main_window, "Erreur d'initialisation", f"Erreur: {error}")
-#         if self._init_thread:
-#             self._init_thread.deleteLater()
-#             self._init_thread = None
-            
-#     def _get_current_user(self):
-#         return getattr(self.main_window, 'current_user', None)
-        
-#     def _get_content_area(self):
-#         content_attrs = ['content_area', 'stacked_widget', 'main_stack', 'content_stack']
-#         for attr in content_attrs:
-#             content_area = getattr(self.main_window, attr, None)
-#             if content_area:
-#                 return content_area
-#         return None
-        
-#     def _log_error(self, message):
-#         print(f"[AutomobileModule] ERROR: {message}")
-        
-#     @property
-#     def view(self):
-#         return self._view
-        
-#     @property
-#     def controller(self):
-#         return self._controller
-        
-#     @property
-#     def db_session(self):
-#         return getattr(self.main_window, 'db_session', None)
-        
-#     def cleanup(self):
-#         if self._init_thread and self._init_thread.isRunning():
-#             self._init_thread.quit()
-#             self._init_thread.wait(1000)
-#             self._init_thread = None
-#         if self._asac_initializer and self._asac_initializer.isRunning():
-#             self._asac_initializer.quit()
-#             self._asac_initializer.wait(1000)
-#             self._asac_initializer = None
-#         if self._controller and hasattr(self._controller, 'cleanup'):
-#             self._controller.cleanup()
-#         if self._view:
-#             self._view.deleteLater()
-#             self._view = None
-#         if self._loading_overlay:
-#             self._loading_overlay.deleteLater()
-#             self._loading_overlay = None
-#         self._controller = None
-#         self._asac_service = None

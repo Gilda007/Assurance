@@ -14,22 +14,72 @@ import requests
 
 from addons.Automobiles.models.contract_models import Contrat
 from core import logger
+from core.database import timeout, TimeoutError
+from functools import wraps
+import time
 
+
+# Ajoutez ce décorateur après les imports
+def with_db_timeout(seconds=30):
+    """Décorateur pour ajouter un timeout aux méthodes DB"""
+    def decorator(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            try:
+                with timeout(seconds):
+                    return func(self, *args, **kwargs)
+            except TimeoutError as e:
+                logger.error(f"Timeout dans {func.__name__}: {e}")
+                return None if kwargs.get('default_on_timeout', True) else []
+            except Exception as e:
+                logger.error(f"Erreur dans {func.__name__}: {e}")
+                raise
+        return wrapper
+    return decorator
 
 class VehicleController:
     def __init__(self, session: Session):
         self.session = session
         self.contract_ctrl = ContractController(self.session)
+        self._vehicle_cache = {} 
     
     def __enter__(self):
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.session.close()  # Correction: session au lieu de db
-
-    def get_all_vehicles(self, force_refresh: bool = False):
+    
+    def get_vehicle_with_relations_cached(self, vehicle_id: int, force_refresh: bool = False) -> Optional[Vehicle]:
         """
-        Récupère tous les véhicules avec cache mémoire
+        Récupère un véhicule avec relations, avec cache mémoire.
+        """
+        cache_key = f"vehicle_relations_{vehicle_id}"
+        
+        if not force_refresh and cache_key in self._vehicle_cache:
+            logger.info(f"📦 Cache hit: {cache_key}")
+            return self._vehicle_cache[cache_key]
+        
+        vehicle = self.get_vehicle_with_relations(vehicle_id)
+        if vehicle:
+            self._vehicle_cache[cache_key] = vehicle
+        
+        return vehicle
+    
+    def invalidate_vehicle_cache(self, vehicle_id: int = None):
+        """Invalide le cache pour un véhicule spécifique ou tout le cache."""
+        if vehicle_id:
+            cache_key = f"vehicle_relations_{vehicle_id}"
+            if cache_key in self._vehicle_cache:
+                del self._vehicle_cache[cache_key]
+                logger.info(f"🗑️ Cache invalidé: {cache_key}")
+        else:
+            self._vehicle_cache.clear()
+            logger.info("🗑️ Cache véhicules vidé")
+
+    @with_db_timeout(seconds=30)
+    def get_all_vehicles(self, force_refresh: bool = False, timeout_seconds: int = 30):
+        """
+        Récupère tous les véhicules avec cache mémoire et timeout
         """
         cache_key = "automobiles:vehicles:list"
         
@@ -40,31 +90,113 @@ class VehicleController:
                 logger.info(f"📦 Cache hit: {len(cached)} véhicules")
                 return cached
         
-        # 2. Charger depuis la base
+        # 2. Charger depuis la base avec timeout
         logger.info(f"💾 Cache miss: Chargement depuis la base")
         
         try:
-            vehicles = self.session.query(Vehicle).options(
-                selectinload(Vehicle.contract).selectinload(Contrat.paiements),
-                joinedload(Vehicle.owner),
-                joinedload(Vehicle.compagny),
-                selectinload(Vehicle.fleet)
-            ).filter(Vehicle.is_active == True).all()
-            
-            # 3. Sauvegarder en cache
-            self._set_cache(cache_key, vehicles)
-            
-            logger.info(f"✅ {len(vehicles)} véhicules chargés")
-            return vehicles
-            
+            with timeout(timeout_seconds):
+                vehicles = self.session.query(Vehicle).options(
+                    selectinload(Vehicle.contract),
+                    joinedload(Vehicle.owner),
+                    joinedload(Vehicle.compagny),
+                    selectinload(Vehicle.fleet)
+                ).filter(Vehicle.is_active == True).all()
+                
+                # 3. Sauvegarder en cache
+                self._set_cache(cache_key, vehicles)
+                
+                logger.info(f"✅ {len(vehicles)} véhicules chargés")
+                return vehicles
+                
+        except TimeoutError as e:
+            logger.error(f"Timeout lors du chargement des véhicules: {e}")
+            return []
         except Exception as e:
             logger.error(f"Erreur chargement véhicules: {e}")
             return []
-    
-    def get_vehicles_by_id(self, vehicle_id):
-        """Récupère un véhicule par son ID."""
-        return self.session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
 
+
+    def get_vehicles_by_id(self, vehicle_id, load_relations: bool = False):
+        """
+        Récupère un véhicule par son ID.
+        
+        Args:
+            vehicle_id: ID du véhicule
+            load_relations: Si True, charge toutes les relations (driver, classification, garanties, etc.)
+        
+        Returns:
+            Vehicle: Objet véhicule avec ou sans relations
+        """
+        try:
+            from sqlalchemy.orm import selectinload, joinedload
+            
+            vehicle = self.session.query(Vehicle).options(
+                selectinload(Vehicle.driver),
+                selectinload(Vehicle.classification),
+                selectinload(Vehicle.guarantees),
+                selectinload(Vehicle.guarantee_reductions),
+                selectinload(Vehicle.guarantee_rates),
+                selectinload(Vehicle.guarantee_options),
+                selectinload(Vehicle.fleet_guarantees),
+                joinedload(Vehicle.owner),
+                joinedload(Vehicle.compagny),
+                selectinload(Vehicle.fleet),
+                selectinload(Vehicle.contract)
+            ).filter(Vehicle.id == vehicle_id).first()
+            
+            # ✅ Détacher l'objet de la session pour qu'il puisse être utilisé librement
+            if vehicle:
+                self.session.expunge(vehicle)
+            
+            return vehicle
+            
+        except Exception as e:
+            logger.error(f"Erreur get_vehicle_with_relations: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+    # def get_vehicles_by_owner_id(self, owner_id: int, force_refresh: bool = False):
+    #     """Récupère les véhicules d'un propriétaire (avec cache)"""
+        
+    #     def load_vehicles():
+    #         return self.session.query(Vehicle).options(
+    #             selectinload(Vehicle.contract),
+    #             joinedload(Vehicle.owner)
+    #         ).filter(
+    #             Vehicle.owner_id == owner_id,
+    #             Vehicle.is_active == True
+    #         ).all()
+        
+    #     if force_refresh:
+    #         query_cache.invalidate(f"owner_{owner_id}")
+    #         return load_vehicles()
+        
+    #     return query_cache.get_or_compute(
+    #         f"vehicles_by_owner_{owner_id}",
+    #         compute_func=load_vehicles,
+    #         ttl=300
+    #     )
+
+    # def get_dashboard_stats(self, fleet_id=None):
+    #     """Calcule les KPI pour les widgets du haut de l'interface."""
+    #     query = self.session.query(Vehicle)
+    #     if fleet_id:
+    #         query = query.filter(Vehicle.fleet_id == fleet_id)
+
+    #     total = query.count()
+    #     actifs = query.filter(Vehicle.statut == "ACTIF").count()
+    #     expires = query.filter(Vehicle.statut == "EXPIRE").count()
+    #     prime_totale = self.session.query(func.sum(Vehicle.prime_emise)).scalar() or 0
+
+    #     return {
+    #         "total": total,
+    #         "actifs": actifs,
+    #         "expires": expires,
+    #         "prime_totale": f"{prime_totale:,.0f} FCFA"
+    #     }
+
+    @with_db_timeout(30)
     def get_vehicles_by_owner_id(self, owner_id: int, force_refresh: bool = False):
         """Récupère les véhicules d'un propriétaire (avec cache)"""
         
@@ -87,6 +219,7 @@ class VehicleController:
             ttl=300
         )
 
+    @with_db_timeout(45)
     def get_dashboard_stats(self, fleet_id=None):
         """Calcule les KPI pour les widgets du haut de l'interface."""
         query = self.session.query(Vehicle)
@@ -153,16 +286,25 @@ class VehicleController:
             print(f"Erreur lors de la récupération du contact {contact_id}: {e}")
             return None
 
-    def get_vehicles_by_fleet(self, fleet_id: int):
-        """Récupère tous les véhicules d'une flotte"""
+    @with_db_timeout(seconds=30)
+    def get_vehicles_by_fleet(self, fleet_id: int, timeout_seconds: int = 30):
+        """Récupère tous les véhicules d'une flotte avec timeout"""
         try:
-            vehicles = self.session.query(Vehicle).filter(
-                Vehicle.fleet_id == fleet_id,
-                Vehicle.is_active == True
-            ).all()
-            return vehicles
+            with timeout(timeout_seconds):
+                vehicles = self.session.query(Vehicle).options(
+                    joinedload(Vehicle.fleet),
+                    joinedload(Vehicle.owner),
+                    selectinload(Vehicle.contract)
+                ).filter(
+                    Vehicle.fleet_id == fleet_id,
+                    Vehicle.is_active == True
+                ).all()
+                return vehicles
+        except TimeoutError as e:
+            logger.error(f"Timeout lors du chargement des véhicules fleet {fleet_id}: {e}")
+            return []
         except Exception as e:
-            print(f"Erreur récupération véhicules par flotte: {e}")
+            logger.error(f"Erreur récupération véhicules par flotte: {e}")
             return []
 
     def get_report_data(self):
@@ -176,118 +318,285 @@ class VehicleController:
         }
         return contacts, stats
     
-    def create_vehicle(self, data: Dict, user_id: int, local_ip=None, public_ip=None) -> Tuple[bool, any, str]:
+
+    def create_vehicle(self, data: Dict, user_id: int, local_ip=None, public_ip=None, max_retries: int = 3) -> Tuple[bool, str, int]:
         """
-        Crée un véhicule ET son contrat proformat associé
+        Crée un véhicule ET son contrat proformat associé avec la nouvelle structure de BD.
         
         Returns:
-            Tuple (succès, id_vehicule_ou_message, message)
+            Tuple (succès, message, id_vehicule)
         """
-        try:
-            # 1. Vérification préalable des données critiques
-            owner_id = data.get('owner_id')
-            if not owner_id:
-                print("❌ owner_id manquant dans les données")
-                print(f"Clés disponibles: {list(data.keys())}")
-                return False, None, "Le propriétaire du véhicule est requis (owner_id manquant)"
-            
-            company_id = data.get('company_id', data.get('compagny_id'))
-            if not company_id:
-                return False, None, "La compagnie d'assurance est requise"
-            
-            # 2. Nettoyer l'état de la session (mais sans rollback immédiat)
-            # self.session.rollback()  # ← À COMMENTER ou à déplacer
-            
-            # 3. Gestion des infos réseau si manquantes
-            if local_ip is None or public_ip is None:
-                local_ip, public_ip = self.get_network_info()
+        for attempt in range(max_retries):
+            try:
+                # 1. Vérification préalable des données critiques
+                owner_id = data.get('owner_id')
+                if not owner_id:
+                    print("❌ owner_id manquant dans les données")
+                    print(f"Clés disponibles: {list(data.keys())}")
+                    return False, "Le propriétaire du véhicule est requis (owner_id manquant)", None
+                
+                company_id = data.get('company_id', data.get('compagny_id'))
+                if not company_id:
+                    return False, "La compagnie d'assurance est requise", None
 
-            # 4. Préparation du log d'audit
-            audit_data = data.copy()
-            audit_data['ip_info'] = {'local': local_ip, 'public': public_ip}
+                # 2. Gestion des infos réseau si manquantes
+                if local_ip is None or public_ip is None:
+                    local_ip, public_ip = self.get_network_info()
 
-            # 5. Nettoyage de 'data' pour SQLAlchemy
-            vehicle_columns = Vehicle.__table__.columns.keys()
-            filtered_data = {k: v for k, v in data.items() if k in vehicle_columns}
-            
-            # S'assurer que owner_id est dans les données filtrées
-            filtered_data['owner_id'] = owner_id
-            print(f"✅ owner_id = {owner_id} ajouté aux données du véhicule")
-            
-            # ⭐⭐⭐ NOUVEAU : Copier les amt_val_red_* vers les amt_fleet_*_val ⭐⭐⭐
-            # Ce mapping permet que les valeurs personnalisées des garanties
-            # soient utilisées comme valeurs par défaut dans la flotte
-            
-            fleet_mapping = {
-                'amt_val_red_rc': 'amt_fleet_rc_val',
-                'amt_val_red_dr': 'amt_fleet_dr_val',
-                'amt_val_red_vol': 'amt_fleet_vol_val',
-                'amt_val_red_vb': 'amt_fleet_vb_val',
-                'amt_val_red_in': 'amt_fleet_in_val',
-                'amt_val_red_bris': 'amt_fleet_bris_val',
-                'amt_val_red_ar': 'amt_fleet_ar_val',
-                'amt_val_red_dta': 'amt_fleet_dta_val',
-                'amt_val_red_ipt': 'amt_fleet_ipt_val',
-            }
-            
-            
-            # 6. Création du véhicule
-            new_vehicle = Vehicle(**filtered_data)
-            
-            if hasattr(new_vehicle, 'created_by'):
-                new_vehicle.created_by = user_id
-            if hasattr(new_vehicle, 'created_ip'):
-                new_vehicle.created_ip = public_ip
+                # 3. Préparation du log d'audit
+                audit_data = data.copy()
+                audit_data['ip_info'] = {'local': local_ip, 'public': public_ip}
 
-            self.session.add(new_vehicle)
-            self.session.flush()  # Récupère new_vehicle.id
-            print(f"✓ Véhicule créé avec ID: {new_vehicle.id}")
+                # 4. Nettoyage de 'data' pour SQLAlchemy (champs du modèle Vehicle)
+                vehicle_columns = Vehicle.__table__.columns.keys()
+                vehicle_data = {k: v for k, v in data.items() if k in vehicle_columns}
+                vehicle_data['owner_id'] = owner_id
+                print(f"✅ owner_id = {owner_id} ajouté aux données du véhicule")
 
-            # 7. CRÉATION AUTOMATIQUE DU CONTRAT PROFORMAT
-            contrat_data = self._prepare_contract_data(new_vehicle, data, user_id)
-            
-            # Vérifier que contrat_data contient owner_id
-            print(f"📋 Contrat data préparé - owner_id: {contrat_data.get('owner_id')}")
-            
-            success, contrat, contrat_message = self.contract_ctrl.create_proformat_contract(
-                vehicle_id=new_vehicle.id,
-                user_id=user_id,
-                data=contrat_data
-            )
-            
-            if not success:
-                # Si la création du contrat échoue, on annule tout
+                # 5. Création du véhicule principal
+                new_vehicle = Vehicle(**vehicle_data)
+                
+                if hasattr(new_vehicle, 'created_by'):
+                    new_vehicle.created_by = user_id
+                if hasattr(new_vehicle, 'created_ip'):
+                    new_vehicle.created_ip = public_ip
+
+                self.session.add(new_vehicle)
+                self.session.flush()
+                print(f"✓ Véhicule créé avec ID: {new_vehicle.id}")
+
+                # ============================================================
+                # 6. CRÉATION DE LA CLASSIFICATION ASAC
+                # ============================================================
+                classification_data = {
+                    'categorie_id': data.get('categorie'),
+                    'genre_id': data.get('genre'),
+                    'type_id': data.get('type_vehicule'),
+                    'usage_id': data.get('usage'),
+                    'energie_id': data.get('energie'),
+                    'zone_id': data.get('zone'),
+                }
+                
+                if any(classification_data.values()):
+                    from addons.Automobiles.models.automobile_models import VehicleClassification
+                    classification = VehicleClassification(
+                        vehicle_id=new_vehicle.id,
+                        **classification_data
+                    )
+                    self.session.add(classification)
+                    print(f"✓ Classification ASAC créée: {classification_data}")
+
+                # ============================================================
+                # 7. CRÉATION DES GARANTIES
+                # ============================================================
+                from addons.Automobiles.models.automobile_models import (
+                    VehicleGuarantee,
+                    VehicleGuaranteeReduction,
+                    VehicleGuaranteeRate,
+                    VehicleGuaranteeOption,
+                    VehicleFleetGuarantee
+                )
+
+                # 7.1 Garanties brutes
+                guarantee_data = {
+                    'rc': float(data.get('amt_rc', data.get('amt_rc_brut', 0))),
+                    'dr': float(data.get('amt_dr', data.get('amt_dr_brut', 0))),
+                    'vol': float(data.get('amt_vol', data.get('amt_vol_brut', 0))),
+                    'vb': float(data.get('amt_vb', data.get('amt_vb_brut', 0))),
+                    'ipt': float(data.get('amt_in', data.get('amt_in_brut', 0))),
+                    'bris': float(data.get('amt_bris', data.get('amt_bris_brut', 0))),
+                    'ar': float(data.get('amt_ar', data.get('amt_ar_brut', 0))),
+                    'dta': float(data.get('amt_dta', data.get('amt_dta_brut', 0))),
+                    'in_garantie': float(data.get('amt_ipt', data.get('amt_ipt_brut', 0))),
+                }
+                
+                guarantees = VehicleGuarantee(vehicle_id=new_vehicle.id, **guarantee_data)
+                self.session.add(guarantees)
+                print(f"✓ Garanties brutes créées")
+
+                # 7.2 Garanties avec réduction
+                reduction_data = {
+                    'rc': float(data.get('amt_val_red_rc', 0)),
+                    'dr': float(data.get('amt_val_red_dr', 0)),
+                    'vol': float(data.get('amt_val_red_vol', 0)),
+                    'vb': float(data.get('amt_val_red_vb', 0)),
+                    'ipt': float(data.get('amt_val_red_in', 0)),
+                    'bris': float(data.get('amt_val_red_bris', 0)),
+                    'ar': float(data.get('amt_val_red_ar', 0)),
+                    'dta': float(data.get('amt_val_red_dta', 0)),
+                    'in_garantie': float(data.get('amt_val_red_ipt', 0)),
+                }
+                
+                reductions = VehicleGuaranteeReduction(vehicle_id=new_vehicle.id, **reduction_data)
+                self.session.add(reductions)
+                print(f"✓ Garanties avec réduction créées")
+
+                # 7.3 Taux des garanties
+                rate_data = {
+                    'rc': float(data.get('red_rc', 0)),
+                    'dr': float(data.get('red_dr', 0)),
+                    'vol': float(data.get('red_vol', 0)),
+                    'vb': float(data.get('red_vb', 0)),
+                    'ipt': float(data.get('red_in', 0)),
+                    'bris': float(data.get('red_bris', 0)),
+                    'ar': float(data.get('red_ar', 0)),
+                    'dta': float(data.get('red_dta', 0)),
+                    'in_garantie': float(data.get('red_ipt', 0)),
+                }
+                
+                rates = VehicleGuaranteeRate(vehicle_id=new_vehicle.id, **rate_data)
+                self.session.add(rates)
+                print(f"✓ Taux des garanties créés")
+
+                # 7.4 Options des garanties
+                option_data = {
+                    'rc': bool(data.get('check_rc', False)),
+                    'dr': bool(data.get('check_dr', False)),
+                    'vol': bool(data.get('check_vol', False)),
+                    'vb': bool(data.get('check_vb', False)),
+                    'ipt': bool(data.get('check_in', False)),
+                    'bris': bool(data.get('check_bris', False)),
+                    'ar': bool(data.get('check_ar', False)),
+                    'dta': bool(data.get('check_dta', False)),
+                    'in_garantie': bool(data.get('check_ipt', False)),
+                }
+                
+                options = VehicleGuaranteeOption(vehicle_id=new_vehicle.id, **option_data)
+                self.session.add(options)
+                print(f"✓ Options des garanties créées")
+
+                # 7.5 Garanties flotte
+                fleet_guarantee_data = {
+                    'rc': float(data.get('amt_fleet_rc_val', 0)),
+                    'dr': float(data.get('amt_fleet_dr_val', 0)),
+                    'vol': float(data.get('amt_fleet_vol_val', 0)),
+                    'vb': float(data.get('amt_fleet_vb_val', 0)),
+                    'ipt': float(data.get('amt_fleet_in_val', 0)),
+                    'bris': float(data.get('amt_fleet_bris_val', 0)),
+                    'ar': float(data.get('amt_fleet_ar_val', 0)),
+                    'dta': float(data.get('amt_fleet_dta_val', 0)),
+                    'in_garantie': float(data.get('amt_fleet_ipt_val', 0)),
+                }
+                
+                if not any(fleet_guarantee_data.values()):
+                    fleet_guarantee_data = {
+                        'rc': float(data.get('amt_val_red_rc', 0)),
+                        'dr': float(data.get('amt_val_red_dr', 0)),
+                        'vol': float(data.get('amt_val_red_vol', 0)),
+                        'vb': float(data.get('amt_val_red_vb', 0)),
+                        'ipt': float(data.get('amt_val_red_in', 0)),
+                        'bris': float(data.get('amt_val_red_bris', 0)),
+                        'ar': float(data.get('amt_val_red_ar', 0)),
+                        'dta': float(data.get('amt_val_red_dta', 0)),
+                        'in_garantie': float(data.get('amt_val_red_ipt', 0)),
+                    }
+                    print("ℹ️ Valeurs flotte copiées depuis les garanties avec réduction")
+                
+                fleet_guarantees = VehicleFleetGuarantee(vehicle_id=new_vehicle.id, **fleet_guarantee_data)
+                self.session.add(fleet_guarantees)
+                print(f"✓ Garanties flotte créées")
+
+                # ============================================================
+                # 8. CRÉATION AUTOMATIQUE DU CONTRAT PROFORMAT
+                # ============================================================
+                contrat_data = self._prepare_contract_data(new_vehicle, data, user_id)
+                print(f"📋 Contrat data préparé - owner_id: {contrat_data.get('owner_id')}")
+                
+                success, contrat, contrat_message = self.contract_ctrl.create_proformat_contract(
+                    vehicle_id=new_vehicle.id,
+                    user_id=user_id,
+                    data=contrat_data
+                )
+                
+                if not success:
+                    self.session.rollback()
+                    return False, f"Erreur création contrat: {contrat_message}", None
+                
+                if contrat is None:
+                    from addons.Automobiles.models.contract_models import Contrat
+                    contrat = self.session.query(Contrat).filter(Contrat.vehicle_id == new_vehicle.id).first()
+                    
+                    if contrat is None:
+                        self.session.rollback()
+                        return False, "Le contrat a été créé mais n'a pas pu être récupéré", None
+                    
+                    print(f"✓ Contrat récupéré depuis la base: {contrat.id}")
+                else:
+                    print(f"✓ Contrat proformat créé: {contrat.numero_police}")
+
+                # ============================================================
+                # 9. AUDIT DE CRÉATION DU VÉHICULE
+                # ============================================================
+                audit = AuditVehicleLog(
+                    user_id=user_id,
+                    action="CREATE",
+                    module="VEHICLES",
+                    item_id=new_vehicle.id,
+                    old_values=None,
+                    new_values=json.dumps(audit_data, default=str),
+                    ip_public=public_ip,
+                    ip_local=local_ip,
+                    timestamp=datetime.now()
+                )
+
+                # ============================================================
+                # 10. CRÉATION DU CONDUCTEUR (Driver)
+                # ============================================================
+                driver_data = data.get('driver', {})
+                if driver_data and driver_data.get('nom'):
+                    from addons.Automobiles.models.driver_models import Driver
+                    
+                    # Vérifier si le conducteur existe déjà
+                    existing_driver = self.session.query(Driver).filter(
+                        Driver.num_permis == driver_data.get('num_permis', '')
+                    ).first()
+                    
+                    if existing_driver:
+                        # Utiliser le conducteur existant
+                        new_vehicle.driver_id = existing_driver.id
+                        print(f"✓ Conducteur existant trouvé: {existing_driver.id}")
+                    else:
+                        # Créer un nouveau conducteur
+                        new_driver = Driver(
+                            nom=driver_data.get('nom', ''),
+                            prenom=driver_data.get('prenom', ''),
+                            date_naissance=driver_data.get('date_naissance'),
+                            num_permis=driver_data.get('num_permis', ''),
+                            categorie_permis=driver_data.get('categorie_permis', ''),
+                            date_permis=driver_data.get('date_permis'),
+                            autorite_delivrance=driver_data.get('autorite_delivrance', ''),
+                            created_by=user_id,
+                            created_at=datetime.now()
+                        )
+                        self.session.add(new_driver)
+                        self.session.flush()
+                        new_vehicle.driver_id = new_driver.id
+                        print(f"✓ Nouveau conducteur créé: {new_driver.id}")
+                
+                self.session.add(audit)
+                self.session.commit()
+                
+                logger.log_info(f"Véhicule {new_vehicle.immatriculation} créé avec contrat {contrat.numero_police}")
+                
+                # ✅ Format attendu par _on_save_finished : (succès, message, id)
+                return True, f"Véhicule {new_vehicle.immatriculation} créé avec succès", new_vehicle.id
+
+            except Exception as e:
+                last_error = e
                 self.session.rollback()
-                return False, None, f"Erreur création contrat: {contrat_message}"
-            
-            print(f"✓ Contrat proformat créé: {contrat.numero_police}")
+                logger.warning(f"Tentative {attempt + 1}/{max_retries} échouée: {e}")
+                import traceback
+                traceback.print_exc()
+                
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+                    from core.database import SessionLocal
+                    self.session.close()
+                    self.session = SessionLocal()
+                    self.contract_ctrl.session = self.session
+        
+        return False, str(last_error), None
 
-            # 8. Audit de création du véhicule
-            audit = AuditVehicleLog(
-                user_id=user_id,
-                action="CREATE",
-                module="VEHICLES",
-                item_id=new_vehicle.id,
-                old_values=None,
-                new_values=json.dumps(audit_data, default=str),
-                ip_public=public_ip,
-                ip_local=local_ip,
-                timestamp=datetime.now()
-            )
-            
-            self.session.add(audit)
-            self.session.commit()
-            
-            logger.log_info(f"Véhicule {new_vehicle.immatriculation} créé avec contrat {contrat.numero_police}")
-            return True, new_vehicle.id, "Véhicule et contrat créés avec succès"
-
-        except Exception as e:
-            self.session.rollback()
-            import traceback
-            print(traceback.format_exc())
-            logger.error(f"Erreur création véhicule: {e}")
-            return False, None, str(e)
-               
     def _prepare_contract_data(self, vehicle: Vehicle, data: Dict, user_id: int) -> Dict:
         """Prépare les données pour le contrat proformat"""
         
@@ -375,65 +684,225 @@ class VehicleController:
 
         return local_ip, public_ip
 
-    def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None, **kwargs):
-        # Récupération flexible de l'IP (si la vue envoie 'local_ip' au lieu de 'ip_local')
-        local_ip = ip_local or kwargs.get('local_ip')
+    # def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None, **kwargs):
+    #     # Récupération flexible de l'IP (si la vue envoie 'local_ip' au lieu de 'ip_local')
+    #     local_ip = ip_local or kwargs.get('local_ip')
         
-        if not local_ip:
-            try:
-                import socket
-                local_ip = socket.gethostbyname(socket.gethostname())
-            except:
-                local_ip = "127.0.0.1"
+    #     if not local_ip:
+    #         try:
+    #             import socket
+    #             local_ip = socket.gethostbyname(socket.gethostname())
+    #         except:
+    #             local_ip = "127.0.0.1"
 
+    #     try:
+    #         vehicle = self.session.query(Vehicle).get(vehicle_id)
+    #         if not vehicle:
+    #             return False, "Véhicule introuvable."
+
+    #         def date_encoder(obj):
+    #             if isinstance(obj, (datetime, date)):
+    #                 return obj.isoformat()
+    #             raise TypeError(f"Type {type(obj)} non sérialisable")
+
+    #         # 1. Capture de l'ancien état pour l'audit
+    #         old_values = {
+    #             "immatriculation": vehicle.immatriculation,
+    #             "chassis": vehicle.chassis,
+    #             "zone": vehicle.zone,
+    #             "categorie": vehicle.categorie
+    #         }
+
+    #         # 2. Mise à jour de l'objet SQL
+    #         for key, value in new_data.items():
+    #             if hasattr(vehicle, key):
+    #                 setattr(vehicle, key, value)
+
+    #         # ============================================================
+    #         # MISE À JOUR DU CONDUCTEUR
+    #         # ============================================================
+    #         driver_data = new_data.get('driver', {})
+    #         if driver_data and driver_data.get('nom'):
+    #             from addons.Automobiles.models.driver_models import Driver
+                
+    #             if vehicle.driver_id:
+    #                 # Mettre à jour le conducteur existant
+    #                 driver = self.session.query(Driver).filter(Driver.id == vehicle.driver_id).first()
+    #                 if driver:
+    #                     driver.nom = driver_data.get('nom', driver.nom)
+    #                     driver.prenom = driver_data.get('prenom', driver.prenom)
+    #                     driver.date_naissance = driver_data.get('date_naissance', driver.date_naissance)
+    #                     driver.num_permis = driver_data.get('num_permis', driver.num_permis)
+    #                     driver.categorie_permis = driver_data.get('categorie_permis', driver.categorie_permis)
+    #                     driver.date_permis = driver_data.get('date_permis', driver.date_permis)
+    #                     driver.autorite_delivrance = driver_data.get('autorite_delivrance', driver.autorite_delivrance)
+    #                     driver.updated_at = datetime.now()
+    #                     driver.updated_by = user_id
+    #                     print(f"✓ Conducteur mis à jour: {driver.id}")
+    #             else:
+    #                 # Créer un nouveau conducteur
+    #                 new_driver = Driver(
+    #                     nom=driver_data.get('nom', ''),
+    #                     prenom=driver_data.get('prenom', ''),
+    #                     date_naissance=driver_data.get('date_naissance'),
+    #                     num_permis=driver_data.get('num_permis', ''),
+    #                     categorie_permis=driver_data.get('categorie_permis', ''),
+    #                     date_permis=driver_data.get('date_permis'),
+    #                     autorite_delivrance=driver_data.get('autorite_delivrance', ''),
+    #                     created_by=user_id,
+    #                     created_at=datetime.now()
+    #                 )
+    #                 self.session.add(new_driver)
+    #                 self.session.flush()
+    #                 vehicle.driver_id = new_driver.id
+    #                 print(f"✓ Nouveau conducteur créé: {new_driver.id}")
+
+    #         vehicle.updated_at = datetime.now()
+    #         vehicle.updated_by = user_id
+    #         vehicle.last_ip = local_ip
+
+    #         # 3. Création du log d'audit
+    #         audit = AuditVehicleLog(
+    #             user_id=user_id,
+    #             action="UPDATE",
+    #             module="VEHICLES",
+    #             item_id=vehicle_id,
+    #             old_values=json.dumps(old_values, default=date_encoder),
+    #             new_values=json.dumps(new_data, default=date_encoder),
+    #             ip_local=local_ip,
+    #             ip_public=ip_public,
+    #             timestamp=datetime.now()
+    #         )
+
+    #         self.session.add(audit)
+    #         self.session.commit()
+    #         return True, "Mise à jour réussie"
+    #     except Exception as e:
+    #         self.session.rollback()
+    #         print(f"ERREUR DEBUG: {str(e)}")
+    #         return False, str(e)
+
+    def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None, **kwargs):
+        """Met à jour un véhicule existant et ses relations."""
+        
+        local_ip = ip_local or self._get_local_ip()
+        
         try:
             vehicle = self.session.query(Vehicle).get(vehicle_id)
             if not vehicle:
                 return False, "Véhicule introuvable."
-
-            def date_encoder(obj):
-                if isinstance(obj, (datetime, date)):
-                    return obj.isoformat()
-                raise TypeError(f"Type {type(obj)} non sérialisable")
-
-            # 1. Capture de l'ancien état pour l'audit
+            
+            # Capturer l'ancien état
             old_values = {
                 "immatriculation": vehicle.immatriculation,
                 "chassis": vehicle.chassis,
-                "zone": vehicle.zone,
-                "categorie": vehicle.categorie
+                "marque": vehicle.marque,
+                "modele": vehicle.modele,
+                "categorie": vehicle.categorie,
+                "genre": vehicle.genre,
+                "type_vehicule": vehicle.type_vehicule,
+                "usage": vehicle.usage,
+                "energie": vehicle.energie,
+                "zone": vehicle.zone
             }
-
-            # 2. Mise à jour de l'objet SQL
+            
+            # Mettre à jour les champs du véhicule
+            vehicle_columns = Vehicle.__table__.columns.keys()
             for key, value in new_data.items():
-                if hasattr(vehicle, key):
+                if key in vehicle_columns and key != 'id':
                     setattr(vehicle, key, value)
-
+            
+            # ============================================================
+            # MISE À JOUR DU CONDUCTEUR - Adapté au modèle Driver existant
+            # ============================================================
+            driver_data = new_data.get('driver', {})
+            if driver_data and driver_data.get('nom'):  # La clé 'nom' vient du formulaire
+                from addons.Automobiles.models.driver_models import Driver
+                
+                if vehicle.driver_id:
+                    # Mettre à jour le conducteur existant
+                    driver = self.session.query(Driver).filter(Driver.id == vehicle.driver_id).first()
+                    if driver:
+                        # ✅ Utiliser les noms de colonnes du modèle Driver
+                        driver.driver_name = driver_data.get('nom', driver.driver_name)
+                        # Si le formulaire envoie 'prenom', on l'ajoute au nom
+                        if driver_data.get('prenom'):
+                            driver.driver_name = f"{driver_data.get('nom', '')} {driver_data.get('prenom', '')}".strip()
+                        driver.driver_birth_date = driver_data.get('date_naissance', driver.driver_birth_date)
+                        driver.driver_licence_number = driver_data.get('num_permis', driver.driver_licence_number)
+                        driver.driver_licence_category = driver_data.get('categorie_permis', driver.driver_licence_category)
+                        driver.driver_licence_issued_at = driver_data.get('date_permis', driver.driver_licence_issued_at)
+                        driver.driver_licence_issued_by = driver_data.get('autorite_delivrance', driver.driver_licence_issued_by)
+                        driver.updated_at = datetime.now()
+                        print(f"✓ Conducteur mis à jour: {driver.id}")
+                else:
+                    # ✅ Créer un nouveau conducteur avec les colonnes du modèle
+                    # Combiner nom et prénom si les deux sont présents
+                    full_name = driver_data.get('nom', '')
+                    if driver_data.get('prenom'):
+                        full_name = f"{full_name} {driver_data.get('prenom', '')}".strip()
+                    
+                    new_driver = Driver(
+                        driver_name=full_name,
+                        driver_birth_date=driver_data.get('date_naissance'),
+                        driver_licence_number=driver_data.get('num_permis', ''),
+                        driver_licence_category=driver_data.get('categorie_permis', ''),
+                        driver_licence_issued_at=driver_data.get('date_permis'),
+                        driver_licence_issued_by=driver_data.get('autorite_delivrance', '')
+                    )
+                    self.session.add(new_driver)
+                    self.session.flush()
+                    vehicle.driver_id = new_driver.id
+                    print(f"✓ Nouveau conducteur créé: {new_driver.id}")
+            
+            # Mettre à jour les garanties (si présentes dans les données)
+            self._update_vehicle_guarantees(vehicle, new_data)
+            
+            # Mise à jour des champs de traçabilité
             vehicle.updated_at = datetime.now()
             vehicle.updated_by = user_id
             vehicle.last_ip = local_ip
-
-            # 3. Création du log d'audit
-            audit = AuditVehicleLog(
-                user_id=user_id,
-                action="UPDATE",
-                module="VEHICLES",
-                item_id=vehicle_id,
-                old_values=json.dumps(old_values, default=date_encoder),
-                new_values=json.dumps(new_data, default=date_encoder),
-                ip_local=local_ip,
-                ip_public=ip_public,
-                timestamp=datetime.now()
-            )
-
-            self.session.add(audit)
+            
             self.session.commit()
-            return True, "Mise à jour réussie"
+            self.session.refresh(vehicle)
+            
+            return True, "Véhicule mis à jour avec succès"
+            
         except Exception as e:
             self.session.rollback()
-            print(f"ERREUR DEBUG: {str(e)}")
+            print(f"ERREUR update_vehicle: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False, str(e)
-        
+
+    def _update_vehicle_guarantees(self, vehicle, data):
+        """Met à jour les garanties du véhicule."""
+        try:
+            from addons.Automobiles.models.automobile_models import (
+                VehicleGuarantee,
+                VehicleGuaranteeReduction,
+                VehicleGuaranteeRate,
+                VehicleGuaranteeOption,
+                VehicleFleetGuarantee
+            )
+            
+            # Mise à jour des garanties brutes
+            if vehicle.guarantees:
+                for key in ['rc', 'dr', 'vol', 'vb', 'ipt', 'bris', 'ar', 'dta', 'in_garantie']:
+                    value = data.get(f'amt_{key}', data.get(f'guarantees_{key}', 0))
+                    if hasattr(vehicle.guarantees, key):
+                        setattr(vehicle.guarantees, key, float(value or 0))
+            
+            # Mise à jour des réductions
+            if vehicle.guarantee_reductions:
+                for key in ['rc', 'dr', 'vol', 'vb', 'ipt', 'bris', 'ar', 'dta', 'in_garantie']:
+                    value = data.get(f'red_{key}', data.get(f'reduction_{key}', 0))
+                    if hasattr(vehicle.guarantee_reductions, key):
+                        setattr(vehicle.guarantee_reductions, key, float(value or 0))
+            
+        except Exception as e:
+            print(f"Erreur mise à jour garanties: {e}")
+
     def get_audit_logs(self, module_name):
         """
         Récupère les logs d'audit pour un module spécifique.
@@ -983,7 +1452,7 @@ class VehicleController:
             return False, str(e)
 
     # addons/Automobiles/controllers/automobile_controller.py
-# Ajouter ces méthodes à la classe VehicleController
+    # Ajouter ces méthodes à la classe VehicleController
 
     # ============================================================================
     # MÉTHODES SQLITE PERSISTANT (entre deux sessions)
@@ -1064,23 +1533,30 @@ class VehicleController:
         cache.set(cache_key, result, module="automobiles", ttl_seconds=86400)
         return result
     
-    def get_dashboard_stats_persistent(self, fleet_id: int = None):
+    def get_dashboard_stats_persistent(self, fleet_id: int = None, timeout_seconds: int = 30):
         """
-        Récupère les statistiques dashboard depuis le cache SQLite
+        Récupère les statistiques dashboard depuis le cache SQLite avec timeout
         """
         from core.local_db import cache
         
         cache_key = f"automobiles:dashboard:stats:fleet:{fleet_id}"
         
+        # Essayer le cache SQLite
         cached = cache.get(cache_key)
         if cached:
             return cached
         
-        stats = self.get_dashboard_stats(fleet_id, force_refresh=True)
-        cache.set(cache_key, stats, module="automobiles", ttl_seconds=3600)  # 1 heure
+        # Charger depuis la base avec timeout
+        try:
+            with timeout(timeout_seconds):
+                stats = self.get_dashboard_stats(fleet_id)
+                # Sauvegarder en cache SQLite (TTL 1 heure)
+                cache.set(cache_key, stats, module="automobiles", ttl_seconds=3600)
+                return stats
+        except TimeoutError as e:
+            logger.error(f"Timeout dashboard stats fleet {fleet_id}: {e}")
+            return {"total": 0, "actifs": 0, "expires": 0, "prime_totale": "0 FCFA"}
         
-        return stats
-    
     def get_compagnies_persistent(self):
         """
         Récupère toutes les compagnies depuis le cache SQLite
@@ -1375,6 +1851,58 @@ class VehicleController:
     # MÉTHODES DE SYNCHRONISATION
     # ============================================================================
 
+    # automobile_controller.py - Ajoutez ces méthodes optimisées
+
+    def get_vehicles_light(self, fleet_id: int = None, limit: int = 50):
+        """
+        Récupère les véhicules avec seulement les champs essentiels
+        Utilisé pour l'affichage initial
+        """
+        try:
+            query = self.session.query(
+                Vehicle.id,
+                Vehicle.immatriculation,
+                Vehicle.marque,
+                Vehicle.modele,
+                Vehicle.categorie,
+                Vehicle.statut,
+                Vehicle.prime_nette,
+                Vehicle.date_debut,
+                Vehicle.date_fin,
+                Vehicle.owner_id
+            ).filter(Vehicle.is_active == True)
+            
+            if fleet_id:
+                query = query.filter(Vehicle.fleet_id == fleet_id)
+            
+            if limit:
+                query = query.limit(limit)
+            
+            return query.all()
+        except Exception as e:
+            logger.error(f"Erreur get_vehicles_light: {e}")
+            return []
+
+    def get_vehicle_with_relations_optimized(self, vehicle_id: int):
+        """
+        Récupère un véhicule avec ses relations en une seule requête
+        Utilise selectinload pour éviter N+1
+        """
+        try:
+            from sqlalchemy.orm import selectinload, joinedload
+            
+            vehicle = self.session.query(Vehicle).options(
+                selectinload(Vehicle.contrat).selectinload(Contrat.paiements),
+                joinedload(Vehicle.owner),
+                joinedload(Vehicle.compagny),
+                selectinload(Vehicle.fleet)
+            ).filter(Vehicle.id == vehicle_id).first()
+            
+            return vehicle
+        except Exception as e:
+            logger.error(f"Erreur get_vehicle_with_relations_optimized: {e}")
+            return None
+
     def sync_from_server(self):
         """
         Synchronise les données du cache SQLite avec le serveur
@@ -1408,6 +1936,33 @@ class VehicleController:
             'memory_entries': len(self._object_cache),
             'memory_keys': list(self._object_cache.keys())
         }
+
+    def check_connection(self) -> bool:
+        """
+        Vérifie si la connexion à la base de données est active
+        """
+        try:
+            with timeout(5):
+                self.session.execute("SELECT 1")
+                return True
+        except Exception as e:
+            logger.error(f"Connexion DB perdue: {e}")
+            return False
+
+    def reconnect(self):
+        """
+        Force la reconnexion à la base de données
+        """
+        try:
+            from core.database import SessionLocal
+            self.session.close()
+            self.session = SessionLocal()
+            self.contract_ctrl.session = self.session
+            logger.info("✅ Reconnexion DB réussie")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Échec reconnexion DB: {e}")
+            return False
 
     def get_vehicle_guarantees(self, vehicle_id):
         """
@@ -1463,3 +2018,288 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur get_vehicle_guarantees: {e}")
             return {}
+
+    # addons/Automobiles/controllers/automobile_controller.py
+
+    def get_vehicle_details_data(self, vehicle_id: int) -> Optional[Dict]:
+        """
+        Récupère toutes les données d'un véhicule pour l'affichage des détails.
+        Cette méthode contient TOUTES les requêtes SQL et s'exécute dans un thread.
+        
+        Args:
+            vehicle_id: ID du véhicule
+        
+        Returns:
+            Dict: Dictionnaire contenant toutes les données du véhicule
+        """
+        try:
+            from sqlalchemy.orm import selectinload, joinedload
+            from addons.Automobiles.models.automobile_models import (
+                Vehicle, VehicleClassification, VehicleGuarantee,
+                VehicleGuaranteeReduction, VehicleGuaranteeRate,
+                VehicleGuaranteeOption, VehicleFleetGuarantee
+            )
+            from addons.Automobiles.models.contact_models import Contact
+            from addons.Automobiles.models.compagnies_models import Compagnie
+            from addons.Automobiles.models.driver_models import Driver
+            from addons.Automobiles.models.contract_models import Contrat
+            
+            # ============================================================
+            # 1. CHARGEMENT DU VÉHICULE AVEC SES RELATIONS
+            # ============================================================
+            vehicle = self.session.query(Vehicle).options(
+                selectinload(Vehicle.driver),
+                selectinload(Vehicle.classification),
+                selectinload(Vehicle.guarantees),
+                selectinload(Vehicle.guarantee_reductions),
+                selectinload(Vehicle.guarantee_rates),
+                selectinload(Vehicle.guarantee_options),
+                selectinload(Vehicle.fleet_guarantees),
+                joinedload(Vehicle.owner),
+                joinedload(Vehicle.compagny),
+                selectinload(Vehicle.fleet),
+                selectinload(Vehicle.contract)
+            ).filter(Vehicle.id == vehicle_id).first()
+            
+            if not vehicle:
+                return None
+
+            # ============================================================
+            # 2. CONTRAT
+            # ============================================================
+            contract = vehicle.contract
+
+            # ============================================================
+            # 3. PROPRIÉTAIRE
+            # ============================================================
+            owner_name = "N/A"
+            owner_phone = "N/A"
+            owner_email = "N/A"
+            owner_city = "Yaoundé"
+            if vehicle.owner:
+                owner = vehicle.owner
+                owner_name = f"{getattr(owner, 'nom', '')} {getattr(owner, 'prenom', '')}".strip()
+                owner_phone = getattr(owner, 'telephone', 'N/A')
+                owner_email = getattr(owner, 'email', 'N/A')
+                owner_city = getattr(owner, 'ville', 'Yaoundé')
+
+            # ============================================================
+            # 4. COMPAGNIE
+            # ============================================================
+            compagny_name = "Non définie"
+            if vehicle.compagny:
+                compagny_name = getattr(vehicle.compagny, 'nom', 'N/A')
+
+            # ============================================================
+            # 5. CONDUCTEUR (Driver)
+            # ============================================================
+            driver_name = "N/A"
+            driver_birth = "N/A"
+            driver_licence = "N/A"
+            driver_category = "N/A"
+            driver_issued_at = "N/A"
+            driver_issued_by = "N/A"
+            
+            if vehicle.driver:
+                driver = vehicle.driver
+                driver_name = getattr(driver, 'driver_name', 'N/A')
+                driver_birth = driver.driver_birth_date.strftime('%d/%m/%Y') if driver.driver_birth_date else "N/A"
+                driver_licence = getattr(driver, 'driver_licence_number', 'N/A')
+                driver_category = getattr(driver, 'driver_licence_category', 'N/A')
+                driver_issued_at = driver.driver_licence_issued_at.strftime('%d/%m/%Y') if driver.driver_licence_issued_at else "N/A"
+                driver_issued_by = getattr(driver, 'driver_licence_issued_by', 'N/A')
+
+            # ============================================================
+            # 6. CLASSIFICATION ASAC
+            # ============================================================
+            classification = vehicle.classification
+            if classification:
+                categorie = getattr(classification, 'categorie_id', 'N/A')
+                genre = getattr(classification, 'genre_id', 'N/A')
+                type_vehicule = getattr(classification, 'type_id', 'N/A')
+                usage = getattr(classification, 'usage_id', 'N/A')
+                energie = getattr(classification, 'energie_id', 'N/A')
+                zone = getattr(classification, 'zone_id', 'N/A')
+            else:
+                categorie = getattr(vehicle, 'categorie', 'N/A')
+                genre = getattr(vehicle, 'genre', 'N/A')
+                type_vehicule = getattr(vehicle, 'type_vehicule', 'N/A')
+                usage = getattr(vehicle, 'usage', 'N/A')
+                energie = getattr(vehicle, 'energie', 'N/A')
+                zone = getattr(vehicle, 'zone', 'N/A')
+
+            # ============================================================
+            # 7. GARANTIES
+            # ============================================================
+            guarantees = vehicle.guarantees
+            guarantee_reductions = vehicle.guarantee_reductions
+            guarantee_rates = vehicle.guarantee_rates
+            guarantee_options = vehicle.guarantee_options
+            fleet_guarantees = vehicle.fleet_guarantees
+
+            # ============================================================
+            # 8. DATES
+            # ============================================================
+            def format_date(date_obj):
+                if date_obj is None:
+                    return ""
+                if hasattr(date_obj, 'strftime'):
+                    return date_obj.strftime('%d/%m/%Y')
+                return str(date_obj)
+
+            date_debut_str = format_date(vehicle.date_debut)
+            date_fin_str = format_date(vehicle.date_fin)
+            date_mise_circulation_str = format_date(vehicle.date_mise_circulation)
+
+            # ============================================================
+            # 9. CONSTRUCTION DU DICTIONNAIRE DE RÉSULTATS
+            # ============================================================
+            vehicle_data = {
+                # --- IDENTIFICATION ---
+                'id': getattr(vehicle, 'id', None),
+                'immatriculation': getattr(vehicle, 'immatriculation', 'N/A'),
+                'chassis': getattr(vehicle, 'chassis', 'N/A'),
+                'marque': getattr(vehicle, 'marque', 'N/A'),
+                'modele': getattr(vehicle, 'modele', 'N/A'),
+                'annee': str(getattr(vehicle, 'annee', 'N/A')),
+                'date_mise_circulation': date_mise_circulation_str,
+                
+                # --- CLASSIFICATION ASAC ---
+                'categorie': categorie,
+                'genre': genre,
+                'type_vehicule': type_vehicule,
+                'usage': usage,
+                'energie': energie,
+                'zone': zone,
+                
+                # --- CONTRAT ---
+                'numero_police': getattr(contract, 'numero_police', 'Aucun contrat actif') if contract else 'Aucun contrat actif',
+                'date_debut': date_debut_str,
+                'date_fin': date_fin_str,
+                'prime_totale': getattr(contract, 'prime_totale_ttc', 0.0) if contract else 0.0,
+                'montant_paye': getattr(contract, 'montant_paye', 0.0) if contract else 0.0,
+                'statut_paiement': getattr(contract, 'statut_paiement', 'NON_PAYE') if contract else 'NON_PAYE',
+                
+                # --- CARACTÉRISTIQUES ---
+                'puissance_fiscale': getattr(vehicle, 'puissance_fiscale', 0),
+                'places': str(getattr(vehicle, 'places', '5')),
+                'cylindree': getattr(vehicle, 'cylindree', 0),
+                'ptac': getattr(vehicle, 'ptac', 0),
+                'charge_utile': getattr(vehicle, 'charge_utile', 0),
+                
+                # --- OPTIONS ---
+                'has_remorque': getattr(vehicle, 'has_remorque', False),
+                'remorque_inflammable': getattr(vehicle, 'remorque_inflammable', False),
+                'remorque_immat': getattr(vehicle, 'remorque_immat', ''),
+                'double_commande': getattr(vehicle, 'double_commande', False),
+                'engin_portuaire': getattr(vehicle, 'engin_portuaire', False),
+                'rc_eleves': getattr(vehicle, 'rc_eleves', False),
+                
+                # --- CODES TARIFAIRES ---
+                'code_tarif': getattr(vehicle, 'code_tarif', 'N/A'),
+                'libele_tarif': getattr(vehicle, 'libele_tarif', 'N/A'),
+                'code_assure': getattr(vehicle, 'code_assure', 'N/A'),
+                
+                # --- FINANCES ---
+                'prime_emise': getattr(vehicle, 'prime_emise', 0),
+                'valeur_neuf': getattr(vehicle, 'valeur_neuf', 0),
+                'valeur_venale': getattr(vehicle, 'valeur_venale', 0),
+                'prime_nette': getattr(vehicle, 'prime_nette', 0),
+                'prime_brute': getattr(vehicle, 'prime_brute', 0),
+                'reduction': getattr(vehicle, 'reduction', 0),
+                'carte_rose': getattr(vehicle, 'carte_rose', 0),
+                'accessoires': getattr(vehicle, 'accessoires', 0),
+                'tva': getattr(vehicle, 'tva', 0),
+                'fichier_asac': getattr(vehicle, 'fichier_asac', 0),
+                'vignette': getattr(vehicle, 'vignette', 0),
+                'pttc': getattr(vehicle, 'pttc', 0),
+                'nbr_jour': getattr(vehicle, 'nbr_jour', 0),
+                
+                # --- PROPRIÉTAIRES ---
+                'owner': owner_name,
+                'owner_id': getattr(vehicle, 'owner_id', None),
+                'compagny': compagny_name,
+                'compagny_id': getattr(vehicle, 'compagny_id', None),
+                'phone': owner_phone,
+                'email': owner_email,
+                'city': owner_city,
+                
+                # --- CONDUCTEUR ---
+                'driver_name': driver_name,
+                'driver_birth': driver_birth,
+                'driver_licence': driver_licence,
+                'driver_category': driver_category,
+                'driver_issued_at': driver_issued_at,
+                'driver_issued_by': driver_issued_by,
+                
+                # --- GARANTIES BRUTES (Montants) ---
+                'amt_rc': getattr(guarantees, 'rc', 0) if guarantees else 0,
+                'amt_dr': getattr(guarantees, 'dr', 0) if guarantees else 0,
+                'amt_vol': getattr(guarantees, 'vol', 0) if guarantees else 0,
+                'amt_vb': getattr(guarantees, 'vb', 0) if guarantees else 0,
+                'amt_ipt': getattr(guarantees, 'ipt', 0) if guarantees else 0,
+                'amt_bris': getattr(guarantees, 'bris', 0) if guarantees else 0,
+                'amt_ar': getattr(guarantees, 'ar', 0) if guarantees else 0,
+                'amt_dta': getattr(guarantees, 'dta', 0) if guarantees else 0,
+                'amt_in_garantie': getattr(guarantees, 'in_garantie', 0) if guarantees else 0,
+                
+                # --- GARANTIES AVEC RÉDUCTION ---
+                'red_rc': getattr(guarantee_reductions, 'rc', 0) if guarantee_reductions else 0,
+                'red_dr': getattr(guarantee_reductions, 'dr', 0) if guarantee_reductions else 0,
+                'red_vol': getattr(guarantee_reductions, 'vol', 0) if guarantee_reductions else 0,
+                'red_vb': getattr(guarantee_reductions, 'vb', 0) if guarantee_reductions else 0,
+                'red_ipt': getattr(guarantee_reductions, 'ipt', 0) if guarantee_reductions else 0,
+                'red_bris': getattr(guarantee_reductions, 'bris', 0) if guarantee_reductions else 0,
+                'red_ar': getattr(guarantee_reductions, 'ar', 0) if guarantee_reductions else 0,
+                'red_dta': getattr(guarantee_reductions, 'dta', 0) if guarantee_reductions else 0,
+                'red_in_garantie': getattr(guarantee_reductions, 'in_garantie', 0) if guarantee_reductions else 0,
+                
+                # --- TAUX DES GARANTIES ---
+                'rate_rc': getattr(guarantee_rates, 'rc', 0) if guarantee_rates else 0,
+                'rate_dr': getattr(guarantee_rates, 'dr', 0) if guarantee_rates else 0,
+                'rate_vol': getattr(guarantee_rates, 'vol', 0) if guarantee_rates else 0,
+                'rate_vb': getattr(guarantee_rates, 'vb', 0) if guarantee_rates else 0,
+                'rate_ipt': getattr(guarantee_rates, 'ipt', 0) if guarantee_rates else 0,
+                'rate_bris': getattr(guarantee_rates, 'bris', 0) if guarantee_rates else 0,
+                'rate_ar': getattr(guarantee_rates, 'ar', 0) if guarantee_rates else 0,
+                'rate_dta': getattr(guarantee_rates, 'dta', 0) if guarantee_rates else 0,
+                'rate_in_garantie': getattr(guarantee_rates, 'in_garantie', 0) if guarantee_rates else 0,
+                
+                # --- OPTIONS (Checkboxes) ---
+                'check_rc': getattr(guarantee_options, 'rc', False) if guarantee_options else False,
+                'check_dr': getattr(guarantee_options, 'dr', False) if guarantee_options else False,
+                'check_vol': getattr(guarantee_options, 'vol', False) if guarantee_options else False,
+                'check_vb': getattr(guarantee_options, 'vb', False) if guarantee_options else False,
+                'check_ipt': getattr(guarantee_options, 'ipt', False) if guarantee_options else False,
+                'check_bris': getattr(guarantee_options, 'bris', False) if guarantee_options else False,
+                'check_ar': getattr(guarantee_options, 'ar', False) if guarantee_options else False,
+                'check_dta': getattr(guarantee_options, 'dta', False) if guarantee_options else False,
+                'check_in_garantie': getattr(guarantee_options, 'in_garantie', False) if guarantee_options else False,
+                
+                # --- GARANTIES FLOTTE ---
+                'fleet_rc': getattr(fleet_guarantees, 'rc', 0) if fleet_guarantees else 0,
+                'fleet_dr': getattr(fleet_guarantees, 'dr', 0) if fleet_guarantees else 0,
+                'fleet_vol': getattr(fleet_guarantees, 'vol', 0) if fleet_guarantees else 0,
+                'fleet_vb': getattr(fleet_guarantees, 'vb', 0) if fleet_guarantees else 0,
+                'fleet_ipt': getattr(fleet_guarantees, 'ipt', 0) if fleet_guarantees else 0,
+                'fleet_bris': getattr(fleet_guarantees, 'bris', 0) if fleet_guarantees else 0,
+                'fleet_ar': getattr(fleet_guarantees, 'ar', 0) if fleet_guarantees else 0,
+                'fleet_dta': getattr(fleet_guarantees, 'dta', 0) if fleet_guarantees else 0,
+                'fleet_in_garantie': getattr(fleet_guarantees, 'in_garantie', 0) if fleet_guarantees else 0,
+                
+                # --- STATUT ---
+                'statut': getattr(vehicle, 'statut', 'ACTIF'),
+                'is_active': getattr(vehicle, 'is_active', True),
+                
+                # --- TRACABILITÉ ---
+                'created_at': vehicle.created_at.strftime('%d/%m/%Y %H:%M') if vehicle.created_at else None,
+                'updated_at': vehicle.updated_at.strftime('%d/%m/%Y %H:%M') if vehicle.updated_at else None,
+            }
+            
+            return vehicle_data
+            
+        except Exception as e:
+            logger.error(f"Erreur get_vehicle_details_data: {e}")
+            import traceback
+            traceback.print_exc()
+            return None

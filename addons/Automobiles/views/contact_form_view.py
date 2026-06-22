@@ -114,6 +114,13 @@ class ContactForm(QDialog):
         self._add_smart_field("Adresse Résidentielle", self.adresse, 9, 0, colspan=2)
         self._add_smart_field("Ville", self.ville, 9, 2)
 
+        self.profession = QLineEdit() # Champ caché pour stocker la profession déterminée à partir de la catégorie socio-professionnelle
+        if self.contact_data and hasattr(self.contact_data, 'cat_socio_prof'):
+            self.profession.setText(self.controller.lometa_client._get_profession_code(self.contact_data))
+        else:
+            self.profession.setText("ST12") # Code par défaut pour "Autre profession"
+        self.profession.setVisible(False) # Ne pas afficher ce champ dans le formulaire
+
         # Bloc 4 : Permis
         self._add_section_header("IV. Permis de Conduire", 10)
         self.cat_permis = QComboBox(); self.cat_permis.addItems(["A", "B", "C", "D", "E", "F", "G"])

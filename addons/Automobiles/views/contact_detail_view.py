@@ -699,7 +699,6 @@ class ContactDetailView(QDialog):
             
             self.btn_batch_print_fleets.setEnabled(has_selection)
 
-
     def _on_batch_print_fleets(self):
         """Gère l'impression groupée des flottes sélectionnées - Génère directement les PDF"""
         selected_fleets = []
@@ -722,7 +721,6 @@ class ContactDetailView(QDialog):
         # Lancer directement l'impression sans dialogue de sélection
         self._start_fleet_batch_print(selected_fleets)
 
-
     def _start_fleet_batch_print(self, fleets_data):
         """Lance l'impression groupée des flottes (rapport PDF uniquement)"""
         from addons.Automobiles.views.fleet_batch_print_manager import FleetBatchPrintManager
@@ -733,48 +731,6 @@ class ContactDetailView(QDialog):
         # Passer directement les documents par défaut (rapport de flotte)
         # Pas de dialogue, on imprime directement le rapport
         self.fleet_batch_print_manager.start_batch_print(fleets_data)
-
-
-    # def _on_import_fleet(self):
-    #     """Importe des flottes"""
-    #     QMessageBox.information(self, "Importer flottes", "Fonctionnalité à implémenter")
-
-
-    # def _on_import_fleet(self):
-    #     """Importe des flottes depuis un fichier Excel/CSV avec prévisualisation complète"""
-    #     try:
-    #         # Vérifier que le contrôleur a les méthodes nécessaires
-    #         if not hasattr(self.controller, 'fleets'):
-    #             QMessageBox.warning(self, "Erreur", "Module flottes non disponible")
-    #             return
-            
-    #         if not hasattr(self.controller, 'vehicles'):
-    #             QMessageBox.warning(self, "Erreur", "Module véhicules non disponible")
-    #             return
-            
-    #         # Stocker l'ID du contact dans le contrôleur pour l'import
-    #         self.controller.current_contact_id = self.contact.id
-            
-    #         # Ouvrir le dialogue d'importation
-    #         from addons.Automobiles.views.fleet_import_dialog import FleetImportDialog
-    #         dialog = FleetImportDialog(self.controller, self)
-            
-    #         if dialog.exec():
-    #             # Recharger les données après l'import
-    #             self.load_flottes()
-    #             self.load_vehicules()
-    #             self._update_summary_cards()
-    #             QMessageBox.information(self, "Succès", "Importation terminée avec succès!")
-                
-    #     except ImportError as e:
-    #         print(f"Erreur import du module: {e}")
-    #         QMessageBox.warning(self, "Information", 
-    #                         "La fonctionnalité d'importation avancée sera bientôt disponible.\n"
-    #                         "Pour l'instant, vous pouvez créer les flottes manuellement.")
-    #     except Exception as e:
-    #         print(f"Erreur import flotte: {e}")
-    #         traceback.print_exc()
-    #         QMessageBox.critical(self, "Erreur", f"Erreur lors de l'importation: {str(e)}")
 
     def _on_import_fleet(self):
         """Importe des flottes depuis un fichier Excel/CSV avec calcul des garanties"""
@@ -1616,6 +1572,35 @@ class ContactDetailView(QDialog):
             self._update_summary_cards()
             QMessageBox.information(self, "Succès", "Flotte créée avec succès!")
 
+    def format_phone(self, phone):
+        """Formate un numéro de téléphone avec +237"""
+        if not phone or phone == 'N/A':
+            return 'N/A'
+        
+        # Nettoyer : enlever espaces, tirets, parenthèses
+        cleaned = ''.join(filter(str.isdigit, str(phone)))
+        
+        if not cleaned:
+            return 'N/A'
+        
+        # 9 chiffres -> +237XXXXXXXXX
+        if len(cleaned) == 9:
+            return f"+237{cleaned}"
+        
+        # 12 chiffres commençant par 237 -> +237XXXXXXXXX
+        if len(cleaned) == 12 and cleaned.startswith('237'):
+            return f"+{cleaned}"
+        
+        # Déjà formaté avec +237
+        if str(phone).startswith('+237'):
+            return str(phone)
+        
+        # Déjà formaté avec 237 sans +
+        if str(phone).startswith('237'):
+            return f"+{phone}"
+        
+        return str(phone)
+
     def _view_vehicle_detail(self, vehicle):
         """
         Prépare et affiche l'interface de détails pour un objet Vehicle.
@@ -1626,6 +1611,7 @@ class ContactDetailView(QDialog):
             if not session:
                 raise Exception("Session non disponible")
             
+            print(f"🔍 Chargement détails pour le véhicule ID: {vehicle}")
             # ============================================================
             # CHARGER TOUTES LES DONNÉES NÉCESSAIRES TANT QUE LA SESSION EST ACTIVE
             # ============================================================
@@ -1660,7 +1646,7 @@ class ContactDetailView(QDialog):
                     owner_obj = session.query(Contact).get(vehicle.owner_id)
                     if owner_obj:
                         owner_name = f"{getattr(owner_obj, 'nom', '')} {getattr(owner_obj, 'prenom', '')}".strip()
-                        owner_phone = getattr(owner_obj, 'telephone', 'N/A')
+                        owner_phone = self.format_phone(getattr(owner_obj, 'telephone', 'N/A'))
                         owner_email = getattr(owner_obj, 'email', 'N/A')
                         owner_city = getattr(owner_obj, 'ville', 'Yaoundé')
                         print(f"✓ Propriétaire trouvé: {owner_name}")
@@ -1684,12 +1670,12 @@ class ContactDetailView(QDialog):
             date_fin_str = ""
             if hasattr(vehicle, 'date_debut') and vehicle.date_debut:
                 if hasattr(vehicle.date_debut, 'strftime'):
-                    date_debut_str = vehicle.date_debut.strftime('%d/%m/%Y')
+                    date_debut_str = vehicle.date_debut.strftime('%Y-%m-%d')
                 else:
                     date_debut_str = str(vehicle.date_debut)
             if hasattr(vehicle, 'date_fin') and vehicle.date_fin:
                 if hasattr(vehicle.date_fin, 'strftime'):
-                    date_fin_str = vehicle.date_fin.strftime('%d/%m/%Y')
+                    date_fin_str = vehicle.date_fin.strftime('%Y-%m-%d')
                 else:
                     date_fin_str = str(vehicle.date_fin)
             

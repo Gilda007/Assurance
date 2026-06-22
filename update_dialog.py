@@ -1,5 +1,5 @@
 # update_dialog.py
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, 
+from PySide6.QtWidgets import (QDialog, QFileDialog, QMessageBox, QVBoxLayout, QHBoxLayout, 
                                QTableWidget, QTableWidgetItem, QPushButton,
                                QHeaderView, QLabel, QProgressBar)
 from PySide6.QtCore import Qt
@@ -83,7 +83,7 @@ class UpdateDialog(QDialog):
         buttons = QHBoxLayout()
         
         self.install_btn = QPushButton("Installer les sélectionnés")
-        self.install_btn.clicked.connect(self.accept)
+        self.install_btn.clicked.connect(self.on_install_clicked)
         
         cancel_btn = QPushButton("Annuler")
         cancel_btn.clicked.connect(self.reject)
@@ -93,6 +93,30 @@ class UpdateDialog(QDialog):
         
         layout.addLayout(buttons)
     
+    def on_install_clicked(self):
+        """Demande à l'utilisateur de choisir un dossier avant de valider"""
+        # 1. Vérifier si au moins un module est coché
+        selected = self.get_selected_updates()
+        if not selected:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner au moins un module à installer.")
+            return
+
+        # 2. Ouvrir la boîte de dialogue de sélection de dossier
+        dir_path = QFileDialog.getExistingDirectory(
+            self, 
+            "Sélectionner le dossier d'installation",
+            "",  # Chemin par défaut (vide = dossier utilisateur ou dossier courant)
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+        )
+        
+        # 3. Si l'utilisateur a choisi un dossier (il n'a pas fait Annuler)
+        if dir_path:
+            self.target_directory = dir_path
+            super().accept()  # Ferme la fenêtre et renvoie QDialog.Accepted
+        else:
+            # L'utilisateur a annulé la sélection du dossier, on ne fait rien (on reste sur la fenêtre)
+            logger_message = "Sélection du dossier annulée par l'utilisateur."
+
     def get_selected_updates(self):
         """Retourne la liste des mises à jour sélectionnées"""
         selected = []

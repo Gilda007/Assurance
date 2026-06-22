@@ -16,7 +16,10 @@ from PySide6.QtCore import Qt, QThread, Signal, QDateTime, QSettings, QTimer, QU
 from PySide6.QtGui import QColor, QFont, QDesktopServices, QIcon
 from PySide6.QtTextToSpeech import QTextToSpeech
 from PySide6.QtCore import QLocale  # Ajoutez cet import
-from datetime import datetime
+from datetime import datetime, date
+import sys
+import subprocess
+import platform
 import json
 import os
 import re
@@ -244,14 +247,42 @@ MODERN_STYLE = """
 # THREADS API
 # ============================================================================
 
+
 class ExportWorker(QThread):
     progress = Signal(int, str)
     finished = Signal(bool, dict, str)
-    
+    token_received = Signal(dict)  # Nouveau signal pour le token
+    log_captured = Signal(str)  # Nouveau signal pour les logs
+
     def __init__(self, vehicle_data, config):
         super().__init__()
         self.vehicle_data = vehicle_data
         self.config = config
+        self.logs = []  # ← AJOUTER CETTE LIGNE
+
+    def validate_asac_request(self, request):
+        """Valide la requête avant envoi"""
+        errors = []
+        
+        # Vérifier les champs obligatoires
+        required_fields = ['office_code', 'organization_code', 'certificate_type', 'channel']
+        for field in required_fields:
+            if not request.get(field):
+                errors.append(f"Champ manquant: {field}")
+        
+        # Vérifier les productions
+        productions = request.get('productions', [])
+        if not productions:
+            errors.append("Aucune production")
+        else:
+            prod = productions[0]
+            prod_required = ['police_number', 'starts_at', 'ends_at', 'licence_plate', 
+                            'customer_name', 'taxpayer_number', 'vehicle_first_registration_date']
+            for field in prod_required:
+                if not prod.get(field):
+                    errors.append(f"Champ production manquant: {field}")
+        
+        return errors
     
     def run(self):
         try:
@@ -262,97 +293,561 @@ class ExportWorker(QThread):
             self.progress.emit(30, "🔐 Authentification ASAC...")
             
             import requests
-            auth_url = f"{self.config['url']}/api/v1/auth/tokens/app-key"
+            
+            # 1. Requête pour obtenir le token
+            auth_url = f"{self.config.get('url', '')}/api/v1/auth/tokens"
+            
+            # En-têtes pour l'authentification
+            headers = {
+                "X-App-Id": self.config.get("app_key", ""),
+                "Content-Type": "application/json"
+            }
+            
+            # Corps de la requête (seul le username est envoyé)
+            auth_payload = {
+                "username": self.config.get("username", ""),
+                "password": self.config.get("password", ""),
+                "email": self.config.get("email", "")
+            }
+            
+            # LOG: Afficher la requête d'authentification
+            self.log_request(auth_url, headers, auth_payload, "AUTHENTIFICATION REQUEST")
+            
+            # Envoyer la requête
             auth_response = requests.post(
                 auth_url,
-                params={"app_key": self.config["app_key"], "username": self.config["username"]},
+                headers=headers,
+                json=auth_payload,
                 timeout=10
             )
             
+            # LOG: Afficher la réponse d'authentification
+            self.log_response(auth_response, "AUTHENTIFICATION RESPONSE")
+            
             if auth_response.status_code != 200:
-                self.finished.emit(False, {}, f"Authentification échouée: {auth_response.text[:100]}")
+                error_msg = f"Authentification échouée: {auth_response.text[:200]}"
+                print(f"❌ {error_msg}")
+                self.finished.emit(False, {}, error_msg)
                 return
             
-            token = auth_response.json().get("token")
+            auth_data = auth_response.json()
+            
+            # Extraire les informations de la réponse
+            token = auth_data.get("token", "")
+            token_name = auth_data.get("token_name", "")
+            expires_at = auth_data.get("expires_at", "")
+            application_key_name = auth_data.get("application_key_name", "")
+            
+            print(f"\n✅ TOKEN REÇU AVEC SUCCÈS!")
+            print(f"   📛 Nom: {token_name}")
+            print(f"   🏢 Application: {application_key_name}")
+            print(f"   ⏰ Expire: {expires_at}")
+            print(f"   🔑 Token: {token[:30]}...{token[-20:] if len(token) > 50 else token}")
+            
+            # Émettre le token pour l'affichage
+            self.token_received.emit({
+                "token": token,
+                "token_name": token_name,
+                "expires_at": expires_at,
+                "application_key_name": application_key_name
+            })
             
             self.progress.emit(60, "📤 Envoi à ASAC...")
             
+            # 2. Utiliser le token pour l'envoi des données
             prod_url = f"{self.config['url']}/api/v1/productions"
-            headers = {"Authorization": f"Bearer {token}"}
-            prod_response = requests.post(prod_url, json=request, headers=headers, timeout=30)
+            prod_headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json"
+            }
+            
+            # LOG: Afficher la requête d'envoi des données
+            self.log_request(prod_url, prod_headers, request, "PRODUCTION REQUEST")
+            
+            prod_response = requests.post(prod_url, json=request, headers=prod_headers, timeout=30)
+            
+            # LOG: Afficher la réponse de production
+            self.log_response(prod_response, "PRODUCTION RESPONSE")
             
             self.progress.emit(90, "📥 Traitement de la réponse...")
             
             if prod_response.status_code in [200, 201]:
                 response_data = prod_response.json()
                 self.progress.emit(100, "✅ Export terminé !")
+                print(f"\n✅ EXPORT TERMINÉ AVEC SUCCÈS!")
                 self.finished.emit(True, response_data, "")
             else:
-                self.finished.emit(False, {}, f"Erreur ASAC: {prod_response.text[:200]}")
+                error_msg = f"Erreur ASAC: {prod_response.text[:200]}"
+                print(f"❌ {error_msg}")
+                self.finished.emit(False, {}, error_msg)
                 
+        except requests.exceptions.Timeout as e:
+            error_msg = f"Timeout: {str(e)}"
+            print(f"❌ {error_msg}")
+            self.finished.emit(False, {}, error_msg)
+        except requests.exceptions.ConnectionError as e:
+            error_msg = f"Erreur de connexion: {str(e)}"
+            print(f"❌ {error_msg}")
+            self.finished.emit(False, {}, error_msg)
         except Exception as e:
-            self.finished.emit(False, {}, str(e))
+            error_msg = f"Erreur: {str(e)}"
+            print(f"❌ {error_msg}")
+            import traceback
+            traceback.print_exc()
+            self.finished.emit(False, {}, error_msg)
 
     def build_asac_request(self):
         """Construit la requête ASAC selon le format exact exigé"""
         vehicle = self.vehicle_data
         
-        # Construction du format exact requis
+        # Récupérer les codes valides depuis la configuration
+        office_code = self.config.get("office_code", "AG-DLA-001")
+        organization_code = self.config.get("org_code", "ACTIVA")
+        
+        # Pour la date, s'assurer du format YYYY-MM-DD
+        # date_debut = vehicle.get("date_debut")
+        # if not date_debut:
+        #     date_debut = datetime.now().strftime("%Y-%m-%d")
+        # elif isinstance(date_debut, datetime):
+        #     date_debut = date_debut.strftime("%Y-%m-%d")
+        # elif hasattr(date_debut, 'strftime'):
+        #     date_debut = date_debut.strftime("%Y-%m-%d")
+        
+        # date_fin = vehicle.get("date_fin")
+        # if not date_fin:
+        #     date_fin = (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d")
+        # elif isinstance(date_fin, datetime):
+        #     date_fin = date_fin.strftime("%Y-%m-%d")
+        # elif hasattr(date_fin, 'strftime'):
+        #     date_fin = date_fin.strftime("%Y-%m-%d")
+
+        # ✅ CORRECTION: Gérer correctement les dates
+        from datetime import datetime, timedelta
+        
+        today = datetime.now().date()
+        
+        # Récupérer la date de début du véhicule
+        vehicle_date_debut = vehicle.get("date_debut")
+        
+        # Par défaut, utiliser la date du jour
+        date_debut = today.strftime("%Y-%m-%d")
+        
+        # Si une date de début est fournie, essayer de l'utiliser
+        if vehicle_date_debut:
+            try:
+                # Convertir en date si c'est un datetime
+                if isinstance(vehicle_date_debut, datetime):
+                    vehicle_date = vehicle_date_debut.date()
+                # Convertir en date si c'est une chaîne
+                elif isinstance(vehicle_date_debut, str):
+                    vehicle_date = datetime.strptime(vehicle_date_debut, "%Y-%m-%d").date()
+                else:
+                    vehicle_date = vehicle_date_debut
+                
+                # Utiliser la date du véhicule si elle est >= aujourd'hui
+                if vehicle_date >= today:
+                    date_debut = vehicle_date.strftime("%Y-%m-%d")
+            except Exception as e:    from datetime import datetime, timedelta
+        
+        today = datetime.now().date()
+        
+        # Récupérer la date de début du véhicule
+        vehicle_date_debut = vehicle.get("date_debut")
+        
+        # Par défaut, utiliser la date du jour
+        date_debut = today.strftime("%Y-%m-%d")
+        
+        # Si une date de début est fournie, essayer de l'utiliser
+        if vehicle_date_debut:
+            try:
+                # Convertir en date si c'est un datetime
+                if isinstance(vehicle_date_debut, datetime):
+                    vehicle_date = vehicle_date_debut.date()
+                # Convertir en date si c'est une chaîne
+                elif isinstance(vehicle_date_debut, str):
+                    vehicle_date = datetime.strptime(vehicle_date_debut, "%Y-%m-%d").date()
+                else:
+                    vehicle_date = vehicle_date_debut
+                
+                # Utiliser la date du véhicule si elle est >= aujourd'hui
+                if vehicle_date >= today:
+                    date_debut = vehicle_date.strftime("%Y-%m-%d")
+            except Exception as e:
+                print(f"⚠️ Erreur lors du parsing de la date de début: {e}")
+        
+        # date_fin = aujourd'hui + 1 an (ou utiliser celle du véhicule si valide)
+        date_fin = (today + timedelta(days=365)).strftime("%Y-%m-%d")
+        
+        vehicle_date_fin = vehicle.get("date_fin")
+        if vehicle_date_fin:
+            try:
+                if isinstance(vehicle_date_fin, datetime):
+                    vehicle_date = vehicle_date_fin.date()
+                elif isinstance(vehicle_date_fin, str):
+                    vehicle_date = datetime.strptime(vehicle_date_fin, "%Y-%m-%d").date()
+                else:
+                    vehicle_date = vehicle_date_fin
+                
+                if vehicle_date >= today:
+                    date_fin = vehicle_date.strftime("%Y-%m-%d")
+            except Exception as e:
+                print(f"⚠️ Erreur lors du parsing de la date de fin: {e}")
+    
+                print(f"⚠️ Erreur lors du parsing de la date de début: {e}")
+        
+        # date_fin = aujourd'hui + 1 an (ou utiliser celle du véhicule si valide)
+        date_fin = (today + timedelta(days=365)).strftime("%Y-%m-%d")
+        
+        vehicle_date_fin = vehicle.get("date_fin")
+        if vehicle_date_fin:
+            try:
+                if isinstance(vehicle_date_fin, datetime):
+                    vehicle_date = vehicle_date_fin.date()
+                elif isinstance(vehicle_date_fin, str):
+                    vehicle_date = datetime.strptime(vehicle_date_fin, "%Y-%m-%d").date()
+                else:
+                    vehicle_date = vehicle_date_fin
+                
+                if vehicle_date >= today:
+                    date_fin = vehicle_date.strftime("%Y-%m-%d")
+            except Exception as e:
+                print(f"⚠️ Erreur lors du parsing de la date de fin: {e}")
+        
+        
+        # ✅ Récupérer la date de première mise en circulation
+        first_registration = vehicle.get("date_mise_circulation")
+        if not first_registration:
+            # Si non fournie, utiliser l'année du véhicule (1er janvier)
+            annee = vehicle.get("annee")
+            if annee:
+                first_registration = f"{annee}-01-01"
+            else:
+                first_registration = date_debut
+        elif isinstance(first_registration, datetime):
+            first_registration = first_registration.strftime("%Y-%m-%d")
+        elif hasattr(first_registration, 'strftime'):
+            first_registration = first_registration.strftime("%Y-%m-%d")
+        
+        # ✅ Numéro d'immatriculation sans espace
+        licence_plate = vehicle.get("immatriculation", "").replace(" ", "").upper()
+        
+        # ✅ Numéro de police
+        police_number = vehicle.get("numero_police", f"POL-{datetime.now().year}-{vehicle.get('id', '00000')}")
+        
+        # ✅ Code postal
+        city = vehicle.get("city", "Douala")
+        postal_code = f"BP {city}"
+        
+        # ✅ Nom du conducteur
+        driver_name = vehicle.get("driver_name")
+        if not driver_name:
+            driver_name = vehicle.get("owner", "")
+        
+        # ✅ Date de naissance du conducteur
+        driver_birthdate = vehicle.get("driver_birth")
+        if not driver_birthdate:
+            driver_birthdate = "1990-01-01"
+        elif isinstance(driver_birthdate, datetime):
+            driver_birthdate = driver_birthdate.strftime("%Y-%m-%d")
+        elif hasattr(driver_birthdate, 'strftime'):
+            driver_birthdate = driver_birthdate.strftime("%Y-%m-%d")
+        
+        # ✅ Date de délivrance du permis
+        licence_issued_at = vehicle.get("driver_licence_date")
+        if not licence_issued_at:
+            licence_issued_at = "2010-01-01"
+        elif isinstance(licence_issued_at, datetime):
+            licence_issued_at = licence_issued_at.strftime("%Y-%m-%d")
+        elif hasattr(licence_issued_at, 'strftime'):
+            licence_issued_at = licence_issued_at.strftime("%Y-%m-%d")
+        
+        # ✅ Châssis
+        chassis = vehicle.get("chassis", f"VF1{vehicle.get('id', '00000')}ABCD123456")
+        
+        # ✅ Puissance fiscale
+        fiscal_power = vehicle.get("puissance_fiscale", 5)
+        if fiscal_power:
+            try:
+                fiscal_power = int(fiscal_power)
+            except (ValueError, TypeError):
+                fiscal_power = 5
+        
+        # ✅ Nombre de places
+        nb_seats = vehicle.get("places", 5)
+        try:
+            nb_seats = int(nb_seats)
+        except (ValueError, TypeError):
+            nb_seats = 5
+        
+        # ✅ Catégorie ASAC
+        vehicle_category = self._get_vehicle_category(vehicle.get("categorie", "01"))
+        
+        # ✅ Genre ASAC
+        vehicle_genre = self._get_vehicle_genre(vehicle.get("genre", "GV04"))
+        
+        # ✅ Type ASAC
+        vehicle_type = self._get_vehicle_type(vehicle.get("type_vehicule", "TV10"))
+        
+        # ✅ Usage ASAC
+        vehicle_usage = self._get_vehicle_usage(vehicle.get("usage", "UV01"))
+        
+        # ✅ Énergie ASAC
+        vehicle_energy = self._get_vehicle_energy(vehicle.get("energie", "SEE"))
+        
+        # ✅ Zone de circulation
+        zone = vehicle.get("zone", "A").upper()
+        
+        # ✅ Remorque
+        has_trailer = vehicle.get("has_remorque", False)
+        
+        # ✅ Numéro de contribuable (obligatoire)
+        taxpayer_number = vehicle.get("num_contribuable", "")
+        if not taxpayer_number:
+            # Générer un numéro temporaire si absent
+            taxpayer_number = f"TMP-{datetime.now().strftime('%Y%m%d')}-{vehicle.get('id', '000')}"
+        
         return {
-            "office_code": self.config.get("office_code", "AG-DLA-001"),
-            "organization_code": self.config.get("org_code", "ACTIVA"),
+            "office_code": office_code,
+            "organization_code": organization_code,
             "certificate_type": "cima",
             "channel": "api",
             "productions": [
                 {
-                    "certificate_variant_code": "JAUNE",
-                    "rc": int(vehicle.get("rc_number", 0)) or 63784,
-                    "police_number": vehicle.get("numero_police", f"POL-{datetime.now().year}-{vehicle.get('id', '00000')}"),
-                    "starts_at": str(vehicle.get("date_debut", datetime.now().strftime("%Y-%m-%d"))),
-                    "ends_at": str(vehicle.get("date_fin", (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d"))),
+                    "certificate_variant_code": "Bleu",
+                    "rc": 63784,  # Valeur par défaut si non disponible
+                    "police_number": police_number,
+                    "starts_at": date_debut,
+                    "ends_at": date_fin,
                     "customer_name": vehicle.get("owner", ""),
                     "customer_phone": vehicle.get("phone", ""),
                     "customer_email": vehicle.get("email", ""),
-                    "customer_postal_code": vehicle.get("postal_code", f"BP {vehicle.get('city', 'Douala')}"),
+                    "customer_postal_code": postal_code,
                     "customer_type": "TSPM",
                     "insured_name": vehicle.get("owner", ""),
                     "insured_phone": vehicle.get("phone", ""),
                     "insured_email": vehicle.get("email", ""),
-                    "insured_postal_code": vehicle.get("postal_code", f"BP {vehicle.get('city', 'Douala')}"),
-                    "licence_plate": vehicle.get("immatriculation", "").upper(),
-                    "vehicle_chassis": vehicle.get("chassis", f"VF1{vehicle.get('id', '00000')}ABCD123456"),
+                    "insured_postal_code": postal_code,
+                    "licence_plate": licence_plate,
+                    "vehicle_chassis": chassis,
                     "vehicle_brand": vehicle.get("marque", "").upper(),
                     "vehicle_model": vehicle.get("modele", "").upper(),
-                    "vehicle_category": self._get_vehicle_category(vehicle.get("categorie", "01")),
-                    "vehicle_genre": self._get_vehicle_genre(vehicle.get("genre", "GV04")),
-                    "vehicle_type": self._get_vehicle_type(vehicle.get("type", "TV10")),
-                    "vehicule_usage": self._get_vehicle_usage(vehicle.get("usage", "UV01")),
-                    "vehicle_energy": self._get_vehicle_energy(vehicle.get("energie", "SEES")),
-                    "nb_of_seats": int(vehicle.get("places", 5)),
-                    "fiscal_power": int(vehicle.get("fiscal_power", 5)),
-                    "circulation_zone": vehicle.get("zone", "A").upper(),
-                    "driver_name": vehicle.get("driver_name", vehicle.get("owner", "")),
-                    "driver_birthdate": vehicle.get("driver_birthdate", "1990-01-01"),
-                    "driver_licence_issued_at": vehicle.get("licence_issued_at", "2010-01-01"),
-                    "vehicle_has_trailer": bool(vehicle.get("has_trailer", False))
+                    "vehicle_category": vehicle_category,
+                    "vehicle_genre": vehicle_genre,
+                    "vehicle_type": vehicle_type,
+                    "vehicule_usage": vehicle_usage,
+                    "vehicle_energy": vehicle_energy,
+                    "nb_of_seats": nb_seats,
+                    "fiscal_power": fiscal_power,
+                    "circulation_zone": zone,
+                    "driver_name": driver_name,
+                    "driver_birthdate": driver_birthdate,
+                    "driver_licence_issued_at": licence_issued_at,
+                    "vehicle_has_trailer": bool(has_trailer),
+                    # ✅ CHAMPS OBLIGATOIRES
+                    "taxpayer_number": taxpayer_number,
+                    "vehicle_first_registration_date": first_registration
                 }
             ]
         }
 
+    def _normalize_date(self, value, default=None):
+        """Normalise une date en format YYYY-MM-DD"""
+        if isinstance(value, datetime):
+            return value.strftime("%Y-%m-%d")
+
+        if isinstance(value, str):
+            raw = value.strip()
+            if not raw:
+                value = default
+            else:
+                for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%d-%m-%Y", "%Y%m%d"):
+                    try:
+                        return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+                    except ValueError:
+                        continue
+                if re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
+                    return raw
+                value = default
+
+        if isinstance(default, datetime):
+            return default.strftime("%Y-%m-%d")
+        if isinstance(default, str):
+            return default
+        return datetime.now().strftime("%Y-%m-%d")
+
+    def _parse_int(self, value, fallback=0):
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return fallback
+
+    def _get_first_registration_date(self, vehicle):
+        """Récupère la date de première mise en circulation"""
+        first_reg = vehicle.get("vehicle_first_registration_date")
+        if not first_reg:
+            first_reg = vehicle.get("first_registration_date")
+        
+        if first_reg:
+            return self._normalize_date(first_reg)
+
+        annee = vehicle.get("annee") or vehicle.get("year")
+        if annee:
+            try:
+                annee_str = str(int(annee))
+                return f"{annee_str}-01-01"
+            except (TypeError, ValueError):
+                pass
+
+        return self._normalize_date(vehicle.get("date_debut"), default=datetime.now())
+
+    # def log_request(self, url, headers, payload, request_type="REQUEST"):
+    #     """Affiche les détails de la requête pour le débogage"""
+    #     print(f"\n{'='*60}")
+    #     print(f"📤 {request_type}")
+    #     print(f"{'='*60}")
+    #     print(f"📍 URL: {url}")
+    #     print(f"\n📋 HEADERS:")
+    #     for key, value in headers.items():
+    #         # Masquer partiellement les tokens pour la sécurité
+    #         if key in ["Authorization", "X-App-Id"] and len(value) > 10:
+    #             print(f"   {key}: {value[:10]}...{value[-5:]}")
+    #         else:
+    #             print(f"   {key}: {value}")
+    #     print(f"\n📦 BODY:")
+    #     print(json.dumps(payload, indent=2, ensure_ascii=False))
+    #     print(f"{'='*60}\n")
+
+    # def log_response(self, response, response_type="RESPONSE"):
+    #     """Affiche les détails de la réponse pour le débogage"""
+    #     print(f"\n{'='*60}")
+    #     print(f"📥 {response_type}")
+    #     print(f"{'='*60}")
+    #     print(f"📊 Status Code: {response.status_code}")
+    #     print(f"📋 Headers: {dict(response.headers)}")
+    #     try:
+    #         response_json = response.json()
+    #         print(f"\n📦 BODYeee:")
+    #         # Masquer le token partiellement pour la sécurité
+    #         if isinstance(response_json, dict) and "token" in response_json:
+    #             token = response_json["token"]
+    #             if len(token) > 20:
+    #                 response_json["token"] = f"{token[:15]}...{token[-10:]}"
+    #         print(json.dumps(response_json, indent=2, ensure_ascii=False))
+    #     except:
+    #         print(f"\n📦 BODY (texte): {response.text[:500]}")
+    #     print(f"{'='*60}\n")
+
+    def log_request(self, url, headers, payload, request_type="REQUEST"):
+        """Affiche et capture les détails de la requête"""
+        log_text = f"\n{'='*60}\n"
+        log_text += f"📤 {request_type}\n"
+        log_text += f"{'='*60}\n"
+        log_text += f"📍 URL: {url}\n"
+        log_text += f"\n📋 HEADERS:\n"
+        for key, value in headers.items():
+            if key in ["Authorization", "X-App-Id"] and len(value) > 10:
+                log_text += f"   {key}: {value[:10]}...{value[-5:]}\n"
+            else:
+                log_text += f"   {key}: {value}\n"
+        log_text += f"\n📦 BODY:\n"
+        log_text += json.dumps(payload, indent=2, ensure_ascii=False)
+        log_text += f"\n{'='*60}\n"
+        
+        self.logs.append(log_text)
+        self.log_captured.emit(log_text)
+        print(log_text)
+
+    def log_response(self, response, response_type="RESPONSE"):
+        """Affiche et capture les détails de la réponse"""
+        log_text = f"\n{'='*60}\n"
+        log_text += f"📥 {response_type}\n"
+        log_text += f"{'='*60}\n"
+        log_text += f"📊 Status Code: {response.status_code}\n"
+        log_text += f"📋 Headers: {dict(response.headers)}\n"
+        try:
+            response_json = response.json()
+            log_text += f"\n📦 BODY:\n"
+            # Masquer le token partiellement pour la sécurité
+            if isinstance(response_json, dict) and "token" in response_json:
+                token = response_json["token"]
+                if len(token) > 20:
+                    response_json["token"] = f"{token[:15]}...{token[-10:]}"
+            log_text += json.dumps(response_json, indent=2, ensure_ascii=False)
+        except:
+            log_text += f"\n📦 BODY (texte): {response.text[:500]}\n"
+        log_text += f"{'='*60}\n"
+        
+        self.logs.append(log_text)
+        self.log_captured.emit(log_text)
+        print(log_text)
+
     def _get_vehicle_category(self, categorie):
-        """Convertit la catégorie en code standard"""
-        mapping = {"VP": "01", "VU": "02", "VL": "03", "PL": "04", "01": "01", "02": "02", "03": "03", "04": "04"}
-        return mapping.get(str(categorie).upper(), "01")
+        """Convertit la catégorie en code standard ASAC"""
+        mapping = {
+            "VP01": "01",
+            "VP02": "02",
+            "VP03": "03",
+            "VP04": "04",
+            "VP05": "05",
+            "VP06": "06",
+            "VP07": "07",
+            "VP08": "08",
+            "VP09": "09",
+            "VP10": "10",
+            "VP11": "11",
+            "VP12": "12",
+            "01": "01",
+            "02": "02",
+            "03": "03",
+            "04": "04",
+            "05": "05",
+            "06": "06",
+            "07": "07",
+            "08": "08",
+            "09": "09",
+            "10": "10",
+            "11": "11",
+            "12": "12"
+        }
+        return mapping.get(str(categorie).strip(), "01")
 
     def _get_vehicle_genre(self, genre):
-        """Convertit le genre en code standard"""
-        mapping = {"GV04": "GV04", "GV05": "GV05", "GV06": "GV06", "GP01": "GP01", "GP02": "GP02"}
-        return mapping.get(str(genre).upper(), "GV04")
+        """Convertit le genre en code standard ASAC"""
+        mapping = {
+            "GV01": "GV01",
+            "GV02": "GV02",
+            "GV03": "GV03",
+            "GV04": "GV04",
+            "GV05": "GV05",
+            "GV06": "GV06",
+            "GV07": "GV07",
+            "GV08": "GV08",
+            "GV09": "GV09",
+            "GV10": "GV10",
+            "GV11": "GV11",
+            "GV12": "GV12",
+            "CAMION": "GV01",
+            "CAMIONNETTE": "GV02",
+            "CYCLOMOTEUR": "GV03",
+            "VOITURE": "GV04"
+        }
+        return mapping.get(str(genre).strip(), "GV04")
 
-    def _get_vehicle_type(self, type_):
-        """Convertit le type en code standard"""
-        mapping = {"TV10": "TV10", "TV20": "TV20", "TV30": "TV30", "TC10": "TC10", "TC20": "TC20"}
-        return mapping.get(str(type_).upper(), "TV10")
+    def _get_vehicle_usage(self, usage):
+        """Convertit l'usage en code standard ASAC"""
+        mapping = {
+            "UV01": "UV01",
+            "UV02": "UV02",
+            "UV03": "UV03",
+            "UV04": "UV04",
+            "UV05": "UV05",
+            "UV06": "UV06",
+            "UV07": "UV07",
+            "UV08": "UV08",
+            "UV09": "UV09",
+            "UV10": "UV10"
+        }
+        return mapping.get(str(usage).strip(), "UV01")
 
     def _get_vehicle_usage(self, usage):
         """Convertit l'usage en code standard"""
@@ -364,26 +859,71 @@ class ExportWorker(QThread):
         mapping = {"Essence": "SEES", "Diesel": "DIESEL", "Electrique": "ELECTRIC", "Hybride": "HYBRID", "SEES": "SEES"}
         return mapping.get(str(energy).capitalize(), "SEES")
 
+    def _get_vehicle_type(self, type_):
+        """Convertit le type en code standard ASAC"""
+        mapping = {
+            "TV01": "TV01",
+            "TV02": "TV02",
+            "TV03": "TV03",
+            "TV04": "TV04",
+            "TV05": "TV05",
+            "TV06": "TV06",
+            "TV07": "TV07",
+            "TV08": "TV08",
+            "TV09": "TV09",
+            "TV10": "TV10",
+            "TV11": "TV11",
+            "TV12": "TV12",
+            "TV13": "TV13"
+        }
+        return mapping.get(str(type_).strip(), "TV10")
 
 class ReceiveWorker(QThread):
     """Thread pour recevoir les données du serveur ASAC"""
     progress = Signal(int, str)
     finished = Signal(bool, dict, str)
+    log_captured = Signal(str)
     
     def __init__(self, config, search_params):
         super().__init__()
         self.config = config
         self.search_params = search_params
+        self.search_params = search_params
+        self.logs = []
+
+    def log_request(self, url, headers, payload, request_type="REQUEST"):
+        log_text = f"\n{'='*60}\n📤 {request_type}\n{'='*60}\n📍 URL: {url}\n📦 BODY: {json.dumps(payload, indent=2)}\n{'='*60}\n"
+        self.logs.append(log_text)
+        self.log_captured.emit(log_text)
     
+    def log_response(self, response, response_type="RESPONSE"):
+        log_text = f"\n{'='*60}\n📥 {response_type}\n{'='*60}\n📊 Status Code: {response.status_code}\n"
+        try:
+            log_text += f"📦 BODY: {json.dumps(response.json(), indent=2)}\n"
+        except:
+            log_text += f"📦 BODY: {response.text[:500]}\n"
+        log_text += f"{'='*60}\n"
+        self.logs.append(log_text)
+        self.log_captured.emit(log_text)
+
+
     def run(self):
         try:
-            self.progress.emit(10, "🔐 Authentification...")
+            self.progress.emit(10, "📋 Préparation des données...")
+        
+            request = self.build_asac_request()
+            
+            self.progress.emit(30, "🔐 Authentification ASAC...")
             
             import requests
-            auth_url = f"{self.config['url']}/api/v1/auth/tokens/app-key"
+            auth_url = f"{self.config.get('url', '')}/api/v1/auth/tokens"
             auth_response = requests.post(
                 auth_url,
-                params={"app_key": self.config["app_key"], "username": self.config["username"]},
+                params={
+                    "app_key": self.config.get("app_key", ""), 
+                    "username": self.config.get("username", ""), 
+                    "password": self.config.get("password", "")
+                    },
                 timeout=10
             )
             
@@ -425,210 +965,6 @@ class ReceiveWorker(QThread):
         except Exception as e:
             self.finished.emit(False, {}, str(e))
 
-
-# ============================================================================
-# DIALOGUES
-# ============================================================================
-
-# class ConfigDialog(QDialog):
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         self.setWindowTitle("Configuration ASAC")
-#         self.setMinimumSize(550, 500)
-#         self.setModal(True)
-#         self.setStyleSheet(MODERN_STYLE)
-        
-#         # Initialiser le synthétiseur vocal avec gestion d'erreur
-#         try:
-#             self.tts = QTextToSpeech()
-#             # Optionnel : Définir la langue française
-#             self.tts.setLocale(Qt.QLocale(Qt.QLocale.French))
-#         except Exception as e:
-#             self.tts = None
-#             print(f"QTextToSpeech non disponible: {e}")
-        
-#         self.setup_ui()
-#         self.load_config()
-
-#     def setup_ui(self):
-#         layout = QVBoxLayout(self)
-#         layout.setSpacing(20)
-#         layout.setContentsMargins(24, 24, 24, 24)
-        
-#         header = QFrame()
-#         header.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1e293b,stop:1 #0f172a); border-radius: 20px;")
-#         header_layout = QHBoxLayout(header)
-#         header_layout.setContentsMargins(24, 20, 24, 20)
-        
-#         icon = QLabel("⚙️")
-#         icon.setStyleSheet("font-size: 32px;")
-#         title = QLabel("Configuration du serveur ASAC")
-#         title.setStyleSheet("font-size: 18px; font-weight: 800; color: white;")
-        
-#         header_layout.addWidget(icon)
-#         header_layout.addWidget(title)
-#         header_layout.addStretch()
-#         layout.addWidget(header)
-        
-#         scroll = QScrollArea()
-#         scroll.setWidgetResizable(True)
-#         scroll.setFrameShape(QFrame.NoFrame)
-        
-#         form_widget = QWidget()
-#         form_layout = QVBoxLayout(form_widget)
-#         form_layout.setSpacing(16)
-        
-#         card = QFrame()
-#         card.setProperty("class", "InfoCard")
-#         card_layout = QVBoxLayout(card)
-#         card_layout.setSpacing(16)
-        
-#         fields = [
-#             ("🌐 URL API", "url", "https://ppeatt-api.asac.cm"),
-#             ("🔑 Clé applicative (App Key)", "app_key", ""),
-#             ("👤 Nom d'utilisateur", "username", ""),
-#             ("🏢 Code bureau", "office_code", "AG-DLA-001"),
-#             ("📋 Organisation", "org_code", "ACTIVA")
-#         ]
-        
-#         self.inputs = {}
-#         for label, key, placeholder in fields:
-#             lbl = QLabel(label)
-#             lbl.setProperty("class", "LabelPrimary")
-#             inp = QLineEdit()
-#             inp.setPlaceholderText(placeholder)
-#             if key == "app_key":
-#                 inp.setEchoMode(QLineEdit.Password)
-            
-#             card_layout.addWidget(lbl)
-#             card_layout.addWidget(inp)
-#             self.inputs[key] = inp
-        
-#         form_layout.addWidget(card)
-        
-#         test_btn = QPushButton("🔌 Tester la connexion")
-#         test_btn.setProperty("class", "BtnSecondary")
-#         test_btn.clicked.connect(self.test_connection)
-#         form_layout.addWidget(test_btn)
-        
-#         scroll.setWidget(form_widget)
-#         layout.addWidget(scroll)
-        
-#         btn_layout = QHBoxLayout()
-#         btn_layout.addStretch()
-#         cancel_btn = QPushButton("Annuler")
-#         cancel_btn.setProperty("class", "BtnSecondary")
-#         cancel_btn.clicked.connect(self.reject)
-#         save_btn = QPushButton("💾 Sauvegarder")
-#         save_btn.setProperty("class", "BtnSuccess")
-#         save_btn.clicked.connect(self.save_config)
-        
-#         btn_layout.addWidget(cancel_btn)
-#         btn_layout.addWidget(save_btn)
-#         layout.addLayout(btn_layout)
-    
-#     def load_config(self):
-#         settings = QSettings("LOMETA", "ASAC")
-#         for key, inp in self.inputs.items():
-#             inp.setText(settings.value(key, ""))
-#         last_search = settings.value("last_search_params", "")
-#         if last_search:
-#             try:
-#                 params = json.loads(last_search)
-#                 if params.get("type") == "police":
-#                     self.search_type.setCurrentText("Numéro de police")
-#                     self.search_value.setText(params.get("value", ""))
-#                 elif params.get("type") == "immatriculation":
-#                     self.search_type.setCurrentText("Immatriculation")
-#                     self.search_value.setText(params.get("value", ""))
-#             except:
-#                 pass
-    
-#     def save_config(self):
-#             settings = QSettings("LOMETA", "ASAC")
-#             for key, inp in self.inputs.items():
-#                 settings.setValue(key, inp.text())
-            
-#             # Message de succès
-#             success_message = "Configuration sauvegardée avec succès !"
-            
-#             # Afficher la boîte de dialogue
-#             QMessageBox.information(self, "Succès", success_message)
-            
-#             # Lire le message à voix haute si disponible
-#             if self.tts is not None:
-#                 # Arrêter toute lecture en cours
-#                 self.tts.stop()
-#                 # Lire le nouveau message
-#                 self.tts.say(success_message)
-            
-#             self.accept()
-
-#     def test_connection(self):
-#         import requests
-#         url = self.inputs["url"].text()
-#         app_key = self.inputs["app_key"].text()
-#         username = self.inputs["username"].text()
-        
-#         if not url or not app_key or not username:
-#             QMessageBox.warning(self, "Erreur", "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur")
-#             return
-        
-#         try:
-#             response = requests.post(
-#                 f"{url}/api/v1/auth/tokens/app-key",
-#                 params={"app_key": app_key, "username": username},
-#                 timeout=5
-#             )
-#             if response.status_code == 200:
-#                 QMessageBox.information(self, "Succès", "✅ Connexion au serveur ASAC réussie !")
-#             else:
-#                 QMessageBox.warning(self, "Erreur", f"❌ Erreur HTTP {response.status_code}")
-#         except Exception as e:
-#             QMessageBox.warning(self, "Erreur", f"❌ {str(e)}")
-    
-#     def test_connection(self):
-#         import requests
-#         url = self.inputs["url"].text()
-#         app_key = self.inputs["app_key"].text()
-#         username = self.inputs["username"].text()
-        
-#         if not url or not app_key or not username:
-#             warning_msg = "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur"
-#             QMessageBox.warning(self, "Erreur", warning_msg)
-#             if self.tts is not None:
-#                 self.tts.say(warning_msg)
-#             return
-        
-#         try:
-#             response = requests.post(
-#                 f"{url}/api/v1/auth/tokens/app-key",
-#                 params={"app_key": app_key, "username": username},
-#                 timeout=5
-#             )
-#             if response.status_code == 200:
-#                 success_msg = "Connexion au serveur ASAC réussie !"
-#                 QMessageBox.information(self, "Succès", f"✅ {success_msg}")
-#                 if self.tts is not None:
-#                     self.tts.say(success_msg)
-#             else:
-#                 error_msg = f"Erreur HTTP {response.status_code}"
-#                 QMessageBox.warning(self, "Erreur", f"❌ {error_msg}")
-#                 if self.tts is not None:
-#                     self.tts.say(error_msg)
-#         except Exception as e:
-#             error_msg = str(e)
-#             QMessageBox.warning(self, "Erreur", f"❌ {error_msg}")
-#             if self.tts is not None:
-#                 self.tts.say(f"Erreur de connexion : {error_msg}")
-
-#     def get_config(self):
-#         return {key: inp.text() for key, inp in self.inputs.items()}
-
-from PySide6.QtTextToSpeech import QTextToSpeech
-import sys
-import subprocess
-import platform
 
 class ConfigDialog(QDialog):
     def __init__(self, parent=None):
@@ -734,6 +1070,8 @@ class ConfigDialog(QDialog):
             ("🌐 URL API", "url", "https://ppeatt-api.asac.cm"),
             ("🔑 Clé applicative (App Key)", "app_key", ""),
             ("👤 Nom d'utilisateur", "username", ""),
+            ("📧 Email", "email", ""),
+            ("🔒 Mot de passe", "password", ""),  # Si nécessaire
             ("🏢 Code bureau", "office_code", "AG-DLA-001"),
             ("📋 Organisation", "org_code", "ACTIVA")
         ]
@@ -746,7 +1084,9 @@ class ConfigDialog(QDialog):
             inp.setPlaceholderText(placeholder)
             if key == "app_key":
                 inp.setEchoMode(QLineEdit.Password)
-            
+            if key == "password":
+                inp.setEchoMode(QLineEdit.Password)
+
             card_layout.addWidget(lbl)
             card_layout.addWidget(inp)
             self.inputs[key] = inp
@@ -766,6 +1106,10 @@ class ConfigDialog(QDialog):
         test_btn.clicked.connect(self.test_connection)
         form_layout.addWidget(test_btn)
         
+        help_text = QLabel("ℹ️ Pour obtenir une clé applicative (App Key) et un nom d'utilisateur valides, veuillez contacter l'administrateur ASAC.")
+        help_text.setStyleSheet("color: #f59e0b; font-size: 11px; background: #fef3c7; padding: 8px; border-radius: 8px;")
+        help_text.setWordWrap(True)
+        form_layout.addWidget(help_text)
         scroll.setWidget(form_widget)
         layout.addWidget(scroll)
         
@@ -801,9 +1145,111 @@ class ConfigDialog(QDialog):
             if value:
                 inp.setText(value)
     
+    def test_connection(self):
+        import requests
+        
+        url = self.inputs["url"].text().strip().rstrip('/')  # Nettoyer l'URL
+        app_key = self.inputs["app_key"].text().strip()
+        username = self.inputs["username"].text().strip()
+        
+        # Vérifier les champs requis
+        if not url or not app_key or not username:
+            warning_msg = "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur"
+            QMessageBox.warning(self, "Champs manquants", warning_msg)
+            self.speak(warning_msg)
+            return
+        
+        # Désactiver le bouton pendant le test
+        test_btn = self.sender()
+        if test_btn:
+            test_btn.setEnabled(False)
+            test_btn.setText("⏳ Test en cours...")
+        
+        try:
+            # URL nettoyée
+            auth_url = f"{url}/api/v1/auth/tokens"
+            
+            print(f"\n🔑 Test de connexion ASAC")
+            print(f"   URL: {auth_url}")
+            print(f"   X-App-Id: {app_key[:10]}... (longueur: {len(app_key)})")
+            print(f"   Username: {username[:30]}... (longueur: {len(username)})")
+            
+            headers = {
+                "X-App-Id": app_key,
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "username": username
+            }
+            
+            response = requests.post(
+                auth_url,
+                headers=headers,
+                json=payload,
+                timeout=10
+            )
+            
+            print(f"   Status Code: {response.status_code}")
+            # Afficher la réponse complète du serveur
+            try:
+                response_data = response.json()
+                formatted_response = json.dumps(response_data, indent=2, ensure_ascii=False)
+            except:
+                formatted_response = response.text
+            
+            if response.status_code == 200:
+                # Extraire les informations importantes
+                token = response_data.get("token", "N/A")
+                token_name = response_data.get("token_name", "N/A")
+                expires_at = response_data.get("expires_at", "N/A")
+                print(token)
+                
+                message = f"""✅ Connexion au serveur ASAC réussie ! (HTTP {response.status_code})
+
+                    📋 RÉPONSE DU SERVEUR :
+                    {formatted_response}
+
+                    🔑 Informations du token :
+                    • Nom: {token_name}
+                    • Expiration: {expires_at}
+                    • Token: {token[:50]}...{token[-30:] if len(token) > 80 else token}"""
+                
+                QMessageBox.information(self, "Succès", message)
+                self.speak("Connexion au serveur ASAC réussie")
+                
+            else:
+                message = f"""❌ Échec de la connexion (HTTP {response.status_code})
+
+    📋 RÉPONSE DU SERVEUR :
+    {formatted_response}"""
+                
+                QMessageBox.warning(self, "Erreur", message)
+                self.speak(f"Erreur de connexion: {response.status_code}")
+                        
+        except requests.exceptions.Timeout:
+            error_msg = "La requête a expiré. Vérifiez que l'URL est correcte et que le serveur est accessible."
+            QMessageBox.warning(self, "Timeout", f"❌ {error_msg}")
+            self.speak(error_msg)
+                    
+        except requests.exceptions.ConnectionError:
+            error_msg = "Impossible de se connecter au serveur. Vérifiez l'URL et votre connexion internet."
+            QMessageBox.warning(self, "Erreur de connexion", f"❌ {error_msg}")
+            self.speak(error_msg)
+                    
+        except Exception as e:
+            error_msg = f"Erreur inattendue: {str(e)}"
+            QMessageBox.warning(self, "Erreur", f"❌ {error_msg}")
+            self.speak(error_msg)
+        
+        finally:
+            if test_btn:
+                test_btn.setEnabled(True)
+                test_btn.setText("🔌 Tester la connexion")
+            
     def save_config(self):
         # Vérifier que les champs obligatoires sont remplis
-        required_fields = ["url", "app_key", "username"]
+        required_fields = ["url", "username", "password", "email"]
         missing_fields = []
         
         for field in required_fields:
@@ -813,8 +1259,9 @@ class ConfigDialog(QDialog):
         if missing_fields:
             field_names = {
                 "url": "URL API",
-                "app_key": "Clé applicative",
-                "username": "Nom d'utilisateur"
+                "username": "Nom d'utilisateur",
+                "password": "Mot de passe",
+                "email": "Email",
             }
             missing_names = [field_names[f] for f in missing_fields]
             error_msg = f"Les champs suivants sont obligatoires: {', '.join(missing_names)}"
@@ -844,12 +1291,28 @@ class ConfigDialog(QDialog):
         import requests
         
         url = self.inputs["url"].text().strip()
-        app_key = self.inputs["app_key"].text().strip()
+        email = self.inputs["email"].text().strip()
+        password = self.inputs["password"].text().strip()
         username = self.inputs["username"].text().strip()
         
         # Vérifier les champs requis pour le test
-        if not url or not app_key or not username:
-            warning_msg = "Veuillez remplir l'URL, l'App Key et le nom d'utilisateur avant de tester la connexion"
+        if not url:
+            warning_msg = "Veuillez remplir l'URL avant de tester la connexion"
+            QMessageBox.warning(self, "Champs manquants", warning_msg)
+            self.speak(warning_msg)
+            return
+        if not email:
+            warning_msg = "Veuillez remplir l'email, avant de tester la connexion"
+            QMessageBox.warning(self, "Champs manquants", warning_msg)
+            self.speak(warning_msg)
+            return
+        if not password:
+            warning_msg = "Veuillez remplir le mot de passe avant de tester la connexion"
+            QMessageBox.warning(self, "Champs manquants", warning_msg)
+            self.speak(warning_msg)
+            return
+        if not username:
+            warning_msg = "Veuillez remplir le nom d'utilisateur avant de tester la connexion"
             QMessageBox.warning(self, "Champs manquants", warning_msg)
             self.speak(warning_msg)
             return
@@ -863,8 +1326,8 @@ class ConfigDialog(QDialog):
         try:
             # Effectuer la requête d'authentification
             response = requests.post(
-                f"{url}/api/v1/auth/tokens/app-key",
-                params={"app_key": app_key, "username": username},
+                f"{url}/api/v1/auth/tokens",
+                params={"email": email, "password": password, "username": username},
                 timeout=10
             )
             
@@ -905,6 +1368,7 @@ class ConfigDialog(QDialog):
     def get_config(self):
         """Retourne la configuration actuelle sous forme de dictionnaire"""
         return {key: inp.text() for key, inp in self.inputs.items()}
+
 
 class NotificationDialog(QDialog):
     """Dialogue de notification pour les réponses du serveur"""
@@ -1106,6 +1570,7 @@ class AsacManager(QDialog):
         self.setup_ui()
         self.load_config()
         self.display_vehicle_info()
+        self.view_certificate()
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
@@ -1379,6 +1844,13 @@ class AsacManager(QDialog):
         preview_received_title = QLabel("👁️ Aperçu des données reçues")
         preview_received_title.setStyleSheet("font-size: 14px; font-weight: 700;")
         preview_received_layout.addWidget(preview_received_title)
+
+        clear_logs_btn = QPushButton("🗑️")
+        clear_logs_btn.setProperty("class", "BtnSecondary")
+        clear_logs_btn.setFixedSize(100, 30)
+        clear_logs_btn.clicked.connect(self.clear_logs)
+        preview_received_layout.addWidget(clear_logs_btn)
+
         
         self.received_preview = QTextEdit()
         self.received_preview.setReadOnly(True)
@@ -1397,8 +1869,6 @@ class AsacManager(QDialog):
         
         top_layout.addWidget(preview_received_card)
         
-        # ---- Rapport de conformité ----
-        top_layout.addWidget(self._create_compliance_panel())
         
         # ----- PARTIE BASSE (60% de la droite) : Résultats et actions AVEC SCROLL -----
         bottom_scroll = QScrollArea()
@@ -1793,17 +2263,22 @@ class AsacManager(QDialog):
         preview_layout.setSpacing(12)
         
         preview_header = QHBoxLayout()
-        preview_title = QLabel("📋 Aperçu de la requête")
+        preview_title = QLabel("📋 Aperçu")
         preview_title.setStyleSheet("font-size: 14px; font-weight: 700;")
         preview_header.addWidget(preview_title)
         preview_header.addStretch()
-        
+
         copy_btn = QPushButton("📋 Copier")
         copy_btn.setProperty("class", "BtnSecondary")
         copy_btn.setFixedSize(80, 30)
         copy_btn.clicked.connect(self.copy_json)
+
+        show_logs_btn = QPushButton("📋")
+        show_logs_btn.setProperty("class", "BtnSecondary")
+        show_logs_btn.setFixedSize(120, 30)
+        show_logs_btn.clicked.connect(self.show_export_logs)
+        preview_header.addWidget(show_logs_btn)
         preview_header.addWidget(copy_btn)
-        
         preview_layout.addLayout(preview_header)
         
         self.json_preview = QTextEdit()
@@ -1822,6 +2297,55 @@ class AsacManager(QDialog):
         preview_layout.addWidget(self.json_preview)
         
         left_layout.addWidget(preview_card)
+
+        # ========== NOUVEAU : Carte d'affichage du token ==========
+        token_card = QFrame()
+        token_card.setProperty("class", "InfoCard")
+        token_layout = QVBoxLayout(token_card)
+        token_layout.setSpacing(8)
+        
+        token_header = QHBoxLayout()
+        token_title = QLabel("🔑 Token d'authentification ASAC")
+        token_title.setStyleSheet("font-size: 14px; font-weight: 700;")
+        token_header.addWidget(token_title)
+        token_header.addStretch()
+        
+        copy_token_btn = QPushButton("📋 Copier le token")
+        copy_token_btn.setProperty("class", "BtnSecondary")
+        copy_token_btn.setFixedSize(120, 30)
+        copy_token_btn.clicked.connect(self.copy_token)
+        token_header.addWidget(copy_token_btn)
+        
+        token_layout.addLayout(token_header)
+        
+        self.token_display = QTextEdit()
+        self.token_display.setReadOnly(True)
+        self.token_display.setFont(QFont("Courier New", 10))
+        self.token_display.setMinimumHeight(200)  # Hauteur minimale augmentée
+        self.token_display.setMaximumHeight(300)  # Hauteur maximale augmentée
+        self.token_display.setStyleSheet("""
+            QTextEdit {
+                background: #1e1e2e;
+                color: #cdd6f4;
+                border-radius: 12px;
+                padding: 12px;
+                font-family: monospace;
+            }
+        """)
+        token_layout.addWidget(self.token_display)
+        
+        # Informations du token
+        token_info_layout = QHBoxLayout()
+        self.token_name_label = QLabel("Nom: -")
+        self.token_name_label.setStyleSheet("color: #64748b; font-size: 11px;")
+        self.token_expires_label = QLabel("Expire: -")
+        self.token_expires_label.setStyleSheet("color: #64748b; font-size: 11px;")
+        token_info_layout.addWidget(self.token_name_label)
+        token_info_layout.addWidget(self.token_expires_label)
+        token_info_layout.addStretch()
+        token_layout.addLayout(token_info_layout)
+        
+        left_layout.addWidget(token_card)
         
         # Panneau de conformité
         left_layout.addWidget(self._create_compliance_panel())
@@ -1927,6 +2451,33 @@ class AsacManager(QDialog):
         self.date_debut.setVisible(is_period)
         self.date_fin.setVisible(is_period)
     
+    def show_export_logs(self):
+        """Affiche les logs d'export dans une nouvelle fenêtre"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Logs d'export ASAC")
+        dialog.setMinimumSize(800, 600)
+        dialog.setStyleSheet(MODERN_STYLE)
+        
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        text_edit = QTextEdit()
+        text_edit.setReadOnly(True)
+        text_edit.setFont(QFont("Courier New", 10))
+        text_edit.setStyleSheet("background: #1e1e2e; color: #cdd6f4; border-radius: 12px; padding: 16px;")
+        
+        # Pour capturer les logs, vous devrez les stocker dans une variable d'instance
+        # text_edit.setText(self.export_logs)
+        
+        layout.addWidget(text_edit)
+        
+        btn = QPushButton("Fermer")
+        btn.setProperty("class", "BtnPrimary")
+        btn.clicked.connect(dialog.accept)
+        layout.addWidget(btn, alignment=Qt.AlignRight)
+        
+        dialog.exec()
+
     def display_vehicle_info(self):
         """Affiche les informations du véhicule"""
         self.vehicle_info["immatriculation"].setText(self.vehicle_data.get("immatriculation", "N/A"))
@@ -2001,15 +2552,15 @@ class AsacManager(QDialog):
         # Construire la requête selon le format exact
         request = {
             "office_code": config.get("office_code", "AG-DLA-001"),
-            "organization_code": config.get("org_code", "ACTIVA"),
+            "organization_code": config.get("org_code", "711"),
             "certificate_type": "cima",
             "channel": "api",
             "productions": [
                 {
-                    "certificate_variant_code": "JAUNE",
-                    "rc": int(self.vehicle_data.get("rc_number", 0)) or 63784,
+                    "certificate_variant_code": "BLEUE",
+                    "rc": int(self.vehicle_data.get("amt_rc", 0)) or 63784,
                     "police_number": self.vehicle_data.get("numero_police", f"POL-{datetime.now().year}-{self.vehicle_data.get('id', '00000')}"),
-                    "starts_at": str(self.vehicle_data.get("date_debut", datetime.now().strftime("%Y-%m-%d"))),
+                    "starts_at": datetime.now().strftime("%Y-%m-%d"),
                     "ends_at": str(self.vehicle_data.get("date_fin", (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d"))),
                     "customer_name": self.vehicle_data.get("owner", ""),
                     "customer_phone": self.vehicle_data.get("phone", ""),
@@ -2094,8 +2645,10 @@ class AsacManager(QDialog):
         settings = QSettings("LOMETA", "ASAC")
         url = settings.value("url", "")
         app_key = settings.value("app_key", "")
+        username = settings.value("username", "")
+        password = settings.value("password", "")
         
-        if url and app_key:
+        if url and app_key and username and password:
             self.config_status.setText("Connecté")
             self.config_status.setProperty("class", "StatusBadge StatusSuccess")
             self.server_info_label.setText(f"Serveur: {url}")
@@ -2117,19 +2670,55 @@ class AsacManager(QDialog):
             self.load_config()
             self.update_json_preview()
     
+    # def start_export(self):
+    #     settings = QSettings("LOMETA", "ASAC")
+    #     config = {
+    #         "url": settings.value("url", ""),
+    #         "app_key": settings.value("app_key", ""),
+    #         "username": settings.value("username", ""),
+    #         "password": settings.value("password", ""),
+    #         "email": settings.value("email", ""),
+    #         "office_code": settings.value("office_code", "AG-DLA-001"),
+    #         "org_code": settings.value("org_code", "ACTIVA")
+    #     }
+        
+    #     if not config["url"] or not config["app_key"] or not config["username"] or not config["password"]:
+    #         QMessageBox.warning(self, "Configuration manquante", 
+    #             "Veuillez configurer le serveur ASAC avec l'URL, l'App Key, le nom d'utilisateur et le mot de passe avant d'exporter.")
+    #         self.open_config()
+    #         return
+        
+    #     self.export_btn.setEnabled(False)
+    #     self.export_btn.setText("⏳ Export en cours...")
+    #     self.export_progress.setVisible(True)
+    #     self.export_progress.setValue(0)
+        
+    #     # Effacer l'affichage précédent du token
+    #     self.token_display.clear()
+    #     self.token_name_label.setText("Nom: -")
+    #     self.token_expires_label.setText("Expire: -")
+        
+    #     self.export_worker = ExportWorker(self.vehicle_data, config)
+    #     self.export_worker.progress.connect(self.on_export_progress)
+    #     self.export_worker.finished.connect(self.on_export_finished)
+    #     self.export_worker.token_received.connect(self.on_token_received)  # Nouvelle connexion
+    #     self.export_worker.start()
+
     def start_export(self):
         settings = QSettings("LOMETA", "ASAC")
         config = {
             "url": settings.value("url", ""),
             "app_key": settings.value("app_key", ""),
             "username": settings.value("username", ""),
+            "password": settings.value("password", ""),
+            "email": settings.value("email", ""),
             "office_code": settings.value("office_code", "AG-DLA-001"),
             "org_code": settings.value("org_code", "ACTIVA")
         }
         
-        if not config["url"] or not config["app_key"] or not config["username"]:
+        if not config["url"] or not config["app_key"] or not config["username"] or not config["password"]:
             QMessageBox.warning(self, "Configuration manquante", 
-                "Veuillez configurer le serveur ASAC avant d'exporter.")
+                "Veuillez configurer le serveur ASAC avec l'URL, l'App Key, le nom d'utilisateur et le mot de passe avant d'exporter.")
             self.open_config()
             return
         
@@ -2138,16 +2727,55 @@ class AsacManager(QDialog):
         self.export_progress.setVisible(True)
         self.export_progress.setValue(0)
         
+        # Effacer l'affichage précédent
+        self.token_display.clear()
+        self.token_name_label.setText("Nom: -")
+        self.token_expires_label.setText("Expire: -")
+        self.received_preview.clear()  # Effacer l'aperçu précédent
+        
         self.export_worker = ExportWorker(self.vehicle_data, config)
         self.export_worker.progress.connect(self.on_export_progress)
         self.export_worker.finished.connect(self.on_export_finished)
+        self.export_worker.token_received.connect(self.on_token_received)
+        self.export_worker.log_captured.connect(self.on_log_captured)  # Nouvelle connexion
         self.export_worker.start()
+
+    def on_log_captured(self, log_text):
+        """Affiche les logs dans la zone d'aperçu"""
+        current_text = self.received_preview.toPlainText()
+        new_text = current_text + log_text
+        self.received_preview.setText(new_text)
+        # Scroll en bas
+        scrollbar = self.received_preview.verticalScrollBar()
+        scrollbar.setValue(scrollbar.maximum())
+
+    def on_token_received(self, token_data):
+        """Affiche le token reçu du serveur"""
+        token = token_data.get("token", "")
+        token_name = token_data.get("token_name", "")
+        expires_at = token_data.get("expires_at", "")
+        
+        # Afficher le token formaté
+        display_text = f"Token: {token}\n\n"
+        display_text += f"Nom du token: {token_name}\n"
+        display_text += f"Expiration: {expires_at}"
+        
+        self.token_display.setText(display_text)
+        self.token_name_label.setText(f"Nom: {token_name}")
+        self.token_expires_label.setText(f"Expire: {expires_at}")
+        
+        self._show_notification(
+            "Token reçu",
+            f"✅ Token d'authentification reçu avec succès!\nExpire le: {expires_at}",
+            "success"
+        )
     
     def on_export_progress(self, value, message):
         self.export_progress.setValue(value)
         self.status_label.setText(message)
     
     def on_export_finished(self, success, response, error):
+        """Termine l'export et gère les erreurs"""
         self.export_btn.setEnabled(True)
         self.export_btn.setText("📤 Exporter vers ASAC")
         self.export_progress.setVisible(False)
@@ -2159,7 +2787,6 @@ class AsacManager(QDialog):
                                     response.get("download_link", ""))
             self.view_certificate_btn.setVisible(True)
             
-            # Notification
             self._show_notification(
                 "Export réussi",
                 f"✅ Le véhicule {self.vehicle_data.get('immatriculation', '')} a été exporté avec succès!\nRéférence: {reference}",
@@ -2167,9 +2794,28 @@ class AsacManager(QDialog):
                 response
             )
         else:
-            self._show_notification("Erreur d'export", f"❌ L'export a échoué.\n\n{error}", "error")
+            # Analyser l'erreur ASAC
+            error_details = ""
+            try:
+                # Si error est une chaîne JSON
+                if isinstance(error, str) and error.startswith('{'):
+                    error_data = json.loads(error)
+                    if 'errors' in error_data:
+                        error_details = "\n".join([e.get('detail', '') for e in error_data['errors']])
+                    elif 'detail' in error_data:
+                        error_details = error_data['detail']
+                elif isinstance(error, dict) and 'errors' in error:
+                    error_details = "\n".join([e.get('detail', '') for e in error['errors']])
+            except:
+                pass
+            
+            if error_details:
+                self._show_notification("Erreur de validation", f"❌ {error_details}", "error")
+            else:
+                self._show_notification("Erreur d'export", f"❌ L'export a échoué.\n\n{error}", "error")
         
         self.refresh_history()
+
     
     def start_receive(self):
         """Démarre la réception des données depuis ASAC"""
@@ -2177,11 +2823,13 @@ class AsacManager(QDialog):
         config = {
             "url": settings.value("url", ""),
             "app_key": settings.value("app_key", ""),
-            "username": settings.value("username", "")
+            "username": settings.value("username", ""),
+            "password": settings.value("password", ""),
+            "email": settings.value("email", "")
         }
         
-        if not config["url"] or not config["app_key"] or not config["username"]:
-            QMessageBox.warning(self, "Configuration manquante", "Veuillez configurer le serveur ASAC.")
+        if not config["url"] or not config["app_key"] or not config["username"] or not config["password"]:
+            QMessageBox.warning(self, "Configuration manquante", "Veuillez configurer le serveur ASAC avec l'URL, l'App Key, le nom d'utilisateur et le mot de passe.")
             self.open_config()
             return
         
@@ -2220,6 +2868,7 @@ class AsacManager(QDialog):
         self.receive_worker = ReceiveWorker(config, search_params)
         self.receive_worker.progress.connect(self.on_receive_progress)
         self.receive_worker.finished.connect(self.on_receive_finished)
+        self.receive_worker.log_captured.connect(self.on_log_captured)
         self.receive_worker.start()
     
     def on_receive_progress(self, value, message):
@@ -2292,6 +2941,16 @@ class AsacManager(QDialog):
         self.status_label.setText("Prêt")
         self.status_icon.setStyleSheet("color: #f59e0b; font-size: 12px;")
     
+    def copy_token(self):
+        """Copie le token dans le presse-papier"""
+        token_text = self.token_display.toPlainText()
+        if token_text:
+            clipboard = QApplication.clipboard()
+            clipboard.setText(token_text)
+            self._show_notification("Copie réussie", "✅ Token copié dans le presse-papier", "info")
+        else:
+            self._show_notification("Aucun token", "⚠️ Aucun token à copier", "warning")
+
     def save_to_history(self, reference, response):
         settings = QSettings("LOMETA", "ASAC")
         history = settings.value(f"history_{self.vehicle_data.get('immatriculation', 'unknown')}", [])
@@ -2635,6 +3294,11 @@ class AsacManager(QDialog):
             btn.clicked.connect(lambda checked, r=record: self.show_details(r))
             self.history_table.setCellWidget(i, 3, btn)
     
+    def clear_logs(self):
+        """Efface les logs affichés"""
+        self.received_preview.clear()
+        self._show_notification("Logs effacés", "✅ Les logs ont été effacés", "info")
+
     def show_details(self, record):
         content = json.dumps(record, indent=2, default=str, ensure_ascii=False)
         dialog = QDialog(self)

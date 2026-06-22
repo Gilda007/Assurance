@@ -575,6 +575,7 @@ class VehicleDetailView(QWidget):
         from addons.Automobiles.views.asac_manager import AsacManager
         
         # Créer et afficher le gestionnaire ASAC avec les données du véhicule
+        # print("Export vers ASAC avec les données:", self.data)  # Debug: vérifier les données passées
         asac_manager = AsacManager(self.controller, self.data, self)  # ← passer self.data au lieu de self
         
         asac_manager.setWindowTitle("ASAC Export")
@@ -613,6 +614,7 @@ class VehicleDetailView(QWidget):
         elif action == "export":
             QMessageBox.information(self, "Export PDF", "Fonction d'export PDF à implémenter")
         elif action == "asac":
+            print("Exporter vers ASAC cliqué")
             self.export_to_asac() 
     
     def print_document(self, doc_type):
@@ -1333,11 +1335,10 @@ class VehicleDetailView(QWidget):
         return qr_card
     
     def create_garanties_table(self):
-        """Crée le tableau des garanties"""
+        """Crée le tableau des garanties avec les données de la nouvelle structure BD"""
         title_tab = QLabel("DÉTAIL DES PRIMES ET GARANTIES")
         title_tab.setProperty("class", "SectionTitle")
         
-        # Container pour le tableau
         container = QWidget()
         container_layout = QVBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -1365,27 +1366,33 @@ class VehicleDetailView(QWidget):
             }
         """)
         
-        # Définition des garanties avec leurs clés
+        # ✅ Définition des garanties avec les alias possibles de champs
         garanties = [
-            ("Responsabilité Civile", 'amt_rc', 'amt_red_rc'),
-            ("Défense et Recours", 'amt_dr', 'amt_red_dr'),
-            ("Vol du véhicule", 'amt_vol', 'amt_red_vol'),
-            ("Vol à Main Armée", 'amt_vb', 'amt_red_vb'),
-            ("Incendie", 'amt_in', 'amt_red_in'),
-            ("Bris de Glaces", 'amt_bris', 'amt_red_bris'),
-            ("Assistance Panne", 'amt_ar', 'amt_red_ar'),
-            ("Dommages Tous Accidents", 'amt_dta', 'amt_red_dta'),
-            ("Individuelle Chauffeur", 'amt_ipt', 'amt_red_ipt')
+            ("Responsabilité Civile", ('amt_rc',), ('red_rc',)),
+            ("Défense et Recours", ('amt_dr',), ('red_dr',)),
+            ("Vol du véhicule", ('amt_vol',), ('red_vol',)),
+            ("Vol à Main Armée", ('amt_vb',), ('red_vb',)),
+            ("Incendie", ('amt_ipt',), ('red_ipt',)),
+            ("Bris de Glaces", ('amt_bris',), ('red_bris',)),
+            ("Assistance Panne", ('amt_ar',), ('red_ar',)),
+            ("Dommages Tous Accidents", ('amt_dta',), ('red_dta',)),
+            ("Individuelle Chauffeur", ('amt_in_garantie', 'amt_ipt'), ('red_in_garantie', 'red_ipt'))
         ]
 
         total_brut = 0
         total_net = 0
         
         for row, (name, k_brut, k_net) in enumerate(garanties):
-            # 1. Récupération sécurisée des valeurs avec conversion en float
+            # ✅ Récupération des valeurs avec alias et gestion des valeurs manquantes
             try:
-                val_brut_raw = self.data.get(k_brut, 0)
-                # Conversion en float, gestion des chaînes vides ou None
+                if isinstance(k_brut, (list, tuple)):
+                    val_brut_raw = next(
+                        (self.data[key] for key in k_brut if key in self.data and self.data[key] not in (None, '')),
+                        0
+                    )
+                else:
+                    val_brut_raw = self.data.get(k_brut, 0)
+
                 if val_brut_raw is None or val_brut_raw == '':
                     val_brut = 0.0
                 else:
@@ -1394,21 +1401,25 @@ class VehicleDetailView(QWidget):
                 val_brut = 0.0
             
             try:
-                val_net_raw = self.data.get(k_net, 0)
+                if isinstance(k_net, (list, tuple)):
+                    val_net_raw = next(
+                        (self.data[key] for key in k_net if key in self.data and self.data[key] not in (None, '')),
+                        None
+                    )
+                else:
+                    val_net_raw = self.data.get(k_net, None)
+
                 if val_net_raw is None or val_net_raw == '':
-                    val_net = 0.0
+                    val_net = val_brut
                 else:
                     val_net = float(val_net_raw)
             except (ValueError, TypeError):
-                # Si la clé net n'existe pas, utiliser le montant brut
                 val_net = val_brut
             
-            # 2. Accumulation des totaux
             total_brut += val_brut
             total_net += val_net
             
-            # --- Remplissage du tableau ---
-            # Nom de la garantie
+            # Remplissage du tableau
             item_name = QTableWidgetItem(name)
             item_name.setFont(QFont("Segoe UI", 10))
             self.table.setItem(row, 0, item_name)
@@ -1426,15 +1437,11 @@ class VehicleDetailView(QWidget):
             item_net.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             item_net.setFont(QFont("Segoe UI", 10))
             
-            # Appliquer une couleur selon la situation
             if val_net < val_brut and val_net > 0:
-                # Réduction appliquée
                 item_net.setForeground(QColor("#10b981"))
             elif val_net == 0 and val_brut > 0:
-                # Garantie offerte ou totalement réduite
                 item_net.setForeground(QColor("#ef4444"))
             elif val_net > 0:
-                # Montant normal
                 item_net.setForeground(QColor("#1e293b"))
             
             self.table.setItem(row, 2, item_net)
@@ -1442,7 +1449,7 @@ class VehicleDetailView(QWidget):
         self.table.setFixedHeight(340)
         container_layout.addWidget(self.table)
         
-        # Ajouter un résumé rapide sous le tableau
+        # Résumé
         summary_widget = QFrame()
         summary_widget.setStyleSheet("background: #f8fafc; border-radius: 12px; padding: 12px;")
         summary_layout = QHBoxLayout(summary_widget)
@@ -1453,7 +1460,6 @@ class VehicleDetailView(QWidget):
         total_net_lbl = QLabel(f"Total net: {total_net:,.0f} FCFA".replace(",", " "))
         total_net_lbl.setStyleSheet("font-weight: 700; color: #3b82f6;")
         
-        # Calcul de la réduction totale
         reduction_total = total_brut - total_net
         if reduction_total > 0:
             reduction_lbl = QLabel(f"Réduction: {reduction_total:,.0f} FCFA".replace(",", " "))

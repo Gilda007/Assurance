@@ -1,3 +1,4 @@
+from operator import or_
 import socket
 import requests
 import logging
@@ -5,6 +6,7 @@ from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from addons.Automobiles.models.compagnies_models import Compagnie  # Assurez-vous que le chemin est correct
 import logging
+from typing import Tuple, Optional, Dict, List
 import pandas as pd
 from addons.Automobiles.models.tarif_models import AutomobileTarif  # Assurez-vous du chemin d'import
 
@@ -293,3 +295,83 @@ class CompagnieController:
         except Exception as e:
             print(f"Erreur generate_police_number: {e}")
             return f"POL-{attribued_number:05d}"
+        
+    def search_companies(self, search_term: str) -> List[Compagnie]:
+        """
+        Recherche des compagnies par nom, code ou téléphone
+        
+        Args:
+            search_term: Terme de recherche
+            
+        Returns:
+            List[Compagnie]: Liste des compagnies correspondantes
+        """
+        if not search_term or len(search_term) < 2:
+            return []
+        
+        search = f"%{search_term}%"
+        
+        try:
+            # SOLUTION 1: Utiliser or_ avec des conditions combinées par paires
+            # Ceci fonctionne avec toutes les versions de SQLAlchemy
+            return self.db.query(Compagnie).filter(
+                or_(
+                    or_(
+                        Compagnie.nom.ilike(search),
+                        Compagnie.code.ilike(search)
+                    ),
+                    or_(
+                        Compagnie.telephone.ilike(search),
+                        Compagnie.email.ilike(search)
+                    )
+                )
+            ).limit(50).all()
+            
+        except Exception as e:
+            print(f"Erreur search_companies (méthode 1): {e}")
+            
+            try:
+                # SOLUTION 2: Utiliser une approche alternative avec des filtres séparés
+                from sqlalchemy import func
+                
+                return self.db.query(Compagnie).filter(
+                    (Compagnie.nom.ilike(search)) | 
+                    (Compagnie.code.ilike(search)) | 
+                    (Compagnie.telephone.ilike(search)) | 
+                    (Compagnie.email.ilike(search))
+                ).limit(50).all()
+                
+            except Exception as e2:
+                print(f"Erreur search_companies (méthode 2): {e2}")
+                
+                try:
+                    # SOLUTION 3: Requête avec UNION (plus lente mais compatible)
+                    from sqlalchemy import union_all
+                    
+                    q1 = self.db.query(Compagnie).filter(Compagnie.nom.ilike(search))
+                    q2 = self.db.query(Compagnie).filter(Compagnie.code.ilike(search))
+                    q3 = self.db.query(Compagnie).filter(Compagnie.telephone.ilike(search))
+                    q4 = self.db.query(Compagnie).filter(Compagnie.email.ilike(search))
+                    
+                    # Union des résultats
+                    union_query = union_all(q1, q2, q3, q4)
+                    result = self.db.query(Compagnie).from_self().union(union_query).limit(50).all()
+                    
+                    # Supprimer les doublons
+                    seen = set()
+                    unique_results = []
+                    for r in result:
+                        if r.id not in seen:
+                            seen.add(r.id)
+                            unique_results.append(r)
+                    
+                    return unique_results
+                    
+                except Exception as e3:
+                    print(f"Erreur search_companies (méthode 3): {e3}")
+                    return []
+    
+    def get_company_by_id(self, company_id: int) -> Optional[Compagnie]:
+        """Récupère une compagnie par son ID"""
+        return self.db.query(Compagnie).filter(Compagnie.id == company_id).first()
+    

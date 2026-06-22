@@ -70,8 +70,8 @@ def get_env(key: str, default: str = None) -> str:
 @dataclass
 class ServerConfig:
     """Configuration du serveur"""
-    port: int = 8000
-    host: str = "0.0.0.0"
+    port: int = 5000
+    host: str = "localhost"
     title: str = "LOMETA Module Server"
     upload_enabled: bool = False
     auth_enabled: bool = False
@@ -180,8 +180,132 @@ logger = logging.getLogger()
 # AUTHENTIFICATION VIA SESSION LOMETA
 # ============================================================================
 
+# class SessionAuth:
+#     """Authentification via la table sessions de LOMETA"""
+    
+#     def __init__(self, db_config: dict):
+#         self.db_config = db_config
+#         self.connection_pool = None
+#         self._init_pool()
+    
+#     def _init_pool(self):
+#         try:
+#             self.connection_pool = pool.SimpleConnectionPool(
+#                 1, 5,
+#                 host=self.db_config.get('host', 'localhost'),
+#                 port=self.db_config.get('port', 5432),
+#                 database=self.db_config.get('database', 'ams_db'),
+#                 user=self.db_config.get('user', 'postgres'),
+#                 password=self.db_config.get('password', '')
+#             )
+#             logger.info("✅ Connexion à PostgreSQL établie")
+#         except Exception as e:
+#             logger.error(f"❌ Erreur connexion PostgreSQL: {e}")
+#             self.connection_pool = None
+    
+#     def verify_session_token(self, token: str) -> Optional[dict]:
+#         """Vérifie un token de session LOMETA"""
+#         if not self.connection_pool or not token:
+#             return None
+        
+#         conn = None
+#         try:
+#             conn = self.connection_pool.getconn()
+#             with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
+#                 # Vérifier dans la table sessions
+#                 cur.execute("""
+#                     SELECT s.user_id, u.username, u.full_name, u.email, u.role
+#                     FROM sessions s
+#                     JOIN utilisateurs u ON s.user_id = u.id
+#                     WHERE s.token = %s AND s.expires_at > NOW()
+#                 """, (token,))
+#                 session = cur.fetchone()
+                
+#                 if session:
+#                     logger.info(f"✅ Session valide: {session['username']}")
+#                     return dict(session)
+#                 else:
+#                     logger.warning(f"❌ Token invalide ou expiré")
+#                     return None
+#         except Exception as e:
+#             logger.error(f"Erreur vérification session: {e}")
+#             return None
+#         finally:
+#             if conn and self.connection_pool:
+#                 self.connection_pool.putconn(conn)
+    
+#     def authenticate_user(self, username: str, password: str) -> tuple:
+#         """Authentifie un utilisateur (pour la page de connexion)"""
+#         if not self.connection_pool:
+#             return False, None, "Base de données non disponible"
+        
+#         conn = None
+#         try:
+#             conn = self.connection_pool.getconn()
+#             with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
+#                 cur.execute("""
+#                     SELECT id, username, full_name, email, role, is_active, password_hash
+#                     FROM utilisateurs 
+#                     WHERE username = %s
+#                 """, (username,))
+#                 user = cur.fetchone()
+                
+#                 if not user:
+#                     return False, None, "Nom d'utilisateur incorrect"
+                
+#                 if not user.get('is_active', True):
+#                     return False, None, "Compte désactivé"
+                
+#                 stored_hash = user.get('password_hash', '')
+#                 if self._verify_password(password, stored_hash):
+#                     return True, dict(user), "Connexion réussie"
+#                 else:
+#                     return False, None, "Mot de passe incorrect"
+#         except Exception as e:
+#             logger.error(f"Erreur authentification: {e}")
+#             return False, None, "Erreur système"
+#         finally:
+#             if conn and self.connection_pool:
+#                 self.connection_pool.putconn(conn)
+    
+#     def _verify_password(self, input_password: str, stored_hash: str) -> bool:
+#         if not stored_hash:
+#             return False
+#         if stored_hash.startswith('$2'):
+#             try:
+#                 return bcrypt.checkpw(input_password.encode('utf-8'), stored_hash.encode('utf-8'))
+#             except:
+#                 return False
+#         return input_password == stored_hash
+    
+#     def create_session(self, user_id: int) -> str:
+#         """Crée une session temporaire pour l'accès navigateur"""
+#         conn = None
+#         try:
+#             conn = self.connection_pool.getconn()
+#             with conn.cursor() as cur:
+#                 token = base64.b64encode(f"{user_id}:{datetime.datetime.now().timestamp()}".encode()).decode()
+#                 expires_at = datetime.datetime.now() + datetime.timedelta(hours=24)
+#                 cur.execute("""
+#                     INSERT INTO sessions (user_id, token, expires_at, created_at)
+#                     VALUES (%s, %s, %s, NOW())
+#                     ON CONFLICT (token) DO UPDATE SET expires_at = EXCLUDED.expires_at
+#                 """, (user_id, token, expires_at))
+#                 conn.commit()
+#                 return token
+#         except Exception as e:
+#             logger.error(f"Erreur création session: {e}")
+#             return None
+#         finally:
+#             if conn and self.connection_pool:
+#                 self.connection_pool.putconn(conn)
+
+# ============================================================================
+# AUTHENTIFICATION VIA SESSION LOMETA (ADAPTÉ POUR token_encrypted)
+# ============================================================================
+
 class SessionAuth:
-    """Authentification via la table sessions de LOMETA"""
+    """Authentification via la table sessions de LOMETA (utilise token_encrypted)"""
     
     def __init__(self, db_config: dict):
         self.db_config = db_config
@@ -198,13 +322,13 @@ class SessionAuth:
                 user=self.db_config.get('user', 'postgres'),
                 password=self.db_config.get('password', '')
             )
-            logger.info("✅ Connexion à PostgreSQL établie")
+            logger.info("✅ Connexion à PostgreSQL établie (SessionAuth)")
         except Exception as e:
             logger.error(f"❌ Erreur connexion PostgreSQL: {e}")
             self.connection_pool = None
     
     def verify_session_token(self, token: str) -> Optional[dict]:
-        """Vérifie un token de session LOMETA"""
+        """Vérifie un token de session LOMETA dans la colonne token_encrypted"""
         if not self.connection_pool or not token:
             return None
         
@@ -212,12 +336,12 @@ class SessionAuth:
         try:
             conn = self.connection_pool.getconn()
             with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
-                # Vérifier dans la table sessions
+                # Modification ici : s.token devient s.token_encrypted
                 cur.execute("""
                     SELECT s.user_id, u.username, u.full_name, u.email, u.role
                     FROM sessions s
                     JOIN utilisateurs u ON s.user_id = u.id
-                    WHERE s.token = %s AND s.expires_at > NOW()
+                    WHERE s.token_encrypted = %s AND s.expires_at > NOW()
                 """, (token,))
                 session = cur.fetchone()
                 
@@ -225,7 +349,7 @@ class SessionAuth:
                     logger.info(f"✅ Session valide: {session['username']}")
                     return dict(session)
                 else:
-                    logger.warning(f"❌ Token invalide ou expiré")
+                    logger.warning(f"❌ Token invalide ou expiré dans la base de données")
                     return None
         except Exception as e:
             logger.error(f"Erreur vérification session: {e}")
@@ -279,17 +403,19 @@ class SessionAuth:
         return input_password == stored_hash
     
     def create_session(self, user_id: int) -> str:
-        """Crée une session temporaire pour l'accès navigateur"""
+        """Crée une session temporaire et l'insère dans token_encrypted"""
         conn = None
         try:
             conn = self.connection_pool.getconn()
             with conn.cursor() as cur:
                 token = base64.b64encode(f"{user_id}:{datetime.datetime.now().timestamp()}".encode()).decode()
                 expires_at = datetime.datetime.now() + datetime.timedelta(hours=24)
+                
+                # Modification ici : la colonne token et le ON CONFLICT ciblent désormais token_encrypted
                 cur.execute("""
-                    INSERT INTO sessions (user_id, token, expires_at, created_at)
+                    INSERT INTO sessions (user_id, token_encrypted, expires_at, created_at)
                     VALUES (%s, %s, %s, NOW())
-                    ON CONFLICT (token) DO UPDATE SET expires_at = EXCLUDED.expires_at
+                    ON CONFLICT (token_encrypted) DO UPDATE SET expires_at = EXCLUDED.expires_at
                 """, (user_id, token, expires_at))
                 conn.commit()
                 return token
@@ -299,6 +425,7 @@ class SessionAuth:
         finally:
             if conn and self.connection_pool:
                 self.connection_pool.putconn(conn)
+
 
 # ============================================================================
 # AUTHENTIFICATION POSTGRESQL
@@ -638,58 +765,58 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         
         # Route API /api/modules - Vérifier le token
         if path == '/api/modules':
-            token = self._get_auth_token()
-            if not token:
-                self._send_json_response(401, {"error": "Token manquant"})
-                return
-            
-            # Vérifier le token
-            if hasattr(self, 'session_auth') and self.session_auth:
-                user = self.session_auth.verify_session_token(token)
-                if not user:
-                    self._send_json_response(401, {"error": "Token invalide"})
+            if self.config.auth_enabled:
+                token = self._get_auth_token()
+                if not token:
+                    self._send_json_response(401, {"error": "Token manquant"})
                     return
-            elif hasattr(self, 'auth_handler') and self.auth_handler:
-                user = self.auth_handler.get_user_from_session(token)
-                if not user:
-                    self._send_json_response(401, {"error": "Token invalide"})
+                
+                # Vérifier le token
+                if hasattr(self, 'session_auth') and self.session_auth:
+                    user = self.session_auth.verify_session_token(token)
+                    if not user:
+                        self._send_json_response(401, {"error": "Token invalide"})
+                        return
+                elif hasattr(self, 'auth_handler') and self.auth_handler:
+                    user = self.auth_handler.get_user_from_session(token)
+                    if not user:
+                        self._send_json_response(401, {"error": "Token invalide"})
+                        return
+                else:
+                    self._send_json_response(401, {"error": "Authentification non configurée"})
                     return
-            else:
-                self._send_json_response(401, {"error": "Authentification non configurée"})
-                return
-            
             self._serve_modules_api()
             return
         
         # Route de téléchargement
         if path.startswith('/downloads/'):
-            token = self._get_auth_token()
-            if not token:
-                self.send_response(302)
-                self.send_header('Location', '/auth')
-                self.end_headers()
-                return
-            
-            if hasattr(self, 'session_auth') and self.session_auth:
-                user = self.session_auth.verify_session_token(token)
-                if not user:
+            if self.config.auth_enabled:
+                token = self._get_auth_token()
+                if not token:
                     self.send_response(302)
                     self.send_header('Location', '/auth')
                     self.end_headers()
                     return
-            elif hasattr(self, 'auth_handler') and self.auth_handler:
-                user = self.auth_handler.get_user_from_session(token)
-                if not user:
+                
+                if hasattr(self, 'session_auth') and self.session_auth:
+                    user = self.session_auth.verify_session_token(token)
+                    if not user:
+                        self.send_response(302)
+                        self.send_header('Location', '/auth')
+                        self.end_headers()
+                        return
+                elif hasattr(self, 'auth_handler') and self.auth_handler:
+                    user = self.auth_handler.get_user_from_session(token)
+                    if not user:
+                        self.send_response(302)
+                        self.send_header('Location', '/auth')
+                        self.end_headers()
+                        return
+                else:
                     self.send_response(302)
                     self.send_header('Location', '/auth')
                     self.end_headers()
                     return
-            else:
-                self.send_response(302)
-                self.send_header('Location', '/auth')
-                self.end_headers()
-                return
-            
             self._handle_download(path)
             return
         
@@ -712,13 +839,21 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
                 self._serve_dashboard()
                 return
         
-        # Pas de token valide - Rediriger vers login UNIQUEMENT si ce n'est pas déjà login
+        # Pas de token valide - Rediriger vers login UNIQUEMENT si l'authentification est activée
         if path != '/auth':
-            self.send_response(302)
-            self.send_header('Location', '/auth')
-            self.end_headers()
+            if self.config.auth_enabled:
+                self.send_response(302)
+                self.send_header('Location', '/auth')
+                self.end_headers()
+            else:
+                self._serve_dashboard()
         else:
-            self._serve_login_page()
+            if self.config.auth_enabled:
+                self._serve_login_page()
+            else:
+                self.send_response(302)
+                self.send_header('Location', '/')
+                self.end_headers()
 
     def do_POST(self):
         """Gère les requêtes POST"""
@@ -1753,10 +1888,30 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         username = params.get('username', [''])[0].strip()
         password = params.get('password', [''])[0].strip()
         
-        success, user, message = self.session_auth.authenticate_user(username, password)
+        if not self.config.auth_enabled:
+            self.send_response(302)
+            self.send_header('Location', '/')
+            self.end_headers()
+            return
+        
+        success = False
+        user = None
+        message = 'Authentification impossible'
+        token = None
+        
+        if hasattr(self, 'session_auth') and self.session_auth:
+            success, user, message = self.session_auth.authenticate_user(username, password)
+            if success:
+                token = self.session_auth.create_session(user['id'])
+        elif hasattr(self, 'auth_handler') and self.auth_handler:
+            success, user, message = self.auth_handler.authenticate(username, password)
+            if success:
+                token = self.auth_handler.create_session(user['id'], user)
+        else:
+            self._serve_login_page("La configuration d'authentification est manquante.")
+            return
         
         if success:
-            token = self.session_auth.create_session(user['id'])
             self.send_response(302)
             self.send_header('Location', f'/?auth={token}')
             self.end_headers()
@@ -1852,7 +2007,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Serveur de modules LOMETA')
     
     parser.add_argument('port', type=int, nargs='?', default=8000, help='Port')
-    parser.add_argument('--host', type=str, default='0.0.0.0', help='Hôte')
+    parser.add_argument('--host', type=str, default='192.168.100.89', help='Hôte')
     parser.add_argument('--upload', action='store_true', help='Activer upload')
     parser.add_argument('--auth', action='store_true', help='Activer authentification')
     parser.add_argument('--max-size', type=int, default=100, help='Taille max MB')

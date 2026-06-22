@@ -24,7 +24,15 @@ class DownloadInstallThread(QThread):
         self.module = module
         self.install_paths = install_paths
         self.temp_dir = Path("_internal/addons")
-        self.temp_dir.mkdir(exist_ok=True)
+
+        try:
+            # Correction : parents=True force la création de '_internal' s'il n'existe pas en mode dev
+            self.temp_dir.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            # Repli de sécurité universel si l'arborescence locale refuse d'écrire (ex: permissions sous Linux)
+            import tempfile
+            self.temp_dir = Path(tempfile.gettempdir()) / "lometa_updates"
+            self.temp_dir.mkdir(parents=True, exist_ok=True)
     
     def run(self):
         zip_path = self.temp_dir / self.module['filename']
@@ -612,25 +620,75 @@ class UpdateWidget(QDialog):
         has_selection = any(card.is_checked() for card in self.module_cards)
         self.download_btn.setEnabled(has_selection)
     
+    # def download_selected(self):
+    #     """Lance le processus de téléchargement/installation des modules cochés"""
+    #     self.selected_modules = []
+    #     for card, checkbox, module in self.module_cards:
+    #         if checkbox.isChecked():
+    #             self.selected_modules.append((card, module))
+                
+    #     if not self.selected_modules:
+    #         QMessageBox.warning(self, "Attention", "Veuillez sélectionner au moins un module.")
+    #         return
+            
+    #     # --- NOUVEAU : SELECTION DU DOSSIER CIBLE ---
+    #     from PySide6.QtWidgets import QFileDialog
+    #     dir_path = QFileDialog.getExistingDirectory(
+    #         self, 
+    #         "Sélectionner le dossier dans lequel faire l'installation de la sélection",
+    #         "", 
+    #         QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+    #     )
+        
+    #     if not dir_path:
+    #         return  # L'utilisateur a annulé l'explorateur, on arrête proprement sans crash
+            
+    #     self.install_paths = dir_path  # On applique le dossier choisi à l'installation
+    #     # --------------------------------------------
+        
+    #     # Préparation de l'UI pour la progression
+    #     self.current_index = 0
+    #     self.progress_bar.setValue(0)
+    #     self.progress_bar.setVisible(True)
+    #     self.cancel_btn.setEnabled(False)
+        
+    #     self.install_next()
+
     def download_selected(self):
-        """Télécharge et installe les modules sélectionnés"""
-        selected = [(card, card.module) for card in self.module_cards if card.is_checked()]
+        """Lance le processus de téléchargement/installation des modules cochés"""
+        self.selected_modules = []
         
-        if not selected:
-            return
-        
-        # Désactiver l'interface
-        self.download_btn.setEnabled(False)
-        self.cancel_btn.setEnabled(False)
-        self.progress_frame.setVisible(True)
-        
-        # Désactiver toutes les checkboxes
+        # CORRECTION ICI : On boucle sur l'objet 'card' unique, 
+        # et on accède à sa checkbox et à son module directement.
         for card in self.module_cards:
-            card.checkbox.setEnabled(False)
+            if card.checkbox.isChecked():
+                self.selected_modules.append((card, card.module))
+                
+        if not self.selected_modules:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner au moins un module.")
+            return
+            
+        # --- SÉLECTION DU DOSSIER CIBLE ---
+        from PySide6.QtWidgets import QFileDialog
+        dir_path = QFileDialog.getExistingDirectory(
+            self, 
+            "Sélectionner le dossier dans lequel faire l'installation de la sélection",
+            "", 
+            QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
+        )
         
-        # Démarrer l'installation séquentielle
-        self.selected_modules = selected
+        if not dir_path:
+            return  # L'utilisateur a annulé l'explorateur, on arrête proprement sans crash
+            
+        self.install_paths = dir_path  # On applique le dossier choisi à l'installation
+        # ----------------------------------
+        
+        # Préparation de l'UI pour la progression
         self.current_index = 0
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
+        self.cancel_btn.setEnabled(False)
+        
         self.install_next()
     
     def install_next(self):

@@ -9,6 +9,7 @@ from addons.Automobiles.views.flotte_form_view import FleetForm
 # import addons.Automobiles.views.flottes_view
 from addons.Automobiles.views.view import VehicleMainView
 from addons.Automobiles.views.vehicle_detail_view import VehicleDetailView
+from addons.Automobiles.views.asac_import_view import ASACImportView 
 
 class AutomobileMainView:
     def __init__(self, session, current_user_id):
@@ -25,3 +26,4 @@ class AutomobileMainView:
         self.fleet_form = FleetForm(self.session, current_user_id)
         self.vehicle_main_view = VehicleMainView(self.session, current_user_id)
         self.vehicle_detail = VehicleDetailView()
+        self.asac_import = ASACImportView(self.session, current_user_id)

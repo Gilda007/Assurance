@@ -1,10 +1,81 @@
-from addons.Automobiles.models.contract_models import Contrat
+# addons/Automobiles/models/__init__.py
+
+"""
+Package des modèles Automobiles
+"""
+
+from core.database import Base
+
+# ============================================
+# IMPORTS DE TOUS LES MODÈLES
+# ============================================
+
+# Modèles existants
+from addons.Automobiles.models.contract_models import Contrat, ContractStatus
 from addons.Automobiles.models.contact_models import Contact, ContactAuditLog
 from addons.Automobiles.models.flottes_models import Fleet, AuditFlotteLog
-from addons.Automobiles.models.automobile_models import AuditVehicleLog, Vehicle
 from addons.Automobiles.models.compagnies_models import Compagnie
 from addons.Automobiles.models.tarif_models import AutomobileTarif
 from addons.Automobiles.models.automobile_tranche import AutomobileTranche
 from addons.Automobiles.models.paiement_models import Paiement
-# Importez tous vos modèles ici pour que SQLAlchemy les enregistre tous en même temps
+from addons.Automobiles.models.driver_models import Driver
 
+# Modèles Vehicle (tous dans automobile_models.py)
+from addons.Automobiles.models.automobile_models import (
+    Vehicle,
+    AuditVehicleLog,
+    VehicleCategory,
+    VehicleGenre,
+    VehicleType,
+    VehicleUsage,
+    VehicleEnergy,
+    CirculationZone,
+    VehicleCategoryRef,
+    VehicleGenreRef,
+    VehicleTypeRef,
+    VehicleUsageRef,
+    VehicleEnergyRef,
+    VehicleZoneRef,
+    VehicleGuarantee,
+    VehicleGuaranteeReduction,
+    VehicleGuaranteeRate,
+    VehicleGuaranteeOption,
+    VehicleFleetGuarantee,
+    VehicleClassification,
+)
+
+# Exposer tous les modèles
+__all__ = [
+    'Base',
+    'Contact',
+    'ContactAuditLog',
+    'Compagnie',
+    'Fleet',
+    'AuditFlotteLog',
+    'Driver',
+    'Contrat',
+    'ContractStatus',
+    'AutomobileTarif',
+    'AutomobileTranche',
+    'Paiement',
+    'Vehicle',
+    'AuditVehicleLog',
+    'VehicleCategory',
+    'VehicleGenre',
+    'VehicleType',
+    'VehicleUsage',
+    'VehicleEnergy',
+    'CirculationZone',
+    'VehicleCategoryRef',
+    'VehicleGenreRef',
+    'VehicleTypeRef',
+    'VehicleUsageRef',
+    'VehicleEnergyRef',
+    'VehicleZoneRef',
+    'VehicleGuarantee',
+    'VehicleGuaranteeReduction',
+    'VehicleGuaranteeRate',
+    'VehicleGuaranteeOption',
+    'VehicleFleetGuarantee',
+    'VehicleClassification',
+]

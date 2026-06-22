@@ -61,6 +61,7 @@ class Contrat(Base):
     vehicle = relationship("Vehicle", lazy="joined", back_populates="contract")
     paiements = relationship("Paiement", lazy="selectin", back_populates="contrat", cascade="all, delete-orphan")
     fleet = relationship("Fleet", lazy="joined", back_populates="contract")
+    drivers = relationship("Driver", back_populates="contract")
 
 
 class AuditContratLog(Base):

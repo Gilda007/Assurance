@@ -317,6 +317,7 @@ class VehiculeModuleView(QWidget):
             elif key == "edit":
                 btn.clicked.connect(lambda checked, v=vehicle: self.on_edit_vehicle(v))
             elif key == "view":
+                print(f"Véhicule affiché : {vehicle}")  # Debug : vérifier l'objet passé
                 btn.clicked.connect(lambda checked, v=vehicle: self.show_detail_vehicle(v))
             
             layout.addWidget(btn)
@@ -324,73 +325,7 @@ class VehiculeModuleView(QWidget):
         # CORRECTION : On utilise 'row' (l'index) et non 'vehicle' (l'objet)
         self.table_vehicules.setCellWidget(row, 6, container)
     
-    # def refresh_fleets(self):
-    #     try:
-    #         fleets = self.controller.fleets.get_all_fleets()
-    #         self.table_fleets.setRowCount(0)
-            
-    #         for f in fleets:
-    #             row = self.table_fleets.rowCount()
-    #             self.table_fleets.insertRow(row)
-                
-    #             # 0. Code Flotte
-    #             self.table_fleets.setItem(row, 0, QTableWidgetItem(str(f.code_flotte or "")))
-                
-    #             # 1. Nom Flotte
-    #             self.table_fleets.setItem(row, 1, QTableWidgetItem(str(f.nom_flotte or "")))
-                
-    #             # 2. Propriétaire (Relation owner)
-    #             owner_name = f.owner.nom if f.owner else "N/A"
-    #             self.table_fleets.setItem(row, 2, QTableWidgetItem(owner_name))
-                
-    #             # 3. Type Gestion
-    #             self.table_fleets.setItem(row, 3, QTableWidgetItem(str(f.type_gestion or "")))
-                
-    #             # 4. Remise
-    #             remise_text = f"{f.remise_flotte}%" if f.remise_flotte else "0%"
-    #             self.table_fleets.setItem(row, 4, QTableWidgetItem(remise_text))
-                
-    #             # 5. Date de Création (Formatée proprement)
-    #             date_str = f.created_at.strftime("%d/%m/%Y") if f.created_at else "---"
-    #             self.table_fleets.setItem(row, 5, QTableWidgetItem(date_str))
-                
-
-    #             # À l'intérieur de la boucle 'for f in fleets:' de refresh_fleets
-    #             container = QWidget()
-    #             layout = QHBoxLayout(container)
-    #             layout.setContentsMargins(0, 0, 0, 0)
-    #             layout.setSpacing(4)
-
-    #             # Bouton Visualiser (Bleu)
-    #             btn_view = QPushButton("👁️")
-    #             btn_view.setStyleSheet("background: #3498db; color: white; border-radius: 50px; padding: 4px;")
-    #             btn_view.clicked.connect(lambda _, f=f: self.handle_fleet_action(f, "view"))
-
-    #             # Bouton Modifier (Orange)
-    #             btn_edit = QPushButton("✏️")
-    #             btn_edit.setStyleSheet("background: #f39c12; color: white; padding: 4px;")
-    #             btn_edit.clicked.connect(lambda _, f=f: self.handle_fleet_action(f, "edit"))
-
-    #             # Bouton d'Impression
-    #             btn_print = QPushButton("📄 Imprimer l'État")
-    #             btn_print.setStyleSheet("background: #f39c12; color: white; padding: 4px;")
-    #             btn_print.setCursor(Qt.PointingHandCursor)
-    #             btn_print.clicked.connect(lambda _, fleet=f: self.on_print_fleet_click(fleet))
-
-    #             # Bouton Bloquer (Rouge)
-    #             btn_lock = QPushButton("🔒")
-    #             btn_lock.setStyleSheet("background: #e74c3c; color: white; border-radius: 50px; padding: 4px;")
-                
-
-    #             layout.addWidget(btn_view)
-    #             layout.addWidget(btn_edit)
-    #             layout.addWidget(btn_lock)
-    #             layout.addWidget(btn_print)
-    #             self.table_flottes.setCellWidget(row, 5, container) # Colonne 5 ou 6 selon votre setup
-                
-    #     except Exception as e:
-    #         logger.error(f"Erreur lors du rafraîchissement des flottes : {e}")
-
+    
     def refresh_fleets(self):
         """Rafraîchit les données des flottes (version asynchrone)"""
         self.load_fleets_async()
@@ -440,275 +375,70 @@ class VehiculeModuleView(QWidget):
             if success:
                 self.refresh_fleets()
 
-    # def show_detail_vehicle(self, vehicle):
-    #     """
-    #     Prépare et affiche l'interface de détails pour un objet Vehicle du modèle SQLAlchemy.
-    #     """
-    #     try:
-    #         # 1. Extraction et formatage des données depuis le modèle SQLAlchemy (automobile_models.py)
-    #         # On utilise getattr par sécurité pour éviter les AttributeError si un champ est None
-            
-    #         # Récupération du nom du propriétaire (Contact)
-    #         owner_name = "N/A"
-    #         owner_obj = None
-    #         if hasattr(vehicle, 'owner_id') and getattr(vehicle, 'owner_id', None):
-    #             session = getattr(self.controller, 'session', None)
-    #             if session:
-    #                 try:
-    #                     owner_obj = session.query(Contact).get(vehicle.owner_id)
-    #                 except Exception:
-    #                     owner_obj = None
-    #         if owner_obj:
-    #             owner_name = f"{getattr(owner_obj, 'nom', '')} {getattr(owner_obj, 'prenom', '')}".strip()
-
-    #         # Récupération du nom de la compagnie d'assurance
-    #         compagny_name = "Non définie"
-    #         if hasattr(vehicle, 'compagny_id') and getattr(vehicle, 'compagny_id', None):
-    #             session = getattr(self.controller, 'session', None)
-    #             if session:
-    #                 try:
-    #                     compagny_obj = session.query(Compagnie).get(vehicle.compagny_id)
-    #                     if compagny_obj:
-    #                         compagny_name = getattr(compagny_obj, 'nom', 'N/A')
-    #                 except Exception:
-    #                     compagny_name = "Non définie"
-            
-    #         contract = vehicle.contract
-
-    #         vehicle_data = {
-    #             # Identification
-    #             'id': getattr(vehicle, 'id', None),
-    #             'immatriculation': getattr(vehicle, 'immatriculation', 'N/A'),
-    #             'chassis': getattr(vehicle, 'chassis', 'N/A'),
-    #             'marque': getattr(vehicle, 'marque', 'N/A'),
-    #             'modele': getattr(vehicle, 'modele', 'N/A'),
-    #             'annee': str(getattr(vehicle, 'annee', 'N/A')),
-                
-    #             'numero_police': getattr(contract, 'numero_police', 'Aucun contrat actif'),
-    #             'date_debut_contract': getattr(contract, 'date_debut', None),
-    #             'date_fin_contract': getattr(contract, 'date_fin', None),
-    #             'prime_totale': getattr(contract, 'prime_totale_ttc', 0.0),
-    #             'montant_paye': getattr(contract, 'montant_paye', 0.0),
-    #             'statut_paiement': getattr(contract, 'statut_paiement', 'NON_PAYE'),
-
-    #             'date_debut': vehicle.date_debut.strftime('%d/%m/%Y') if vehicle.date_debut else "",
-    #             'date_fin': vehicle.date_fin.strftime('%d/%m/%Y') if vehicle.date_fin else "",
-                
-    #             # Technique
-    #             'energy': getattr(vehicle, 'energie', 'N/A'),
-    #             'usage': getattr(vehicle, 'usage', '0'), # Dans votre code, usage semble porter la puissance
-    #             'places': str(getattr(vehicle, 'places', '5')),
-    #             'zone': getattr(vehicle, 'zone', 'N/A'),
-    #             'categorie': getattr(vehicle, 'categorie', 'N/A'),
-    #             'code_tarif': getattr(vehicle, 'code_tarif', 'N/A'),
-    #             'prime_emise': getattr(vehicle, 'prime_emise', 0),
-    #             'valeur_neuf': getattr(vehicle, 'valeur_neuf', 0),
-    #             'valeur_venale': getattr(vehicle, 'valeur_venale', 0),
-    #             'prime_nette': getattr(vehicle, 'prime_nette', 0),
-    #             'prime_brute': getattr(vehicle, 'prime_brute', 0),
-    #             'réduction': getattr(vehicle, 'reduction', 0),
-    #             'carte_rose': getattr(vehicle, 'carte_rose', 'N/A'),
-    #             'accessoires': getattr(vehicle, 'accessoires', 'N/A'),
-    #             'tva': getattr(vehicle, 'tva', 0),
-    #             'fichier_asac': getattr(vehicle, 'fichier_asac', 'N/A'),
-    #             'vignette': getattr(vehicle, 'vignette', 'N/A'),
-    #             'PTTC': getattr(vehicle, 'pttc', 0),
-    #             'libele-tarif': getattr(vehicle, 'libele_tarif', 'N/A'),
-
-    #             # Propriétaire & Assurance
-    #             'owner': owner_name,
-    #             'compagny': compagny_name,
-    #             'phone': getattr(owner_obj, 'telephone', 'N/A') if owner_obj else "N/A",
-    #             'email': getattr(owner_obj, 'email', 'N/A') if owner_obj else "N/A",
-    #             'city': getattr(owner_obj, 'ville', 'Yaoundé') if owner_obj else "Yaoundé",
-
-    #             # Garanties (Présentées séparément pour faciliter l'affichage dans la vue de détails)
-
-    #             'check_rc': getattr(vehicle, 'check_rc', False),
-    #             'check_dr': getattr(vehicle, 'check_dr', False),
-    #             'check_vb': getattr(vehicle, 'check_vb', False),
-    #             'check_vol': getattr(vehicle, 'check_vol', False),
-    #             'check_in': getattr(vehicle, 'check_in', False),
-    #             'check_bris': getattr(vehicle, 'check_bris', False),
-    #             'check_ar': getattr(vehicle, 'check_ar', False),
-    #             'check_dta': getattr(vehicle, 'check_dta', False),
-    #             'check_ipt': getattr(vehicle, 'check_ipt', False), 
-                
-    #             # Montants des garanties (pour affichage dans les détails)
-    #             'amt_rc': getattr(vehicle, 'amt_rc', 0),
-    #             'amt_dr': getattr(vehicle, 'amt_dr', 0),
-    #             'amt_vb': getattr(vehicle, 'amt_vb', 0),
-    #             'amt_vol': getattr(vehicle, 'amt_vol', 0),
-    #             'amt_in': getattr(vehicle, 'amt_in', 0),
-    #             'amt_bris': getattr(vehicle, 'amt_bris', 0),
-    #             'amt_ar': getattr(vehicle, 'amt_ar', 0),
-    #             'amt_dta': getattr(vehicle, 'amt_dta', 0),
-    #             'amt_ipt': getattr(vehicle, 'amt_ipt', 0),
-
-    #             # Montants des garanties (pour affichage dans les détails)
-    #             'amt_red_rc': getattr(vehicle, 'amt_red_rc', 0),
-    #             'amt_red_dr': getattr(vehicle, 'amt_red_dr', 0),
-    #             'amt_red_vol': getattr(vehicle, 'amt_red_vol', 0),
-    #             'amt_red_vb': getattr(vehicle, 'amt_red_vb', 0),
-    #             'amt_red_in': getattr(vehicle, 'amt_red_in', 0),
-    #             'amt_red_bris': getattr(vehicle, 'amt_red_bris', 0),
-    #             'amt_red_ar': getattr(vehicle, 'amt_red_ar', 0),
-    #             'amt_red_dta': getattr(vehicle, 'amt_red_dta', 0),
-    #             'amt_red_ipt': getattr(vehicle, 'amt_red_ipt', 0)
-    #         }
-
-    #         # 2. Importation de la vue de détails
-    #         # (Assurez-vous que le nom du fichier est correct : vehicle_detail_view.py)
-    #         from .vehicle_detail_view import VehicleDetailView
-            
-    #         # 3. Création et configuration du dialogue
-    #         from PySide6.QtWidgets import QDialog, QVBoxLayout
-            
-    #         detail_dialog = QDialog(self)
-    #         detail_dialog.setWindowTitle(f"Fiche Véhicule : {vehicle_data['immatriculation']}")
-    #         detail_dialog.setMinimumSize(950, 750)
-            
-    #         # Design sans bordure ou avec style si nécessaire
-    #         # detail_dialog.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog) 
-
-    #         layout = QVBoxLayout(detail_dialog)
-    #         layout.setContentsMargins(0, 0, 0, 0)
-
-    #         # Instanciation de la vue avec le contrôleur pour les impressions
-    #         self.view_details = VehicleDetailView(vehicle_data=vehicle_data, controller=self.controller, db_session=self.session)
-    #         layout.addWidget(self.view_details)
-
-    #         # Connexion du bouton retour (btn_back) pour fermer le dialogue
-    #         if hasattr(self.view_details, 'btn_back'):
-    #             self.view_details.btn_back.clicked.connect(detail_dialog.close)
-
-    #         # 4. Exécution du dialogue
-    #         detail_dialog.exec()
-
-    #     except Exception as e:
-    #         print(f"❌ Erreur show_detail_vehicle : {str(e)}")
-    #         import traceback
-    #         traceback.print_exc()
-    #         from PySide6.QtWidgets import QMessageBox
-    #         QMessageBox.critical(self, "Erreur", f"Impossible d'afficher les détails du véhicule : {e}")
-    
-    # addons/Automobiles/views/automobile_view.py
-
-    # ... dans la classe VehiculeModuleView ...
 
     def show_detail_vehicle(self, vehicle):
         """
-        Version asynchrone : charge les données de détail dans un thread,
+        Version asynchrone : charge les données de détail via le contrôleur,
         puis ouvre la fenêtre sans geler l'interface.
         """
-        # 1. Afficher un indicateur de chargement (optionnel mais recommandé)
-        self.loading_overlay.show_loading("Chargement des détails du véhicule...")
+        from core.widgets.global_loader import get_global_loader
+        loader = get_global_loader()
+        loader.show_loading("Chargement des détails du véhicule...")
+        print("Données de détail chargées :", vehicle)  # Debug
 
-        # 2. Définir la fonction lourde (sera exécutée dans un thread)
-        def load_vehicle_details_data():
-            """
-            Cette fonction contient TOUTES les requêtes SQL.
-            Elle s'exécute dans un thread séparé et ne bloque donc PAS l'UI.
-            """
-            session = getattr(self.controller, 'session', None)
-            if not session:
-                return None
+        def load_vehicle_details():
+            """Fonction exécutée dans un thread séparé."""
+            from core.database import SessionLocal
+            
+            session = SessionLocal()
+            try:
+                from addons.Automobiles.controllers.automobile_controller import VehicleController
+                vehicle_ctrl = VehicleController(session)
+                return vehicle_ctrl.get_vehicle_details_data(vehicle.id)
+            finally:
+                session.close()
 
-            # --- Toutes les requêtes lentes sont ici ---
-            # 1. Contrat
-            contract = None
-            if hasattr(vehicle, 'id') and vehicle.id:
-                try:
-                    contract = vehicle.contract
-                except:
-                    try:
-                        from addons.Automobiles.models import Contrat
-                        contract = session.query(Contrat).filter(Contrat.vehicle_id == vehicle.id).first()
-                    except: pass
+        def on_details_loaded(vehicle_data):
+            """Callback appelé dans le thread principal."""
+            loader.hide_loading()
+            
+            if not vehicle_data:
+                QMessageBox.warning(self, "Erreur", "Impossible de charger les détails du véhicule.")
+                return
 
-            # 2. Propriétaire
-            owner_name = "N/A"
-            owner_phone = "N/A"
-            owner_email = "N/A"
-            owner_city = "Yaoundé"
-            if hasattr(vehicle, 'owner_id') and vehicle.owner_id:
-                try:
-                    from addons.Automobiles.models import Contact
-                    owner_obj = session.query(Contact).get(vehicle.owner_id)
-                    if owner_obj:
-                        owner_name = f"{getattr(owner_obj, 'nom', '')} {getattr(owner_obj, 'prenom', '')}".strip()
-                        owner_phone = getattr(owner_obj, 'telephone', 'N/A')
-                        owner_email = getattr(owner_obj, 'email', 'N/A')
-                        owner_city = getattr(owner_obj, 'ville', 'Yaoundé')
-                except: pass
+            # Ouvrir la fenêtre de détails
+            from .vehicle_detail_view import VehicleDetailView
+            from PySide6.QtWidgets import QDialog, QVBoxLayout
 
-            # 3. Compagnie
-            compagny_name = "Non définie"
-            if hasattr(vehicle, 'compagny_id') and vehicle.compagny_id:
-                try:
-                    from addons.Automobiles.models import Compagnie
-                    compagny_obj = session.query(Compagnie).get(vehicle.compagny_id)
-                    if compagny_obj:
-                        compagny_name = getattr(compagny_obj, 'nom', 'N/A')
-                except: pass
+            detail_dialog = QDialog(self)
+            detail_dialog.setWindowTitle(f"Fiche Véhicule : {vehicle_data['immatriculation']}")
+            detail_dialog.setMinimumSize(950, 750)
 
-            # 4. Dates
-            date_debut_str = ""
-            date_fin_str = ""
-            if hasattr(vehicle, 'date_debut') and vehicle.date_debut:
-                date_debut_str = vehicle.date_debut.strftime('%d/%m/%Y') if hasattr(vehicle.date_debut, 'strftime') else str(vehicle.date_debut)
-            if hasattr(vehicle, 'date_fin') and vehicle.date_fin:
-                date_fin_str = vehicle.date_fin.strftime('%d/%m/%Y') if hasattr(vehicle.date_fin, 'strftime') else str(vehicle.date_fin)
+            layout = QVBoxLayout(detail_dialog)
+            layout.setContentsMargins(0, 0, 0, 0)
 
-            # --- Construction du dictionnaire de résultats (SANS objets SQLAlchemy) ---
-            vehicle_data = {
-                'id': getattr(vehicle, 'id', None),
-                'immatriculation': getattr(vehicle, 'immatriculation', 'N/A'),
-                'chassis': getattr(vehicle, 'chassis', 'N/A'),
-                'marque': getattr(vehicle, 'marque', 'N/A'),
-                'modele': getattr(vehicle, 'modele', 'N/A'),
-                'annee': str(getattr(vehicle, 'annee', 'N/A')),
-                'numero_police': getattr(contract, 'numero_police', 'Aucun contrat actif') if contract else 'Aucun contrat actif',
-                'date_debut': date_debut_str,
-                'date_fin': date_fin_str,
-                'prime_totale': getattr(contract, 'prime_totale_ttc', 0.0) if contract else 0.0,
-                'montant_paye': getattr(contract, 'montant_paye', 0.0) if contract else 0.0,
-                'statut_paiement': getattr(contract, 'statut_paiement', 'NON_PAYE') if contract else 'NON_PAYE',
-                'energy': getattr(vehicle, 'energie', 'N/A'),
-                'usage': getattr(vehicle, 'usage', '0'),
-                'places': str(getattr(vehicle, 'places', '5')),
-                'zone': getattr(vehicle, 'zone', 'N/A'),
-                'categorie': getattr(vehicle, 'categorie', 'N/A'),
-                'code_tarif': getattr(vehicle, 'code_tarif', 'N/A'),
-                'prime_emise': getattr(vehicle, 'prime_emise', 0),
-                'valeur_neuf': getattr(vehicle, 'valeur_neuf', 0),
-                'valeur_venale': getattr(vehicle, 'valeur_venale', 0),
-                'prime_nette': getattr(vehicle, 'prime_nette', 0),
-                'prime_brute': getattr(vehicle, 'prime_brute', 0),
-                'réduction': getattr(vehicle, 'reduction', 0),
-                'carte_rose': getattr(vehicle, 'carte_rose', 'N/A'),
-                'accessoires': getattr(vehicle, 'accessoires', 'N/A'),
-                'tva': getattr(vehicle, 'tva', 0),
-                'fichier_asac': getattr(vehicle, 'fichier_asac', 'N/A'),
-                'vignette': getattr(vehicle, 'vignette', 'N/A'),
-                'PTTC': getattr(vehicle, 'pttc', 0),
-                'libele_tarif': getattr(vehicle, 'libele_tarif', 'N/A'),
-                'owner': owner_name,
-                'compagny': compagny_name,
-                'phone': owner_phone,
-                'email': owner_email,
-                'city': owner_city,
-                # ... (ajoutez ici les autres champs comme check_rc, amt_rc, etc. si nécessaire)
-                # Pour ne pas surcharger, je ne les ai pas tous listés, mais vous devez tous les inclure.
-            }
-            return vehicle_data
+            view_details = VehicleDetailView(
+                vehicle_data=vehicle_data,
+                controller=self.controller
+            )
+            layout.addWidget(view_details)
 
-        # 3. Exécuter la fonction de chargement dans le worker asynchrone
+            if hasattr(view_details, 'btn_back'):
+                view_details.btn_back.clicked.connect(detail_dialog.close)
+
+            detail_dialog.exec()
+
+        def on_load_error(error):
+            """Gère les erreurs."""
+            loader.hide_loading()
+            QMessageBox.critical(self, "Erreur", f"Erreur: {error}")
+
+        # ✅ Exécution asynchrone - NE BLOQUE PAS L'UI
         async_query.execute(
-            load_vehicle_details_data,
-            on_finished=lambda vehicle_data: self._on_details_loaded(vehicle_data),
-            on_error=self.on_load_error, # Utilisez votre gestionnaire d'erreur existant
-            show_loader=False, # On gère le loader nous-même
+            load_vehicle_details,
+            on_finished=on_details_loaded,
+            on_error=on_load_error,
+            show_loader=False
         )
 
     def _on_details_loaded(self, vehicle_data):
@@ -724,7 +454,7 @@ class VehiculeModuleView(QWidget):
             QMessageBox.warning(self, "Erreur", "Impossible de charger les détails du véhicule.")
             return
 
-        # 3. Construire et afficher la fenêtre de dialogue (comme avant)
+        # 3. Construire et afficher la fenêtre de dialogue
         from .vehicle_detail_view import VehicleDetailView
         from PySide6.QtWidgets import QDialog, QVBoxLayout
 
@@ -735,7 +465,10 @@ class VehiculeModuleView(QWidget):
         layout = QVBoxLayout(detail_dialog)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        self.view_details = VehicleDetailView(vehicle_data=vehicle_data, controller=self.controller)
+        self.view_details = VehicleDetailView(
+            vehicle_data=vehicle_data,
+            controller=self.controller
+        )
         layout.addWidget(self.view_details)
 
         if hasattr(self.view_details, 'btn_back'):
@@ -959,17 +692,115 @@ class VehiculeModuleView(QWidget):
             # Recharger asynchrone
             self.load_fleets_async()
 
+    # def on_edit_vehicle(self, vehicle):
+    #     """
+    #     Gère l'ouverture du formulaire de modification.
+    #     On recharge le véhicule avec ses relations avant de l'ouvrir.
+    #     """
+    #     from core.database import SessionLocal
+    #     from core.widgets.global_loader import get_global_loader
+        
+    #     # Afficher un loader
+    #     loader = get_global_loader()
+    #     loader.show_loading("Chargement du véhicule...")
+        
+    #     def load_vehicle_with_relations():
+    #         """Charge le véhicule avec toutes ses relations dans une session dédiée."""
+    #         session = SessionLocal()
+    #         try:
+    #             # Utiliser la méthode avec load_relations=True
+    #             return self.controller.vehicles.get_vehicles_by_id(vehicle.id, load_relations=True)
+    #         finally:
+    #             session.close()  # La session est fermée mais les relations sont déjà chargées
+        
+    #     def on_vehicle_loaded(vehicle_with_relations):
+    #         """Callback quand le véhicule est chargé."""
+    #         loader.hide_loading()
+            
+    #         if not vehicle_with_relations:
+    #             QMessageBox.warning(self, "Erreur", "Impossible de charger le véhicule.")
+    #             return
+            
+    #         # Ouvrir le formulaire avec l'objet chargé
+    #         dialog = VehicleForm(
+    #             controller=self.controller,
+    #             vehicle_to_edit=vehicle_with_relations,
+    #             current_user=getattr(self, 'current_user', None),
+    #             mode="edit"
+    #         )
+    #         if dialog.exec():
+    #             self.load_vehicles_async()
+        
+    #     def on_load_error(error):
+    #         """Gère les erreurs de chargement."""
+    #         loader.hide_loading()
+    #         QMessageBox.critical(self, "Erreur", f"Erreur de chargement: {error}")
+        
+    #     # Exécuter le chargement dans un thread séparé
+    #     async_query.execute(
+    #         load_vehicle_with_relations,
+    #         on_finished=on_vehicle_loaded,
+    #         on_error=on_load_error,
+    #         show_loader=False  # On gère le loader nous-même
+    #     )
+
+    # addons/Automobiles/views/automobile_view.py
+
     def on_edit_vehicle(self, vehicle):
-        """Modification d'un véhicule"""
-        dialog = VehicleForm(
-            controller=self.controller,
-            vehicle_to_edit=vehicle,
-            current_user=getattr(self, 'current_user', None),
-            mode="edit"
+        """
+        Gère l'ouverture du formulaire de modification.
+        Version asynchrone : ne bloque pas l'UI.
+        """
+        # Afficher un loader
+        from core.widgets.global_loader import get_global_loader
+        loader = get_global_loader()
+        loader.show_loading("Chargement du véhicule...")
+        
+        def load_vehicle():
+            """Fonction exécutée dans un thread séparé."""
+            from core.database import SessionLocal
+            
+            session = SessionLocal()
+            try:
+                # Créer un contrôleur avec la nouvelle session
+                from addons.Automobiles.controllers.automobile_controller import VehicleController
+                vehicle_ctrl = VehicleController(session)
+                
+                # Charger le véhicule avec toutes ses relations
+                return vehicle_ctrl.get_vehicle_with_relations(vehicle.id)
+            finally:
+                session.close()
+        
+        def on_vehicle_loaded(vehicle_with_relations):
+            """Callback appelé dans le thread principal."""
+            loader.hide_loading()
+            
+            if not vehicle_with_relations:
+                QMessageBox.warning(self, "Erreur", "Impossible de charger le véhicule.")
+                return
+            
+            # ✅ Ouvrir le formulaire avec l'objet chargé (détaché, mais les relations sont chargées)
+            dialog = VehicleForm(
+                controller=self.controller,
+                vehicle_to_edit=vehicle_with_relations,
+                current_user=getattr(self, 'current_user', None),
+                mode="edit"
+            )
+            if dialog.exec():
+                self.load_vehicles_async()
+        
+        def on_load_error(error):
+            """Gère les erreurs de chargement."""
+            loader.hide_loading()
+            QMessageBox.critical(self, "Erreur", f"Erreur de chargement: {error}")
+        
+        # ✅ Exécution asynchrone - NE BLOQUE PAS L'UI
+        async_query.execute(
+            load_vehicle,
+            on_finished=on_vehicle_loaded,
+            on_error=on_load_error,
+            show_loader=False  # On gère le loader nous-même
         )
-        if dialog.exec():
-            # Recharger asynchrone
-            self.load_vehicles_async()
 
     def on_delete_vehicle(self, vehicle):
         """Suppression d'un véhicule"""

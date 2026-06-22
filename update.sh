@@ -22,7 +22,7 @@ NC='\033[0m' # No Color
 MODULE_NAME="Automobiles"
 NEW_VERSION="1.2.0"
 PROJECT_DIR="/home/fearless/Documents/Assurance"
-SERVER_URL="http://192.168.100.17:5000"
+SERVER_URL="http://192.168.100.89:5000"
 
 # Options
 CREATE_ZIP=true

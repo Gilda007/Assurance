@@ -674,14 +674,6 @@ class ContactListView(QWidget):
         search_shortcut.triggered.connect(lambda: self.search_input.setFocus())
         self.addAction(search_shortcut)
     
-    # def on_contacts_loaded(self, contacts):
-    #     """Callback quand les contacts sont chargés"""
-    #     # Cache le loader si tu utilises un loading_overlay
-    #     # self.loading_overlay.hide_loading()
-        
-    #     # Affiche les contacts dans ton tableau
-    #     self.display_contacts(contacts)
-
     def on_contacts_loaded(self, contacts):
         """Callback quand les contacts sont chargés"""
         # Stocker les contacts dans les variables d'instance

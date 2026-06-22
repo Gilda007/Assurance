@@ -12,6 +12,30 @@ BASE_DIR = "/home/fearless/Documents/Assurance"
 ADDONS_DIR = os.path.join(BASE_DIR, "addons")
 MANIFEST_FILE = os.path.join(BASE_DIR, "server", "versions.json")
 
+@app.route('/')
+def index():
+    """Status endpoint for the update server."""
+    return jsonify({
+        'status': 'update server running',
+        'endpoints': [
+            '/api/check_updates',
+            '/addons/<module_name>.zip',
+            '/addons/<module_name>/manifest.json'
+        ]
+    })
+
+@app.route('/api')
+def api_root():
+    """API root status endpoint."""
+    return jsonify({
+        'status': 'update API is available',
+        'check_updates': '/api/check_updates'
+    })
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    return jsonify({'error': 'Endpoint not found', 'path': request.path}), 404
+
 def load_global_manifest():
     """Charge le manifest global des versions"""
     if os.path.exists(MANIFEST_FILE):

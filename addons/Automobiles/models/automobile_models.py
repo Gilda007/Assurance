@@ -4,279 +4,494 @@ from sqlalchemy import Boolean, Column, Integer, String, Date, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from core.database import Base
 from datetime import datetime, timezone
+from sqlalchemy.exc import SQLAlchemyError, OperationalError
+
+
+class VehicleCategory(enum.Enum):
+    """Catégorie du véhicule (section 4.2)"""
+    VEHICULE_TOURISME_PP = "VP01"
+    TRANSPORT_PROPRE_COMPTE = "VP02"
+    TRANSPORT_PUBLIC_MARCHANDISES = "VP03"
+    TRANSPORT_PUBLIC_VOYAGEURS = "VP04"
+    VEHICULE_2_3_ROUES = "VP05"
+    VEHICULE_GARAGISTES = "VP06"
+    VEHICULE_AUTO_ECOLE = "VP07"
+    VEHICULE_LOCATION = "VP08"
+    ENGIN_CHANTIER = "VP09"
+    VEHICULES_SPECIAUX = "VP10"
+    CATEGORIE_11 = "VP11"
+    VEHICULE_TOURISME_PM = "VP12"
+
+class VehicleGenre(enum.Enum):
+    """Genre du véhicule (section 4.3)"""
+    CAMION = "GV01"
+    CAMIONNETTE = "GV02"
+    CYCLOMOTEUR = "GV03"
+    VOITURE = "GV04"
+    ENGINS_CHANTIERS = "GV05"
+    CAR = "GV06"
+    FOURGONNETTE = "GV07"
+    REMORQUE = "GV08"
+    SCOOTER = "GV09"
+    SEMI_REMORQUE = "GV10"
+    TRACTEUR_AGRICOLE = "GV11"
+    TRACTEUR_ROUTIER = "GV12"
+
+class VehicleType(enum.Enum):
+    """Type du véhicule (section 4.4)"""
+    AMBULANCE = "TV01"
+    AUTO_CAR = "TV02"
+    CORBIARD = "TV03"
+    MINI_CAR = "TV04"
+    TAXI_COMMUNAUX = "TV05"
+    TAXI_URBAIN = "TV06"
+    VEHICULE_AUTO_ECOLE = "TV07"
+    VEHICULE_SERVICE_PUBLIC = "TV08"
+    VEHICULE_TOURISME = "TV09"
+    VEHICULE_PARTICULIER = "TV10"
+    VEHICULE_UTILITAIRE = "TV11"
+    VOITURE_LOCATION = "TV12"
+    CYCLOMOTEUR = "TV13"
+
+class VehicleUsage(enum.Enum):
+    """Usage du véhicule (section 4.5)"""
+    PROMENADE_AFFAIRE = "UV01"
+    TRANSPORT_PROPRE_COMPTE = "UV02"
+    TRANSPORT_PRIVE_VOYAGEURS = "UV03"
+    TRANSPORT_PUBLIC_MARCHANDISES = "UV04"
+    TRANSPORT_PUBLIC_VOYAGEURS = "UV05"
+    VEHICULES_AUTO_ECOLE = "UV06"
+    VEHICULES_LOCATION = "UV07"
+    VEHICULES_SPECIAUX = "UV08"
+    ENGIN_CHANTIER = "UV09"
+    VEHICULE_MOTORISE_2_3_ROUES = "UV10"
+
+class VehicleEnergy(enum.Enum):
+    """Énergie du véhicule (section 4.6)"""
+    ESSENCE = "SEE"
+    DIESEL = "SED"
+    ELECTRIQUE = "SEE"
+    HYBRIDE = "SEHY"
+
+class CirculationZone(enum.Enum):
+    """Zone de circulation (section 4.7)"""
+    ZONE_A = "A"
+    ZONE_B = "B"
+    ZONE_C = "C"
+
+
+# ============================================
+# 2. DÉFINITION DES TABLES DE RÉFÉRENCE
+# ============================================
+
+class VehicleCategoryRef(Base):
+    """Catégories de véhicules (référentiel)"""
+    __tablename__ = 'vehicle_categories'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(10), unique=True, nullable=False)
+    libelle = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class VehicleGenreRef(Base):
+    """Genres de véhicules (référentiel)"""
+    __tablename__ = 'vehicle_genres'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(10), unique=True, nullable=False)
+    libelle = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class VehicleTypeRef(Base):
+    """Types de véhicules (référentiel)"""
+    __tablename__ = 'vehicle_types'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(10), unique=True, nullable=False)
+    libelle = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class VehicleUsageRef(Base):
+    """Usages de véhicules (référentiel)"""
+    __tablename__ = 'vehicle_usages'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(10), unique=True, nullable=False)
+    libelle = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class VehicleEnergyRef(Base):
+    """Énergies de véhicules (référentiel)"""
+    __tablename__ = 'vehicle_energies'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(10), unique=True, nullable=False)
+    libelle = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class VehicleZoneRef(Base):
+    """Zones de circulation (référentiel)"""
+    __tablename__ = 'vehicle_zones'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    code = Column(String(5), unique=True, nullable=False)
+    libelle = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+# ============================================
+# 3. DÉFINITION DES TABLES DE GARANTIES (AVANT VEHICLE)
+# ============================================
+
+class VehicleGuarantee(Base):
+    """Garanties principales du véhicule (Montants bruts)"""
+    __tablename__ = 'vehicle_guarantees'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id = Column(Integer, ForeignKey('vehicles.id'), unique=True, nullable=False)
+    
+    rc = Column(Float, default=0.0)
+    dr = Column(Float, default=0.0)
+    vol = Column(Float, default=0.0)
+    vb = Column(Float, default=0.0)
+    ipt = Column(Float, default=0.0)
+    bris = Column(Float, default=0.0)
+    ar = Column(Float, default=0.0)
+    dta = Column(Float, default=0.0)
+    in_garantie = Column(Float, default=0.0)
+    
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # La relation sera ajoutée après la définition de Vehicle
+    vehicle = relationship("Vehicle", back_populates="guarantees", foreign_keys=[vehicle_id])
+
+
+class VehicleGuaranteeReduction(Base):
+    """Garanties avec réduction appliquée"""
+    __tablename__ = 'vehicle_guarantee_reductions'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id = Column(Integer, ForeignKey('vehicles.id'), unique=True, nullable=False)
+    
+    rc = Column(Float, default=0.0)
+    dr = Column(Float, default=0.0)
+    vol = Column(Float, default=0.0)
+    vb = Column(Float, default=0.0)
+    ipt = Column(Float, default=0.0)
+    bris = Column(Float, default=0.0)
+    ar = Column(Float, default=0.0)
+    dta = Column(Float, default=0.0)
+    in_garantie = Column(Float, default=0.0)
+    
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    vehicle = relationship("Vehicle", back_populates="guarantee_reductions", foreign_keys=[vehicle_id])
+
+
+class VehicleGuaranteeRate(Base):
+    """Taux des garanties"""
+    __tablename__ = 'vehicle_guarantee_rates'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id = Column(Integer, ForeignKey('vehicles.id'), unique=True, nullable=False)
+    
+    rc = Column(Float, default=0.0)
+    dr = Column(Float, default=0.0)
+    vol = Column(Float, default=0.0)
+    vb = Column(Float, default=0.0)
+    ipt = Column(Float, default=0.0)
+    bris = Column(Float, default=0.0)
+    ar = Column(Float, default=0.0)
+    dta = Column(Float, default=0.0)
+    in_garantie = Column(Float, default=0.0)
+    
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    vehicle = relationship("Vehicle", back_populates="guarantee_rates", foreign_keys=[vehicle_id])
+
+
+class VehicleGuaranteeOption(Base):
+    """Options des garanties (Checkbox)"""
+    __tablename__ = 'vehicle_guarantee_options'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id = Column(Integer, ForeignKey('vehicles.id'), unique=True, nullable=False)
+    
+    rc = Column(Boolean, default=False)
+    dr = Column(Boolean, default=False)
+    vol = Column(Boolean, default=False)
+    vb = Column(Boolean, default=False)
+    ipt = Column(Boolean, default=False)
+    bris = Column(Boolean, default=False)
+    ar = Column(Boolean, default=False)
+    dta = Column(Boolean, default=False)
+    in_garantie = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    vehicle = relationship("Vehicle", back_populates="guarantee_options", foreign_keys=[vehicle_id])
+
+
+class VehicleFleetGuarantee(Base):
+    """Garanties spécifiques à la flotte"""
+    __tablename__ = 'vehicle_fleet_guarantees'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id = Column(Integer, ForeignKey('vehicles.id'), unique=True, nullable=False)
+    
+    rc = Column(Float, default=0.0)
+    dr = Column(Float, default=0.0)
+    vol = Column(Float, default=0.0)
+    vb = Column(Float, default=0.0)
+    ipt = Column(Float, default=0.0)
+    bris = Column(Float, default=0.0)
+    ar = Column(Float, default=0.0)
+    dta = Column(Float, default=0.0)
+    in_garantie = Column(Float, default=0.0)
+    
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    vehicle = relationship("Vehicle", back_populates="fleet_guarantees", foreign_keys=[vehicle_id])
+
+
+class VehicleClassification(Base):
+    """Classification ASAC du véhicule"""
+    __tablename__ = 'vehicle_classifications'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    vehicle_id = Column(Integer, ForeignKey('vehicles.id'), unique=True, nullable=False)
+    
+    categorie_id = Column(String(10))
+    genre_id = Column(String(10))
+    type_id = Column(String(10))
+    usage_id = Column(String(10))
+    energie_id = Column(String(10))
+    zone_id = Column(String(5))
+    
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    vehicle = relationship("Vehicle", back_populates="classification", foreign_keys=[vehicle_id])
 
 class Vehicle(Base):
-    __tablename__ = "vehicles"
+    __tablename__ = 'vehicles'
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     
-    # --- IDENTIFICATION ---
-    immatriculation = Column(String(20), unique=True, index=True, nullable=False)
-    chassis = Column(String(50), unique=False, nullable=False)
-    zone = Column(String(1), nullable=False)
-    marque = Column(String(50), nullable=False)
-    categorie = Column(String(50), nullable=False)
-    modele = Column(String(50), nullable=False)
-    annee = Column(Integer, nullable=False)
-    energie = Column(String(20))
-    usage = Column(String(50), nullable=False)
-    places = Column(Integer, default=5)
-    has_remorque = Column(Boolean, default=False)
-    libele_tarif = Column(String(50), nullable=False)
-    code_tarif = Column(String(50), nullable=True)
-
-    # --- PROPRIÉTAIRE & FLOTTE ---
-    owner_id = Column(Integer, ForeignKey('contacts.id'), nullable=True)
+    # --- RELATIONS EXISTANTES ---
+    owner_id = Column(Integer, ForeignKey('contacts.id'), nullable=False)
     compagny_id = Column(Integer, ForeignKey('automobile_compagnies.id'), nullable=True)
     fleet_id = Column(Integer, ForeignKey('fleets.id'), nullable=True)
-    tarif_id = Column(Integer, ForeignKey('automobile_tarifs.id'))
+    tarif_id = Column(Integer, ForeignKey('automobile_tarifs.id'), nullable=True)
+    driver_id = Column(Integer, ForeignKey('drivers.id'), nullable=True)
     
-    # --- DATES & STATUT ---
-    date_debut = Column(Date)
-    date_fin = Column(Date)
-    statut = Column(String(20), default="En Circulation")
-    nbr_jour = Column(Integer, default=0)  # Nombre de jours de couverture
-
-    # --- RÉCAPITULATIF FINANCIER GLOBAL ---
+    # --- INFORMATIONS DE BASE ---
+    immatriculation = Column(String(50), nullable=False, unique=True)
+    chassis = Column(String(100), nullable=False)
+    marque = Column(String(100), nullable=False)
+    modele = Column(String(100), nullable=False)
+    annee = Column(Integer)
+    
+    # --- CARACTÉRISTIQUES TECHNIQUES ---
+    puissance_fiscale = Column(Integer, default=5)
+    places = Column(Integer, default=5)
+    cylindree = Column(Integer, default=0)
+    ptac = Column(Integer, default=0)           # Poids Total Autorisé en Charge
+    charge_utile = Column(Integer, default=0)
+    
+    # --- VALEURS FINANCIÈRES ---
     valeur_neuf = Column(Float, default=0.0)
     valeur_venale = Column(Float, default=0.0)
+    
+    # --- OPTIONS SPÉCIFIQUES ---
+    has_remorque = Column(Boolean, default=False)
+    remorque_inflammable = Column(Boolean, default=False)
+    remorque_immat = Column(String(50))
+    double_commande = Column(Boolean, default=False)
+    engin_portuaire = Column(Boolean, default=False)
+    rc_eleves = Column(Boolean, default=False)  # Responsabilité Civile Élèves (auto-école)
+    
+    # --- CODES ET LIBELLÉS ---
+    code_tarif = Column(String(50))
+    libele_tarif = Column(String(255))
+    code_assure = Column(String(50))
+    
+    # --- DATES ET DURÉES ---
+    date_debut = Column(DateTime)
+    date_fin = Column(DateTime)
+    date_mise_circulation = Column(DateTime)
+    nbr_jour = Column(Integer, default=0)
+    
+    # --- FINANCES ---
     prime_brute = Column(Float, default=0.0)
     reduction = Column(Float, default=0.0)
     prime_nette = Column(Float, default=0.0)
     prime_emise = Column(Float, default=0.0)
+    accessoires = Column(Float, default=0.0)
+    tva = Column(Float, default=0.0)
+    fichier_asac = Column(Float, default=0.0)
+    carte_rose = Column(Float, default=0.0)
+    vignette = Column(Float, default=0.0)
+    pttc = Column(Float, default=0.0)  # Prix Toutes Taxes Comprises
     
-    # --- FRAIS SUPPLÉMENTAIRES ---
-    carte_rose = Column(Float, default=0.0)      # Carte rose
-    accessoires = Column(Float, default=0.0)     # Accessoires
-    tva = Column(Float, default=0.0)            # TVA (19.25%)
-    fichier_asac = Column(Float, default=0.0)   # Fichier ASAC
-    vignette = Column(Float, default=0.0)       # Vignette
-    pttc = Column(Float, default=0.0)           # Prime Toute Taxe Comprise
-
-    # --- DÉTAIL DES GARANTIES (ÉTAT ET MONTANT) ---
-    # RC
-    check_rc = Column(Boolean, default=False)
-    amt_rc = Column(Float, default=0.0)      # Montant brut
-    red_rc = Column(Float, default=0.0)      # Taux de réduction (%)
-    amt_red_rc = Column(Float, default=0.0)  # Montant après réduction
-    amt_val_red_rc = Column(Float, default=0.0)  # Valeur de la réduction en FCFA
-    amt_fleet_rc_val = Column(Float, default=0.0)      # Montant RC dans la flotte
+    # --- STATUT ---
+    statut = Column(String(20), default="ACTIF")
+    is_active = Column(Boolean, default=True, nullable=False)
     
-    # Défense Recours
-    check_dr = Column(Boolean, default=False)
-    amt_dr = Column(Float, default=0.0)
-    red_dr = Column(Float, default=0.0)
-    amt_red_dr = Column(Float, default=0.0)
-    amt_val_red_dr = Column(Float, default=0.0)
-    amt_fleet_dr_val = Column(Float, default=0.0)      # Montant DR dans la flotte
-    
-    # Vol
-    check_vol = Column(Boolean, default=False)
-    amt_vol = Column(Float, default=0.0)
-    red_vol = Column(Float, default=0.0)
-    amt_red_vol = Column(Float, default=0.0)
-    amt_val_red_vol = Column(Float, default=0.0)
-    amt_fleet_vol_val = Column(Float, default=0.0)     # Montant Vol dans la flotte
-    
-    # Vandalisme / VB
-    check_vb = Column(Boolean, default=False)
-    amt_vb = Column(Float, default=0.0)
-    red_vb = Column(Float, default=0.0)
-    amt_red_vb = Column(Float, default=0.0)
-    amt_val_red_vb = Column(Float, default=0.0)
-    amt_fleet_vb_val = Column(Float, default=0.0)      # Montant VB dans la flotte
-    
-    # Incendie
-    check_in = Column(Boolean, default=False)
-    amt_in = Column(Float, default=0.0)
-    red_in = Column(Float, default=0.0)
-    amt_red_in = Column(Float, default=0.0)
-    amt_val_red_in = Column(Float, default=0.0)
-    amt_fleet_in_val = Column(Float, default=0.0)      # Montant Incendie dans la flotte
-    
-    # Bris de Glace
-    check_bris = Column(Boolean, default=False)
-    amt_bris = Column(Float, default=0.0)
-    red_bris = Column(Float, default=0.0)
-    amt_red_bris = Column(Float, default=0.0)
-    amt_val_red_bris = Column(Float, default=0.0)
-    amt_fleet_bris_val = Column(Float, default=0.0)    # Montant Bris dans la flotte
-    
-    # Assistance Réparation
-    check_ar = Column(Boolean, default=False)
-    amt_ar = Column(Float, default=0.0)
-    red_ar = Column(Float, default=0.0)
-    amt_red_ar = Column(Float, default=0.0)
-    amt_val_red_ar = Column(Float, default=0.0)
-    amt_fleet_ar_val = Column(Float, default=0.0)      # Montant AR dans la flotte
-    
-    # Dommages Tous Accidents (DTA)
-    check_dta = Column(Boolean, default=False)
-    amt_dta = Column(Float, default=0.0)
-    red_dta = Column(Float, default=0.0)
-    amt_red_dta = Column(Float, default=0.0)
-    amt_val_red_dta = Column(Float, default=0.0)
-    amt_fleet_dta_val = Column(Float, default=0.0)     # Montant DTA dans la flotte
-    
-    # Individuelle Personnes Transportées (IPT)
-    check_ipt = Column(Boolean, default=False)
-    amt_ipt = Column(Float, default=0.0)
-    red_ipt = Column(Float, default=0.0)
-    amt_red_ipt = Column(Float, default=0.0)
-    amt_val_red_ipt = Column(Float, default=0.0)
-    amt_fleet_ipt_val = Column(Float, default=0.0)     # Montant IPT dans la flotte
-    
-    # --- TRAÇABILITÉ & CLE ETRANGERES ---
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=datetime.now)
+    # --- TRACABILITÉ ---
+    created_at = Column(DateTime, default=datetime.now)
     created_by = Column(Integer, ForeignKey('utilisateurs.id'))
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
     updated_by = Column(Integer, ForeignKey('utilisateurs.id'))
     created_ip = Column(String(45))
     last_ip = Column(String(45))
-    is_active = Column(Boolean, default=True)
-
+    
     # --- RELATIONS ---
-    fleet = relationship("Fleet", lazy="selectin", back_populates="vehicles")
-    owner = relationship("Contact", lazy="joined", back_populates="vehicles")
-    compagny = relationship("Compagnie", lazy="joined", back_populates="vehicles")
-    contract = relationship("Contrat", lazy="selectin", back_populates="vehicle")
-    tarif = relationship("AutomobileTarif", lazy="joined", back_populates="vehicles")
+    # Relations principales
+    owner = relationship("Contact", foreign_keys=[owner_id], back_populates="vehicles")
+    compagny = relationship("Compagnie", foreign_keys=[compagny_id], back_populates="vehicles")
+    fleet = relationship("Fleet", back_populates="vehicles")
+    contract = relationship("Contrat", back_populates="vehicle", uselist=False)
+    tarif = relationship("AutomobileTarif", back_populates="vehicles", foreign_keys=[tarif_id])
     
-    # --- PROPRIÉTÉS CALCULÉES ---
-    @property
-    def total_guarantees_brut(self):
-        """Total des montants bruts des garanties"""
-        return sum([
-            self.amt_rc or 0, self.amt_dr or 0, self.amt_vol or 0,
-            self.amt_vb or 0, self.amt_in or 0, self.amt_bris or 0,
-            self.amt_ar or 0, self.amt_dta or 0, self.amt_ipt or 0
-        ])
-    
-    @property
-    def total_guarantees_net(self):
-        """Total des montants nets après réduction des garanties"""
-        return sum([
-            self.amt_red_rc or 0, self.amt_red_dr or 0, self.amt_red_vol or 0,
-            self.amt_red_vb or 0, self.amt_red_in or 0, self.amt_red_bris or 0,
-            self.amt_red_ar or 0, self.amt_red_dta or 0, self.amt_red_ipt or 0
-        ])
-    
-    @property
-    def total_reduction_amount(self):
-        """Total des réductions appliquées"""
-        return sum([
-            self.amt_val_red_rc or 0, self.amt_val_red_dr or 0, self.amt_val_red_vol or 0,
-            self.amt_val_red_vb or 0, self.amt_val_red_in or 0, self.amt_val_red_bris or 0,
-            self.amt_val_red_ar or 0, self.amt_val_red_dta or 0, self.amt_val_red_ipt or 0
-        ])
-    
-    @property
-    def total_fleet_amount(self):
-        """Total des réductions appliquées"""
-        return sum([
-            self.amt_fleet_rc_val or 0, self.amt_fleet_dr_val or 0, self.amt_fleet_vol_val or 0,
-            self.amt_fleet_vb_val or 0, self.amt_fleet_in_val or 0, self.amt_fleet_bris_val or 0,
-            self.amt_fleet_ar_val or 0, self.amt_fleet_dta_val or 0, self.amt_fleet_ipt_val or 0
-        ])
-    
-    @property
-    def total_frais(self):
-        """Total des frais supplémentaires"""
-        return sum([
-            self.carte_rose or 0, self.accessoires or 0, 
-            self.tva or 0, self.fichier_asac or 0, self.vignette or 0
-        ])
-    
-    @property
-    def total_ttc(self):
-        """Total TTC (Prime nette + tous frais)"""
-        return (self.prime_nette or 0) + self.total_frais
-    
-    @property
-    def total_original_amount(self):
-        """Total des garanties originales (hors flotte)"""
-        return sum([
-            self.amt_rc or 0,
-            self.amt_dr or 0,
-            self.amt_vol or 0,
-            self.amt_vb or 0,
-            self.amt_in or 0,
-            self.amt_bris or 0,
-            self.amt_ar or 0,
-            self.amt_dta or 0,
-            self.amt_ipt or 0
-        ])
-    
-    @property
-    def total_fleet_reduction(self):
-        """Différence entre montant original et montant flotte"""
-        return self.total_original_amount - self.total_fleet_amount
-    
-    @property
-    def fleet_reduction_percent(self):
-        """Pourcentage de réduction appliqué dans la flotte"""
-        if self.total_original_amount > 0:
-            return (self.total_fleet_reduction / self.total_original_amount) * 100
-        return 0
-    
-    @property
-    def has_custom_fleet_guarantees(self):
-        """Vérifie si le véhicule a des garanties personnalisées dans la flotte"""
-        return any([
-            self.amt_fleet_rc_val != self.amt_rc if self.amt_fleet_rc_val else False,
-            self.amt_fleet_dr_val != self.amt_dr if self.amt_fleet_dr_val else False,
-            self.amt_fleet_vol_val != self.amt_vol if self.amt_fleet_vol_val else False,
-            self.amt_fleet_vb_val != self.amt_vb if self.amt_fleet_vb_val else False,
-            self.amt_fleet_in_val != self.amt_in if self.amt_fleet_in_val else False,
-            self.amt_fleet_bris_val != self.amt_bris if self.amt_fleet_bris_val else False,
-            self.amt_fleet_ar_val != self.amt_ar if self.amt_fleet_ar_val else False,
-            self.amt_fleet_dta_val != self.amt_dta if self.amt_fleet_dta_val else False,
-            self.amt_fleet_ipt_val != self.amt_ipt if self.amt_fleet_ipt_val else False,
-        ])
-    
-    def reset_fleet_guarantees(self):
-        """Remet les garanties de la flotte aux valeurs originales"""
-        self.amt_fleet_rc_val = self.amt_rc
-        self.amt_fleet_dr_val = self.amt_dr
-        self.amt_fleet_vol_val = self.amt_vol
-        self.amt_fleet_vb_val = self.amt_vb
-        self.amt_fleet_in_val = self.amt_in
-        self.amt_fleet_bris_val = self.amt_bris
-        self.amt_fleet_ar_val = self.amt_ar
-        self.amt_fleet_dta_val = self.amt_dta
-        self.amt_fleet_ipt_val = self.amt_ipt
-    
-    def get_fleet_guarantees_dict(self):
-        """Retourne un dictionnaire des garanties de la flotte"""
-        return {
-            'rc': self.amt_fleet_rc_val or 0,
-            'dr': self.amt_fleet_dr_val or 0,
-            'vol': self.amt_fleet_vol_val or 0,
-            'vb': self.amt_fleet_vb_val or 0,
-            'in': self.amt_fleet_in_val or 0,
-            'bris': self.amt_fleet_bris_val or 0,
-            'ar': self.amt_fleet_ar_val or 0,
-            'dta': self.amt_fleet_dta_val or 0,
-            'ipt': self.amt_fleet_ipt_val or 0,
-        }
-    
-    def get_original_guarantees_dict(self):
-        """Retourne un dictionnaire des garanties originales"""
-        return {
-            'rc': self.amt_rc or 0,
-            'dr': self.amt_dr or 0,
-            'vol': self.amt_vol or 0,
-            'vb': self.amt_vb or 0,
-            'in': self.amt_in or 0,
-            'bris': self.amt_bris or 0,
-            'ar': self.amt_ar or 0,
-            'dta': self.amt_dta or 0,
-            'ipt': self.amt_ipt or 0,
-        }
+    # ✅ CLASSIFICATION ASAC
+    classification = relationship("VehicleClassification", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
 
+
+    # ✅ INFORMATION CONDUCTEUR
+    driver = relationship("Driver", back_populates="vehicles", foreign_keys=[driver_id])
+
+    
+    # ✅ GARANTIES
+    guarantees = relationship("VehicleGuarantee", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
+    guarantee_reductions = relationship("VehicleGuaranteeReduction", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
+    guarantee_rates = relationship("VehicleGuaranteeRate", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
+    guarantee_options = relationship("VehicleGuaranteeOption", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
+    fleet_guarantees = relationship("VehicleFleetGuarantee", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
+    
+    # --- PROPRIÉTÉS POUR LA COMPATIBILITÉ (ACCÈS DIRECT AUX VALEURS) ---
+    @property
+    def categorie(self):
+        """Accès direct à la catégorie pour compatibilité"""
+        return self.classification.categorie_id if self.classification else None
+    
+    @categorie.setter
+    def categorie(self, value):
+        """Définition directe de la catégorie pour compatibilité"""
+        if not self.classification:
+            self.classification = VehicleClassification()
+        self.classification.categorie_id = value
+    
+    @property
+    def genre(self):
+        """Accès direct au genre pour compatibilité"""
+        return self.classification.genre_id if self.classification else None
+    
+    @genre.setter
+    def genre(self, value):
+        """Définition directe du genre pour compatibilité"""
+        if not self.classification:
+            self.classification = VehicleClassification()
+        self.classification.genre_id = value
+    
+    @property
+    def type_vehicule(self):
+        """Accès direct au type pour compatibilité"""
+        return self.classification.type_id if self.classification else None
+    
+    @type_vehicule.setter
+    def type_vehicule(self, value):
+        """Définition directe du type pour compatibilité"""
+        if not self.classification:
+            self.classification = VehicleClassification()
+        self.classification.type_id = value
+    
+    @property
+    def usage(self):
+        """Accès direct à l'usage pour compatibilité"""
+        return self.classification.usage_id if self.classification else None
+    
+    @usage.setter
+    def usage(self, value):
+        """Définition directe de l'usage pour compatibilité"""
+        if not self.classification:
+            self.classification = VehicleClassification()
+        self.classification.usage_id = value
+    
+    @property
+    def energie(self):
+        """Accès direct à l'énergie pour compatibilité"""
+        return self.classification.energie_id if self.classification else None
+    
+    @energie.setter
+    def energie(self, value):
+        """Définition directe de l'énergie pour compatibilité"""
+        if not self.classification:
+            self.classification = VehicleClassification()
+        self.classification.energie_id = value
+    
+    @property
+    def zone(self):
+        """Accès direct à la zone pour compatibilité"""
+        return self.classification.zone_id if self.classification else None
+    
+    @zone.setter
+    def zone(self, value):
+        """Définition directe de la zone pour compatibilité"""
+        if not self.classification:
+            self.classification = VehicleClassification()
+        self.classification.zone_id = value
+    
     def __repr__(self):
-        return f"<Vehicle(Immat={self.immatriculation}, Marque={self.marque})>"
-
+        return f"<Vehicle(id={self.id}, immatriculation={self.immatriculation})>"
+    
+    @classmethod
+    def safe_query(cls, session, *args, **kwargs):
+        """Exécute une requête avec rollback automatique en cas d'erreur"""
+        try:
+            return session.query(cls).filter(*args, **kwargs).all()
+        except SQLAlchemyError as e:
+            session.rollback()
+            print(f"Erreur de requête Vehicle: {e}")
+            return []
+    
+    @classmethod
+    def safe_count(cls, session, *args, **kwargs):
+        """Compte les enregistrements avec rollback automatique"""
+        try:
+            return session.query(cls).filter(*args, **kwargs).count()
+        except SQLAlchemyError as e:
+            session.rollback()
+            print(f"Erreur de comptage Vehicle: {e}")
+            return 0
 
 class AuditVehicleLog(Base):
     __tablename__ = "audit_vehicle_logs"

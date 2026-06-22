@@ -6,6 +6,8 @@ from addons.Automobiles.controllers.flotte_controller import FleetController
 from addons.Automobiles.controllers.compagnies_controller import CompagnieController
 from addons.Automobiles.controllers.automobile_tarif_controller import TarifController
 from addons.Automobiles.controllers.paiement_controller import PaymentController
+from addons.Automobiles.controllers.reports_controller import ReportsController
+from addons.Automobiles.controllers.api_asac_controller import ASACAPIController
 
 
 class AutomobileMainController:
@@ -20,6 +22,8 @@ class AutomobileMainController:
         self.contracts = ContractController(self.session)
         self.tarifs = TarifController(self.session)
         self.paiements = PaymentController(self.session)
+        self.reports = ReportsController(self.session, current_user_id)
+        self.asac = ASACAPIController(self.session)
         # self.compagnies = FleetController(session, current_user_id)
 
     def is_asac_available(self):

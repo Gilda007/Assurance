@@ -3,6 +3,33 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from core.database import Base
+import enum
+
+class CustomerType(enum.Enum):
+    """Type de souscripteur (section 4.1)"""
+    PHYSICAL = "TSPP"  # Personne Physique
+    MORAL = "TSPM"     # Personne Morale
+
+class InsuredType(enum.Enum):
+    """Type d'assuré (section 4.8)"""
+    PHYSICAL = "TAPP"  # Personne Physique
+    MORAL = "TAPM"     # Personne Morale
+
+class InsuredProfession(enum.Enum):
+    """Profession de l'assuré (section 4.9)"""
+    AGENT_COMMERCIAL = "ST01"
+    AGENT_RECOUVREMENT = "ST02"
+    AGRICULTEUR = "ST03"
+    ARTISAN = "ST04"
+    CONJOINT = "ST05"
+    EMPLOYEUR = "ST06"
+    RELIGIEUX = "ST07"
+    RETRAITE = "ST08"
+    SALARIE = "ST09"
+    SANS_EMPLOI = "ST10"
+    VRP = "ST11"
+    AUTRE = "ST12"
+
 
 class Contact(Base):
     __tablename__ = 'contacts'

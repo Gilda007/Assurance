@@ -54,6 +54,7 @@ compile_with_pyinstaller() {
         --add-data "update_client.py:." \
         --add-data "update_widget.py:." \
         --add-data "updates/update_server.py:." \
+        --collect-all core \
         --collect-all PySide6 \
         --collect-all PySide6.QtCharts \
         --collect-all sqlalchemy \
@@ -100,6 +101,11 @@ compile_with_pyinstaller() {
         --collect-all opencv_python \
         --collect-all cv2 \
         --collect-all opencv-python \
+        --hidden-import "core" \
+        --hidden-import "core.loader" \
+        --hidden-import "core.workers" \
+        --hidden-import "core.workers.database_worker" \
+        --hidden-import "core.workers.query_cache" \
         --hidden-import "email" \
         --hidden-import "email.mime" \
         --hidden-import "email.mime.multipart" \

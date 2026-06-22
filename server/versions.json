@@ -9,7 +9,7 @@
       "changelog": "\u2022 Correction bugs interface\n\u2022 Ajout export PDF\n\u2022 Optimisation performances\n\u2022 Nouvelles fonctionnalit\u00e9s",
       "size": 266553,
       "checksum": "b04014995cf6f62f4e6ec9b23b825a9a98dc2292ccbfe13ce445336174c4d827",
-      "download_url": "http://192.168.100.17:5000/addons/Automobiles.zip",
+      "download_url": "http://192.168.100.89:5000/addons/Automobiles.zip",
       "min_app_version": "1.0.0",
       "dependencies": [
         "BaseCore",
@@ -26,14 +26,14 @@
       "changelog": "",
       "size": 583753,
       "checksum": "2b113fcfc5b0ade2183a1b08ae2eb6b4d0da8094e4ca75c08d5ff7488b40cd48",
-      "download_url": "http://192.168.100.17:5000/addons/Param\u00e8tres.zip",
+      "download_url": "http://192.168.100.89:5000/addons/Param\u00e8tres.zip",
       "min_app_version": "1.0.0",
       "dependencies": [],
       "required": false
     }
   },
   "server_info": {
-    "url": "http://192.168.100.17:5000",
+    "url": "http://192.168.100.89:5000",
     "api_version": "1.0"
   }
 }

@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QThread, Signal, QDateTime, QSettings, QTimer, QUrl
 from PySide6.QtGui import QColor, QFont, QDesktopServices
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 
@@ -277,6 +277,15 @@ class ExportWorker(QThread):
     def build_asac_request(self):
         """Construit la requête ASAC à partir des données du véhicule"""
         vehicle = self.vehicle_data
+        from datetime import datetime, timedelta
+    
+        today = datetime.now().date()
+        
+        # date_debut = aujourd'hui
+        date_debut = today.strftime("%Y-%m-%d")
+        
+        # date_fin = aujourd'hui + 1 an
+        date_fin = (today + timedelta(days=365)).strftime("%Y-%m-%d")
         
         return {
             ""
@@ -313,8 +322,8 @@ class ExportWorker(QThread):
                 "total_ttc": float(vehicle.get("pttc", vehicle.get("prime_nette", 0)))
             },
             "periode": {
-                "date_debut": str(vehicle.get("date_debut", "")),
-                "date_fin": str(vehicle.get("date_fin", ""))
+                "date_debut": str(date_debut),
+                "date_fin": str(date_fin)
             }
         }
 
