@@ -6,6 +6,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLineEdit,
 from PySide6.QtCore import Qt, QTimer, QSize
 from PySide6.QtGui import QImage, QPixmap, QColor
 
+
 class ContactForm(QDialog):
     def __init__(self, controller, contact_data=None, parent=None):
         super().__init__(parent)
@@ -115,11 +116,11 @@ class ContactForm(QDialog):
         self._add_smart_field("Ville", self.ville, 9, 2)
 
         self.profession = QLineEdit() # Champ caché pour stocker la profession déterminée à partir de la catégorie socio-professionnelle
-        if self.contact_data and hasattr(self.contact_data, 'cat_socio_prof'):
-            self.profession.setText(self.controller.lometa_client._get_profession_code(self.contact_data))
-        else:
-            self.profession.setText("ST12") # Code par défaut pour "Autre profession"
-        self.profession.setVisible(False) # Ne pas afficher ce champ dans le formulaire
+        # if self.contact_data and hasattr(self.contact_data, 'cat_socio_prof'):
+        #     self.profession.setText(self.controller.lometa_client._get_profession_code(self.contact_data))
+        # else:
+        #     self.profession.setText("ST12") # Code par défaut pour "Autre profession"
+        # self.profession.setVisible(False) # Ne pas afficher ce champ dans le formulaire
 
         # Bloc 4 : Permis
         self._add_section_header("IV. Permis de Conduire", 10)

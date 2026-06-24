@@ -18,15 +18,6 @@ class ContactController:
         # d'essayer d'insérer tout l'objet dans la colonne created_by.
         self.current_user_id = getattr(current_user_id, 'id', current_user_id)
 
-    # --- LECTURE ---
-    # def get_all_contacts(self):
-    #     """Récupère tous les contacts (Assurés, Prospects, etc.)"""
-    #     try:
-    #         return self.db.query(Contact).all()
-    #     except Exception as e:
-    #         print(f"ERREUR get_all: {e}")
-    #         return []
-
     def get_all_contacts(self, force_refresh: bool = False):
         """Récupère tous les contacts avec cache simple"""
         

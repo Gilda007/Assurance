@@ -1458,6 +1458,46 @@ class VehicleController:
     # MÉTHODES SQLITE PERSISTANT (entre deux sessions)
     # ============================================================================
     
+    def get_vehicle_stats(self):
+        """
+        Calcule les statistiques des véhicules.
+        
+        Returns:
+            dict: Statistiques des véhicules
+        """
+        try:
+            total = self.session.query(Vehicle).count()
+            
+            # Véhicules actifs
+            actifs = self.session.query(Vehicle).filter(
+                Vehicle.is_active == True
+            ).count() if hasattr(Vehicle, 'is_active') else total
+            
+            # Véhicules par statut
+            by_status = {}
+            if hasattr(Vehicle, 'statut'):
+                results = self.session.query(
+                    Vehicle.statut, 
+                    func.count(Vehicle.id)
+                ).group_by(Vehicle.statut).all()
+                by_status = {status: count for status, count in results}
+            
+            # Prime totale
+            total_premium = self.session.query(
+                func.sum(Vehicle.prime_nette)
+            ).scalar() or 0
+            
+            return {
+                'total': total,
+                'actifs': actifs,
+                'by_status': by_status,
+                'total_premium': total_premium
+            }
+            
+        except Exception as e:
+            print(f"Erreur get_vehicle_stats: {e}")
+            return {'total': 0, 'actifs': 0, 'by_status': {}, 'total_premium': 0}
+
     def get_all_vehicles_persistent(self, force_refresh: bool = False, 
                                      async_callback: callable = None) -> list[Vehicle]:
         """

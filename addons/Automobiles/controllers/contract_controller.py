@@ -158,6 +158,183 @@ class ContractController:
     
     # ==================== RECHERCHE ET LECTURE ====================
     
+    def get_contract_stats(self):
+        """
+        Calcule les statistiques des contrats.
+        
+        Returns:
+            dict: Statistiques des contrats
+        """
+        try:
+            from addons.Automobiles.models.contract_models import Contrat
+            from sqlalchemy import func
+            
+            # ✅ Utiliser self.db au lieu de self.session
+            total = self.db.query(Contrat).count()
+            
+            # Contrats actifs
+            active = self.db.query(Contrat).filter(
+                Contrat.statut == 'ACTIF'
+            ).count()
+            
+            # Contrats proformat
+            proformat = self.db.query(Contrat).filter(
+                Contrat.statut == 'PROFORMAT'
+            ).count()
+            
+            # Contrats expirés
+            expired = self.db.query(Contrat).filter(
+                Contrat.statut == 'EXPIRE'
+            ).count()
+            
+            # Contrats résiliés
+            resilie = self.db.query(Contrat).filter(
+                Contrat.statut == 'RESILIE'
+            ).count()
+            
+            # Contrats annulés
+            annule = self.db.query(Contrat).filter(
+                Contrat.statut == 'ANNULE'
+            ).count()
+            
+            # Prime totale
+            total_premium = self.db.query(
+                func.sum(Contrat.prime_totale_ttc)
+            ).scalar() or 0
+            
+            # Prime mensuelle moyenne
+            monthly_premium = total_premium / 12 if total > 0 else 0
+            
+            # Taux de recouvrement
+            total_paid = self.db.query(
+                func.sum(Contrat.montant_paye)
+            ).scalar() or 0
+            
+            recovery_rate = (total_paid / total_premium * 100) if total_premium > 0 else 0
+            
+            return {
+                'total': total,
+                'active': active,
+                'proformat': proformat,
+                'expired': expired,
+                'resilie': resilie,
+                'annule': annule,
+                'total_premium': total_premium,
+                'monthly_premium': monthly_premium,
+                'total_paid': total_paid,
+                'recovery_rate': recovery_rate
+            }
+            
+        except Exception as e:
+            print(f"Erreur get_contract_stats: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                'total': 0,
+                'active': 0,
+                'proformat': 0,
+                'expired': 0,
+                'resilie': 0,
+                'annule': 0,
+                'total_premium': 0,
+                'monthly_premium': 0,
+                'total_paid': 0,
+                'recovery_rate': 0
+            }
+
+    def get_all_contracts(self, limit: int = 100, filters: dict = None, with_relations: bool = True) -> List[Contrat]:
+        """
+        Récupère tous les contrats avec leurs relations.
+        
+        Args:
+            limit: Nombre maximum de contrats
+            filters: Filtres (statut, date, etc.)
+            with_relations: Charger les relations (owner, company, vehicle, fleet)
+        
+        Returns:
+            list: Liste des contrats
+        """
+        try:
+            from sqlalchemy.orm import joinedload
+            from sqlalchemy import or_
+            
+            # Construire la requête
+            query = self.db.query(Contrat)
+            
+            # Charger les relations si demandé
+            if with_relations:
+                query = query.options(
+                    joinedload(Contrat.owner),
+                    joinedload(Contrat.company),
+                    joinedload(Contrat.vehicle),
+                    joinedload(Contrat.fleet)
+                )
+            
+            # Appliquer les filtres
+            if filters:
+                if filters.get('statut'):
+                    query = query.filter(Contrat.statut == filters['statut'])
+                if filters.get('status'):
+                    query = query.filter(Contrat.statut == filters['status'])
+                if filters.get('date_debut'):
+                    query = query.filter(Contrat.date_debut >= filters['date_debut'])
+                if filters.get('date_fin'):
+                    query = query.filter(Contrat.date_fin <= filters['date_fin'])
+                if filters.get('search'):
+                    search = f"%{filters['search']}%"
+                    query = query.filter(
+                        or_(
+                            Contrat.numero_police.ilike(search),
+                            Contrat.numero_police_attribue.ilike(search)
+                        )
+                    )
+                if filters.get('owner_id'):
+                    query = query.filter(Contrat.owner_id == filters['owner_id'])
+                if filters.get('company_id'):
+                    query = query.filter(Contrat.company_id == filters['company_id'])
+                if filters.get('vehicle_id'):
+                    query = query.filter(Contrat.vehicle_id == filters['vehicle_id'])
+                if filters.get('fleet_id'):
+                    query = query.filter(Contrat.fleet_id == filters['fleet_id'])
+            
+            return query.order_by(Contrat.id.desc()).limit(limit).all()
+            
+        except Exception as e:
+            print(f"Erreur get_all_contracts: {e}")
+            import traceback
+            traceback.print_exc()
+            return []
+
+    def get_expiring_contracts(self, days: int = 30) -> List[Contrat]:
+        """
+        Récupère les contrats arrivant à échéance.
+        
+        Args:
+            days: Nombre de jours avant échéance
+        
+        Returns:
+            list: Contrats arrivant à échéance
+        """
+        try:
+            from sqlalchemy.orm import joinedload
+            from datetime import datetime, timedelta
+            
+            today = datetime.now().date()
+            end_date = today + timedelta(days=days)
+            
+            return self.db.query(Contrat).options(
+                joinedload(Contrat.owner),
+                joinedload(Contrat.vehicle)
+            ).filter(
+                Contrat.date_fin <= end_date,
+                Contrat.date_fin >= today,
+                Contrat.statut == 'ACTIF'
+            ).order_by(Contrat.date_fin).all()
+            
+        except Exception as e:
+            print(f"Erreur get_expiring_contracts: {e}")
+            return []
+
     def get_contract_by_id(self, contract_id: int) -> Optional[Contrat]:
         """Récupère un contrat par son ID"""
         return self.db.query(Contrat).options(
@@ -167,6 +344,95 @@ class ContractController:
             joinedload(Contrat.fleet)
         ).filter(Contrat.id == contract_id).first()
     
+    # addons/Automobiles/controllers/contract_controller.py
+
+    def get_contract_summary(self, contract_id: int) -> Dict:
+        """
+        Récupère un résumé complet d'un contrat.
+        
+        Args:
+            contract_id: ID du contrat
+        
+        Returns:
+            dict: Résumé du contrat
+        """
+        try:
+            contrat = self.get_contract_by_id(contract_id)
+            if not contrat:
+                return {}
+            
+            owner_name = "N/A"
+            if contrat.owner:
+                owner_name = getattr(contrat.owner, 'nom', getattr(contrat.owner, 'name', 'N/A'))
+            
+            vehicle_plate = "N/A"
+            if contrat.vehicle:
+                vehicle_plate = getattr(contrat.vehicle, 'immatriculation', 'N/A')
+            
+            company_name = "N/A"
+            if contrat.company:
+                company_name = getattr(contrat.company, 'nom', getattr(contrat.company, 'name', 'N/A'))
+            
+            # ✅ S'assurer que le statut est une chaîne
+            statut = contrat.statut
+            if hasattr(statut, 'value'):
+                statut_str = statut.value
+            else:
+                statut_str = str(statut)
+            
+            return {
+                'id': contrat.id,
+                'numero_police': str(contrat.numero_police),
+                'owner_name': str(owner_name),
+                'owner_id': contrat.owner_id,
+                'vehicle_plate': str(vehicle_plate),
+                'vehicle_id': contrat.vehicle_id,
+                'company_name': str(company_name),
+                'company_id': contrat.company_id,
+                'fleet_id': contrat.fleet_id,
+                'type_contrat': str(getattr(contrat, 'type_contrat', 'VEHICULE')),
+                'statut': statut_str,
+                'statut_label': self._get_status_label(statut_str),
+                'date_debut': contrat.date_debut.strftime("%d/%m/%Y") if contrat.date_debut else None,
+                'date_fin': contrat.date_fin.strftime("%d/%m/%Y") if contrat.date_fin else None,
+                'prime_pure': contrat.prime_pure,
+                'accessoires': contrat.accessoires,
+                'taxes_totales': contrat.taxes_totales,
+                'commission_intermediaire': contrat.commission_intermediaire,
+                'prime_totale_ttc': contrat.prime_totale_ttc,
+                'montant_paye': contrat.montant_paye,
+                'reste_a_payer': contrat.prime_totale_ttc - contrat.montant_paye,
+                'statut_paiement': str(contrat.statut_paiement),
+                'statut_paiement_label': self._get_payment_status_label(contrat.statut_paiement),
+                'notes': getattr(contrat, 'notes', None),
+                'created_at': contrat.created_at.strftime("%Y/%m/%d %H:%M") if contrat.created_at else None,
+                'updated_at': contrat.updated_at.strftime("%Y/%m/%d %H:%M") if contrat.updated_at else None,
+            }
+            
+        except Exception as e:
+            print(f"Erreur get_contract_summary: {e}")
+            return {}
+
+    def _get_status_label(self, status: str) -> str:
+        """Retourne le libellé du statut"""
+        labels = {
+            'ACTIF': 'Actif',
+            'PROFORMAT': 'Proformat',
+            'EXPIRE': 'Expiré',
+            'RESILIE': 'Résilié',
+            'ANNULE': 'Annulé'
+        }
+        return labels.get(status, status)
+
+    def _get_payment_status_label(self, status: str) -> str:
+        """Retourne le libellé du statut de paiement"""
+        labels = {
+            'PAYE': 'Payé',
+            'PARTIEL': 'Partiel',
+            'NON_PAYE': 'Non payé'
+        }
+        return labels.get(status, status)
+
     def get_contract_by_police(self, numero_police: str) -> Optional[Contrat]:
         """Récupère un contrat par son numéro de police"""
         return self.db.query(Contrat).filter(Contrat.numero_police == numero_police).first()
@@ -177,13 +443,34 @@ class ContractController:
             Contrat.owner_id == owner_id
         ).order_by(Contrat.created_at.desc()).limit(limit).all()
     
-    def get_contracts_by_vehicle(self, vehicle_id: int) -> List[Contrat]:
-        """Récupère l'historique des contrats d'un véhicule"""
-        return self.db.query(Contrat).filter(
-            Contrat.vehicle_id == vehicle_id
-        ).order_by(Contrat.created_at.desc()).all()
+    def get_contract_by_vehicle(self, vehicle_id: int) -> Optional[Contrat]:
+        """Récupère le contrat associé à un véhicule"""
+        if not vehicle_id:
+            print("⚠️ get_contract_by_vehicle appelé avec vehicle_id None")
+            return None
+        
+        try:
+            print(f"=== get_contract_by_vehicle ===")
+            print(f"Recherche contrat pour vehicle_id: {vehicle_id}")
+            
+            # ✅ Utiliser self.db au lieu de self.session
+            contrat = self.db.query(Contrat).filter(
+                Contrat.vehicle_id == vehicle_id
+            ).first()
+            
+            if contrat:
+                print(f"✓ Contrat trouvé: {contrat.id}")
+            else:
+                print(f"❌ Aucun contrat avec vehicle_id = {vehicle_id}")
+                
+            return contrat
+            
+        except Exception as e:
+            print(f"Erreur get_contract_by_vehicle: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
     
-   
     def get_active_contract_by_vehicle(self, vehicle_id: int) -> Optional[Contrat]:
         """
         Récupère le contrat actif d'un véhicule
@@ -325,6 +612,7 @@ class ContractController:
     
     # ==================== STATISTIQUES ====================
     
+
     def get_statistics(self, company_id: int = None, start_date: date = None, end_date: date = None) -> Dict:
         """Génère des statistiques sur les contrats"""
         query = self.db.query(Contrat)

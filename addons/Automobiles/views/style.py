@@ -9,28 +9,86 @@ from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import QColor
 
 class Colors:
-    """Palette de couleurs professionnelle"""
+    """Palette de couleurs professionnelle complète"""
     
-    # Couleurs principales
-    PRIMARY = "#2563eb"      # Bleu professionnel
-    PRIMARY_DARK = "#1e40af"  # Bleu foncé
-    PRIMARY_LIGHT = "#60a5fa" # Bleu clair
-    PRIMARY_HOVER = "#3b82f6" # Bleu hover
+    # ============================================================
+    # COULEURS PRIMAIRES
+    # ============================================================
+    PRIMARY = "#2563eb"          # Bleu professionnel
+    PRIMARY_DARK = "#1d4ed8"     # Bleu foncé
+    PRIMARY_LIGHT = "#eff6ff"    # Bleu très clair
+    PRIMARY_HOVER = "#3b82f6"    # Bleu hover
+    PRIMARY_ACTIVE = "#1e40af"   # Bleu actif
     
-    # Couleurs secondaires
-    SECONDARY = "#64748b"     # Gris ardoise
-    SECONDARY_DARK = "#475569"
-    SECONDARY_LIGHT = "#94a3b8"
+    # ============================================================
+    # COULEURS SECONDAIRES
+    # ============================================================
+    SECONDARY = "#64748b"        # Gris ardoise
+    SECONDARY_DARK = "#475569"   # Gris ardoise foncé
+    SECONDARY_LIGHT = "#94a3b8"  # Gris ardoise clair
     
-    # États
-    SUCCESS = "#10b981"       # Vert succès
-    WARNING = "#f59e0b"       # Orange warning
-    DANGER = "#ef4444"        # Rouge danger
-    INFO = "#06b6d4"          # Cyan info
+    # ============================================================
+    # COULEURS D'ÉTAT - SUCCÈS
+    # ============================================================
+    SUCCESS = "#10b981"          # Vert succès
+    SUCCESS_DARK = "#059669"     # Vert succès foncé
+    SUCCESS_LIGHT = "#d1fae5"    # Vert succès clair
+    SUCCESS_HOVER = "#34d399"    # Vert succès hover
     
-    # Neutres
+    # ============================================================
+    # COULEURS D'ÉTAT - WARNING
+    # ============================================================
+    WARNING = "#f59e0b"          # Orange warning
+    WARNING_DARK = "#d97706"     # Orange warning foncé
+    WARNING_LIGHT = "#fef3c7"    # Orange warning clair
+    WARNING_HOVER = "#fbbf24"    # Orange warning hover
+    
+    # ============================================================
+    # COULEURS D'ÉTAT - DANGER
+    # ============================================================
+    DANGER = "#ef4444"           # Rouge danger
+    DANGER_DARK = "#dc2626"      # Rouge danger foncé
+    DANGER_LIGHT = "#fee2e2"     # Rouge danger clair
+    DANGER_HOVER = "#f87171"     # Rouge danger hover
+    
+    # ============================================================
+    # COULEURS D'ÉTAT - INFO
+    # ============================================================
+    INFO = "#06b6d4"             # Cyan info
+    INFO_DARK = "#0891b2"        # Cyan info foncé
+    INFO_LIGHT = "#cffafe"       # Cyan info clair
+    INFO_HOVER = "#22d3ee"       # Cyan info hover
+    
+    # ============================================================
+    # COULEURS D'ÉTAT - PURPLE
+    # ============================================================
+    PURPLE = "#8b5cf6"           # Violet
+    PURPLE_DARK = "#7c3aed"      # Violet foncé
+    PURPLE_LIGHT = "#ede9fe"     # Violet clair
+    PURPLE_HOVER = "#a78bfa"     # Violet hover
+    
+    # ============================================================
+    # COULEURS D'ÉTAT - PINK
+    # ============================================================
+    PINK = "#ec4899"             # Rose
+    PINK_DARK = "#db2777"        # Rose foncé
+    PINK_LIGHT = "#fce7f3"       # Rose clair
+    PINK_HOVER = "#f472b6"       # Rose hover
+    
+    # ============================================================
+    # COULEURS D'ÉTAT - ORANGE
+    # ============================================================
+    ORANGE = "#f97316"           # Orange
+    ORANGE_DARK = "#ea580c"      # Orange foncé
+    ORANGE_LIGHT = "#ffedd5"     # Orange clair
+    ORANGE_HOVER = "#fb923c"     # Orange hover
+    
+    # ============================================================
+    # NEUTRES
+    # ============================================================
     WHITE = "#ffffff"
     BLACK = "#0f172a"
+    
     GRAY_50 = "#f8fafc"
     GRAY_100 = "#f1f5f9"
     GRAY_200 = "#e2e8f0"
@@ -41,26 +99,82 @@ class Colors:
     GRAY_700 = "#334155"
     GRAY_800 = "#1e293b"
     GRAY_900 = "#0f172a"
+    GRAY_950 = "#020617"
     
-    # Fond et bordure
+    # ============================================================
+    # FOND ET BORDURE
+    # ============================================================
     BACKGROUND = "#f8fafc"
+    BACKGROUND_DARK = "#0f172a"
     CARD_BG = "#ffffff"
+    CARD_BG_HOVER = "#f8fafc"
     BORDER = "#e2e8f0"
+    BORDER_DARK = "#cbd5e1"
+    BORDER_LIGHT = "#f1f5f9"
+    
+    # ============================================================
+    # SIDEBAR
+    # ============================================================
     SIDEBAR_BG = "#ffffff"
     SIDEBAR_ACTIVE = "#eff6ff"
+    SIDEBAR_HOVER = "#f1f5f9"
+    SIDEBAR_BORDER = "#e2e8f0"
+    SIDEBAR_TEXT = "#475569"
+    SIDEBAR_TEXT_ACTIVE = "#2563eb"
     
-    # Texte
+    # ============================================================
+    # TEXTE
+    # ============================================================
     TEXT_PRIMARY = "#0f172a"
     TEXT_SECONDARY = "#475569"
     TEXT_MUTED = "#64748b"
     TEXT_DISABLED = "#94a3b8"
+    TEXT_INVERSE = "#ffffff"
+    TEXT_LINK = "#2563eb"
+    TEXT_LINK_HOVER = "#1d4ed8"
     
-    # Graphiques
+    # ============================================================
+    # GRAPHIQUES (Palette pour les charts)
+    # ============================================================
     CHART_COLORS = [
-        "#3b82f6", "#10b981", "#f59e0b", "#ef4444",
-        "#8b5cf6", "#ec4899", "#06b6d4", "#f97316",
-        "#6366f1", "#14b8a6", "#f43f5e", "#8b5cf6"
+        "#3b82f6",  # Bleu
+        "#10b981",  # Vert
+        "#f59e0b",  # Orange
+        "#ef4444",  # Rouge
+        "#8b5cf6",  # Violet
+        "#ec4899",  # Rose
+        "#06b6d4",  # Cyan
+        "#f97316",  # Orange foncé
+        "#6366f1",  # Indigo
+        "#14b8a6",  # Turquoise
+        "#f43f5e",  # Rouge-rose
+        "#8b5cf6"   # Violet
     ]
+    
+    # ============================================================
+    # ALIAS POUR COMPATIBILITÉ
+    # ============================================================
+    # Ces alias permettent d'utiliser les noms courts
+    primary = PRIMARY
+    primary_dark = PRIMARY_DARK
+    primary_light = PRIMARY_LIGHT
+    primary_hover = PRIMARY_HOVER
+    
+    success = SUCCESS
+    success_dark = SUCCESS_DARK
+    success_light = SUCCESS_LIGHT
+    
+    warning = WARNING
+    warning_dark = WARNING_DARK
+    warning_light = WARNING_LIGHT
+    
+    danger = DANGER
+    danger_dark = DANGER_DARK
+    danger_light = DANGER_LIGHT
+    
+    info = INFO
+    info_dark = INFO_DARK
+    info_light = INFO_LIGHT
 
 
 class Fonts:

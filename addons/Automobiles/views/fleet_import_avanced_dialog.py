@@ -3079,22 +3079,251 @@ class FleetImportAdvancedDialog(QDialog):
         
         self.update_garanties_summary()
 
+    # def import_fleet(self):
+    #     """Importe la flotte"""
+    #     selected = []
+    #     for row in range(self.vehicles_table.rowCount()):
+    #         item = self.vehicles_table.item(row, 0)
+    #         if item and item.checkState() == Qt.Checked:
+    #             # Vérifier que row existe dans self.vehicles_data
+    #             if row < len(self.vehicles_data):
+    #                 selected.append(self.vehicles_data[row])
+    #             else:
+    #                 print(f"Warning: row {row} out of range for vehicles_data (len={len(self.vehicles_data)})")
+        
+    #     if not selected:
+    #         QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
+    #         return
+        
+    #     try:
+    #         owner_id = None
+    #         current_user_id = 1
+            
+    #         if hasattr(self.parent(), 'contact'):
+    #             owner_id = self.parent().contact.id
+            
+    #         if hasattr(self.controller, 'current_user_id'):
+    #             current_user_id = self.controller.current_user_id
+            
+    #         # Créer ou récupérer la flotte
+    #         fleet_id = None
+            
+    #         if self.mode_new.isChecked():
+    #             fleet_name = self.fleet_name.text().strip()
+    #             if not fleet_name:
+    #                 QMessageBox.warning(self, "Erreur", "Veuillez entrer un nom de flotte")
+    #                 return
+                
+    #             fleet_data = {
+    #                 'nom_flotte': fleet_name,
+    #                 'code_flotte': self.fleet_code.text().strip(),
+    #                 'owner_id': owner_id,
+    #                 'statut': 'Actif',
+    #                 'assureur': self.compagny_combo.currentData(),
+    #                 'date_debut': self.date_debut.date().toPython(),
+    #                 'date_fin': self.date_fin.date().toPython(),
+    #             }
+                
+    #             success, result = self.controller.fleets.create_fleet(fleet_data, current_user_id)
+    #             if not success:
+    #                 QMessageBox.critical(self, "Erreur", f"Erreur création flotte: {result}")
+    #                 return
+    #             fleet_id = result.id if hasattr(result, 'id') else result
+    #         else:
+    #             fleet_id = self.existing_fleet_combo.currentData()
+    #             if not fleet_id:
+    #                 QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une flotte")
+    #                 return
+            
+    #         # Importer les véhicules
+    #         imported = 0
+    #         errors = []
+            
+    #         for vehicle in selected:
+    #             garanties = vehicle.get('garanties', {})
+                
+    #             chassis_value = vehicle.get('chassis', '')
+    #             if not chassis_value or chassis_value == '':
+    #                 chassis_value = f"CH-{vehicle['immatriculation']}"
+                
+    #             # Utiliser les dates du véhicule si disponibles, sinon les dates globales
+    #             if vehicle.get('date_debut'):
+    #                 debut = vehicle['date_debut']
+    #                 if isinstance(debut, datetime):
+    #                     debut = debut.date()
+    #             else:
+    #                 debut = self.date_debut.date().toPython()
+                
+    #             if vehicle.get('date_fin'):
+    #                 fin = vehicle['date_fin']
+    #                 if isinstance(fin, datetime):
+    #                     fin = fin.date()
+    #             else:
+    #                 fin = self.date_fin.date().toPython()
+                
+    #             jours = max(1, (fin - debut).days) if fin and debut else 365
+                
+    #             # Utiliser la catégorie du véhicule ou celle du combo
+    #             categorie_value = vehicle.get('categorie', '')
+    #             if not categorie_value:
+    #                 categorie_value = self.categorie_combo.currentText().strip().upper()
+    #                 if not categorie_value:
+    #                     categorie_value = "VP"
+                
+    #             tva_rate = 0.1925
+    #             total_garanties = garanties.get('total', 0)
+    #             tva_amount = total_garanties * tva_rate
+                
+    #             # Récupérer les frais du véhicule
+    #             accessoires = vehicle.get('accessoires', 0)
+    #             asac = vehicle.get('asac', 0)
+    #             carte_rose = vehicle.get('carte_rose', 0)
+    #             vignette = vehicle.get('vignette', 0)
+                
+    #             vehicle_data = {
+    #                 'immatriculation': vehicle['immatriculation'],
+    #                 'chassis': chassis_value,
+    #                 'zone': self.zone_combo.currentText(),
+    #                 'marque': vehicle['marque'],
+    #                 'categorie': categorie_value,
+    #                 'modele': vehicle['modele'],
+    #                 'annee': vehicle.get('annee'),
+    #                 'energie': vehicle.get('energie', 'Essence'),
+    #                 'usage': vehicle.get('puissance', 0),
+    #                 'places': vehicle.get('places', 5),
+    #                 'has_remorque': self.remorque_check.isChecked(),
+    #                 'libele_tarif': "",
+    #                 'code_tarif': self.code_tarif_combo.currentText(),
+    #                 'owner_id': owner_id,
+    #                 'compagny_id': self.compagny_combo.currentData(),
+    #                 'fleet_id': fleet_id,
+    #                 'tarif_id': None,
+    #                 'date_debut': debut,
+    #                 'date_fin': fin,
+    #                 'statut': 'En Circulation',
+    #                 'nbr_jour': jours,
+    #                 'valeur_neuf': vehicle.get('valeur_neuf', 0),
+    #                 'valeur_venale': vehicle.get('valeur_venale', 0),
+    #                 'prime_brute': total_garanties,
+    #                 'reduction': 0,
+    #                 'prime_nette': total_garanties,
+    #                 'prime_emise': total_garanties,
+    #                 'carte_rose': carte_rose,
+    #                 'accessoires': accessoires,
+    #                 'tva': tva_amount,
+    #                 'fichier_asac': asac,
+    #                 'vignette': vignette,
+    #                 'pttc': total_garanties + accessoires + asac + tva_amount + vignette + carte_rose,
+    #                 # Garanties
+    #                 'check_rc': True,
+    #                 'amt_rc': garanties.get('rc', 0),
+    #                 'red_rc': 0,
+    #                 'amt_red_rc': garanties.get('rc', 0),
+    #                 'amt_val_red_rc': 0,
+    #                 'amt_fleet_rc_val': garanties.get('rc', 0),
+    #                 'check_dr': True,
+    #                 'amt_dr': garanties.get('dr', 0),
+    #                 'red_dr': 0,
+    #                 'amt_red_dr': garanties.get('dr', 0),
+    #                 'amt_val_red_dr': 0,
+    #                 'amt_fleet_dr_val': garanties.get('dr', 0),
+    #                 'check_vol': garanties.get('vol', 0) > 0,
+    #                 'amt_vol': garanties.get('vol', 0),
+    #                 'red_vol': 0,
+    #                 'amt_red_vol': garanties.get('vol', 0),
+    #                 'amt_val_red_vol': 0,
+    #                 'amt_fleet_vol_val': garanties.get('vol', 0),
+    #                 'check_vb': garanties.get('vb', 0) > 0,
+    #                 'amt_vb': garanties.get('vb', 0),
+    #                 'red_vb': 0,
+    #                 'amt_red_vb': garanties.get('vb', 0),
+    #                 'amt_val_red_vb': 0,
+    #                 'amt_fleet_vb_val': garanties.get('vb', 0),
+    #                 'check_in': garanties.get('incendie', 0) > 0,
+    #                 'amt_in': garanties.get('incendie', 0),
+    #                 'red_in': 0,
+    #                 'amt_red_in': garanties.get('incendie', 0),
+    #                 'amt_val_red_in': 0,
+    #                 'amt_fleet_in_val': garanties.get('incendie', 0),
+    #                 'check_bris': garanties.get('bris_glace', 0) > 0,
+    #                 'amt_bris': garanties.get('bris_glace', 0),
+    #                 'red_bris': 0,
+    #                 'amt_red_bris': garanties.get('bris_glace', 0),
+    #                 'amt_val_red_bris': 0,
+    #                 'amt_fleet_bris_val': garanties.get('bris_glace', 0),
+    #                 'check_ar': garanties.get('ar', 0) > 0,
+    #                 'amt_ar': garanties.get('ar', 0),
+    #                 'red_ar': 0,
+    #                 'amt_red_ar': garanties.get('ar', 0),
+    #                 'amt_val_red_ar': 0,
+    #                 'amt_fleet_ar_val': garanties.get('ar', 0),
+    #                 'check_dta': garanties.get('dta', 0) > 0,
+    #                 'amt_dta': garanties.get('dta', 0),
+    #                 'red_dta': 0,
+    #                 'amt_red_dta': garanties.get('dta', 0),
+    #                 'amt_val_red_dta': 0,
+    #                 'amt_fleet_dta_val': garanties.get('dta', 0),
+    #                 'check_ipt': garanties.get('ipt', 0) > 0,
+    #                 'amt_ipt': garanties.get('ipt', 0),
+    #                 'red_ipt': 0,
+    #                 'amt_red_ipt': garanties.get('ipt', 0),
+    #                 'amt_val_red_ipt': 0,
+    #                 'amt_fleet_ipt_val': garanties.get('ipt', 0),
+    #                 'created_by': current_user_id,
+    #                 'updated_by': None,
+    #                 'created_ip': 'Offline',
+    #                 'last_ip': None,
+    #                 'is_active': True
+    #             }
+                
+    #             try:
+    #                 result = self.controller.vehicles.create_vehicle(vehicle_data, current_user_id)
+                    
+    #                 if isinstance(result, tuple):
+    #                     if len(result) == 2:
+    #                         success, message = result
+    #                     elif len(result) == 3:
+    #                         success, _, message = result
+    #                     else:
+    #                         success = False
+    #                         message = "Format de retour inattendu"
+    #                 else:
+    #                     success = bool(result)
+    #                     message = "Succès" if success else "Erreur"
+                    
+    #                 if success:
+    #                     imported += 1
+    #                     print(f"✅ Véhicule {vehicle['immatriculation']} importé avec succès")
+    #                 else:
+    #                     errors.append(f"{vehicle['immatriculation']}: {message}")
+    #             except Exception as e:
+    #                 errors.append(f"{vehicle['immatriculation']}: {str(e)}")
+            
+    #         if imported > 0:
+    #             msg = f"✅ {imported} véhicule(s) importés avec succès"
+    #             if errors:
+    #                 msg += f"\n\n⚠️ {len(errors)} erreur(s):\n" + "\n".join(errors[:5])
+    #             QMessageBox.information(self, "Importation terminée", msg)
+    #             self.accept()
+    #         else:
+    #             QMessageBox.critical(self, "Erreur", "\n".join(errors[:5]))
+            
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Erreur", str(e))
+
     def import_fleet(self):
-        """Importe la flotte"""
+        """Importe la flotte avec la nouvelle structure BD"""
         selected = []
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
             if item and item.checkState() == Qt.Checked:
-                # Vérifier que row existe dans self.vehicles_data
                 if row < len(self.vehicles_data):
                     selected.append(self.vehicles_data[row])
-                else:
-                    print(f"Warning: row {row} out of range for vehicles_data (len={len(self.vehicles_data)})")
-        
+
         if not selected:
             QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
             return
-        
+
         try:
             owner_id = None
             current_user_id = 1
@@ -3104,7 +3333,7 @@ class FleetImportAdvancedDialog(QDialog):
             
             if hasattr(self.controller, 'current_user_id'):
                 current_user_id = self.controller.current_user_id
-            
+
             # Créer ou récupérer la flotte
             fleet_id = None
             
@@ -3134,11 +3363,10 @@ class FleetImportAdvancedDialog(QDialog):
                 if not fleet_id:
                     QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une flotte")
                     return
-            
-            # Importer les véhicules
+
             imported = 0
             errors = []
-            
+
             for vehicle in selected:
                 garanties = vehicle.get('garanties', {})
                 
@@ -3146,7 +3374,7 @@ class FleetImportAdvancedDialog(QDialog):
                 if not chassis_value or chassis_value == '':
                     chassis_value = f"CH-{vehicle['immatriculation']}"
                 
-                # Utiliser les dates du véhicule si disponibles, sinon les dates globales
+                # Dates
                 if vehicle.get('date_debut'):
                     debut = vehicle['date_debut']
                     if isinstance(debut, datetime):
@@ -3163,7 +3391,7 @@ class FleetImportAdvancedDialog(QDialog):
                 
                 jours = max(1, (fin - debut).days) if fin and debut else 365
                 
-                # Utiliser la catégorie du véhicule ou celle du combo
+                # Catégorie
                 categorie_value = vehicle.get('categorie', '')
                 if not categorie_value:
                     categorie_value = self.categorie_combo.currentText().strip().upper()
@@ -3174,107 +3402,146 @@ class FleetImportAdvancedDialog(QDialog):
                 total_garanties = garanties.get('total', 0)
                 tva_amount = total_garanties * tva_rate
                 
-                # Récupérer les frais du véhicule
+                # Récupérer les frais
                 accessoires = vehicle.get('accessoires', 0)
                 asac = vehicle.get('asac', 0)
                 carte_rose = vehicle.get('carte_rose', 0)
                 vignette = vehicle.get('vignette', 0)
                 
+                # ============================================================
+                # 1. CRÉATION DU VÉHICULE PRINCIPAL
+                # ============================================================
                 vehicle_data = {
                     'immatriculation': vehicle['immatriculation'],
                     'chassis': chassis_value,
-                    'zone': self.zone_combo.currentText(),
                     'marque': vehicle['marque'],
-                    'categorie': categorie_value,
                     'modele': vehicle['modele'],
                     'annee': vehicle.get('annee'),
-                    'energie': vehicle.get('energie', 'Essence'),
-                    'usage': vehicle.get('puissance', 0),
+                    'puissance_fiscale': vehicle.get('puissance', 0),
                     'places': vehicle.get('places', 5),
-                    'has_remorque': self.remorque_check.isChecked(),
-                    'libele_tarif': "",
-                    'code_tarif': self.code_tarif_combo.currentText(),
-                    'owner_id': owner_id,
-                    'compagny_id': self.compagny_combo.currentData(),
-                    'fleet_id': fleet_id,
-                    'tarif_id': None,
-                    'date_debut': debut,
-                    'date_fin': fin,
-                    'statut': 'En Circulation',
-                    'nbr_jour': jours,
+                    'cylindree': 0,
+                    'ptac': 0,
+                    'charge_utile': 0,
                     'valeur_neuf': vehicle.get('valeur_neuf', 0),
                     'valeur_venale': vehicle.get('valeur_venale', 0),
+                    'has_remorque': self.remorque_check.isChecked(),
+                    'remorque_inflammable': False,
+                    'remorque_immat': '',
+                    'double_commande': False,
+                    'engin_portuaire': False,
+                    'rc_eleves': False,
+                    'code_tarif': self.code_tarif_combo.currentText(),
+                    'libele_tarif': '',
+                    'code_assure': '',
+                    'date_debut': debut,
+                    'date_fin': fin,
+                    'date_mise_circulation': None,
+                    'nbr_jour': jours,
                     'prime_brute': total_garanties,
                     'reduction': 0,
                     'prime_nette': total_garanties,
                     'prime_emise': total_garanties,
-                    'carte_rose': carte_rose,
                     'accessoires': accessoires,
                     'tva': tva_amount,
                     'fichier_asac': asac,
+                    'carte_rose': carte_rose,
                     'vignette': vignette,
                     'pttc': total_garanties + accessoires + asac + tva_amount + vignette + carte_rose,
-                    # Garanties
-                    'check_rc': True,
-                    'amt_rc': garanties.get('rc', 0),
-                    'red_rc': 0,
-                    'amt_red_rc': garanties.get('rc', 0),
-                    'amt_val_red_rc': 0,
-                    'amt_fleet_rc_val': garanties.get('rc', 0),
-                    'check_dr': True,
-                    'amt_dr': garanties.get('dr', 0),
-                    'red_dr': 0,
-                    'amt_red_dr': garanties.get('dr', 0),
-                    'amt_val_red_dr': 0,
-                    'amt_fleet_dr_val': garanties.get('dr', 0),
-                    'check_vol': garanties.get('vol', 0) > 0,
-                    'amt_vol': garanties.get('vol', 0),
-                    'red_vol': 0,
-                    'amt_red_vol': garanties.get('vol', 0),
-                    'amt_val_red_vol': 0,
-                    'amt_fleet_vol_val': garanties.get('vol', 0),
-                    'check_vb': garanties.get('vb', 0) > 0,
-                    'amt_vb': garanties.get('vb', 0),
-                    'red_vb': 0,
-                    'amt_red_vb': garanties.get('vb', 0),
-                    'amt_val_red_vb': 0,
-                    'amt_fleet_vb_val': garanties.get('vb', 0),
-                    'check_in': garanties.get('incendie', 0) > 0,
-                    'amt_in': garanties.get('incendie', 0),
-                    'red_in': 0,
-                    'amt_red_in': garanties.get('incendie', 0),
-                    'amt_val_red_in': 0,
-                    'amt_fleet_in_val': garanties.get('incendie', 0),
-                    'check_bris': garanties.get('bris_glace', 0) > 0,
-                    'amt_bris': garanties.get('bris_glace', 0),
-                    'red_bris': 0,
-                    'amt_red_bris': garanties.get('bris_glace', 0),
-                    'amt_val_red_bris': 0,
-                    'amt_fleet_bris_val': garanties.get('bris_glace', 0),
-                    'check_ar': garanties.get('ar', 0) > 0,
-                    'amt_ar': garanties.get('ar', 0),
-                    'red_ar': 0,
-                    'amt_red_ar': garanties.get('ar', 0),
-                    'amt_val_red_ar': 0,
-                    'amt_fleet_ar_val': garanties.get('ar', 0),
-                    'check_dta': garanties.get('dta', 0) > 0,
-                    'amt_dta': garanties.get('dta', 0),
-                    'red_dta': 0,
-                    'amt_red_dta': garanties.get('dta', 0),
-                    'amt_val_red_dta': 0,
-                    'amt_fleet_dta_val': garanties.get('dta', 0),
-                    'check_ipt': garanties.get('ipt', 0) > 0,
-                    'amt_ipt': garanties.get('ipt', 0),
-                    'red_ipt': 0,
-                    'amt_red_ipt': garanties.get('ipt', 0),
-                    'amt_val_red_ipt': 0,
-                    'amt_fleet_ipt_val': garanties.get('ipt', 0),
+                    'statut': 'ACTIF',
+                    'is_active': True,
+                    'owner_id': owner_id,
+                    'compagny_id': self.compagny_combo.currentData(),
+                    'fleet_id': fleet_id,
+                    'tarif_id': None,
                     'created_by': current_user_id,
-                    'updated_by': None,
-                    'created_ip': 'Offline',
-                    'last_ip': None,
-                    'is_active': True
+                    'created_ip': '127.0.0.1',
+                    'last_ip': '127.0.0.1'
                 }
+                
+                # ============================================================
+                # 2. CRÉATION DE LA CLASSIFICATION ASAC
+                # ============================================================
+                classification_data = {
+                    'categorie_id': categorie_value,
+                    'genre_id': vehicle.get('genre', 'GV04'),
+                    'type_id': vehicle.get('type_vehicule', 'TV10'),
+                    'usage_id': vehicle.get('usage', 'UV01'),
+                    'energie_id': vehicle.get('energie', 'SEE'),
+                    'zone_id': self.zone_combo.currentText()
+                }
+                
+                # ============================================================
+                # 3. CRÉATION DES GARANTIES
+                # ============================================================
+                guarantee_data = {
+                    'rc': garanties.get('rc', 0),
+                    'dr': garanties.get('dr', 0),
+                    'vol': garanties.get('vol', 0),
+                    'vb': garanties.get('vb', 0),
+                    'ipt': garanties.get('incendie', 0),
+                    'bris': garanties.get('bris_glace', 0),
+                    'ar': garanties.get('ar', 0),
+                    'dta': garanties.get('dta', 0),
+                    'in_garantie': garanties.get('ipt', 0)
+                }
+                
+                reduction_data = {
+                    'rc': garanties.get('rc', 0),
+                    'dr': garanties.get('dr', 0),
+                    'vol': garanties.get('vol', 0),
+                    'vb': garanties.get('vb', 0),
+                    'ipt': garanties.get('incendie', 0),
+                    'bris': garanties.get('bris_glace', 0),
+                    'ar': garanties.get('ar', 0),
+                    'dta': garanties.get('dta', 0),
+                    'in_garantie': garanties.get('ipt', 0)
+                }
+                
+                rate_data = {
+                    'rc': 0,
+                    'dr': 0,
+                    'vol': 0,
+                    'vb': 0,
+                    'ipt': 0,
+                    'bris': 0,
+                    'ar': 0,
+                    'dta': 0,
+                    'in_garantie': 0
+                }
+                
+                option_data = {
+                    'rc': True,
+                    'dr': True,
+                    'vol': garanties.get('vol', 0) > 0,
+                    'vb': garanties.get('vb', 0) > 0,
+                    'ipt': garanties.get('incendie', 0) > 0,
+                    'bris': garanties.get('bris_glace', 0) > 0,
+                    'ar': garanties.get('ar', 0) > 0,
+                    'dta': garanties.get('dta', 0) > 0,
+                    'in_garantie': garanties.get('ipt', 0) > 0
+                }
+                
+                fleet_guarantee_data = {
+                    'rc': garanties.get('rc', 0),
+                    'dr': garanties.get('dr', 0),
+                    'vol': garanties.get('vol', 0),
+                    'vb': garanties.get('vb', 0),
+                    'ipt': garanties.get('incendie', 0),
+                    'bris': garanties.get('bris_glace', 0),
+                    'ar': garanties.get('ar', 0),
+                    'dta': garanties.get('dta', 0),
+                    'in_garantie': garanties.get('ipt', 0)
+                }
+                
+                # ============================================================
+                # APPEL AU CONTROLLER AVEC TOUTES LES DONNÉES
+                # ============================================================
+                vehicle_data['classification'] = classification_data
+                vehicle_data['guarantees'] = guarantee_data
+                vehicle_data['guarantee_reductions'] = reduction_data
+                vehicle_data['guarantee_rates'] = rate_data
+                vehicle_data['guarantee_options'] = option_data
+                vehicle_data['fleet_guarantees'] = fleet_guarantee_data
                 
                 try:
                     result = self.controller.vehicles.create_vehicle(vehicle_data, current_user_id)
@@ -3298,7 +3565,7 @@ class FleetImportAdvancedDialog(QDialog):
                         errors.append(f"{vehicle['immatriculation']}: {message}")
                 except Exception as e:
                     errors.append(f"{vehicle['immatriculation']}: {str(e)}")
-            
+
             if imported > 0:
                 msg = f"✅ {imported} véhicule(s) importés avec succès"
                 if errors:
@@ -3307,7 +3574,7 @@ class FleetImportAdvancedDialog(QDialog):
                 self.accept()
             else:
                 QMessageBox.critical(self, "Erreur", "\n".join(errors[:5]))
-            
+
         except Exception as e:
             QMessageBox.critical(self, "Erreur", str(e))
 
@@ -3587,11 +3854,98 @@ class FleetImportAdvancedDialog(QDialog):
 
         self.refresh_btn.setEnabled(True)
 
+    # def display_fleet_vehicles(self):
+    #     """Affiche les véhicules de la flotte dans le tableau"""
+    #     self.vehicles_table.setRowCount(len(self.vehicles_data))
+        
+    #     # Mapping des garanties vers les colonnes
+    #     garanties_mapping = [
+    #         ('rc', 8), ('dr', 9), ('vol', 10), ('vb', 11),
+    #         ('incendie', 12), ('bris_glace', 13), ('ar', 14), ('dta', 15), ('ipt', 16)
+    #     ]
+        
+    #     for row, vehicle in enumerate(self.vehicles_data):
+    #         # Case à cocher
+    #         check_item = QTableWidgetItem()
+    #         check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+    #         check_item.setCheckState(Qt.Checked)
+    #         self.vehicles_table.setItem(row, 0, check_item)
+            
+    #         # Informations de base
+    #         self.vehicles_table.setItem(row, 1, QTableWidgetItem(vehicle.get('immatriculation', '')))
+    #         self.vehicles_table.setItem(row, 2, QTableWidgetItem(vehicle.get('marque', '')))
+    #         self.vehicles_table.setItem(row, 3, QTableWidgetItem(vehicle.get('modele', '')))
+    #         self.vehicles_table.setItem(row, 4, QTableWidgetItem(vehicle.get('categorie', 'VP')))
+            
+    #         # Dates
+    #         date_debut = vehicle.get('date_debut')
+    #         date_fin = vehicle.get('date_fin')
+            
+    #         if date_debut:
+    #             if isinstance(date_debut, datetime):
+    #                 date_debut_str = date_debut.strftime("%d/%m/%Y")
+    #             else:
+    #                 date_debut_str = str(date_debut)
+    #         else:
+    #             date_debut_str = "-"
+            
+    #         if date_fin:
+    #             if isinstance(date_fin, datetime):
+    #                 date_fin_str = date_fin.strftime("%d/%m/%Y")
+    #             else:
+    #                 date_fin_str = str(date_fin)
+    #         else:
+    #             date_fin_str = "-"
+            
+    #         self.vehicles_table.setItem(row, 5, QTableWidgetItem(date_debut_str))
+    #         self.vehicles_table.setItem(row, 6, QTableWidgetItem(date_fin_str))
+            
+    #         # Jours
+    #         nbr_jour = vehicle.get('nbr_jour', 0)
+    #         jours_item = QTableWidgetItem(str(nbr_jour) if nbr_jour > 0 else "-")
+    #         jours_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    #         self.vehicles_table.setItem(row, 7, jours_item)
+            
+    #         # Garanties
+    #         garanties = vehicle.get('garanties', {})
+    #         for key, col in garanties_mapping:
+    #             amount = garanties.get(key, 0)
+    #             item = QTableWidgetItem(f"{amount:,.0f}".replace(",", " "))
+    #             item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    #             self.vehicles_table.setItem(row, col, item)
+            
+    #         # Total
+    #         total_amount = garanties.get('total', 0)
+    #         total_item = QTableWidgetItem(f"{total_amount:,.0f}".replace(",", " "))
+    #         total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+    #         self.vehicles_table.setItem(row, 17, total_item)
+            
+    #         # Widget des actions (deux boutons)
+    #         vehicle_id = vehicle.get('id', row)  # Utilise l'ID du véhicule ou l'index comme fallback
+    #         actions_widget = VehicleActionsWidget(
+    #             vehicle_id,
+    #             self.edit_vehicle_garanties,
+    #             self.edit_vehicle_dates
+    #         )
+    #         self.vehicles_table.setCellWidget(row, 18, actions_widget)
+    #         if 'accessoires' not in vehicle:
+    #             vehicle['accessoires'] = 0
+    #         if 'asac' not in vehicle:
+    #             vehicle['asac'] = 0
+    #         if 'carte_rose' not in vehicle:
+    #             vehicle['carte_rose'] = 0
+    #         if 'vignette' not in vehicle:
+    #             vehicle['vignette'] = 0
+        
+    #     self.adjust_row_heights()
+    #     self.vehicles_table.resizeColumnsToContents()
+    #     self.update_summary()
+    #     self.update_garanties_summary()
+
     def display_fleet_vehicles(self):
-        """Affiche les véhicules de la flotte dans le tableau"""
+        """Affiche les véhicules de la flotte avec la nouvelle structure"""
         self.vehicles_table.setRowCount(len(self.vehicles_data))
         
-        # Mapping des garanties vers les colonnes
         garanties_mapping = [
             ('rc', 8), ('dr', 9), ('vol', 10), ('vb', 11),
             ('incendie', 12), ('bris_glace', 13), ('ar', 14), ('dta', 15), ('ipt', 16)
@@ -3639,7 +3993,7 @@ class FleetImportAdvancedDialog(QDialog):
             jours_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.vehicles_table.setItem(row, 7, jours_item)
             
-            # Garanties
+            # Garanties - Utiliser les données de la nouvelle structure
             garanties = vehicle.get('garanties', {})
             for key, col in garanties_mapping:
                 amount = garanties.get(key, 0)
@@ -3653,22 +4007,20 @@ class FleetImportAdvancedDialog(QDialog):
             total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.vehicles_table.setItem(row, 17, total_item)
             
-            # Widget des actions (deux boutons)
-            vehicle_id = vehicle.get('id', row)  # Utilise l'ID du véhicule ou l'index comme fallback
+            # Actions
+            vehicle_id = vehicle.get('id', row)
             actions_widget = VehicleActionsWidget(
                 vehicle_id,
                 self.edit_vehicle_garanties,
-                self.edit_vehicle_dates
+                self.edit_vehicle_dates,
+                self.on_modify_vehicle  # Ajout du callback de modification
             )
             self.vehicles_table.setCellWidget(row, 18, actions_widget)
-            if 'accessoires' not in vehicle:
-                vehicle['accessoires'] = 0
-            if 'asac' not in vehicle:
-                vehicle['asac'] = 0
-            if 'carte_rose' not in vehicle:
-                vehicle['carte_rose'] = 0
-            if 'vignette' not in vehicle:
-                vehicle['vignette'] = 0
+            
+            # Initialiser les frais si absents
+            for key in ['accessoires', 'asac', 'carte_rose', 'vignette']:
+                if key not in vehicle:
+                    vehicle[key] = 0
         
         self.adjust_row_heights()
         self.vehicles_table.resizeColumnsToContents()
