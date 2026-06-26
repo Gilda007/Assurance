@@ -96,7 +96,7 @@ class LometaDataProvider:
         
         return {
             # Attestation
-            "certificate_variant_code": "BLEUE",
+            "certificate_variant_code": "auto",
             "rc": int(getattr(vehicle, 'amt_rc', 0) or 0),
             "police_number": getattr(contract, 'numero_police', f"POL-{vehicle_id}"),
             "starts_at": starts_at.isoformat(),

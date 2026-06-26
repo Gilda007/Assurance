@@ -613,7 +613,7 @@ class ExportWorker(QThread):
             "channel": "api",
             "productions": [
                 {
-                    "certificate_variant_code": "Bleu",
+                    "certificate_variant_code": "auto",
                     "rc": 63784,  # Valeur par défaut si non disponible
                     "police_number": police_number,
                     "starts_at": date_debut,
@@ -1432,7 +1432,7 @@ class AsacDataValidator:
     ]
     
     # Valeurs autorisées
-    VALID_CERTIFICATE_VARIANTS = ["JAUNE", "VERTE", "BLEUE", "ROSE"]
+    VALID_CERTIFICATE_VARIANTS = ["auto", "moto", "pooltpv"]
     VALID_CERTIFICATE_TYPES = ["cima", "non_cima"]
     VALID_CHANNELS = ["api", "web", "mobile"]
     VALID_ENERGIES = ["SEES", "DIESEL", "ELECTRIC", "HYBRID"]
@@ -1815,7 +1815,7 @@ class AsacManager(QDialog):
         # Variante
         filters_grid.addWidget(QLabel("Variante:"), 2, 0)
         self.filter_variant = QComboBox()
-        self.filter_variant.addItems(["Tous", "JAUNE", "VERTE", "BLEUE", "ROSE"])
+        self.filter_variant.addItems(["Tous", "auto", "moto", "pooltpv"])
         self.filter_variant.currentTextChanged.connect(self.apply_filters)
         filters_grid.addWidget(self.filter_variant, 2, 1)
         
@@ -2557,7 +2557,7 @@ class AsacManager(QDialog):
             "channel": "api",
             "productions": [
                 {
-                    "certificate_variant_code": "BLEUE",
+                    "certificate_variant_code": "auto",
                     "rc": int(self.vehicle_data.get("amt_rc", 0)) or 63784,
                     "police_number": self.vehicle_data.get("numero_police", f"POL-{datetime.now().year}-{self.vehicle_data.get('id', '00000')}"),
                     "starts_at": datetime.now().strftime("%Y-%m-%d"),
