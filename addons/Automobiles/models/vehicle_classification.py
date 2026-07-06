@@ -121,6 +121,7 @@
 #     created_at = Column(DateTime, default=func.now())
 #     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 
+
 # class VehicleGenre(Base):
 #     """Genres de véhicules (référentiel)"""
 #     __tablename__ = 'vehicle_genres'
@@ -163,6 +164,7 @@
 # class VehicleEnergy(Base):
 #     """Énergies de véhicules (référentiel)"""
 #     __tablename__ = 'vehicle_energies'
+#     __table_args__ = {'extend_existing': True}
     
 #     id = Column(Integer, primary_key=True, autoincrement=True)
 #     code = Column(String(10), unique=True, nullable=False)  # SEE, SED, etc.

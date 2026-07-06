@@ -397,87 +397,41 @@ class ExportWorker(QThread):
             self.finished.emit(False, {}, error_msg)
 
     def build_asac_request(self):
-        """Construit la requête ASAC selon le format exact exigé"""
+        """Construit la requête ASAC selon le format exact exigé avec mapping correct des données"""
         vehicle = self.vehicle_data
         
-        # Récupérer les codes valides depuis la configuration
+        print("🔍 Données reçues pour l'export ASAC:")
+        print(f"   Clés disponibles: {list(vehicle.keys())}")
+        print(f"   Immatriculation: {vehicle.get('immatriculation', 'NON TROUVEE')}")
+        print(f"   Marque: {vehicle.get('marque', 'NON TROUVEE')}")
+        print(f"   Propriétaire: {vehicle.get('owner', 'NON TROUVEE')}")
+        
+        # ✅ Récupérer les codes depuis la configuration
         office_code = self.config.get("office_code", "AG-DLA-001")
         organization_code = self.config.get("org_code", "ACTIVA")
         
-        # Pour la date, s'assurer du format YYYY-MM-DD
-        # date_debut = vehicle.get("date_debut")
-        # if not date_debut:
-        #     date_debut = datetime.now().strftime("%Y-%m-%d")
-        # elif isinstance(date_debut, datetime):
-        #     date_debut = date_debut.strftime("%Y-%m-%d")
-        # elif hasattr(date_debut, 'strftime'):
-        #     date_debut = date_debut.strftime("%Y-%m-%d")
-        
-        # date_fin = vehicle.get("date_fin")
-        # if not date_fin:
-        #     date_fin = (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d")
-        # elif isinstance(date_fin, datetime):
-        #     date_fin = date_fin.strftime("%Y-%m-%d")
-        # elif hasattr(date_fin, 'strftime'):
-        #     date_fin = date_fin.strftime("%Y-%m-%d")
-
-        # ✅ CORRECTION: Gérer correctement les dates
+        # ✅ Gestion des dates
         from datetime import datetime, timedelta
-        
         today = datetime.now().date()
         
-        # Récupérer la date de début du véhicule
-        vehicle_date_debut = vehicle.get("date_debut")
-        
-        # Par défaut, utiliser la date du jour
+        # Date de début
         date_debut = today.strftime("%Y-%m-%d")
-        
-        # Si une date de début est fournie, essayer de l'utiliser
+        vehicle_date_debut = vehicle.get("date_debut")
         if vehicle_date_debut:
             try:
-                # Convertir en date si c'est un datetime
                 if isinstance(vehicle_date_debut, datetime):
                     vehicle_date = vehicle_date_debut.date()
-                # Convertir en date si c'est une chaîne
                 elif isinstance(vehicle_date_debut, str):
                     vehicle_date = datetime.strptime(vehicle_date_debut, "%Y-%m-%d").date()
                 else:
                     vehicle_date = vehicle_date_debut
-                
-                # Utiliser la date du véhicule si elle est >= aujourd'hui
-                if vehicle_date >= today:
-                    date_debut = vehicle_date.strftime("%Y-%m-%d")
-            except Exception as e:    from datetime import datetime, timedelta
-        
-        today = datetime.now().date()
-        
-        # Récupérer la date de début du véhicule
-        vehicle_date_debut = vehicle.get("date_debut")
-        
-        # Par défaut, utiliser la date du jour
-        date_debut = today.strftime("%Y-%m-%d")
-        
-        # Si une date de début est fournie, essayer de l'utiliser
-        if vehicle_date_debut:
-            try:
-                # Convertir en date si c'est un datetime
-                if isinstance(vehicle_date_debut, datetime):
-                    vehicle_date = vehicle_date_debut.date()
-                # Convertir en date si c'est une chaîne
-                elif isinstance(vehicle_date_debut, str):
-                    vehicle_date = datetime.strptime(vehicle_date_debut, "%Y-%m-%d").date()
-                else:
-                    vehicle_date = vehicle_date_debut
-                
-                # Utiliser la date du véhicule si elle est >= aujourd'hui
                 if vehicle_date >= today:
                     date_debut = vehicle_date.strftime("%Y-%m-%d")
             except Exception as e:
-                print(f"⚠️ Erreur lors du parsing de la date de début: {e}")
+                print(f"⚠️ Erreur parsing date début: {e}")
         
-        # date_fin = aujourd'hui + 1 an (ou utiliser celle du véhicule si valide)
+        # Date de fin (1 an plus tard)
         date_fin = (today + timedelta(days=365)).strftime("%Y-%m-%d")
-        
         vehicle_date_fin = vehicle.get("date_fin")
         if vehicle_date_fin:
             try:
@@ -487,37 +441,14 @@ class ExportWorker(QThread):
                     vehicle_date = datetime.strptime(vehicle_date_fin, "%Y-%m-%d").date()
                 else:
                     vehicle_date = vehicle_date_fin
-                
                 if vehicle_date >= today:
                     date_fin = vehicle_date.strftime("%Y-%m-%d")
             except Exception as e:
-                print(f"⚠️ Erreur lors du parsing de la date de fin: {e}")
-    
-                print(f"⚠️ Erreur lors du parsing de la date de début: {e}")
+                print(f"⚠️ Erreur parsing date fin: {e}")
         
-        # date_fin = aujourd'hui + 1 an (ou utiliser celle du véhicule si valide)
-        date_fin = (today + timedelta(days=365)).strftime("%Y-%m-%d")
-        
-        vehicle_date_fin = vehicle.get("date_fin")
-        if vehicle_date_fin:
-            try:
-                if isinstance(vehicle_date_fin, datetime):
-                    vehicle_date = vehicle_date_fin.date()
-                elif isinstance(vehicle_date_fin, str):
-                    vehicle_date = datetime.strptime(vehicle_date_fin, "%Y-%m-%d").date()
-                else:
-                    vehicle_date = vehicle_date_fin
-                
-                if vehicle_date >= today:
-                    date_fin = vehicle_date.strftime("%Y-%m-%d")
-            except Exception as e:
-                print(f"⚠️ Erreur lors du parsing de la date de fin: {e}")
-        
-        
-        # ✅ Récupérer la date de première mise en circulation
+        # ✅ Date de première mise en circulation
         first_registration = vehicle.get("date_mise_circulation")
         if not first_registration:
-            # Si non fournie, utiliser l'année du véhicule (1er janvier)
             annee = vehicle.get("annee")
             if annee:
                 first_registration = f"{annee}-01-01"
@@ -528,7 +459,7 @@ class ExportWorker(QThread):
         elif hasattr(first_registration, 'strftime'):
             first_registration = first_registration.strftime("%Y-%m-%d")
         
-        # ✅ Numéro d'immatriculation sans espace
+        # ✅ Numéro d'immatriculation
         licence_plate = vehicle.get("immatriculation", "").replace(" ", "").upper()
         
         # ✅ Numéro de police
@@ -539,24 +470,18 @@ class ExportWorker(QThread):
         postal_code = f"BP {city}"
         
         # ✅ Nom du conducteur
-        driver_name = vehicle.get("driver_name")
-        if not driver_name:
-            driver_name = vehicle.get("owner", "")
+        driver_name = vehicle.get("driver_name") or vehicle.get("owner", "")
         
         # ✅ Date de naissance du conducteur
-        driver_birthdate = vehicle.get("driver_birth")
-        if not driver_birthdate:
-            driver_birthdate = "1990-01-01"
-        elif isinstance(driver_birthdate, datetime):
+        driver_birthdate = vehicle.get("driver_birth") or vehicle.get("driver_birthdate", "1990-01-01")
+        if isinstance(driver_birthdate, datetime):
             driver_birthdate = driver_birthdate.strftime("%Y-%m-%d")
         elif hasattr(driver_birthdate, 'strftime'):
             driver_birthdate = driver_birthdate.strftime("%Y-%m-%d")
         
         # ✅ Date de délivrance du permis
-        licence_issued_at = vehicle.get("driver_licence_date")
-        if not licence_issued_at:
-            licence_issued_at = "2010-01-01"
-        elif isinstance(licence_issued_at, datetime):
+        licence_issued_at = vehicle.get("driver_licence_date") or vehicle.get("licence_issued_at", "2010-01-01")
+        if isinstance(licence_issued_at, datetime):
             licence_issued_at = licence_issued_at.strftime("%Y-%m-%d")
         elif hasattr(licence_issued_at, 'strftime'):
             licence_issued_at = licence_issued_at.strftime("%Y-%m-%d")
@@ -566,11 +491,10 @@ class ExportWorker(QThread):
         
         # ✅ Puissance fiscale
         fiscal_power = vehicle.get("puissance_fiscale", 5)
-        if fiscal_power:
-            try:
-                fiscal_power = int(fiscal_power)
-            except (ValueError, TypeError):
-                fiscal_power = 5
+        try:
+            fiscal_power = int(fiscal_power)
+        except (ValueError, TypeError):
+            fiscal_power = 5
         
         # ✅ Nombre de places
         nb_seats = vehicle.get("places", 5)
@@ -603,10 +527,22 @@ class ExportWorker(QThread):
         # ✅ Numéro de contribuable (obligatoire)
         taxpayer_number = vehicle.get("num_contribuable", "")
         if not taxpayer_number:
-            # Générer un numéro temporaire si absent
             taxpayer_number = f"TMP-{datetime.now().strftime('%Y%m%d')}-{vehicle.get('id', '000')}"
         
-        return {
+        # ✅ Montant RC (Responsabilité Civile)
+        amt_rc = vehicle.get("amt_rc", 0)
+        # Si amt_rc est 0 ou None, essayer d'autres clés
+        if not amt_rc:
+            amt_rc = vehicle.get("amt_fleet_rc_val", 0)
+        if not amt_rc:
+            amt_rc = vehicle.get("rc", 63784)
+        try:
+            amt_rc = int(amt_rc)
+        except (ValueError, TypeError):
+            amt_rc = 63784
+        
+        # ✅ Construire la requête
+        request = {
             "office_code": office_code,
             "organization_code": organization_code,
             "certificate_type": "cima",
@@ -614,7 +550,7 @@ class ExportWorker(QThread):
             "productions": [
                 {
                     "certificate_variant_code": "auto",
-                    "rc": 63784,  # Valeur par défaut si non disponible
+                    "rc": amt_rc,
                     "police_number": police_number,
                     "starts_at": date_debut,
                     "ends_at": date_fin,
@@ -638,17 +574,25 @@ class ExportWorker(QThread):
                     "vehicle_energy": vehicle_energy,
                     "nb_of_seats": nb_seats,
                     "fiscal_power": fiscal_power,
+                    "vehicle_gross_weight": int(self.vehicle_data.get("ptac", 0)) or int(self.vehicle_data.get("vehicle_gross_weight", 0)),
                     "circulation_zone": zone,
                     "driver_name": driver_name,
                     "driver_birthdate": driver_birthdate,
                     "driver_licence_issued_at": licence_issued_at,
                     "vehicle_has_trailer": bool(has_trailer),
-                    # ✅ CHAMPS OBLIGATOIRES
                     "taxpayer_number": taxpayer_number,
                     "vehicle_first_registration_date": first_registration
                 }
             ]
         }
+        
+        print(f"📤 Requête ASAC construite avec:")
+        print(f"   - Immatriculation: {licence_plate}")
+        print(f"   - Propriétaire: {vehicle.get('owner', 'NON TROUVE')}")
+        print(f"   - Marque: {vehicle.get('marque', 'NON TROUVE')}")
+        print(f"   - RC: {amt_rc}")
+        
+        return request
 
     def _normalize_date(self, value, default=None):
         """Normalise une date en format YYYY-MM-DD"""
@@ -699,43 +643,6 @@ class ExportWorker(QThread):
                 pass
 
         return self._normalize_date(vehicle.get("date_debut"), default=datetime.now())
-
-    # def log_request(self, url, headers, payload, request_type="REQUEST"):
-    #     """Affiche les détails de la requête pour le débogage"""
-    #     print(f"\n{'='*60}")
-    #     print(f"📤 {request_type}")
-    #     print(f"{'='*60}")
-    #     print(f"📍 URL: {url}")
-    #     print(f"\n📋 HEADERS:")
-    #     for key, value in headers.items():
-    #         # Masquer partiellement les tokens pour la sécurité
-    #         if key in ["Authorization", "X-App-Id"] and len(value) > 10:
-    #             print(f"   {key}: {value[:10]}...{value[-5:]}")
-    #         else:
-    #             print(f"   {key}: {value}")
-    #     print(f"\n📦 BODY:")
-    #     print(json.dumps(payload, indent=2, ensure_ascii=False))
-    #     print(f"{'='*60}\n")
-
-    # def log_response(self, response, response_type="RESPONSE"):
-    #     """Affiche les détails de la réponse pour le débogage"""
-    #     print(f"\n{'='*60}")
-    #     print(f"📥 {response_type}")
-    #     print(f"{'='*60}")
-    #     print(f"📊 Status Code: {response.status_code}")
-    #     print(f"📋 Headers: {dict(response.headers)}")
-    #     try:
-    #         response_json = response.json()
-    #         print(f"\n📦 BODYeee:")
-    #         # Masquer le token partiellement pour la sécurité
-    #         if isinstance(response_json, dict) and "token" in response_json:
-    #             token = response_json["token"]
-    #             if len(token) > 20:
-    #                 response_json["token"] = f"{token[:15]}...{token[-10:]}"
-    #         print(json.dumps(response_json, indent=2, ensure_ascii=False))
-    #     except:
-    #         print(f"\n📦 BODY (texte): {response.text[:500]}")
-    #     print(f"{'='*60}\n")
 
     def log_request(self, url, headers, payload, request_type="REQUEST"):
         """Affiche et capture les détails de la requête"""
@@ -2478,15 +2385,65 @@ class AsacManager(QDialog):
         
         dialog.exec()
 
+    # def display_vehicle_info(self):
+    #     """Affiche les informations du véhicule"""
+    #     self.vehicle_info["immatriculation"].setText(self.vehicle_data.get("immatriculation", "N/A"))
+        
+    #     marque_modele = f"{self.vehicle_data.get('marque', '')} {self.vehicle_data.get('modele', '')}".strip()
+    #     self.vehicle_info["marque_modele"].setText(marque_modele or "N/A")
+        
+    #     self.vehicle_info["chassis"].setText(self.vehicle_data.get("chassis", "N/A"))
+    #     self.vehicle_info["annee"].setText(str(self.vehicle_data.get("annee", "N/A")))
+    #     self.vehicle_info["energie"].setText(self.vehicle_data.get("energie", "N/A"))
+    #     self.vehicle_info["categorie"].setText(self.vehicle_data.get("categorie", "N/A"))
+    #     self.vehicle_info["owner"].setText(self.vehicle_data.get("owner", "N/A"))
+    #     self.vehicle_info["phone"].setText(self.vehicle_data.get("phone", "N/A"))
+    #     self.vehicle_info["email"].setText(self.vehicle_data.get("email", "N/A"))
+        
+    #     prime = self.vehicle_data.get("prime_nette", 0)
+    #     self.vehicle_info["prime_nette"].setText(f"{prime:,.0f} FCFA" if prime else "N/A")
+        
+    #     garanties = [
+    #         ("Responsabilité Civile", "amt_rc"),
+    #         ("Défense et Recours", "amt_dr"),
+    #         ("Vol", "amt_vol"),
+    #         ("Vol à main armée", "amt_vb"),
+    #         ("Incendie", "amt_in"),
+    #         ("Bris de glace", "amt_bris"),
+    #         ("Assistance", "amt_ar"),
+    #         ("Dommages Tous Accidents", "amt_dta"),
+    #         ("Individuelle Chauffeur", "amt_ipt")
+    #     ]
+        
+    #     self.garanties_table.setRowCount(0)
+    #     for name, key in garanties:
+    #         montant = self.vehicle_data.get(key, 0)
+    #         if montant and float(montant) > 0:
+    #             row = self.garanties_table.rowCount()
+    #             self.garanties_table.insertRow(row)
+    #             self.garanties_table.setItem(row, 0, QTableWidgetItem(name))
+    #             self.garanties_table.setItem(row, 1, QTableWidgetItem(f"{float(montant):,.0f} FCFA"))
+        
+    #     self.update_json_preview()
+    
     def display_vehicle_info(self):
-        """Affiche les informations du véhicule"""
+        """Affiche les informations du véhicule avec debug"""
+        
+        # Afficher les valeurs principales
+        for key in ['immatriculation', 'marque', 'modele', 'owner', 'phone', 'email']:
+            print(f"   {key}: {self.vehicle_data.get(key, 'NON TROUVEE')}")
+        
+        # ✅ Utiliser get() avec des valeurs par défaut
         self.vehicle_info["immatriculation"].setText(self.vehicle_data.get("immatriculation", "N/A"))
         
         marque_modele = f"{self.vehicle_data.get('marque', '')} {self.vehicle_data.get('modele', '')}".strip()
         self.vehicle_info["marque_modele"].setText(marque_modele or "N/A")
         
         self.vehicle_info["chassis"].setText(self.vehicle_data.get("chassis", "N/A"))
-        self.vehicle_info["annee"].setText(str(self.vehicle_data.get("annee", "N/A")))
+        
+        annee = self.vehicle_data.get("annee", "N/A")
+        self.vehicle_info["annee"].setText(str(annee))
+        
         self.vehicle_info["energie"].setText(self.vehicle_data.get("energie", "N/A"))
         self.vehicle_info["categorie"].setText(self.vehicle_data.get("categorie", "N/A"))
         self.vehicle_info["owner"].setText(self.vehicle_data.get("owner", "N/A"))
@@ -2496,6 +2453,7 @@ class AsacManager(QDialog):
         prime = self.vehicle_data.get("prime_nette", 0)
         self.vehicle_info["prime_nette"].setText(f"{prime:,.0f} FCFA" if prime else "N/A")
         
+        # Garanties
         garanties = [
             ("Responsabilité Civile", "amt_rc"),
             ("Défense et Recours", "amt_dr"),
@@ -2518,7 +2476,7 @@ class AsacManager(QDialog):
                 self.garanties_table.setItem(row, 1, QTableWidgetItem(f"{float(montant):,.0f} FCFA"))
         
         self.update_json_preview()
-    
+
     def update_json_preview(self):
         """Met à jour l'aperçu JSON avec validation de conformité"""
         settings = QSettings("LOMETA", "ASAC")
@@ -2548,6 +2506,7 @@ class AsacManager(QDialog):
             vehicle_energy = "DIESEL"
         
         vehicle_usage = self.vehicle_data.get("usage", "UV01")
+        print(f"Amount RC: {int(self.vehicle_data.get('amt_rc', 0))}")
         
         # Construire la requête selon le format exact
         request = {
@@ -2558,7 +2517,8 @@ class AsacManager(QDialog):
             "productions": [
                 {
                     "certificate_variant_code": "auto",
-                    "rc": int(self.vehicle_data.get("amt_rc", 0)) or 63784,
+                    # "rc": int(self.vehicle_data.get("amt_rc", 0)) or 63784,
+                    "rc": int(self.vehicle_data.get("amt_rc", 0)),
                     "police_number": self.vehicle_data.get("numero_police", f"POL-{datetime.now().year}-{self.vehicle_data.get('id', '00000')}"),
                     "starts_at": datetime.now().strftime("%Y-%m-%d"),
                     "ends_at": str(self.vehicle_data.get("date_fin", (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d"))),

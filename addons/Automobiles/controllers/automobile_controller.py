@@ -505,7 +505,8 @@ class VehicleController:
                 success, contrat, contrat_message = self.contract_ctrl.create_proformat_contract(
                     vehicle_id=new_vehicle.id,
                     user_id=user_id,
-                    data=contrat_data
+                    data=contrat_data,
+                    commit=False
                 )
                 
                 if not success:
@@ -546,28 +547,45 @@ class VehicleController:
                 if driver_data and driver_data.get('nom'):
                     from addons.Automobiles.models.driver_models import Driver
                     
-                    # Vérifier si le conducteur existe déjà
-                    existing_driver = self.session.query(Driver).filter(
-                        Driver.num_permis == driver_data.get('num_permis', '')
-                    ).first()
+                    # ✅ Vérifier les noms de colonnes
+                    # Essayer plusieurs possibilités
+                    licence_field = None
+                    for field_name in ['num_permis', 'driver_licence_number', 'licence_number']:
+                        if hasattr(Driver, field_name):
+                            licence_field = field_name
+                            break
+                    
+                    if licence_field:
+                        # Utiliser le champ trouvé comme expression SQLAlchemy
+                        licence_value = driver_data.get('num_permis', '')
+                        existing_driver = self.session.query(Driver).filter(
+                            getattr(Driver, licence_field) == licence_value
+                        ).first()
+                    else:
+                        # Fallback: vérifier par nom et prénom
+                        existing_driver = self.session.query(Driver).filter(
+                            Driver.driver_name == driver_data.get('nom', '')
+                        ).first()
                     
                     if existing_driver:
-                        # Utiliser le conducteur existant
                         new_vehicle.driver_id = existing_driver.id
                         print(f"✓ Conducteur existant trouvé: {existing_driver.id}")
                     else:
                         # Créer un nouveau conducteur
-                        new_driver = Driver(
-                            nom=driver_data.get('nom', ''),
-                            prenom=driver_data.get('prenom', ''),
-                            date_naissance=driver_data.get('date_naissance'),
-                            num_permis=driver_data.get('num_permis', ''),
-                            categorie_permis=driver_data.get('categorie_permis', ''),
-                            date_permis=driver_data.get('date_permis'),
-                            autorite_delivrance=driver_data.get('autorite_delivrance', ''),
-                            created_by=user_id,
-                            created_at=datetime.now()
-                        )
+                        # ✅ Utiliser les bons noms de colonnes
+                        driver_kwargs = {
+                            'driver_name': f"{driver_data.get('nom', '')} {driver_data.get('prenom', '')}".strip(),
+                            'driver_birth_date': driver_data.get('date_naissance'),
+                            'driver_licence_number': driver_data.get('num_permis', ''),
+                            'driver_licence_category': driver_data.get('categorie_permis', ''),
+                            'driver_licence_issued_at': driver_data.get('date_permis'),
+                            'driver_licence_issued_by': driver_data.get('autorite_delivrance', '')
+                        }
+                        
+                        # Supprimer les clés avec valeur None
+                        driver_kwargs = {k: v for k, v in driver_kwargs.items() if v is not None}
+                        
+                        new_driver = Driver(**driver_kwargs)
                         self.session.add(new_driver)
                         self.session.flush()
                         new_vehicle.driver_id = new_driver.id
@@ -683,104 +701,6 @@ class VehicleController:
             public_ip = "Offline"
 
         return local_ip, public_ip
-
-    # def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None, **kwargs):
-    #     # Récupération flexible de l'IP (si la vue envoie 'local_ip' au lieu de 'ip_local')
-    #     local_ip = ip_local or kwargs.get('local_ip')
-        
-    #     if not local_ip:
-    #         try:
-    #             import socket
-    #             local_ip = socket.gethostbyname(socket.gethostname())
-    #         except:
-    #             local_ip = "127.0.0.1"
-
-    #     try:
-    #         vehicle = self.session.query(Vehicle).get(vehicle_id)
-    #         if not vehicle:
-    #             return False, "Véhicule introuvable."
-
-    #         def date_encoder(obj):
-    #             if isinstance(obj, (datetime, date)):
-    #                 return obj.isoformat()
-    #             raise TypeError(f"Type {type(obj)} non sérialisable")
-
-    #         # 1. Capture de l'ancien état pour l'audit
-    #         old_values = {
-    #             "immatriculation": vehicle.immatriculation,
-    #             "chassis": vehicle.chassis,
-    #             "zone": vehicle.zone,
-    #             "categorie": vehicle.categorie
-    #         }
-
-    #         # 2. Mise à jour de l'objet SQL
-    #         for key, value in new_data.items():
-    #             if hasattr(vehicle, key):
-    #                 setattr(vehicle, key, value)
-
-    #         # ============================================================
-    #         # MISE À JOUR DU CONDUCTEUR
-    #         # ============================================================
-    #         driver_data = new_data.get('driver', {})
-    #         if driver_data and driver_data.get('nom'):
-    #             from addons.Automobiles.models.driver_models import Driver
-                
-    #             if vehicle.driver_id:
-    #                 # Mettre à jour le conducteur existant
-    #                 driver = self.session.query(Driver).filter(Driver.id == vehicle.driver_id).first()
-    #                 if driver:
-    #                     driver.nom = driver_data.get('nom', driver.nom)
-    #                     driver.prenom = driver_data.get('prenom', driver.prenom)
-    #                     driver.date_naissance = driver_data.get('date_naissance', driver.date_naissance)
-    #                     driver.num_permis = driver_data.get('num_permis', driver.num_permis)
-    #                     driver.categorie_permis = driver_data.get('categorie_permis', driver.categorie_permis)
-    #                     driver.date_permis = driver_data.get('date_permis', driver.date_permis)
-    #                     driver.autorite_delivrance = driver_data.get('autorite_delivrance', driver.autorite_delivrance)
-    #                     driver.updated_at = datetime.now()
-    #                     driver.updated_by = user_id
-    #                     print(f"✓ Conducteur mis à jour: {driver.id}")
-    #             else:
-    #                 # Créer un nouveau conducteur
-    #                 new_driver = Driver(
-    #                     nom=driver_data.get('nom', ''),
-    #                     prenom=driver_data.get('prenom', ''),
-    #                     date_naissance=driver_data.get('date_naissance'),
-    #                     num_permis=driver_data.get('num_permis', ''),
-    #                     categorie_permis=driver_data.get('categorie_permis', ''),
-    #                     date_permis=driver_data.get('date_permis'),
-    #                     autorite_delivrance=driver_data.get('autorite_delivrance', ''),
-    #                     created_by=user_id,
-    #                     created_at=datetime.now()
-    #                 )
-    #                 self.session.add(new_driver)
-    #                 self.session.flush()
-    #                 vehicle.driver_id = new_driver.id
-    #                 print(f"✓ Nouveau conducteur créé: {new_driver.id}")
-
-    #         vehicle.updated_at = datetime.now()
-    #         vehicle.updated_by = user_id
-    #         vehicle.last_ip = local_ip
-
-    #         # 3. Création du log d'audit
-    #         audit = AuditVehicleLog(
-    #             user_id=user_id,
-    #             action="UPDATE",
-    #             module="VEHICLES",
-    #             item_id=vehicle_id,
-    #             old_values=json.dumps(old_values, default=date_encoder),
-    #             new_values=json.dumps(new_data, default=date_encoder),
-    #             ip_local=local_ip,
-    #             ip_public=ip_public,
-    #             timestamp=datetime.now()
-    #         )
-
-    #         self.session.add(audit)
-    #         self.session.commit()
-    #         return True, "Mise à jour réussie"
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         print(f"ERREUR DEBUG: {str(e)}")
-    #         return False, str(e)
 
     def update_vehicle(self, vehicle_id, new_data, user_id, ip_local=None, ip_public=None, **kwargs):
         """Met à jour un véhicule existant et ses relations."""
@@ -955,12 +875,10 @@ class VehicleController:
             print(f"Erreur lors de la récupération de la compagnie {cie_id} : {e}")
             return None
 
-     
-    #GESTION DES TARIFS ET GARANTIES POUR AFFICHAGE    
+
     def get_rc_premium_from_matrix(self, cie_id, zone_saisie, categorie, energie, cv_saisi, avec_remorque=False, code_tarif=None):
         """
-        Calcule la prime RC et la vignette Cameroun.
-        La recherche est affinée par le code_tarif s'il est présent.
+        Calcule la prime RC et la vignette Cameroun avec la nouvelle structure de table.
         """
         try:
             from addons.Automobiles.models.tarif_models import AutomobileTarif
@@ -972,49 +890,66 @@ class VehicleController:
             clean_zone = zone_match.group(0) if zone_match else str(zone_saisie).strip()
             
             clean_energie = str(energie).lower().strip()
-            # On extrait uniquement les chiffres pour la catégorie (ex: "Cat 01" -> "01")
-            clean_cat = "".join(filter(str.isdigit, str(categorie))).zfill(2)
+            
+            # Extraire uniquement les chiffres pour la catégorie (ex: "Cat 01" -> "01")
+            # Mais la table utilise 'categorie' comme VARCHAR, donc on conserve la valeur telle quelle
+            clean_cat = str(categorie).strip() if categorie else None
 
-            # --- 2. RECHERCHE SQL DYNAMIQUE ---
-            # On commence par les filtres de base
+            # --- 2. RECHERCHE SQL ---
             query = self.session.query(AutomobileTarif).filter(
                 AutomobileTarif.cie_id == cie_id,
                 AutomobileTarif.zone == clean_zone
             )
             
-            # Si un code_tarif est saisi, on l'utilise en priorité
+            # Filtrer par code tarif si fourni
             if code_tarif and str(code_tarif).strip():
                 query = query.filter(AutomobileTarif.tarif_code == str(code_tarif).strip())
             else:
-                # Sinon on se rabat sur la catégorie classique
-                query = query.filter(AutomobileTarif.categorie == clean_cat)
+                # Sinon filtrer par catégorie
+                if clean_cat:
+                    query = query.filter(AutomobileTarif.categorie == clean_cat)
 
             tarif = query.first()
 
             if not tarif:
                 print(f"⚠️ Aucun tarif pour Cie:{cie_id}, Zone:{clean_zone}, Code:{code_tarif}, Cat:{clean_cat}")
-                return {"rc": 0.0, "vignette": 0.0}
+                return {"rc": 0.0, "vignette": 0.0, "libelle": "", "categorie": clean_cat}
 
-            # --- 3. TRANCHE DE PUISSANCE ---
+            # --- 3. DÉTERMINER LA TRANCHE DE PUISSANCE ---
             cv_val = int(cv_saisi or 0)
-            tranches = self.session.query(AutomobileTranche).order_by(AutomobileTranche.max_cv).all()
             
-            tranche_num = 1
-            if tranches:
-                for t in tranches:
-                    if cv_val <= t.max_cv:
-                        tranche_num = t.id 
-                        break
-                else:
-                    tranche_num = tranches[-1].id
-
-            # --- 4. SÉLECTION DE LA COLONNE ---
-            if avec_remorque:
-                col_name = f"remorq{tranche_num}"
+            # Définir les tranches manuellement (adapté à votre table)
+            # Les colonnes prime1 à prime10 correspondent aux tranches
+            if cv_val <= 2:
+                tranche_index = 1
+            elif cv_val <= 4:
+                tranche_index = 2
+            elif cv_val <= 6:
+                tranche_index = 3
+            elif cv_val <= 8:
+                tranche_index = 4
+            elif cv_val <= 10:
+                tranche_index = 5
+            elif cv_val <= 12:
+                tranche_index = 6
+            elif cv_val <= 14:
+                tranche_index = 7
+            elif cv_val <= 16:
+                tranche_index = 8
+            elif cv_val <= 18:
+                tranche_index = 9
             else:
-                # Sans remorque : utiliser primeX (c'est la colonne qui contient les primes RC)
-                col_name = f"prime{tranche_num}"
+                tranche_index = 10
 
+            # --- 4. SÉLECTIONNER LA BONNE COLONNE ---
+            if avec_remorque:
+                # Utiliser les colonnes remorq1 à remorq10
+                col_name = f"remorq{tranche_index}"
+            else:
+                # Utiliser les colonnes prime1 à prime10
+                col_name = f"prime{tranche_index}"
+
+            # Récupérer la valeur
             prime_rc = float(getattr(tarif, col_name, 0.0))
 
             # --- 5. CALCUL VIGNETTE CAMEROUN ---
@@ -1028,18 +963,50 @@ class VehicleController:
             elif cv_val > 20:
                 vignette = 200000
 
-            # On retourne un dictionnaire pour mettre à jour plusieurs champs dans la Vue
             return {
                 "rc": prime_rc,
                 "vignette": vignette,
-                "libelle": getattr(tarif, 'lib_tarif', ''),  # Note: lib_tarif, pas libelle_tarif
-                "categorie": getattr(tarif, 'categorie', clean_cat)
+                "libelle": getattr(tarif, 'lib_tarif', ''),
+                "categorie": getattr(tarif, 'categorie', clean_cat),
+                "tranche": tranche_index,
+                "tarif_code": getattr(tarif, 'tarif_code', '')
             }
 
         except Exception as e:
-            print(f"❌ Erreur critique get_rc_premium: {e}")
-            return {"rc": 0.0, "vignette": 0.0}
-               
+            print(f"❌ Erreur get_rc_premium: {e}")
+            import traceback
+            traceback.print_exc()
+            return {"rc": 0.0, "vignette": 0.0, "libelle": "", "categorie": ""}
+
+
+    def get_rc_premium_from_matrix_persistent(self, cie_id: int, zone_saisie: str, 
+                                            categorie: str, energie: str, 
+                                            cv_saisi: int, avec_remorque: bool = False,
+                                            code_tarif: str = None) -> Dict:
+        """
+        Version avec cache SQLite pour le calcul des primes RC.
+        """
+        from core.local_db import cache
+        
+        # Générer une clé unique pour ce calcul
+        cache_key = f"automobiles:rc:calc:{cie_id}:{zone_saisie}:{categorie}:{energie}:{cv_saisi}:{avec_remorque}:{code_tarif}"
+        
+        # Essayer le cache
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+        
+        # Calculer
+        result = self.get_rc_premium_from_matrix(
+            cie_id, zone_saisie, categorie, energie, 
+            cv_saisi, avec_remorque, code_tarif
+        )
+        
+        # Mettre en cache (TTL 24h car dépend des tarifs, rarement modifiés)
+        cache.set(cache_key, result, module="automobiles", ttl_seconds=86400)
+        
+        return result
+
     def get_tarif_codes_by_compagnie(self, cie_id):
         """
         Récupère la liste des codes tarif disponibles pour une compagnie donnée.
@@ -1663,34 +1630,6 @@ class VehicleController:
         
         return result
     
-    def get_rc_premium_from_matrix_persistent(self, cie_id: int, zone_saisie: str, 
-                                               categorie: str, energie: str, 
-                                               cv_saisi: int, avec_remorque: bool = False,
-                                               code_tarif: str = None) -> Dict:
-        """
-        Version avec cache SQLite pour le calcul des primes RC
-        Évite de recalculer à chaque fois
-        """
-        from core.local_db import cache
-        
-        # Générer une clé unique pour ce calcul
-        cache_key = f"automobiles:rc:calc:{cie_id}:{zone_saisie}:{categorie}:{energie}:{cv_saisi}:{avec_remorque}:{code_tarif}"
-        
-        # Essayer le cache
-        cached = cache.get(cache_key)
-        if cached:
-            return cached
-        
-        # Calculer
-        result = self.get_rc_premium_from_matrix(
-            cie_id, zone_saisie, categorie, energie, 
-            cv_saisi, avec_remorque, code_tarif
-        )
-        
-        # Mettre en cache (TTL 24h car dépend des tarifs, rarement modifiés)
-        cache.set(cache_key, result, module="automobiles", ttl_seconds=86400)
-        
-        return result
     
     # ============================================================================
     # MÉTHODES D'INVALIDATION DU CACHE SQLITE
@@ -1748,9 +1687,7 @@ class VehicleController:
         self._invalidate_cache("automobiles:contacts")
         
         logger.info("🗑️ Cache contacts invalidé")
-    
-
-    
+       
     def _get_cached(self, key: str) -> Optional[Any]:
         """Récupère une valeur du cache mémoire"""
         if not hasattr(self, '_cache'):
@@ -1823,15 +1760,15 @@ class VehicleController:
             'is_active': vehicle.is_active,
             'created_at': vehicle.created_at.isoformat() if vehicle.created_at else None,
             # Garanties
-            'amt_rc': vehicle.amt_rc,
-            'amt_dr': vehicle.amt_dr,
-            'amt_vol': vehicle.amt_vol,
-            'amt_vb': vehicle.amt_vb,
-            'amt_in': vehicle.amt_in,
-            'amt_bris': vehicle.amt_bris,
-            'amt_ar': vehicle.amt_ar,
-            'amt_dta': vehicle.amt_dta,
-            'amt_ipt': vehicle.amt_ipt,
+            'amt_rc': getattr(vehicle, 'amt_rc', getattr(getattr(vehicle, 'guarantees', None), 'rc', 0)),
+            'amt_dr': getattr(vehicle, 'amt_dr', getattr(getattr(vehicle, 'guarantees', None), 'dr', 0)),
+            'amt_vol': getattr(vehicle, 'amt_vol', getattr(getattr(vehicle, 'guarantees', None), 'vol', 0)),
+            'amt_vb': getattr(vehicle, 'amt_vb', getattr(getattr(vehicle, 'guarantees', None), 'vb', 0)),
+            'amt_in': getattr(vehicle, 'amt_in', getattr(getattr(vehicle, 'guarantees', None), 'in_garantie', 0)),
+            'amt_bris': getattr(vehicle, 'amt_bris', getattr(getattr(vehicle, 'guarantees', None), 'bris', 0)),
+            'amt_ar': getattr(vehicle, 'amt_ar', getattr(getattr(vehicle, 'guarantees', None), 'ar', 0)),
+            'amt_dta': getattr(vehicle, 'amt_dta', getattr(getattr(vehicle, 'guarantees', None), 'dta', 0)),
+            'amt_ipt': getattr(vehicle, 'amt_ipt', getattr(getattr(vehicle, 'guarantees', None), 'ipt', 0)),
         }
     
     def _dict_to_vehicle(self, data: Dict) -> Vehicle:
@@ -2020,32 +1957,36 @@ class VehicleController:
             if not vehicle:
                 return {}
             
+            # Utiliser les relations guarantees et guarantee_reductions si présentes
+            guarantees = getattr(vehicle, 'guarantees', None)
+            reductions = getattr(vehicle, 'guarantee_reductions', None)
+
             return {
                 'date_debut': vehicle.date_debut,
                 'date_fin': vehicle.date_fin,
                 # Garanties brutes
-                'rc': float(vehicle.amt_rc or 0),
-                'dr': float(vehicle.amt_dr or 0),
-                'vol': float(vehicle.amt_vol or 0),
-                'vb': float(vehicle.amt_vb or 0),
-                'in': float(vehicle.amt_in or 0),
-                'bris': float(vehicle.amt_bris or 0),
-                'ar': float(vehicle.amt_ar or 0),
-                'dta': float(vehicle.amt_dta or 0),
-                'ipt': float(vehicle.amt_ipt or 0),
+                'rc': float(getattr(guarantees, 'rc', 0) if guarantees else 0),
+                'dr': float(getattr(guarantees, 'dr', 0) if guarantees else 0),
+                'vol': float(getattr(guarantees, 'vol', 0) if guarantees else 0),
+                'vb': float(getattr(guarantees, 'vb', 0) if guarantees else 0),
+                'in': float(getattr(guarantees, 'in_garantie', 0) if guarantees else 0),
+                'bris': float(getattr(guarantees, 'bris', 0) if guarantees else 0),
+                'ar': float(getattr(guarantees, 'ar', 0) if guarantees else 0),
+                'dta': float(getattr(guarantees, 'dta', 0) if guarantees else 0),
+                'ipt': float(getattr(guarantees, 'ipt', 0) if guarantees else 0),
                 # Garanties avec réduction (pour la flotte)
-                'val_red_rc': float(vehicle.amt_val_red_rc or 0),
-                'val_red_dr': float(vehicle.amt_val_red_dr or 0),
-                'val_red_vol': float(vehicle.amt_val_red_vol or 0),
-                'val_red_vb': float(vehicle.amt_val_red_vb or 0),
-                'val_red_in': float(vehicle.amt_val_red_in or 0),
-                'val_red_bris': float(vehicle.amt_val_red_bris or 0),
-                'val_red_ar': float(vehicle.amt_val_red_ar or 0),
-                'val_red_dta': float(vehicle.amt_val_red_dta or 0),
-                'val_red_ipt': float(vehicle.amt_val_red_ipt or 0),
+                'val_red_rc': float(getattr(reductions, 'rc', 0) if reductions else 0),
+                'val_red_dr': float(getattr(reductions, 'dr', 0) if reductions else 0),
+                'val_red_vol': float(getattr(reductions, 'vol', 0) if reductions else 0),
+                'val_red_vb': float(getattr(reductions, 'vb', 0) if reductions else 0),
+                'val_red_in': float(getattr(reductions, 'in_garantie', 0) if reductions else 0),
+                'val_red_bris': float(getattr(reductions, 'bris', 0) if reductions else 0),
+                'val_red_ar': float(getattr(reductions, 'ar', 0) if reductions else 0),
+                'val_red_dta': float(getattr(reductions, 'dta', 0) if reductions else 0),
+                'val_red_ipt': float(getattr(reductions, 'ipt', 0) if reductions else 0),
                 # Taux de réduction
-                'red_rc': float(vehicle.red_rc or 0),
-                'red_dr': float(vehicle.red_dr or 0),
+                'red_rc': float(getattr(vehicle, 'red_rc', 0) or 0),
+                'red_dr': float(getattr(vehicle, 'red_dr', 0) or 0),
                 'red_vol': float(vehicle.red_vol or 0),
                 'red_vb': float(vehicle.red_vb or 0),
                 'red_in': float(vehicle.red_in or 0),
@@ -2058,6 +1999,53 @@ class VehicleController:
         except Exception as e:
             print(f"Erreur get_vehicle_guarantees: {e}")
             return {}
+
+    def format_phone_number(self, phone):
+        """
+        Formate un numéro de téléphone avec le préfixe +237
+        
+        Args:
+            phone: Numéro de téléphone (str, int ou None)
+        
+        Returns:
+            str: Numéro formaté avec +237
+        """
+        if not phone:
+            return 'N/A'
+        
+        # Convertir en string
+        phone_str = str(phone).strip()
+        
+        # Supprimer les espaces et caractères spéciaux
+        phone_str = phone_str.replace(' ', '').replace('-', '').replace('.', '')
+        
+        # Si le numéro commence déjà par +237, le retourner tel quel
+        if phone_str.startswith('+237'):
+            return phone_str
+        
+        # Si le numéro commence par 237 (sans le +)
+        if phone_str.startswith('237'):
+            return f'+{phone_str}'
+        
+        # Si le numéro commence par 0 (ex: 0XXXXXXXXX)
+        if phone_str.startswith('0'):
+            return f'+237{phone_str[1:]}'  # Enlever le 0 et ajouter +237
+        
+        # Si le numéro a 9 chiffres (format local sans indicatif)
+        if len(phone_str) == 9 and phone_str.isdigit():
+            return f'+237{phone_str}'
+        
+        # Si le numéro a 8 chiffres (format sans indicatif)
+        if len(phone_str) == 8 and phone_str.isdigit():
+            return f'+237{phone_str}'
+        
+        # Si le numéro commence par un indicatif international différent
+        if phone_str.startswith('+') and not phone_str.startswith('+237'):
+            # Garder l'indicatif existant
+            return phone_str
+        
+        # Par défaut, ajouter +237
+        return f'+237{phone_str}'
 
     # addons/Automobiles/controllers/automobile_controller.py
 
@@ -2100,7 +2088,6 @@ class VehicleController:
                 selectinload(Vehicle.fleet),
                 selectinload(Vehicle.contract)
             ).filter(Vehicle.id == vehicle_id).first()
-            
             if not vehicle:
                 return None
 
@@ -2119,7 +2106,7 @@ class VehicleController:
             if vehicle.owner:
                 owner = vehicle.owner
                 owner_name = f"{getattr(owner, 'nom', '')} {getattr(owner, 'prenom', '')}".strip()
-                owner_phone = getattr(owner, 'telephone', 'N/A')
+                owner_phone = self.format_phone_number(getattr(owner, 'telephone', 'N/A'))
                 owner_email = getattr(owner, 'email', 'N/A')
                 owner_city = getattr(owner, 'ville', 'Yaoundé')
 
@@ -2143,10 +2130,10 @@ class VehicleController:
             if vehicle.driver:
                 driver = vehicle.driver
                 driver_name = getattr(driver, 'driver_name', 'N/A')
-                driver_birth = driver.driver_birth_date.strftime('%d/%m/%Y') if driver.driver_birth_date else "N/A"
+                driver_birth = driver.driver_birth_date.strftime('%Y/%m/%d') if driver.driver_birth_date else "N/A"
                 driver_licence = getattr(driver, 'driver_licence_number', 'N/A')
                 driver_category = getattr(driver, 'driver_licence_category', 'N/A')
-                driver_issued_at = driver.driver_licence_issued_at.strftime('%d/%m/%Y') if driver.driver_licence_issued_at else "N/A"
+                driver_issued_at = driver.driver_licence_issued_at.strftime('%Y/%m/%d') if driver.driver_licence_issued_at else "N/A"
                 driver_issued_by = getattr(driver, 'driver_licence_issued_by', 'N/A')
 
             # ============================================================
@@ -2184,7 +2171,7 @@ class VehicleController:
                 if date_obj is None:
                     return ""
                 if hasattr(date_obj, 'strftime'):
-                    return date_obj.strftime('%d/%m/%Y')
+                    return date_obj.strftime('%Y/%m/%d')
                 return str(date_obj)
 
             date_debut_str = format_date(vehicle.date_debut)

@@ -194,65 +194,195 @@ class FleetController:
 
     # ==================== GESTION DES VÉHICULES DANS LA FLOTTE ====================
     
+    # def update_fleet_vehicles(self, fleet_id, selected_vehicle_ids, user_id):
+    #     """
+    #     Met à jour la relation entre une flotte et ses véhicules.
+    #     Lors de l'ajout d'un véhicule, initialise les champs amt_fleet_*_val
+    #     avec les valeurs amt_* du véhicule.
+    #     """
+    #     try:
+    #         if isinstance(selected_vehicle_ids, dict):
+    #             print("ERREUR: Le contrôleur a reçu un dictionnaire au lieu d'une liste d'IDs.")
+    #             return False, "Format de données invalide (attendu: liste d'IDs)."
+
+    #         clean_ids = [int(i) for i in selected_vehicle_ids if str(i).isdigit() or isinstance(i, int)]
+    #         local_ip, public_ip = self.get_network_info()
+
+    #         # 1. Détacher les véhicules qui ne sont plus sélectionnés
+    #         self.session.query(Vehicle).filter(
+    #             Vehicle.fleet_id == fleet_id,
+    #             ~Vehicle.id.in_(clean_ids)
+    #         ).update({"fleet_id": None}, synchronize_session=False)
+
+    #         # 2. Attacher les nouveaux véhicules sélectionnés
+    #         # ⭐ IMPORTANT: Initialiser les champs amt_fleet_*_val avec les valeurs amt_*
+    #         if clean_ids:
+    #             # Récupérer les véhicules concernés
+    #             vehicles_to_update = self.session.query(Vehicle).filter(
+    #                 Vehicle.id.in_(clean_ids)
+    #             ).all()
+                
+    #             for vehicle in vehicles_to_update:
+    #                 # Mettre à jour la flotte
+    #                 vehicle.fleet_id = fleet_id
+                    
+    #                 # ⭐ Initialiser les champs de flotte si ils sont à 0
+    #                 guarantees = getattr(vehicle, 'guarantees', None)
+    #                 # Initialiser depuis guarantees si disponibles
+    #                 if vehicle.amt_fleet_rc_val == 0:
+    #                     vehicle.amt_fleet_rc_val = getattr(guarantees, 'rc', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_dr_val == 0:
+    #                     vehicle.amt_fleet_dr_val = getattr(guarantees, 'dr', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_vol_val == 0:
+    #                     vehicle.amt_fleet_vol_val = getattr(guarantees, 'vol', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_vb_val == 0:
+    #                     vehicle.amt_fleet_vb_val = getattr(guarantees, 'vb', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_in_val == 0:
+    #                     vehicle.amt_fleet_in_val = getattr(guarantees, 'in_garantie', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_bris_val == 0:
+    #                     vehicle.amt_fleet_bris_val = getattr(guarantees, 'bris', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_ar_val == 0:
+    #                     vehicle.amt_fleet_ar_val = getattr(guarantees, 'ar', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_dta_val == 0:
+    #                     vehicle.amt_fleet_dta_val = getattr(guarantees, 'dta', 0) if guarantees else 0
+    #                 if vehicle.amt_fleet_ipt_val == 0:
+    #                     vehicle.amt_fleet_ipt_val = getattr(guarantees, 'ipt', 0) if guarantees else 0
+
+    #         # 3. Audit
+    #         audit = AuditVehicleLog(
+    #             user_id=user_id,
+    #             action="UPDATE_RELATION_FLEET",
+    #             module="FLEETS",
+    #             item_id=fleet_id,
+    #             new_values=json.dumps({"vehicle_ids": clean_ids}), 
+    #             ip_local=local_ip,
+    #             ip_public=public_ip,
+    #             timestamp=datetime.now(timezone.utc)
+    #         )
+    #         self.session.add(audit)
+    #         self.session.commit()
+            
+    #         return True, "Relation Flotte-Véhicules mise à jour avec succès."
+
+    #     except Exception as e:
+    #         self.session.rollback()
+    #         print(f"Erreur Update Fleet Relation: {str(e)}")
+    #         return False, f"Erreur base de données : {str(e)}"
+
     def update_fleet_vehicles(self, fleet_id, selected_vehicle_ids, user_id):
         """
         Met à jour la relation entre une flotte et ses véhicules.
-        Lors de l'ajout d'un véhicule, initialise les champs amt_fleet_*_val
-        avec les valeurs amt_* du véhicule.
+        ✅ Version avec gestion des garanties flotte (vehicle_fleet_guarantees)
+        
+        Args:
+            fleet_id: ID de la flotte
+            selected_vehicle_ids: Liste des IDs des véhicules à attacher
+            user_id: ID de l'utilisateur
+        
+        Returns:
+            tuple: (success, message)
         """
         try:
+            from addons.Automobiles.models.automobile_models import Vehicle
+            from addons.Automobiles.models.automobile_models import VehicleGuarantee, VehicleFleetGuarantee
+            
             if isinstance(selected_vehicle_ids, dict):
                 print("ERREUR: Le contrôleur a reçu un dictionnaire au lieu d'une liste d'IDs.")
                 return False, "Format de données invalide (attendu: liste d'IDs)."
 
-            clean_ids = [int(i) for i in selected_vehicle_ids if str(i).isdigit() or isinstance(i, int)]
+            # Nettoyer les IDs
+            clean_ids = []
+            for i in selected_vehicle_ids:
+                try:
+                    if isinstance(i, int):
+                        clean_ids.append(i)
+                    elif isinstance(i, str) and i.isdigit():
+                        clean_ids.append(int(i))
+                except (ValueError, TypeError):
+                    continue
+            
+            if not clean_ids:
+                return True, "Aucun véhicule à associer"
+            
             local_ip, public_ip = self.get_network_info()
 
-            # 1. Détacher les véhicules qui ne sont plus sélectionnés
-            self.session.query(Vehicle).filter(
-                Vehicle.fleet_id == fleet_id,
-                ~Vehicle.id.in_(clean_ids)
-            ).update({"fleet_id": None}, synchronize_session=False)
+            # 1. Récupérer les véhicules actuellement dans la flotte
+            current_vehicle_ids = self.session.query(Vehicle.id).filter(
+                Vehicle.fleet_id == fleet_id
+            ).all()
+            current_vehicle_ids = [v[0] for v in current_vehicle_ids]
 
-            # 2. Attacher les nouveaux véhicules sélectionnés
-            # ⭐ IMPORTANT: Initialiser les champs amt_fleet_*_val avec les valeurs amt_*
-            if clean_ids:
-                # Récupérer les véhicules concernés
-                vehicles_to_update = self.session.query(Vehicle).filter(
-                    Vehicle.id.in_(clean_ids)
-                ).all()
+            # 2. Détacher les véhicules qui ne sont plus sélectionnés
+            vehicles_to_detach = set(current_vehicle_ids) - set(clean_ids)
+            if vehicles_to_detach:
+                self.session.query(Vehicle).filter(
+                    Vehicle.id.in_(vehicles_to_detach)
+                ).update({"fleet_id": None}, synchronize_session=False)
                 
-                for vehicle in vehicles_to_update:
-                    # Mettre à jour la flotte
-                    vehicle.fleet_id = fleet_id
-                    
-                    # ⭐ Initialiser les champs de flotte si ils sont à 0
-                    if vehicle.amt_fleet_rc_val == 0:
-                        vehicle.amt_fleet_rc_val = vehicle.amt_rc or 0
-                    if vehicle.amt_fleet_dr_val == 0:
-                        vehicle.amt_fleet_dr_val = vehicle.amt_dr or 0
-                    if vehicle.amt_fleet_vol_val == 0:
-                        vehicle.amt_fleet_vol_val = vehicle.amt_vol or 0
-                    if vehicle.amt_fleet_vb_val == 0:
-                        vehicle.amt_fleet_vb_val = vehicle.amt_vb or 0
-                    if vehicle.amt_fleet_in_val == 0:
-                        vehicle.amt_fleet_in_val = vehicle.amt_in or 0
-                    if vehicle.amt_fleet_bris_val == 0:
-                        vehicle.amt_fleet_bris_val = vehicle.amt_bris or 0
-                    if vehicle.amt_fleet_ar_val == 0:
-                        vehicle.amt_fleet_ar_val = vehicle.amt_ar or 0
-                    if vehicle.amt_fleet_dta_val == 0:
-                        vehicle.amt_fleet_dta_val = vehicle.amt_dta or 0
-                    if vehicle.amt_fleet_ipt_val == 0:
-                        vehicle.amt_fleet_ipt_val = vehicle.amt_ipt or 0
+                # Optionnel: Supprimer les enregistrements fleet_guarantees des véhicules détachés
+                for vid in vehicles_to_detach:
+                    self.session.query(VehicleFleetGuarantee).filter(
+                        VehicleFleetGuarantee.vehicle_id == vid
+                    ).delete()
 
-            # 3. Audit
+            # 3. Attacher les nouveaux véhicules sélectionnés
+            vehicles_to_attach = set(clean_ids) - set(current_vehicle_ids)
+            if vehicles_to_attach:
+                for vehicle_id in vehicles_to_attach:
+                    vehicle = self.session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+                    if vehicle:
+                        # 3a. Mettre à jour la flotte du véhicule
+                        vehicle.fleet_id = fleet_id
+                        
+                        # 3b. Créer ou mettre à jour les garanties flotte
+                        # Récupérer les garanties brutes du véhicule
+                        guarantees = self.session.query(VehicleGuarantee).filter(
+                            VehicleGuarantee.vehicle_id == vehicle_id
+                        ).first()
+                        
+                        if guarantees:
+                            # Créer ou mettre à jour les garanties flotte
+                            fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                                VehicleFleetGuarantee.vehicle_id == vehicle_id
+                            ).first()
+                            
+                            if not fleet_guarantee:
+                                # Créer une nouvelle entrée
+                                fleet_guarantee = VehicleFleetGuarantee(vehicle_id=vehicle_id)
+                                self.session.add(fleet_guarantee)
+                            
+                            # Copier les valeurs des garanties brutes vers les garanties flotte
+                            # (les valeurs seront modifiables par l'utilisateur ensuite)
+                            fleet_guarantee.rc = guarantees.rc or 0
+                            fleet_guarantee.dr = guarantees.dr or 0
+                            fleet_guarantee.vol = guarantees.vol or 0
+                            fleet_guarantee.vb = guarantees.vb or 0
+                            fleet_guarantee.ipt = guarantees.ipt or 0
+                            fleet_guarantee.bris = guarantees.bris or 0
+                            fleet_guarantee.ar = guarantees.ar or 0
+                            fleet_guarantee.dta = guarantees.dta or 0
+                            fleet_guarantee.in_garantie = guarantees.in_garantie or 0
+                            
+                            self.session.flush()
+                            
+                            # Mettre à jour les champs de compatibilité (pour éviter les erreurs)
+                            # Ces champs existent peut-être dans Vehicle pour compatibilité ascendante
+                            self._update_vehicle_fleet_fields(vehicle, guarantees)
+
+            # 4. Mettre à jour les totaux de la flotte
+            self._update_fleet_totals(fleet_id)
+
+            # 5. Audit
             audit = AuditVehicleLog(
                 user_id=user_id,
                 action="UPDATE_RELATION_FLEET",
                 module="FLEETS",
                 item_id=fleet_id,
-                new_values=json.dumps({"vehicle_ids": clean_ids}), 
+                new_values=json.dumps({
+                    "vehicle_ids": clean_ids,
+                    "attached": list(vehicles_to_attach),
+                    "detached": list(vehicles_to_detach)
+                }),
                 ip_local=local_ip,
                 ip_public=public_ip,
                 timestamp=datetime.now(timezone.utc)
@@ -260,12 +390,149 @@ class FleetController:
             self.session.add(audit)
             self.session.commit()
             
-            return True, "Relation Flotte-Véhicules mise à jour avec succès."
+            return True, f"Relation Flotte-Véhicules mise à jour avec succès. {len(vehicles_to_attach)} véhicule(s) ajouté(s), {len(vehicles_to_detach)} retiré(s)."
 
         except Exception as e:
             self.session.rollback()
             print(f"Erreur Update Fleet Relation: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return False, f"Erreur base de données : {str(e)}"
+
+
+    def _update_vehicle_fleet_fields(self, vehicle, guarantees):
+        """
+        Met à jour les champs de compatibilité du véhicule pour la flotte.
+        (Appelé lors de l'ajout d'un véhicule à une flotte)
+        """
+        try:
+            # Mettre à jour les champs amt_fleet_*_val si ils existent
+            if hasattr(vehicle, 'amt_fleet_rc_val'):
+                vehicle.amt_fleet_rc_val = guarantees.rc or 0
+            if hasattr(vehicle, 'amt_fleet_dr_val'):
+                vehicle.amt_fleet_dr_val = guarantees.dr or 0
+            if hasattr(vehicle, 'amt_fleet_vol_val'):
+                vehicle.amt_fleet_vol_val = guarantees.vol or 0
+            if hasattr(vehicle, 'amt_fleet_vb_val'):
+                vehicle.amt_fleet_vb_val = guarantees.vb or 0
+            if hasattr(vehicle, 'amt_fleet_in_val'):
+                vehicle.amt_fleet_in_val = guarantees.in_garantie or 0
+            if hasattr(vehicle, 'amt_fleet_bris_val'):
+                vehicle.amt_fleet_bris_val = guarantees.bris or 0
+            if hasattr(vehicle, 'amt_fleet_ar_val'):
+                vehicle.amt_fleet_ar_val = guarantees.ar or 0
+            if hasattr(vehicle, 'amt_fleet_dta_val'):
+                vehicle.amt_fleet_dta_val = guarantees.dta or 0
+            if hasattr(vehicle, 'amt_fleet_ipt_val'):
+                vehicle.amt_fleet_ipt_val = guarantees.ipt or 0
+                
+            # Mettre à jour les champs de réduction si ils existent
+            if hasattr(vehicle, 'amt_fleet_red_rc_val'):
+                vehicle.amt_fleet_red_rc_val = guarantees.rc or 0
+            # ... etc pour les autres garanties
+            
+            self.session.flush()
+            
+        except Exception as e:
+            print(f"Erreur _update_vehicle_fleet_fields: {e}")
+
+
+    def _update_fleet_totals(self, fleet_id):
+        """
+        Met à jour les totaux de la flotte (somme des garanties de tous les véhicules).
+        Utilise les données de vehicle_fleet_guarantees.
+        """
+        try:
+            from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            
+            # Récupérer la flotte
+            fleet = self.session.query(Fleet).filter(Fleet.id == fleet_id).first()
+            if not fleet:
+                return
+            
+            # Récupérer les véhicules de la flotte
+            vehicles = self.session.query(Vehicle).filter(
+                Vehicle.fleet_id == fleet_id,
+                Vehicle.is_active == True
+            ).all()
+            
+            if not vehicles:
+                # Réinitialiser les totaux
+                fleet.total_rc = 0
+                fleet.total_dr = 0
+                fleet.total_vol = 0
+                fleet.total_vb = 0
+                fleet.total_in = 0
+                fleet.total_bris = 0
+                fleet.total_ar = 0
+                fleet.total_dta = 0
+                fleet.total_ipt = 0
+                fleet.total_pttc = 0
+                fleet.total_prime_nette = 0
+                self.session.flush()
+                return
+            
+            # Initialiser les totaux
+            totals = {
+                'rc': 0, 'dr': 0, 'vol': 0, 'vb': 0,
+                'in': 0, 'bris': 0, 'ar': 0, 'dta': 0, 'ipt': 0,
+                'pttc': 0, 'prime_nette': 0
+            }
+            
+            # Calculer la somme des garanties pour chaque véhicule
+            for vehicle in vehicles:
+                fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                    VehicleFleetGuarantee.vehicle_id == vehicle.id
+                ).first()
+                
+                if fleet_guarantee:
+                    # Somme des garanties flotte
+                    totals['rc'] += fleet_guarantee.rc or 0
+                    totals['dr'] += fleet_guarantee.dr or 0
+                    totals['vol'] += fleet_guarantee.vol or 0
+                    totals['vb'] += fleet_guarantee.vb or 0
+                    totals['in'] += fleet_guarantee.ipt or 0  # ipt = incendie
+                    totals['bris'] += fleet_guarantee.bris or 0
+                    totals['ar'] += fleet_guarantee.ar or 0
+                    totals['dta'] += fleet_guarantee.dta or 0
+                    totals['ipt'] += fleet_guarantee.in_garantie or 0  # in_garantie = garantie individuelle
+                else:
+                    # Fallback: utiliser les garanties brutes
+                    if hasattr(vehicle, 'guarantees') and vehicle.guarantees:
+                        g = vehicle.guarantees
+                        totals['rc'] += g.rc or 0
+                        totals['dr'] += g.dr or 0
+                        totals['vol'] += g.vol or 0
+                        totals['vb'] += g.vb or 0
+                        totals['in'] += g.ipt or 0
+                        totals['bris'] += g.bris or 0
+                        totals['ar'] += g.ar or 0
+                        totals['dta'] += g.dta or 0
+                        totals['ipt'] += g.in_garantie or 0
+                
+                # Prime du véhicule
+                totals['prime_nette'] += vehicle.prime_nette or 0
+                totals['pttc'] += vehicle.pttc or 0
+            
+            # Mettre à jour la flotte
+            fleet.total_rc = totals['rc']
+            fleet.total_dr = totals['dr']
+            fleet.total_vol = totals['vol']
+            fleet.total_vb = totals['vb']
+            fleet.total_in = totals['in']
+            fleet.total_bris = totals['bris']
+            fleet.total_ar = totals['ar']
+            fleet.total_dta = totals['dta']
+            fleet.total_ipt = totals['ipt']
+            fleet.total_pttc = totals['pttc']
+            fleet.total_prime_nette = totals['prime_nette']
+            
+            self.session.flush()
+            
+        except Exception as e:
+            print(f"Erreur _update_fleet_totals: {e}")
+            import traceback
+            traceback.print_exc()
 
     # ==================== GESTION DES GARANTIES DANS LA FLOTTE ====================
     
@@ -378,16 +645,17 @@ class FleetController:
             if not vehicle:
                 return False, "Véhicule non trouvé"
             
+            guarantees = getattr(vehicle, 'guarantees', None)
             update_data = {
-                'amt_fleet_rc_val': float(vehicle.amt_rc or 0),
-                'amt_fleet_dr_val': float(vehicle.amt_dr or 0),
-                'amt_fleet_vol_val': float(vehicle.amt_vol or 0),
-                'amt_fleet_vb_val': float(vehicle.amt_vb or 0),
-                'amt_fleet_in_val': float(vehicle.amt_in or 0),
-                'amt_fleet_bris_val': float(vehicle.amt_bris or 0),
-                'amt_fleet_ar_val': float(vehicle.amt_ar or 0),
-                'amt_fleet_dta_val': float(vehicle.amt_dta or 0),
-                'amt_fleet_ipt_val': float(vehicle.amt_ipt or 0),
+                'amt_fleet_rc_val': float(getattr(guarantees, 'rc', 0) if guarantees else 0),
+                'amt_fleet_dr_val': float(getattr(guarantees, 'dr', 0) if guarantees else 0),
+                'amt_fleet_vol_val': float(getattr(guarantees, 'vol', 0) if guarantees else 0),
+                'amt_fleet_vb_val': float(getattr(guarantees, 'vb', 0) if guarantees else 0),
+                'amt_fleet_in_val': float(getattr(guarantees, 'in_garantie', 0) if guarantees else 0),
+                'amt_fleet_bris_val': float(getattr(guarantees, 'bris', 0) if guarantees else 0),
+                'amt_fleet_ar_val': float(getattr(guarantees, 'ar', 0) if guarantees else 0),
+                'amt_fleet_dta_val': float(getattr(guarantees, 'dta', 0) if guarantees else 0),
+                'amt_fleet_ipt_val': float(getattr(guarantees, 'ipt', 0) if guarantees else 0),
             }
             
             success, result = self.vehicle_service.update_vehicle(vehicle_id, update_data, self.current_user_id)

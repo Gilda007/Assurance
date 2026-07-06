@@ -874,6 +874,55 @@ class ASACImportView(QWidget):
         
         return widget
     
+    # def populate_fleets_table(self):
+    #     """Remplit le tableau des flottes"""
+    #     self.fleets_table.setRowCount(len(self.fleets_data))
+        
+    #     for row, fleet in enumerate(self.fleets_data):
+    #         self.fleets_table.setItem(row, 0, QTableWidgetItem(fleet.get('nom', '-')))
+    #         self.fleets_table.setItem(row, 1, QTableWidgetItem(str(fleet.get('nb_vehicules', 0))))
+    #         self.fleets_table.setItem(row, 2, QTableWidgetItem(f"{fleet.get('remise', 0)}%"))
+            
+    #         status = fleet.get('asac_status', 'pending')
+    #         status_label = "✅ Exporté" if status == 'success' else "⏳ À exporter" if status == 'pending' else "❌ Erreur"
+    #         status_item = QTableWidgetItem(status_label)
+    #         color = Colors.SUCCESS if status == 'success' else Colors.WARNING if status == 'pending' else Colors.DANGER
+    #         status_item.setForeground(QColor(color))
+    #         self.fleets_table.setItem(row, 3, status_item)
+            
+    #         self.fleets_table.setItem(row, 4, QTableWidgetItem(fleet.get('export_date', '-')))
+            
+    #         # Actions
+    #         actions_widget = QWidget()
+    #         actions_layout = QHBoxLayout(actions_widget)
+    #         actions_layout.setContentsMargins(4, 2, 4, 2)
+    #         actions_layout.setAlignment(Qt.AlignCenter)
+            
+    #         export_btn = QPushButton("📤")
+    #         export_btn.setFixedSize(30, 30)
+    #         export_btn.setToolTip("Exporter cette flotte")
+    #         export_btn.setStyleSheet("""
+    #             QPushButton {
+    #                 background: #d1fae5;
+    #                 border: none;
+    #                 border-radius: 6px;
+    #                 font-size: 13px;
+    #             }
+    #             QPushButton:hover {
+    #                 background: #a7f3d0;
+    #             }
+    #         """)
+    #         actions_layout.addWidget(export_btn)
+            
+    #         self.fleets_table.setCellWidget(row, 5, actions_widget)
+        
+    #     self.fleets_table.resizeColumnsToContents()
+    #     self.fleet_count.setText(f"{len(self.fleets_data)} flottes")
+
+
+    # addons/Automobiles/views/asac_import_view.py
+    # Remplacer la méthode populate_fleets_table par celle-ci :
+
     def populate_fleets_table(self):
         """Remplit le tableau des flottes"""
         self.fleets_table.setRowCount(len(self.fleets_data))
@@ -898,27 +947,104 @@ class ASACImportView(QWidget):
             actions_layout.setContentsMargins(4, 2, 4, 2)
             actions_layout.setAlignment(Qt.AlignCenter)
             
+            # ✅ Bouton Exporter qui ouvre la page d'export ASAC
             export_btn = QPushButton("📤")
-            export_btn.setFixedSize(30, 30)
-            export_btn.setToolTip("Exporter cette flotte")
+            export_btn.setFixedSize(34, 34)
+            export_btn.setToolTip("Exporter cette flotte vers ASAC")
             export_btn.setStyleSheet("""
                 QPushButton {
                     background: #d1fae5;
                     border: none;
-                    border-radius: 6px;
-                    font-size: 13px;
+                    border-radius: 8px;
+                    font-size: 14px;
                 }
                 QPushButton:hover {
                     background: #a7f3d0;
                 }
             """)
+            # ✅ Passer les véhicules de la flotte à exporter
+            export_btn.clicked.connect(lambda checked, f=fleet: self._export_fleet_to_asac(f))
             actions_layout.addWidget(export_btn)
             
             self.fleets_table.setCellWidget(row, 5, actions_widget)
         
         self.fleets_table.resizeColumnsToContents()
         self.fleet_count.setText(f"{len(self.fleets_data)} flottes")
-    
+
+
+    def _export_fleet_to_asac(self, fleet):
+        """Ouvre la page d'export ASAC pour une flotte spécifique"""
+        try:
+            # Récupérer les véhicules de la flotte
+            fleet_id = fleet.get('id')
+            if not fleet_id:
+                QMessageBox.warning(self, "Erreur", "ID de la flotte non trouvé")
+                return
+            
+            # Récupérer les véhicules de cette flotte
+            from addons.Automobiles.models.automobile_models import Vehicle
+            vehicles = self.controller.session.query(Vehicle).filter(
+                Vehicle.fleet_id == fleet_id,
+                Vehicle.is_active == True
+            ).all()
+            
+            if not vehicles:
+                QMessageBox.warning(
+                    self, 
+                    "Aucun véhicule", 
+                    f"La flotte '{fleet.get('nom', '')}' ne contient aucun véhicule à exporter."
+                )
+                return
+            
+            # Préparer les données des véhicules
+            vehicles_data = []
+            for vehicle in vehicles:
+                vehicles_data.append({
+                    'id': vehicle.id,
+                    'immatriculation': vehicle.immatriculation,
+                    'marque': vehicle.marque,
+                    'modele': vehicle.modele,
+                    'categorie': vehicle.categorie,
+                    'energie': vehicle.energie,
+                    'puissance': vehicle.puissance_fiscale,
+                    'date_mise_circulation': vehicle.date_mise_circulation.strftime("%Y-%m-%d") if vehicle.date_mise_circulation else '',
+                    'valeur_neuf': vehicle.valeur_neuf,
+                    'valeur_venale': vehicle.valeur_venale,
+                    'prime_nette': vehicle.prime_nette,
+                    'prime_brute': vehicle.prime_brute,
+                    'owner_nom': vehicle.owner.nom if vehicle.owner else '',
+                    'owner_prenom': vehicle.owner.prenom if vehicle.owner else '',
+                    'owner_telephone': vehicle.owner.telephone if vehicle.owner else '',
+                    'owner_email': vehicle.owner.email if vehicle.owner else '',
+                    'owner_adresse': vehicle.owner.adresse if vehicle.owner else '',
+                    'asac_status': 'pending',
+                    'export_date': '',
+                    'selected': True  # Sélectionné par défaut
+                })
+            
+            # Ouvrir la page d'export ASAC
+            from addons.Automobiles.views.asac_export_view import ASACExportView
+            
+            export_view = ASACExportView(
+                controller=self.controller,
+                user=self.user,
+                selected_vehicles=vehicles_data
+            )
+            
+            # Ouvrir dans une nouvelle fenêtre
+            export_view.setWindowTitle(f"Export ASAC - {fleet.get('nom', 'Flotte')}")
+            export_view.resize(1200, 800)
+            export_view.show()
+            
+            # Connecter le signal de fermeture pour rafraîchir le tableau
+            export_view.destroyed.connect(self.load_all_data)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Erreur lors de l'export de la flotte: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+
     def populate_contacts_table(self):
         """Remplit le tableau des contacts"""
         self.contacts_table.setRowCount(len(self.contacts_data))
@@ -1469,12 +1595,72 @@ class ASACImportView(QWidget):
             self.populate_vehicles_table()
             self.add_log("🔄 Statuts d'export réinitialisés", "INFO")
     
+    # def view_vehicle_details(self, row):
+    #     """Affiche les détails d'un véhicule"""
+    #     if row < len(self.vehicles_data):
+    #         vehicle = self.vehicles_data[row]
+    #         details = json.dumps(vehicle, indent=2, default=str)
+    #         QMessageBox.information(self, "Détails du véhicule", details)
+
     def view_vehicle_details(self, row):
-        """Affiche les détails d'un véhicule"""
+        """Affiche les détails d'un véhicule dans VehicleDetailView (version simple)"""
         if row < len(self.vehicles_data):
-            vehicle = self.vehicles_data[row]
-            details = json.dumps(vehicle, indent=2, default=str)
-            QMessageBox.information(self, "Détails du véhicule", details)
+            vehicle_data = self.vehicles_data[row]
+            vehicle_id = vehicle_data.get('id')
+            
+            if not vehicle_id:
+                QMessageBox.warning(self, "Erreur", "ID du véhicule non trouvé")
+                return
+            
+            try:
+                from addons.Automobiles.controllers.automobile_controller import VehicleController
+                from addons.Automobiles.views.vehicle_detail_view import VehicleDetailView
+                from PySide6.QtWidgets import QDialog, QVBoxLayout
+                
+                # Créer un contrôleur avec la session existante
+                db_session = getattr(self.controller, 'session', None)
+                vehicle_ctrl = VehicleController(db_session) if db_session else None
+                
+                # Charger les détails
+                vehicle_details = None
+                if vehicle_ctrl:
+                    vehicle_details = vehicle_ctrl.get_vehicle_details_data(vehicle_id)
+                    print(f"voici les informations du véhicule: {vehicle_details}")
+                
+                if not vehicle_details:
+                    # Fallback: utiliser les données déjà chargées
+                    vehicle_details = {
+                        'id': vehicle_data.get('id'),
+                        'immatriculation': vehicle_data.get('immatriculation', 'N/A'),
+                        'marque': vehicle_data.get('marque', 'N/A'),
+                        'modele': vehicle_data.get('modele', 'N/A'),
+                        'categorie': vehicle_data.get('categorie', 'N/A'),
+                        'statut': 'ACTIF',
+                    }
+                
+                # Ouvrir la fenêtre de détails
+                detail_dialog = QDialog(self)
+                detail_dialog.setWindowTitle(f"Fiche Véhicule : {vehicle_details.get('immatriculation', 'N/A')}")
+                detail_dialog.setMinimumSize(1100, 800)
+                
+                layout = QVBoxLayout(detail_dialog)
+                layout.setContentsMargins(0, 0, 0, 0)
+                
+                detail_view = VehicleDetailView(
+                    vehicle_data=vehicle_details,
+                    controller=self.controller,
+                    db_session=db_session
+                )
+                layout.addWidget(detail_view)
+                
+                # Connecter le bouton de retour
+                if hasattr(detail_view, 'btn_back'):
+                    detail_view.btn_back.clicked.connect(detail_dialog.close)
+                
+                detail_dialog.exec()
+                
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur", f"Erreur lors de l'ouverture des détails: {e}")
 
 
 # ============================================================

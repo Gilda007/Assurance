@@ -450,8 +450,6 @@ class ContractController:
             return None
         
         try:
-            print(f"=== get_contract_by_vehicle ===")
-            print(f"Recherche contrat pour vehicle_id: {vehicle_id}")
             
             # ✅ Utiliser self.db au lieu de self.session
             contrat = self.db.query(Contrat).filter(
@@ -484,11 +482,6 @@ class ContractController:
                 Contrat.vehicle_id == vehicle_id
             ).order_by(Contrat.created_at.desc()).all()
             
-            print(f"Nombre de contrats trouvés pour le véhicule {vehicle_id}: {len(contrats)}")
-            
-            for contrat in contrats:
-                print(f"  - Contrat ID: {contrat.id}, Police: {contrat.numero_police}")
-            
             # Retourner le premier contrat trouvé (le plus récent)
             # Vous pouvez ajouter des conditions supplémentaires ici
             if contrats:
@@ -513,11 +506,6 @@ class ContractController:
                 Contrat.owner_id == owner_id
             ).order_by(Contrat.created_at.desc()).all()
             
-            print(f"Nombre de contrats trouvés pour le propriétaire {owner_id}: {len(contrats)}")
-            
-            for contrat in contrats:
-                print(f"  - Contrat ID: {contrat.id}, Police: {contrat.numero_police}")
-            
             # Retourner le premier contrat trouvé (le plus récent)
             # Vous pouvez ajouter des conditions supplémentaires ici
             
@@ -536,17 +524,12 @@ class ContractController:
             return None
         
         try:
-            print(f"=== get_contract_by_vehicle ===")
-            print(f"Recherche contrat pour vehicle_id: {vehicle_id}")
             
             # Vérifier d'abord combien de contrats existent dans la table
             total_contrats = self.db.query(Contrat).count()
-            print(f"Total des contrats dans la table: {total_contrats}")
             
             # Afficher tous les contrats pour déboguer
             all_contrats = self.db.query(Contrat).all()
-            for c in all_contrats:
-                print(f"  Contrat ID: {c.id}, Police: {c.numero_police}, Vehicle ID: {c.vehicle_id}")
             
             # Rechercher le contrat spécifique
             contrat = self.db.query(Contrat).filter(
@@ -807,7 +790,8 @@ class ContractController:
         return contrat
     
     def _log_audit(self, user_id: int, action: str, item_id: int,
-                   old_values: Dict, new_values: Dict, ip_local: str, ip_public: str):
+                   old_values: Dict, new_values: Dict, ip_local: str, ip_public: str,
+                   commit: bool = True):
         """Journalise une action d'audit"""
         try:
             audit_log = AuditContratLog(
@@ -821,7 +805,10 @@ class ContractController:
                 ip_public=ip_public
             )
             self.db.add(audit_log)
-            self.db.commit()
+            if commit:
+                self.db.commit()
+            else:
+                self.db.flush()
         except Exception as e:
             logger.error(f"Erreur journalisation audit: {e}")
     
@@ -855,7 +842,7 @@ class ContractController:
         }
         return labels.get(status, 'Inconnu')
 
-    def create_proformat_contract(self, vehicle_id: int, user_id: int, data: Dict = None) -> Tuple[bool, Optional[Contrat], str]:
+    def create_proformat_contract(self, vehicle_id: int, user_id: int, data: Dict = None, commit: bool = True) -> Tuple[bool, Optional[Contrat], str]:
         """
         Crée un contrat en statut proformat pour un véhicule
         
@@ -863,6 +850,7 @@ class ContractController:
             vehicle_id: ID du véhicule
             user_id: ID de l'utilisateur
             data: Données supplémentaires du contrat
+            commit: Si True, engage la transaction immédiatement. Si False, laisse la transaction au caller.
         
         Returns:
             Tuple (succès, contrat, message)
@@ -904,7 +892,10 @@ class ContractController:
             )
             
             self.db.add(nouveau_contrat)
-            self.db.commit()
+            if commit:
+                self.db.commit()
+            else:
+                self.db.flush()
             self.db.refresh(nouveau_contrat)
             
             # Journaliser l'audit
@@ -915,14 +906,16 @@ class ContractController:
                 old_values=None,
                 new_values=self._contract_to_dict(nouveau_contrat),
                 ip_local=ip_local,
-                ip_public=ip_public
+                ip_public=ip_public,
+                commit=commit
             )
             
             logger.info(f"Proformat créé: {nouveau_contrat.numero_police} pour véhicule {vehicle_id}")
             return True, nouveau_contrat, "Proformat créé avec succès"
             
         except Exception as e:
-            self.db.rollback()
+            if commit:
+                self.db.rollback()
             logger.error(f"Erreur création proformat: {e}")
             return False, None, str(e)
 

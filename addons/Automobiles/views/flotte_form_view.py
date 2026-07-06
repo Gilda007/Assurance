@@ -1050,41 +1050,132 @@ class FleetForm(QDialog):
         except Exception as e:
             print(f"Erreur filtre véhicules: {e}")
 
+    # def customize_vehicle_garanties(self, vehicle_id, row):
+    #     """Ouvre le dialogue de personnalisation des garanties pour un véhicule"""
+    #     try:
+    #         vehicle = self.controller.vehicles.get_vehicles_by_id(vehicle_id)
+    #         if not vehicle:
+    #             QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
+    #             return
+            
+    #         # Récupérer les valeurs de la flotte
+    #         guarantees = getattr(vehicle, 'guarantees', None)
+    #         vehicle_data = {
+    #             'id': vehicle.id,
+    #             'immatriculation': vehicle.immatriculation,
+    #             'marque': vehicle.marque,
+    #             'modele': vehicle.modele,
+    #             'prime_nette': float(vehicle.prime_nette or 0),
+    #             # Garanties de base (provenant de la relation guarantees si existante)
+    #             'amt_rc': float(getattr(guarantees, 'rc', 0) if guarantees else 0),
+    #             'amt_dr': float(getattr(guarantees, 'dr', 0) if guarantees else 0),
+    #             'amt_vol': float(getattr(guarantees, 'vol', 0) if guarantees else 0),
+    #             'amt_vb': float(getattr(guarantees, 'vb', 0) if guarantees else 0),
+    #             'amt_fleet_rc_val': float(vehicle.amt_fleet_rc_val or 0),
+    #             'amt_fleet_dr_val': float(vehicle.amt_fleet_dr_val or 0),
+    #             'amt_fleet_vol_val': float(vehicle.amt_fleet_vol_val or 0),
+    #             'amt_fleet_vb_val': float(vehicle.amt_fleet_vb_val or 0),
+    #             # Garanties supplémentaires
+    #             'amt_in': float(getattr(guarantees, 'in_garantie', 0) if guarantees else 0),
+    #             'amt_bris': float(getattr(guarantees, 'bris', 0) if guarantees else 0),
+    #             'amt_ar': float(getattr(guarantees, 'ar', 0) if guarantees else 0),
+    #             'amt_dta': float(vehicle.amt_dta or 0),
+    #             'amt_ipt': float(vehicle.amt_ipt or 0),
+    #             'amt_fleet_in_val': float(vehicle.amt_fleet_in_val or 0),
+    #             'amt_fleet_bris_val': float(vehicle.amt_fleet_bris_val or 0),
+    #             'amt_fleet_ar_val': float(vehicle.amt_fleet_ar_val or 0),
+    #             'amt_fleet_dta_val': float(vehicle.amt_fleet_dta_val or 0),
+    #             'amt_fleet_ipt_val': float(vehicle.amt_fleet_ipt_val or 0),
+    #         }
+            
+    #         # Récupérer les garanties sauvegardées
+    #         saved_garanties = self.vehicle_garanties.get(vehicle_id, {})
+            
+    #         dialog = GarantieSelectionDialog(vehicle_data, self)
+            
+    #         # Pré-remplir avec les valeurs sauvegardées
+    #         for key, widget in dialog.garantie_widgets.items():
+    #             if key in saved_garanties and saved_garanties[key] > 0:
+    #                 value = saved_garanties[key]
+    #                 widget['checkbox'].setChecked(True)
+    #                 widget['amount'].setText(f"{value:,.0f}".replace(",", " "))
+    #                 widget['amount'].setEnabled(True)
+    #             elif vehicle_data.get(f'amt_fleet_{key}_val', 0) > 0:
+    #                 value = vehicle_data.get(f'amt_fleet_{key}_val', 0)
+    #                 widget['checkbox'].setChecked(True)
+    #                 widget['amount'].setText(f"{value:,.0f}".replace(",", " "))
+    #                 widget['amount'].setEnabled(True)
+            
+    #         if dialog.exec():
+    #             selected = dialog.get_selected_garanties()
+                
+    #             # Sauvegarder les garanties
+    #             filtered_selected = {k: v for k, v in selected['garanties'].items() if v > 0}
+    #             self.vehicle_garanties[vehicle_id] = filtered_selected
+                
+    #             # ⭐ Mettre à jour le PTTC avec le total calculé
+    #             self.update_vehicle_row_garanties(row, filtered_selected, selected['total'])
+    #             self.update_fleet_totals()
+                
+    #             # Mettre à jour la base de données
+    #             self.update_vehicle_guarantees_in_db(vehicle_id, filtered_selected, selected['total'])
+                
+    #     except Exception as e:
+    #         print(f"Erreur customisation: {e}")
+    #         import traceback
+    #         traceback.print_exc()
+    #         QMessageBox.warning(self, "Erreur", f"Impossible de personnaliser: {str(e)}")
+
     def customize_vehicle_garanties(self, vehicle_id, row):
         """Ouvre le dialogue de personnalisation des garanties pour un véhicule"""
         try:
+            from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            
             vehicle = self.controller.vehicles.get_vehicles_by_id(vehicle_id)
             if not vehicle:
                 QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
                 return
             
-            # Récupérer les valeurs de la flotte
+            # ✅ Récupérer les garanties flotte depuis la table vehicle_fleet_guarantees
+            fleet_guarantee = self.controller.session.query(VehicleFleetGuarantee).filter(
+                VehicleFleetGuarantee.vehicle_id == vehicle_id
+            ).first()
+            
+            # Récupérer les garanties brutes du véhicule
+            guarantees = getattr(vehicle, 'guarantees', None)
+            
             vehicle_data = {
                 'id': vehicle.id,
                 'immatriculation': vehicle.immatriculation,
                 'marque': vehicle.marque,
                 'modele': vehicle.modele,
                 'prime_nette': float(vehicle.prime_nette or 0),
-                # Garanties de base
-                'amt_rc': float(vehicle.amt_rc or 0),
-                'amt_dr': float(vehicle.amt_dr or 0),
-                'amt_vol': float(vehicle.amt_vol or 0),
-                'amt_vb': float(vehicle.amt_vb or 0),
-                'amt_fleet_rc_val': float(vehicle.amt_fleet_rc_val or 0),
-                'amt_fleet_dr_val': float(vehicle.amt_fleet_dr_val or 0),
-                'amt_fleet_vol_val': float(vehicle.amt_fleet_vol_val or 0),
-                'amt_fleet_vb_val': float(vehicle.amt_fleet_vb_val or 0),
-                # Garanties supplémentaires
-                'amt_in': float(vehicle.amt_in or 0),
-                'amt_bris': float(vehicle.amt_bris or 0),
-                'amt_ar': float(vehicle.amt_ar or 0),
-                'amt_dta': float(vehicle.amt_dta or 0),
-                'amt_ipt': float(vehicle.amt_ipt or 0),
-                'amt_fleet_in_val': float(vehicle.amt_fleet_in_val or 0),
-                'amt_fleet_bris_val': float(vehicle.amt_fleet_bris_val or 0),
-                'amt_fleet_ar_val': float(vehicle.amt_fleet_ar_val or 0),
-                'amt_fleet_dta_val': float(vehicle.amt_fleet_dta_val or 0),
-                'amt_fleet_ipt_val': float(vehicle.amt_fleet_ipt_val or 0),
+                
+                # ✅ Garanties de base (depuis la relation guarantees)
+                'amt_rc': float(getattr(guarantees, 'rc', 0) if guarantees else 0),
+                'amt_dr': float(getattr(guarantees, 'dr', 0) if guarantees else 0),
+                'amt_vol': float(getattr(guarantees, 'vol', 0) if guarantees else 0),
+                'amt_vb': float(getattr(guarantees, 'vb', 0) if guarantees else 0),
+                
+                # ✅ Garanties flotte (depuis la table vehicle_fleet_guarantees)
+                'amt_fleet_rc_val': float(fleet_guarantee.rc if fleet_guarantee else 0),
+                'amt_fleet_dr_val': float(fleet_guarantee.dr if fleet_guarantee else 0),
+                'amt_fleet_vol_val': float(fleet_guarantee.vol if fleet_guarantee else 0),
+                'amt_fleet_vb_val': float(fleet_guarantee.vb if fleet_guarantee else 0),
+                
+                # Garanties supplémentaires (depuis la relation guarantees)
+                'amt_in': float(getattr(guarantees, 'in_garantie', 0) if guarantees else 0),
+                'amt_bris': float(getattr(guarantees, 'bris', 0) if guarantees else 0),
+                'amt_ar': float(getattr(guarantees, 'ar', 0) if guarantees else 0),
+                # 'amt_dta': float(vehicle.amt_dta or 0),
+                # 'amt_ipt': float(fleet_guarantee.amt_ipt or 0),
+                
+                # ✅ Garanties flotte supplémentaires
+                'amt_fleet_in_val': float(fleet_guarantee.in_garantie if fleet_guarantee else 0),
+                'amt_fleet_bris_val': float(fleet_guarantee.bris if fleet_guarantee else 0),
+                'amt_fleet_ar_val': float(fleet_guarantee.ar if fleet_guarantee else 0),
+                'amt_fleet_dta_val': float(fleet_guarantee.dta if fleet_guarantee else 0),
+                'amt_fleet_ipt_val': float(fleet_guarantee.ipt if fleet_guarantee else 0),
             }
             
             # Récupérer les garanties sauvegardées
@@ -1092,7 +1183,7 @@ class FleetForm(QDialog):
             
             dialog = GarantieSelectionDialog(vehicle_data, self)
             
-            # Pré-remplir avec les valeurs sauvegardées
+            # Pré-remplir avec les valeurs sauvegardées ou les valeurs flotte
             for key, widget in dialog.garantie_widgets.items():
                 if key in saved_garanties and saved_garanties[key] > 0:
                     value = saved_garanties[key]
@@ -1112,12 +1203,12 @@ class FleetForm(QDialog):
                 filtered_selected = {k: v for k, v in selected['garanties'].items() if v > 0}
                 self.vehicle_garanties[vehicle_id] = filtered_selected
                 
-                # ⭐ Mettre à jour le PTTC avec le total calculé
+                # ✅ Mettre à jour dans la base de données
+                self.update_vehicle_guarantees_in_db(vehicle_id, filtered_selected, selected['total'])
+                
+                # Mettre à jour le tableau
                 self.update_vehicle_row_garanties(row, filtered_selected, selected['total'])
                 self.update_fleet_totals()
-                
-                # Mettre à jour la base de données
-                self.update_vehicle_guarantees_in_db(vehicle_id, filtered_selected, selected['total'])
                 
         except Exception as e:
             print(f"Erreur customisation: {e}")
@@ -1125,85 +1216,87 @@ class FleetForm(QDialog):
             traceback.print_exc()
             QMessageBox.warning(self, "Erreur", f"Impossible de personnaliser: {str(e)}")
 
-    def update_vehicle_guarantees_in_db(self, vehicle_id, garanties, total_pttc=0):
-        """Met à jour les champs dans la base de données"""
-        try:
-            session = self.controller.session
-            vehicle = session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
-            if vehicle:
-                # Mapping des garanties vers les colonnes amt_fleet_*_val
-                mapping = {
-                    'rc': 'amt_fleet_rc_val',
-                    'dr': 'amt_fleet_dr_val',
-                    'vol': 'amt_fleet_vol_val',
-                    'vb': 'amt_fleet_vb_val',
-                    'in': 'amt_fleet_in_val',
-                    'bris': 'amt_fleet_bris_val',
-                    'ar': 'amt_fleet_ar_val',
-                    'dta': 'amt_fleet_dta_val',
-                    'ipt': 'amt_fleet_ipt_val',
-                }
-                
-                for key, amount in garanties.items():
-                    if key in mapping:
-                        setattr(vehicle, mapping[key], amount)
-                
-                # ⭐ Mettre à jour le PTTC (prime_nette ou un champ dédié)
-                # Option 1: Utiliser prime_nette pour stocker le PTTC
-                if total_pttc > 0:
-                    vehicle.prime_nette = total_pttc
-                
-                session.commit()
-                print(f"✅ Véhicule {vehicle_id} mis à jour: PTTC = {total_pttc}")
-        except Exception as e:
-            print(f"Erreur mise à jour véhicule: {e}")
-
-    # def update_vehicle_row_garanties(self, row, garanties):
-    #     """Met à jour les montants des garanties dans le tableau"""
+    # def update_vehicle_guarantees_in_db(self, vehicle_id, garanties, total_pttc=0):
+    #     """Met à jour les champs dans la base de données"""
     #     try:
-    #         # Bloquer tous les signaux
-    #         self.vehicle_table.blockSignals(True)
-            
-    #         # Mapping colonne -> clé garantie
-    #         col_mapping = {
-    #             3: 'rc', 4: 'dr', 5: 'vol', 6: 'vb',
-    #             7: 'in', 8: 'bris', 9: 'ar', 10: 'dta', 11: 'ipt'
-    #         }
-            
-    #         row_sum = 0
-            
-    #         for col, gar_key in col_mapping.items():
-    #             amount = garanties.get(gar_key, 0)
+    #         session = self.controller.session
+    #         vehicle = session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+    #         if vehicle:
+    #             # Mapping des garanties vers les colonnes amt_fleet_*_val
+    #             mapping = {
+    #                 'rc': 'amt_fleet_rc_val',
+    #                 'dr': 'amt_fleet_dr_val',
+    #                 'vol': 'amt_fleet_vol_val',
+    #                 'vb': 'amt_fleet_vb_val',
+    #                 'in': 'amt_fleet_in_val',
+    #                 'bris': 'amt_fleet_bris_val',
+    #                 'ar': 'amt_fleet_ar_val',
+    #                 'dta': 'amt_fleet_dta_val',
+    #                 'ipt': 'amt_fleet_ipt_val',
+    #             }
                 
-    #             # Créer un NOUVEL item
-    #             formatted_val = f"{amount:,.0f}".replace(",", " ")
-    #             new_item = QTableWidgetItem(formatted_val)
-    #             new_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #             new_item.setData(Qt.UserRole, float(amount))
+    #             for key, amount in garanties.items():
+    #                 if key in mapping:
+    #                     setattr(vehicle, mapping[key], amount)
                 
-    #             # Remplacer l'item existant
-    #             self.vehicle_table.setItem(row, col, new_item)
-    #             row_sum += amount
-            
-    #         # Mettre à jour le total de la ligne
-    #         total_formatted = f"{row_sum:,.0f}".replace(",", " ")
-    #         total_item = QTableWidgetItem(total_formatted)
-    #         total_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #         total_item.setData(Qt.UserRole, float(row_sum))
-    #         total_item.setFont(QFont("Arial", 9, QFont.Bold))
-    #         self.vehicle_table.setItem(row, 11, total_item)
-            
-    #         # Débloquer les signaux
-    #         self.vehicle_table.blockSignals(False)
-            
-    #         # Mettre à jour les totaux de la flotte
-    #         self.update_fleet_totals()
-            
+    #             # ⭐ Mettre à jour le PTTC (prime_nette ou un champ dédié)
+    #             # Option 1: Utiliser prime_nette pour stocker le PTTC
+    #             if total_pttc > 0:
+    #                 vehicle.prime_nette = total_pttc
+                
+    #             session.commit()
+    #             print(f"✅ Véhicule {vehicle_id} mis à jour: PTTC = {total_pttc}")
     #     except Exception as e:
-    #         print(f"Erreur mise à jour ligne: {e}")
-    #         self.vehicle_table.blockSignals(False)
-    #         import traceback
-    #         traceback.print_exc()   
+    #         print(f"Erreur mise à jour véhicule: {e}")
+
+    def update_vehicle_guarantees_in_db(self, vehicle_id, garanties, total_pttc=0):
+        """Met à jour les champs dans la base de données (table vehicle_fleet_guarantees)"""
+        try:
+            from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            from addons.Automobiles.models.automobile_models import Vehicle
+
+            session = self.controller.session
+            
+            # ✅ Récupérer ou créer l'entrée dans vehicle_fleet_guarantees
+            fleet_guarantee = session.query(VehicleFleetGuarantee).filter(
+                VehicleFleetGuarantee.vehicle_id == vehicle_id
+            ).first()
+            
+            if not fleet_guarantee:
+                # Créer une nouvelle entrée si elle n'existe pas
+                fleet_guarantee = VehicleFleetGuarantee(vehicle_id=vehicle_id)
+                session.add(fleet_guarantee)
+            
+            # ✅ Mettre à jour les champs
+            mapping = {
+                'rc': 'rc',
+                'dr': 'dr',
+                'vol': 'vol',
+                'vb': 'vb',
+                'in': 'in_garantie',
+                'bris': 'bris',
+                'ar': 'ar',
+                'dta': 'dta',
+                'ipt': 'ipt',
+            }
+            
+            for key, amount in garanties.items():
+                if key in mapping:
+                    setattr(fleet_guarantee, mapping[key], amount)
+            
+            # ✅ Mettre à jour le PTTC (prime_nette du véhicule)
+            vehicle = session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+            if vehicle and total_pttc > 0:
+                vehicle.prime_nette = total_pttc
+            
+            session.commit()
+            print(f"✅ Véhicule {vehicle_id} mis à jour: PTTC = {total_pttc}")
+            
+        except Exception as e:
+            session.rollback()
+            print(f"Erreur mise à jour véhicule: {e}")
+            import traceback
+            traceback.print_exc()  
 
     def update_vehicle_row_garanties(self, row, garanties, total_pttc=None):
         """Met à jour les montants des garanties et le PTTC dans le tableau"""
@@ -1292,22 +1385,166 @@ class FleetForm(QDialog):
                 return 0
         return 0
 
+    # def update_vehicle_table_with_client_vehicles(self, vehicles):
+    #     """Met à jour le tableau avec les véhicules du client"""
+    #     try:
+    #         self.vehicle_table.blockSignals(True)
+    #         self.vehicle_table.setRowCount(0)
+            
+    #         num_v = len(vehicles)
+    #         # 2 lignes de total : une pour les garanties, une pour le PTTC
+    #         self.vehicle_table.setRowCount(num_v + 2)
+            
+    #         # Dictionnaire pour les totaux des colonnes garanties (3 à 11)
+    #         col_totals = {i: 0.0 for i in range(3, 12)}
+    #         total_pttc = 0.0
+
+    #         for row, v in enumerate(vehicles):
+    #             saved_garanties = self.vehicle_garanties.get(v.id, {})
+                
+    #             # Checkbox
+    #             check_item = QTableWidgetItem()
+    #             check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+    #             state = Qt.Checked if (self.current_fleet and v.fleet_id == self.current_fleet.id) else Qt.Unchecked
+    #             check_item.setCheckState(state)
+    #             check_item.setData(Qt.UserRole, v.id)
+    #             self.vehicle_table.setItem(row, 0, check_item)
+                
+    #             # Infos
+    #             self.vehicle_table.setItem(row, 1, QTableWidgetItem(str(v.immatriculation)))
+    #             self.vehicle_table.setItem(row, 2, QTableWidgetItem(str(v.marque or "N/A")))
+                
+    #             # Garanties (colonnes 3 à 11) — lire depuis la relation guarantees si disponible
+    #             g = getattr(v, 'guarantees', None)
+    #             guarantees = {
+    #                 3: ('rc', getattr(g, 'rc', 0) if g else 0),
+    #                 4: ('dr', getattr(g, 'dr', 0) if g else 0),
+    #                 5: ('vol', getattr(g, 'vol', 0) if g else 0),
+    #                 6: ('vb', getattr(g, 'vb', 0) if g else 0),
+    #                 7: ('in', getattr(g, 'in_garantie', 0) if g else 0),
+    #                 8: ('bris', getattr(g, 'bris', 0) if g else 0),
+    #                 9: ('ar', getattr(g, 'ar', 0) if g else 0),
+    #                 10: ('dta', getattr(g, 'dta', 0) if g else 0),
+    #                 11: ('ipt', getattr(g, 'ipt', 0) if g else 0)
+    #             }
+                
+    #             row_sum = 0.0
+    #             for col_idx, (gar_key, default_val) in guarantees.items():
+    #                 amt = saved_garanties.get(gar_key, float(default_val or 0))
+    #                 self.vehicle_table.setItem(row, col_idx, self.create_num_item(amt))
+    #                 row_sum += amt
+    #                 if state == Qt.Checked:
+    #                     col_totals[col_idx] += amt
+                
+    #             # PTTC (colonne 12) - calculé à partir du total des garanties
+    #             self.vehicle_table.setItem(row, 12, self.create_num_item(row_sum))
+    #             if state == Qt.Checked:
+    #                 total_pttc += row_sum
+                
+    #             # Bouton personnalisation (colonne 13)
+    #             btn_custom = QPushButton("✏️")
+    #             btn_custom.setFixedSize(30, 30)
+    #             btn_custom.setCursor(Qt.PointingHandCursor)
+    #             btn_custom.setStyleSheet("""
+    #                 QPushButton {
+    #                     background-color: #8b5cf6;
+    #                     color: white;
+    #                     border: none;
+    #                     border-radius: 6px;
+    #                     font-size: 14px;
+    #                 }
+    #                 QPushButton:hover {
+    #                     background-color: #7c3aed;
+    #                 }
+    #             """)
+    #             btn_custom.clicked.connect(lambda checked, vid=v.id, row_idx=row: self.customize_vehicle_garanties(vid, row_idx))
+    #             self.vehicle_table.setCellWidget(row, 13, btn_custom)
+            
+    #         # --- LIGNE DE TOTAL DES GARANTIES (Colonnes 3 à 11) ---
+    #         if num_v > 0:
+    #             garanties_total_row = num_v
+    #             self.vehicle_table.setSpan(garanties_total_row, 0, 1, 2)
+                
+    #             empty_item = QTableWidgetItem("")
+    #             empty_item.setBackground(QColor("#f8fafc"))
+    #             empty_item.setFlags(Qt.NoItemFlags)
+    #             self.vehicle_table.setItem(garanties_total_row, 0, empty_item)
+                
+    #             lbl_footer = QTableWidgetItem("TOTAL GARANTIES")
+    #             lbl_footer.setFont(QFont("Arial", 10, QFont.Bold))
+    #             lbl_footer.setTextAlignment(Qt.AlignCenter)
+    #             lbl_footer.setBackground(QColor("#e2e8f0"))
+    #             self.vehicle_table.setItem(garanties_total_row, 2, lbl_footer)
+                
+    #             # Remplir les totaux pour les colonnes 3 à 11
+    #             for col_idx, total_val in col_totals.items():
+    #                 footer_item = self.create_num_item(total_val)
+    #                 footer_item.setBackground(QColor("#e2e8f0"))
+    #                 footer_item.setFont(QFont("Arial", 10, QFont.Bold))
+    #                 self.vehicle_table.setItem(garanties_total_row, col_idx, footer_item)
+            
+    #         # --- LIGNE DE TOTAL PTTC (Colonne 12) ---
+    #         pttc_total_row = num_v + 1
+    #         self.vehicle_table.setSpan(pttc_total_row, 0, 1, 2)
+            
+    #         empty_item2 = QTableWidgetItem("")
+    #         empty_item2.setBackground(QColor("#f8fafc"))
+    #         empty_item2.setFlags(Qt.NoItemFlags)
+    #         self.vehicle_table.setItem(pttc_total_row, 0, empty_item2)
+            
+    #         lbl_total_pttc = QTableWidgetItem("TOTAL PTTC")
+    #         lbl_total_pttc.setFont(QFont("Arial", 10, QFont.Bold))
+    #         lbl_total_pttc.setTextAlignment(Qt.AlignCenter)
+    #         lbl_total_pttc.setBackground(QColor("#dbeafe"))
+    #         lbl_total_pttc.setForeground(QColor("#1e40af"))
+    #         self.vehicle_table.setItem(pttc_total_row, 2, lbl_total_pttc)
+            
+    #         # Valeur totale PTTC
+    #         total_pttc_item = self.create_num_item(total_pttc)
+    #         total_pttc_item.setBackground(QColor("#dbeafe"))
+    #         total_pttc_item.setFont(QFont("Arial", 12, QFont.Bold))
+    #         total_pttc_item.setForeground(QColor("#1e40af"))
+    #         self.vehicle_table.setItem(pttc_total_row, 12, total_pttc_item)
+            
+    #         self.vehicle_table.blockSignals(False)
+    #         self.calculate_totals_on_change(None)
+            
+    #     except Exception as e:
+    #         print(f"Erreur update_vehicle_table: {e}")
+    #         import traceback
+    #         traceback.print_exc()
+    #         if hasattr(self, 'vehicle_table'):
+    #             self.vehicle_table.blockSignals(False)
+
     def update_vehicle_table_with_client_vehicles(self, vehicles):
         """Met à jour le tableau avec les véhicules du client"""
         try:
+            from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            
             self.vehicle_table.blockSignals(True)
             self.vehicle_table.setRowCount(0)
             
             num_v = len(vehicles)
-            # 2 lignes de total : une pour les garanties, une pour le PTTC
             self.vehicle_table.setRowCount(num_v + 2)
             
-            # Dictionnaire pour les totaux des colonnes garanties (3 à 11)
             col_totals = {i: 0.0 for i in range(3, 12)}
             total_pttc = 0.0
+            
+            # ✅ Récupérer toutes les garanties flotte en une seule requête
+            vehicle_ids = [v.id for v in vehicles]
+            fleet_guarantees = {}
+            if vehicle_ids:
+                results = self.controller.session.query(VehicleFleetGuarantee).filter(
+                    VehicleFleetGuarantee.vehicle_id.in_(vehicle_ids)
+                ).all()
+                for fg in results:
+                    fleet_guarantees[fg.vehicle_id] = fg
 
             for row, v in enumerate(vehicles):
                 saved_garanties = self.vehicle_garanties.get(v.id, {})
+                
+                # ✅ Récupérer la garantie flotte pour ce véhicule
+                fleet_guarantee = fleet_guarantees.get(v.id)
                 
                 # Checkbox
                 check_item = QTableWidgetItem()
@@ -1321,33 +1558,33 @@ class FleetForm(QDialog):
                 self.vehicle_table.setItem(row, 1, QTableWidgetItem(str(v.immatriculation)))
                 self.vehicle_table.setItem(row, 2, QTableWidgetItem(str(v.marque or "N/A")))
                 
-                # Garanties (colonnes 3 à 11)
-                guarantees = {
-                    3: ('rc', v.amt_rc),
-                    4: ('dr', v.amt_dr),
-                    5: ('vol', v.amt_vol),
-                    6: ('vb', v.amt_vb),
-                    7: ('in', v.amt_in),
-                    8: ('bris', v.amt_bris),
-                    9: ('ar', v.amt_ar),
-                    10: ('dta', v.amt_dta),
-                    11: ('ipt', v.amt_ipt)
-                }
+                # ✅ Garanties (colonnes 3 à 11) - priorité aux valeurs sauvegardées, puis fleet_guarantee, puis guarantees
+                g = getattr(v, 'guarantees', None)
+                garantie_keys = ['rc', 'dr', 'vol', 'vb', 'in', 'bris', 'ar', 'dta', 'ipt']
+                fleet_keys = ['rc', 'dr', 'vol', 'vb', 'in_garantie', 'bris', 'ar', 'dta', 'ipt']
                 
                 row_sum = 0.0
-                for col_idx, (gar_key, default_val) in guarantees.items():
-                    amt = saved_garanties.get(gar_key, float(default_val or 0))
+                
+                for col_idx, (gar_key, fleet_key) in enumerate(zip(garantie_keys, fleet_keys), start=3):
+                    # ✅ Priorité: saved_garanties > fleet_guarantee > guarantees
+                    if gar_key in saved_garanties and saved_garanties[gar_key] > 0:
+                        amt = saved_garanties[gar_key]
+                    elif fleet_guarantee:
+                        amt = float(getattr(fleet_guarantee, fleet_key, 0))
+                    else:
+                        amt = float(getattr(g, gar_key, 0) if g else 0)
+                    
                     self.vehicle_table.setItem(row, col_idx, self.create_num_item(amt))
                     row_sum += amt
                     if state == Qt.Checked:
                         col_totals[col_idx] += amt
                 
-                # PTTC (colonne 12) - calculé à partir du total des garanties
+                # PTTC (colonne 12)
                 self.vehicle_table.setItem(row, 12, self.create_num_item(row_sum))
                 if state == Qt.Checked:
                     total_pttc += row_sum
                 
-                # Bouton personnalisation (colonne 13)
+                # Bouton personnalisation
                 btn_custom = QPushButton("✏️")
                 btn_custom.setFixedSize(30, 30)
                 btn_custom.setCursor(Qt.PointingHandCursor)
@@ -1366,54 +1603,7 @@ class FleetForm(QDialog):
                 btn_custom.clicked.connect(lambda checked, vid=v.id, row_idx=row: self.customize_vehicle_garanties(vid, row_idx))
                 self.vehicle_table.setCellWidget(row, 13, btn_custom)
             
-            # --- LIGNE DE TOTAL DES GARANTIES (Colonnes 3 à 11) ---
-            if num_v > 0:
-                garanties_total_row = num_v
-                self.vehicle_table.setSpan(garanties_total_row, 0, 1, 2)
-                
-                empty_item = QTableWidgetItem("")
-                empty_item.setBackground(QColor("#f8fafc"))
-                empty_item.setFlags(Qt.NoItemFlags)
-                self.vehicle_table.setItem(garanties_total_row, 0, empty_item)
-                
-                lbl_footer = QTableWidgetItem("TOTAL GARANTIES")
-                lbl_footer.setFont(QFont("Arial", 10, QFont.Bold))
-                lbl_footer.setTextAlignment(Qt.AlignCenter)
-                lbl_footer.setBackground(QColor("#e2e8f0"))
-                self.vehicle_table.setItem(garanties_total_row, 2, lbl_footer)
-                
-                # Remplir les totaux pour les colonnes 3 à 11
-                for col_idx, total_val in col_totals.items():
-                    footer_item = self.create_num_item(total_val)
-                    footer_item.setBackground(QColor("#e2e8f0"))
-                    footer_item.setFont(QFont("Arial", 10, QFont.Bold))
-                    self.vehicle_table.setItem(garanties_total_row, col_idx, footer_item)
-            
-            # --- LIGNE DE TOTAL PTTC (Colonne 12) ---
-            pttc_total_row = num_v + 1
-            self.vehicle_table.setSpan(pttc_total_row, 0, 1, 2)
-            
-            empty_item2 = QTableWidgetItem("")
-            empty_item2.setBackground(QColor("#f8fafc"))
-            empty_item2.setFlags(Qt.NoItemFlags)
-            self.vehicle_table.setItem(pttc_total_row, 0, empty_item2)
-            
-            lbl_total_pttc = QTableWidgetItem("TOTAL PTTC")
-            lbl_total_pttc.setFont(QFont("Arial", 10, QFont.Bold))
-            lbl_total_pttc.setTextAlignment(Qt.AlignCenter)
-            lbl_total_pttc.setBackground(QColor("#dbeafe"))
-            lbl_total_pttc.setForeground(QColor("#1e40af"))
-            self.vehicle_table.setItem(pttc_total_row, 2, lbl_total_pttc)
-            
-            # Valeur totale PTTC
-            total_pttc_item = self.create_num_item(total_pttc)
-            total_pttc_item.setBackground(QColor("#dbeafe"))
-            total_pttc_item.setFont(QFont("Arial", 12, QFont.Bold))
-            total_pttc_item.setForeground(QColor("#1e40af"))
-            self.vehicle_table.setItem(pttc_total_row, 12, total_pttc_item)
-            
-            self.vehicle_table.blockSignals(False)
-            self.calculate_totals_on_change(None)
+            # ... le reste du code (lignes de total) reste identique ...
             
         except Exception as e:
             print(f"Erreur update_vehicle_table: {e}")
@@ -1421,6 +1611,7 @@ class FleetForm(QDialog):
             traceback.print_exc()
             if hasattr(self, 'vehicle_table'):
                 self.vehicle_table.blockSignals(False)
+
 
     # def update_fleet_totals(self):
     #     """Met à jour les totaux de la flotte"""

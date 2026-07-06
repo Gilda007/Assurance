@@ -301,6 +301,7 @@ class VehicleClassification(Base):
     
     vehicle = relationship("Vehicle", back_populates="classification", foreign_keys=[vehicle_id])
 
+
 class Vehicle(Base):
     __tablename__ = 'vehicles'
 
@@ -492,6 +493,7 @@ class Vehicle(Base):
             session.rollback()
             print(f"Erreur de comptage Vehicle: {e}")
             return 0
+
 
 class AuditVehicleLog(Base):
     __tablename__ = "audit_vehicle_logs"

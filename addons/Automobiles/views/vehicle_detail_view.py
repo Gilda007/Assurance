@@ -425,7 +425,6 @@ class VehicleDetailView(QWidget):
             # if hasattr(self.contract_ctrl, 'session'):
             #     self.contract_ctrl.session.rollback()
             
-            print(f"Recherche contrat pour vehicle_id: {vehicle_id}")
             
             # Chercher le contrat par véhicule
             contrat = self.contract_ctrl.get_contract_by_vehicle(vehicle_id)
@@ -510,11 +509,11 @@ class VehicleDetailView(QWidget):
         # Reconstruire l'onglet finances si nécessaire
         if hasattr(self, 'tab_widget'):
             # Mettre à jour l'onglet existant
+            self.finances_tab = self.create_finances_tab()
             index = self.tab_widget.indexOf(self.finances_tab)
             if index >= 0:
                 self.tab_widget.removeTab(index)
             
-            self.finances_tab = self.create_finances_tab()
             self.tab_widget.insertTab(2, self.finances_tab, "💰 Finances")
 
     def setup_ui(self):

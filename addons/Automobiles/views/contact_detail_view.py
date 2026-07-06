@@ -1601,183 +1601,85 @@ class ContactDetailView(QDialog):
         
         return str(phone)
 
+
     def _view_vehicle_detail(self, vehicle):
         """
         Prépare et affiche l'interface de détails pour un objet Vehicle.
         """
+        
         try:
-            # ⚠️ CRUCIAL : Récupérer la session AVANT tout
-            session = getattr(self.controller, 'session', None)
-            if not session:
-                raise Exception("Session non disponible")
-            
-            print(f"🔍 Chargement détails pour le véhicule ID: {vehicle}")
-            # ============================================================
-            # CHARGER TOUTES LES DONNÉES NÉCESSAIRES TANT QUE LA SESSION EST ACTIVE
-            # ============================================================
-            
-            # 1. Charger explicitement la relation contract
-            contract = None
-            if hasattr(vehicle, 'id') and vehicle.id:
-                # Méthode 1 : via la relation (si elle existe)
-                try:
-                    # Forcer le chargement de la relation contract
-                    contract = vehicle.contract
-                except Exception as e:
-                    print(f"Erreur chargement contract via relation: {e}")
-                    # Méthode 2 : via une requête directe
-                    try:
-                        from addons.Automobiles.models import Contrat  # Adaptez le chemin
-                        contract = session.query(Contrat).filter(Contrat.vehicle_id == vehicle.id).first()
-                        print(f"✓ Contrat trouvé via requête directe: {contract.id if contract else 'None'}")
-                    except Exception as e2:
-                        print(f"Erreur chargement contract via requête: {e2}")
-            
-            # 2. Charger les informations du propriétaire (Contact)
-            owner_name = "N/A"
-            owner_phone = "N/A"
-            owner_email = "N/A"
-            owner_city = "Yaoundé"
-            owner_obj = None
-            
-            if hasattr(vehicle, 'owner_id') and vehicle.owner_id:
-                try:
-                    from addons.Automobiles.models import Contact  # Adaptez le chemin
-                    owner_obj = session.query(Contact).get(vehicle.owner_id)
-                    if owner_obj:
-                        owner_name = f"{getattr(owner_obj, 'nom', '')} {getattr(owner_obj, 'prenom', '')}".strip()
-                        owner_phone = self.format_phone(getattr(owner_obj, 'telephone', 'N/A'))
-                        owner_email = getattr(owner_obj, 'email', 'N/A')
-                        owner_city = getattr(owner_obj, 'ville', 'Yaoundé')
-                        print(f"✓ Propriétaire trouvé: {owner_name}")
-                except Exception as e:
-                    print(f"Erreur chargement contact: {e}")
-            
-            # 3. Charger les informations de la compagnie
-            compagny_name = "Non définie"
-            if hasattr(vehicle, 'compagny_id') and vehicle.compagny_id:
-                try:
-                    from addons.Automobiles.models import Compagnie  # Adaptez le chemin
-                    compagny_obj = session.query(Compagnie).get(vehicle.compagny_id)
-                    if compagny_obj:
-                        compagny_name = getattr(compagny_obj, 'nom', 'N/A')
-                        print(f"✓ Compagnie trouvée: {compagny_name}")
-                except Exception as e:
-                    print(f"Erreur chargement compagnie: {e}")
-            
-            # 4. Récupérer les dates (attention: vehicle.date_debut peut être une date ou None)
-            date_debut_str = ""
-            date_fin_str = ""
-            if hasattr(vehicle, 'date_debut') and vehicle.date_debut:
-                if hasattr(vehicle.date_debut, 'strftime'):
-                    date_debut_str = vehicle.date_debut.strftime('%Y-%m-%d')
-                else:
-                    date_debut_str = str(vehicle.date_debut)
-            if hasattr(vehicle, 'date_fin') and vehicle.date_fin:
-                if hasattr(vehicle.date_fin, 'strftime'):
-                    date_fin_str = vehicle.date_fin.strftime('%Y-%m-%d')
-                else:
-                    date_fin_str = str(vehicle.date_fin)
+            print(f"🔍 Chargement détails pour le véhicule ID: {vehicle.id if hasattr(vehicle, 'id') else 'unknown'}")
             
             # ============================================================
-            # CONSTRUCTION DU DICTIONNAIRE vehicle_data (plus aucun accès DB)
+            # ÉTAPE 1 : VÉRIFIER L'OBJET ET RÉCUPÉRER LES DONNÉES VIA LE CONTRÔLEUR
             # ============================================================
             
-            vehicle_data = {
-                # Identification
-                'id': getattr(vehicle, 'id', None),
-                'immatriculation': getattr(vehicle, 'immatriculation', 'N/A'),
-                'chassis': getattr(vehicle, 'chassis', 'N/A'),
-                'marque': getattr(vehicle, 'marque', 'N/A'),
-                'modele': getattr(vehicle, 'modele', 'N/A'),
-                'annee': str(getattr(vehicle, 'annee', 'N/A')),
-                
-                # Contrat
-                'numero_police': getattr(contract, 'numero_police', 'Aucun contrat actif') if contract else 'Aucun contrat actif',
-                'date_debut': date_debut_str,
-                'date_fin': date_fin_str,
-                'prime_totale': getattr(contract, 'prime_totale_ttc', 0.0) if contract else 0.0,
-                'montant_paye': getattr(contract, 'montant_paye', 0.0) if contract else 0.0,
-                'statut_paiement': getattr(contract, 'statut_paiement', 'NON_PAYE') if contract else 'NON_PAYE',
-                
-                # Technique
-                'energy': getattr(vehicle, 'energie', 'N/A'),
-                'usage': getattr(vehicle, 'usage', '0'),
-                'places': str(getattr(vehicle, 'places', '5')),
-                'zone': getattr(vehicle, 'zone', 'N/A'),
-                'categorie': getattr(vehicle, 'categorie', 'N/A'),
-                'code_tarif': getattr(vehicle, 'code_tarif', 'N/A'),
-                'prime_emise': getattr(vehicle, 'prime_emise', 0),
-                'valeur_neuf': getattr(vehicle, 'valeur_neuf', 0),
-                'valeur_venale': getattr(vehicle, 'valeur_venale', 0),
-                'prime_nette': getattr(vehicle, 'prime_nette', 0),
-                'prime_brute': getattr(vehicle, 'prime_brute', 0),
-                'réduction': getattr(vehicle, 'reduction', 0),
-                'carte_rose': getattr(vehicle, 'carte_rose', 'N/A'),
-                'accessoires': getattr(vehicle, 'accessoires', 'N/A'),
-                'tva': getattr(vehicle, 'tva', 0),
-                'fichier_asac': getattr(vehicle, 'fichier_asac', 'N/A'),
-                'vignette': getattr(vehicle, 'vignette', 'N/A'),
-                'PTTC': getattr(vehicle, 'pttc', 0),
-                'libele_tarif': getattr(vehicle, 'libele_tarif', 'N/A'),
-                
-                # Propriétaire & Assurance
-                'owner': owner_name,
-                'compagny': compagny_name,
-                'phone': owner_phone,
-                'email': owner_email,
-                'city': owner_city,
-                
-                # Garanties (Checkboxes)
-                'check_rc': getattr(vehicle, 'check_rc', False),
-                'check_dr': getattr(vehicle, 'check_dr', False),
-                'check_vb': getattr(vehicle, 'check_vb', False),
-                'check_vol': getattr(vehicle, 'check_vol', False),
-                'check_in': getattr(vehicle, 'check_in', False),
-                'check_bris': getattr(vehicle, 'check_bris', False),
-                'check_ar': getattr(vehicle, 'check_ar', False),
-                'check_dta': getattr(vehicle, 'check_dta', False),
-                'check_ipt': getattr(vehicle, 'check_ipt', False),
-                
-                # Montants des garanties
-                'amt_rc': getattr(vehicle, 'amt_rc', 0),
-                'amt_dr': getattr(vehicle, 'amt_dr', 0),
-                'amt_vb': getattr(vehicle, 'amt_vb', 0),
-                'amt_vol': getattr(vehicle, 'amt_vol', 0),
-                'amt_in': getattr(vehicle, 'amt_in', 0),
-                'amt_bris': getattr(vehicle, 'amt_bris', 0),
-                'amt_ar': getattr(vehicle, 'amt_ar', 0),
-                'amt_dta': getattr(vehicle, 'amt_dta', 0),
-                'amt_ipt': getattr(vehicle, 'amt_ipt', 0),
-                
-                # Montants réduits des garanties
-                'amt_red_rc': getattr(vehicle, 'amt_red_rc', 0),
-                'amt_red_dr': getattr(vehicle, 'amt_red_dr', 0),
-                'amt_red_vol': getattr(vehicle, 'amt_red_vol', 0),
-                'amt_red_vb': getattr(vehicle, 'amt_red_vb', 0),
-                'amt_red_in': getattr(vehicle, 'amt_red_in', 0),
-                'amt_red_bris': getattr(vehicle, 'amt_red_bris', 0),
-                'amt_red_ar': getattr(vehicle, 'amt_red_ar', 0),
-                'amt_red_dta': getattr(vehicle, 'amt_red_dta', 0),
-                'amt_red_ipt': getattr(vehicle, 'amt_red_ipt', 0)
-            }
+            # Récupérer l'ID du véhicule
+            vehicle_id = getattr(vehicle, 'id', None)
+            if not vehicle_id:
+                QMessageBox.warning(self, "Erreur", "ID du véhicule non trouvé")
+                return
+            
+            # ✅ Utiliser le contrôleur pour récupérer les données du véhicule
+            if not hasattr(self.controller, 'vehicles'):
+                QMessageBox.warning(self, "Erreur", "Contrôleur de véhicules non disponible")
+                return
+            
+            # ✅ Récupérer les données du véhicule via le contrôleur
+            vehicle_data = self.controller.vehicles.get_vehicle_details_data(vehicle_id)
+            
+            if not vehicle_data:
+                QMessageBox.warning(self, "Erreur", "Impossible de récupérer les données du véhicule")
+                return
             
             # ============================================================
-            # AFFICHAGE DE LA VUE (la session peut maintenant être fermée)
+            # ÉTAPE 2 : ENRICHIR LES DONNÉES AVEC LE PROPRIÉTAIRE ET LA COMPAGNIE
+            # ============================================================
+            
+            # ✅ Récupérer le propriétaire via le contrôleur
+            if hasattr(self.controller, 'contacts'):
+                owner_id = vehicle_data.get('owner_id')
+                if owner_id:
+                    owner = self.controller.contacts.get_contact_by_id(owner_id)
+                    if owner:
+                        vehicle_data['owner'] = f"{getattr(owner, 'nom', '')} {getattr(owner, 'prenom', '')}".strip()
+                        vehicle_data['phone'] = self.format_phone(getattr(owner, 'telephone', 'N/A'))
+                        vehicle_data['email'] = getattr(owner, 'email', 'N/A')
+                        vehicle_data['city'] = getattr(owner, 'ville', 'Yaoundé')
+            
+            # ✅ Récupérer la compagnie via le contrôleur
+            if hasattr(self.controller, 'compagnies'):
+                compagny_id = vehicle_data.get('compagny_id')
+                if compagny_id:
+                    compagny = self.controller.vehicles.get_compagnie_by_id(compagny_id)
+                    if compagny:
+                        vehicle_data['compagny'] = getattr(compagny, 'nom', 'Non définie')
+            
+            # ============================================================
+            # ÉTAPE 3 : CHARGER LES GARANTIES SI NÉCESSAIRE
+            # ============================================================
+            
+            
+            
+            # ============================================================
+            # ÉTAPE 4 : AFFICHER LA VUE
             # ============================================================
             
             from .vehicle_detail_view import VehicleDetailView
-            from PySide6.QtWidgets import QDialog, QVBoxLayout
             
             detail_dialog = QDialog(self)
-            detail_dialog.setWindowTitle(f"Fiche Véhicule : {vehicle_data['immatriculation']}")
+            detail_dialog.setWindowTitle(f"Fiche Véhicule : {vehicle_data.get('immatriculation', 'N/A')}")
             detail_dialog.setMinimumSize(950, 750)
             
             layout = QVBoxLayout(detail_dialog)
             layout.setContentsMargins(0, 0, 0, 0)
             
-            # Plus besoin de passer la session, toutes les données sont dans vehicle_data
-            self.view_details = VehicleDetailView(vehicle_data=vehicle_data, controller=self.controller)
+            # ✅ Passer les données au lieu de l'objet SQLAlchemy
+            self.view_details = VehicleDetailView(
+                vehicle_data=vehicle_data,
+                controller=self.controller,
+                db_session=None  # Plus besoin de session car toutes les données sont dans le dict
+            )
             layout.addWidget(self.view_details)
             
             if hasattr(self.view_details, 'btn_back'):
@@ -1789,7 +1691,6 @@ class ContactDetailView(QDialog):
             print(f"❌ Erreur show_detail_vehicle : {str(e)}")
             import traceback
             traceback.print_exc()
-            from PySide6.QtWidgets import QMessageBox
             QMessageBox.critical(self, "Erreur", f"Impossible d'afficher les détails du véhicule : {e}")
 
     def _on_edit_click(self):

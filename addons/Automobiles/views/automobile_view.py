@@ -1255,6 +1255,7 @@ class VehiculeModuleView(QWidget):
             try:
                 from addons.Automobiles.controllers.automobile_controller import VehicleController
                 vehicle_ctrl = VehicleController(session)
+                # print(f'voici les informations sur le véhicule: {vehicle_ctrl.get_vehicle_details_data(vehicle.id)}')
                 return vehicle_ctrl.get_vehicle_details_data(vehicle.id)
             finally:
                 session.close()
