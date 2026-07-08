@@ -165,7 +165,7 @@ class Watchdog(QThread):
     
     application_frozen = Signal()
     
-    def __init__(self, main_window, check_interval=5, timeout_seconds=30):
+    def __init__(self, main_window, check_interval=10, timeout_seconds=60):
         super().__init__()
         self.main_window = main_window
         self.check_interval = check_interval

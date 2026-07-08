@@ -165,7 +165,7 @@ class ContactDetailView(QDialog):
         contact_info = QHBoxLayout()
         contact_info.setSpacing(20)
         
-        phone = QLabel(f"📞 {self.contact.telephone or 'Tél. non renseigné'}")
+        phone = QLabel(f"📞 +237{self.contact.telephone or 'Tél. non renseigné'}")
         phone.setStyleSheet("color: #475569; font-size: 13px;")
         
         email = QLabel(f"✉️ {self.contact.email or 'Email non renseigné'}")
@@ -196,7 +196,7 @@ class ContactDetailView(QDialog):
         code_label = QLabel("CODE CLIENT")
         code_label.setStyleSheet("color: #64748b; font-size: 10px; font-weight: 600;")
         
-        code_value = QLabel(self.contact.code_client or "NON ATTRIBUÉ")
+        code_value = QLabel(f"LMT-CLT-0000{self.contact.id}" or "NON ATTRIBUÉ")
         code_value.setStyleSheet("color: #1e293b; font-size: 16px; font-weight: 700;")
         
         code_layout.addWidget(code_label)

@@ -1,0 +1,297 @@
+COMMENT UTILISER CE MODELE DE MODULE LOMETA
+===========================================
+
+1. Copier ce dossier dans un nouveau dossier.
+2. Renommer le dossier avec le nom du module voulu.
+3. Modifier manifest.json avec les bonnes informations.
+4. Écrire la logique du module dans main.py.
+5. Ajouter les contrôleurs, vues et modèles si nécessaire.
+6. Tester le module avant de l’empaqueter.
+7. Compresser le dossier en ZIP pour l’utiliser avec le serveur d’updates.
+
+Exemple de nom de module :
+- MonModule
+- GestionClients
+- Rapports
+
+Important :
+- le nom du dossier doit être cohérent avec le nom du module
+- le fichier manifest.json doit être présent à la racine
+- le point d’entrée doit correspondre à un fichier Python valide
+
+
+```txt
+COMMENT UTILISER CE MODÈLE DE MODULE LOMETA
+===========================================
+
+📦 STRUCTURE DU MODULE
+======================
+
+Un module LOMETA est un dossier contenant des fichiers organisés selon une architecture standard :
+
+📁 nom_du_module/
+├── 📄 manifest.json       # Configuration du module (obligatoire)
+├── 📄 main.py             # Point d'entrée (obligatoire)
+├── 📄 config.py           # Configuration
+├── 📄 services.py         # Services métier
+├── 📄 routes.py           # Définition des routes
+├── 📁 controllers/        # Contrôleurs (logique métier)
+│   └── __init__.py
+├── 📁 views/              # Vues (interfaces utilisateur)
+│   └── __init__.py
+├── 📁 models/             # Modèles de données
+│   └── __init__.py
+├── 📁 static/             # Fichiers statiques (CSS, JS, images)
+├── 📁 templates/          # Templates HTML
+├── 📁 tests/              # Tests unitaires
+│   └── test_module.py
+├── 📁 migrations/         # Migrations de base de données
+│   └── __init__.py
+├── 📄 README.md           # Documentation en anglais
+├── 📄 README_FR.md        # Documentation en français
+└── 📄 START_HERE.txt      # Ce fichier
+
+
+🚀 CRÉATION D'UN NOUVEAU MODULE
+================================
+
+Méthode 1 : Utiliser le script create_module.py
+-----------------------------------------------
+```bash
+python create_module.py
+```
+Le script vous guide à travers toutes les étapes :
+- Nom du module
+- Version
+- Description
+- Auteur
+- Catégorie
+- Template (CRUD, API, Simple, Complet)
+- Dépendances
+- Options supplémentaires
+
+Méthode 2 : Copier ce dossier modèle
+------------------------------------
+1. Copier ce dossier dans un nouveau dossier.
+2. Renommer le dossier avec le nom du module voulu.
+3. Modifier manifest.json avec les bonnes informations.
+4. Écrire la logique du module dans main.py.
+5. Ajouter les contrôleurs, vues et modèles si nécessaire.
+6. Tester le module avant de l'empaqueter.
+7. Compresser le dossier en ZIP pour l'utiliser avec le serveur d'updates.
+
+
+📋 TEMPLATES DISPONIBLES
+=========================
+
+1. Simple
+   - Structure minimale
+   - Point d'entrée uniquement
+   - Idéal pour des modules légers
+
+2. CRUD
+   - Contrôleur CRUD complet
+   - Modèle d'entité
+   - Vues associées
+   - Idéal pour la gestion d'entités
+
+3. API REST
+   - Endpoints REST
+   - Sérialiseurs
+   - Routes d'API
+   - Idéal pour des services web
+
+4. Complet
+   - Structure complète
+   - Services, routes, tests
+   - Idéal pour des modules complexes
+
+
+📄 FICHIERS IMPORTANTS
+=======================
+
+manifest.json
+-------------
+Configuration obligatoire du module :
+```json
+{
+  "name": "NomDuModule",
+  "version": "1.0.0",
+  "description": "Description du module",
+  "author": "Votre nom",
+  "entry_point": "main.py",
+  "enabled": true,
+  "category": "generic",
+  "min_app_version": "1.0.0",
+  "created_at": "2026-07-07T10:00:00",
+  "dependencies": [],
+  "python_version": ">=3.8",
+  "license": "MIT"
+}
+```
+
+main.py
+-------
+Point d'entrée du module :
+```python
+def load_module():
+    """Fonction appelée au chargement."""
+    # Initialisation du module
+    return True
+
+def unload_module():
+    """Fonction appelée au déchargement."""
+    # Nettoyage des ressources
+    return True
+```
+
+config.py
+---------
+Configuration du module :
+```python
+MODULE_CONFIG = {
+    "debug": True,
+    "cache_enabled": True,
+    "timeout": 30,
+}
+
+def get_config(key=None, default=None):
+    """Récupère une configuration."""
+    pass
+```
+
+services.py
+-----------
+Services métier :
+```python
+class BaseService:
+    """Service de base."""
+    def process(self, data):
+        raise NotImplementedError
+```
+
+routes.py
+---------
+Définition des routes :
+```python
+def register_routes(app):
+    """Enregistre les routes de l'application."""
+    pass
+```
+
+
+🧪 TESTS
+=========
+
+Les tests unitaires sont dans le dossier tests/ :
+```bash
+python -m pytest nom_du_module/tests/
+```
+
+
+📦 DÉPLOIEMENT
+===============
+
+1. Activer le module :
+```bash
+python manage.py enable_module NomDuModule
+```
+
+2. Appliquer les migrations (si nécessaire) :
+```bash
+python manage.py migrate NomDuModule
+```
+
+3. Redémarrer l'application :
+```bash
+python manage.py restart
+```
+
+
+🔧 FONCTIONNALITÉS AVANCÉES
+============================
+
+Gestion des dépendances
+-----------------------
+Le fichier manifest.json supporte la déclaration des dépendances :
+```json
+"dependencies": ["requests", "flask", "sqlalchemy"]
+```
+
+Versioning
+----------
+Suivi des versions avec sémantique :
+- 1.0.0 : Version majeure
+- 1.0.1 : Version mineure
+- 1.0.0-dev : Version de développement
+
+Multi-langues
+-------------
+Support du français et de l'anglais :
+- README.md (anglais)
+- README_FR.md (français)
+
+Tests intégrés
+--------------
+Structure de test prête à l'emploi dans tests/
+
+Migrations
+----------
+Support des migrations de base de données dans migrations/
+
+Documentation automatique
+-------------------------
+Génération automatique de la documentation via les docstrings
+
+
+📝 EXEMPLES DE NOMS DE MODULES
+===============================
+
+- GestionClients
+- RapportsFinanciers
+- ImportExportExcel
+- FacturationAuto
+- DashboardStats
+
+
+⚠️ IMPORTANT
+=============
+
+- Le nom du dossier doit être cohérent avec le nom du module
+- Le fichier manifest.json doit être présent à la racine
+- Le point d'entrée doit correspondre à un fichier Python valide
+- Les noms de fichiers doivent être en minuscules avec underscores
+- Les classes doivent être en PascalCase
+- Les fonctions et variables en snake_case
+- Toujours tester avant de déployer
+
+
+🆘 AIDE ET SUPPORT
+===================
+
+En cas de problème :
+1. Vérifier les logs dans logs/module_nom_du_module.log
+2. Consulter la documentation du module dans README.md
+3. Contacter l'équipe de développement
+
+
+📚 RESSOURCES
+==============
+
+- Documentation LOMETA : https://docs.lometa.com
+- API de référence : https://api.lometa.com
+- Forum de support : https://forum.lometa.com
+
+
+📄 LICENCE
+==========
+
+Ce modèle est fourni sous licence MIT.
+Vous êtes libre de l'utiliser et de le modifier.
+
+---
+
+🎯 VERSION : 2.0.0
+📅 DATE : 2026-07-07
+👤 AUTEUR : Équipe LOMETA
+```

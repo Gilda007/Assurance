@@ -180,129 +180,6 @@ logger = logging.getLogger()
 # AUTHENTIFICATION VIA SESSION LOMETA
 # ============================================================================
 
-# class SessionAuth:
-#     """Authentification via la table sessions de LOMETA"""
-    
-#     def __init__(self, db_config: dict):
-#         self.db_config = db_config
-#         self.connection_pool = None
-#         self._init_pool()
-    
-#     def _init_pool(self):
-#         try:
-#             self.connection_pool = pool.SimpleConnectionPool(
-#                 1, 5,
-#                 host=self.db_config.get('host', 'localhost'),
-#                 port=self.db_config.get('port', 5432),
-#                 database=self.db_config.get('database', 'ams_db'),
-#                 user=self.db_config.get('user', 'postgres'),
-#                 password=self.db_config.get('password', '')
-#             )
-#             logger.info("✅ Connexion à PostgreSQL établie")
-#         except Exception as e:
-#             logger.error(f"❌ Erreur connexion PostgreSQL: {e}")
-#             self.connection_pool = None
-    
-#     def verify_session_token(self, token: str) -> Optional[dict]:
-#         """Vérifie un token de session LOMETA"""
-#         if not self.connection_pool or not token:
-#             return None
-        
-#         conn = None
-#         try:
-#             conn = self.connection_pool.getconn()
-#             with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
-#                 # Vérifier dans la table sessions
-#                 cur.execute("""
-#                     SELECT s.user_id, u.username, u.full_name, u.email, u.role
-#                     FROM sessions s
-#                     JOIN utilisateurs u ON s.user_id = u.id
-#                     WHERE s.token = %s AND s.expires_at > NOW()
-#                 """, (token,))
-#                 session = cur.fetchone()
-                
-#                 if session:
-#                     logger.info(f"✅ Session valide: {session['username']}")
-#                     return dict(session)
-#                 else:
-#                     logger.warning(f"❌ Token invalide ou expiré")
-#                     return None
-#         except Exception as e:
-#             logger.error(f"Erreur vérification session: {e}")
-#             return None
-#         finally:
-#             if conn and self.connection_pool:
-#                 self.connection_pool.putconn(conn)
-    
-#     def authenticate_user(self, username: str, password: str) -> tuple:
-#         """Authentifie un utilisateur (pour la page de connexion)"""
-#         if not self.connection_pool:
-#             return False, None, "Base de données non disponible"
-        
-#         conn = None
-#         try:
-#             conn = self.connection_pool.getconn()
-#             with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
-#                 cur.execute("""
-#                     SELECT id, username, full_name, email, role, is_active, password_hash
-#                     FROM utilisateurs 
-#                     WHERE username = %s
-#                 """, (username,))
-#                 user = cur.fetchone()
-                
-#                 if not user:
-#                     return False, None, "Nom d'utilisateur incorrect"
-                
-#                 if not user.get('is_active', True):
-#                     return False, None, "Compte désactivé"
-                
-#                 stored_hash = user.get('password_hash', '')
-#                 if self._verify_password(password, stored_hash):
-#                     return True, dict(user), "Connexion réussie"
-#                 else:
-#                     return False, None, "Mot de passe incorrect"
-#         except Exception as e:
-#             logger.error(f"Erreur authentification: {e}")
-#             return False, None, "Erreur système"
-#         finally:
-#             if conn and self.connection_pool:
-#                 self.connection_pool.putconn(conn)
-    
-#     def _verify_password(self, input_password: str, stored_hash: str) -> bool:
-#         if not stored_hash:
-#             return False
-#         if stored_hash.startswith('$2'):
-#             try:
-#                 return bcrypt.checkpw(input_password.encode('utf-8'), stored_hash.encode('utf-8'))
-#             except:
-#                 return False
-#         return input_password == stored_hash
-    
-#     def create_session(self, user_id: int) -> str:
-#         """Crée une session temporaire pour l'accès navigateur"""
-#         conn = None
-#         try:
-#             conn = self.connection_pool.getconn()
-#             with conn.cursor() as cur:
-#                 token = base64.b64encode(f"{user_id}:{datetime.datetime.now().timestamp()}".encode()).decode()
-#                 expires_at = datetime.datetime.now() + datetime.timedelta(hours=24)
-#                 cur.execute("""
-#                     INSERT INTO sessions (user_id, token, expires_at, created_at)
-#                     VALUES (%s, %s, %s, NOW())
-#                     ON CONFLICT (token) DO UPDATE SET expires_at = EXCLUDED.expires_at
-#                 """, (user_id, token, expires_at))
-#                 conn.commit()
-#                 return token
-#         except Exception as e:
-#             logger.error(f"Erreur création session: {e}")
-#             return None
-#         finally:
-#             if conn and self.connection_pool:
-#                 self.connection_pool.putconn(conn)
-
-# ============================================================================
-# AUTHENTIFICATION VIA SESSION LOMETA (ADAPTÉ POUR token_encrypted)
-# ============================================================================
 
 class SessionAuth:
     """Authentification via la table sessions de LOMETA (utilise token_encrypted)"""
@@ -1590,40 +1467,6 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
     # DOWNLOAD, UPLOAD, DELETE
     # ========================================================================
 
-
-    # def _handle_download(self, path: str):
-    #     """Gère le téléchargement avec décodage d'URL"""
-    #     # Extraire le nom du fichier et le décoder
-    #     raw_filename = path.split('/')[-1].split('?')[0]
-    #     filename = unquote(raw_filename)  # Décode %C3%A8 en è
-    #     file_path = Path(os.getcwd()) / filename
-        
-    #     logger.debug(f"Recherche fichier: raw={raw_filename}, decoded={filename}, path={file_path}")
-        
-    #     if not file_path.exists():
-    #         logger.warning(f"Fichier non trouvé: {file_path}")
-    #         self.send_error(404, f"Fichier non trouvé: {filename}")
-    #         return
-        
-    #     self.stats["total_downloads"] += 1
-    #     file_size = file_path.stat().st_size
-    #     self.stats["total_bytes_sent"] += file_size
-        
-    #     logger.info(f"📥 Téléchargement: {filename} ({file_size} bytes)")
-        
-    #     # Headers corrects pour le téléchargement
-    #     self.send_response(200)
-    #     self.send_header('Content-Type', 'application/zip')
-    #     # Encoder le nom du fichier pour les headers HTTP
-    #     encoded_filename = filename.encode('utf-8').decode('latin-1')
-    #     self.send_header('Content-Disposition', f'attachment; filename="{encoded_filename}"; filename*=UTF-8\'\'{filename}')
-    #     self.send_header('Content-Length', str(file_size))
-    #     self.send_header('Cache-Control', 'no-cache')
-    #     self.end_headers()
-        
-    #     with open(file_path, 'rb') as f:
-    #         self.wfile.write(f.read())
-
     def _handle_download(self, path: str):
         """Gère le téléchargement avec gestion des erreurs"""
         raw_filename = path.split('/')[-1].split('?')[0]
@@ -1748,15 +1591,6 @@ class ModuleServerHandler(SimpleHTTPRequestHandler):
         except Exception as e:
             self._send_json_response(500, {"error": str(e)})
     
-    # def _send_json_response(self, code: int, data: dict):
-    #     """Envoie une réponse JSON avec gestion des erreurs de connexion"""
-    #     try:
-    #         json_data = json.dumps(data, indent=2, ensure_ascii=False).encode('utf-8')
-    #         self._safe_send_response(code, 'application/json', json_data)
-    #     except Exception as e:
-    #         logger.error(f"Erreur sérialisation JSON: {e}")
-
-    # Remplacer la méthode _send_json_response existante
     
     def _send_json_response(self, code: int, data: dict):
         """Envoie une réponse JSON avec gestion des erreurs de connexion"""

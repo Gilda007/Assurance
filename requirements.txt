@@ -17,3 +17,5 @@ mysqlclient>=2.2.0
 pyqtgraph>=0.13.0
 python-dateutil>=2.8.0
 python-dotenv>=1.0.0
+pyinstaller
+pyinstaller-hooks-contrib

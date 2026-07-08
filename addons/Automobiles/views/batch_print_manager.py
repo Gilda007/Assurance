@@ -165,7 +165,7 @@ class BatchPrintManager(QObject):
     def _get_complete_vehicle_data(self, vehicle_id):
         """Récupère les données complètes d'un véhicule"""
         try:
-            from addons.Automobiles.models import Vehicle
+            from addons.Automobiles.models import Vehicle, VehicleFleetGuarantee
             from addons.Automobiles.models.contract_models import Contrat
             
             # Utiliser la session du contrôleur
@@ -174,6 +174,7 @@ class BatchPrintManager(QObject):
                 return None
             
             db_vehicle = session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+            db_fleet_guarantee = session.query(VehicleFleetGuarantee).filter(VehicleFleetGuarantee.vehicle_id == vehicle_id).first()
             if not db_vehicle:
                 return None
             
@@ -225,15 +226,15 @@ class BatchPrintManager(QObject):
                 'amt_ar': getattr(db_vehicle, 'amt_ar', getattr(getattr(db_vehicle, 'guarantees', None), 'ar', 0)),
                 'amt_dta': getattr(db_vehicle, 'amt_dta', getattr(getattr(db_vehicle, 'guarantees', None), 'dta', 0)),
                 'amt_ipt': getattr(db_vehicle, 'amt_ipt', getattr(getattr(db_vehicle, 'guarantees', None), 'ipt', 0)),
-                'amt_fleet_rc_val': db_vehicle.amt_fleet_rc_val,
-                'amt_fleet_dr_val': db_vehicle.amt_fleet_dr_val,
-                'amt_fleet_vol_val': db_vehicle.amt_fleet_vol_val,
-                'amt_fleet_vb_val': db_vehicle.amt_fleet_vb_val,
-                'amt_fleet_in_val': db_vehicle.amt_fleet_in_val,
-                'amt_fleet_bris_val': db_vehicle.amt_fleet_bris_val,
-                'amt_fleet_ar_val': db_vehicle.amt_fleet_ar_val,
-                'amt_fleet_dta_val': db_vehicle.amt_fleet_dta_val,
-                'amt_fleet_ipt_val': db_vehicle.amt_fleet_ipt_val,
+                'amt_fleet_rc_val': db_fleet_guarantee.rc if db_fleet_guarantee else 0,
+                'amt_fleet_dr_val': db_fleet_guarantee.dr if db_fleet_guarantee else 0,
+                'amt_fleet_vol_val': db_fleet_guarantee.vol if db_fleet_guarantee else 0,
+                'amt_fleet_vb_val': db_fleet_guarantee.vb if db_fleet_guarantee else 0,
+                'amt_fleet_in_val': db_fleet_guarantee.in_garantie if db_fleet_guarantee else 0,
+                'amt_fleet_bris_val': db_fleet_guarantee.bris if db_fleet_guarantee else 0,
+                'amt_fleet_ar_val': db_fleet_guarantee.ar if db_fleet_guarantee else 0,
+                'amt_fleet_dta_val': db_fleet_guarantee.dta if db_fleet_guarantee else 0,
+                'amt_fleet_ipt_val': db_fleet_guarantee.ipt if db_fleet_guarantee else 0,
                 'numero_police': getattr(contrat, 'numero_police', 'N/A') if contrat else 'N/A',
                 'statut_paiement': getattr(contrat, 'statut_paiement', 'NON_PAYE') if contrat else 'NON_PAYE',
                 'owner': f"{getattr(owner, 'nom', '')} {getattr(owner, 'prenom', '')}".strip() if owner else 'Propriétaire non renseigné',

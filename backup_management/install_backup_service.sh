@@ -43,6 +43,7 @@ create_directories() {
     print_info "Création des dossiers..."
     mkdir -p /var/backups/lometa
     mkdir -p /var/log
+    mkdir -p /etc/default
     chmod 755 /var/backups/lometa
     print_success "Dossiers créés"
 }

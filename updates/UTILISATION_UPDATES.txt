@@ -1,0 +1,133 @@
+PROCEDURE D'UTILISATION DU REPERTOIRE UPDATES
+============================================
+
+Ce document explique comment utiliser le dossier updates pour servir des modules LOMETA depuis votre machine.
+
+1. OBJECTIF
+-----------
+
+Le repertoire updates contient :
+- le serveur de modules : update_server.py
+- les modules empaquetes en ZIP
+- des fichiers utilitaires comme auth_db.py
+- un dossier uploads pour les fichiers telecharges
+
+Il sert a fournir des modules a l'application LOMETA via un serveur HTTP local ou distant.
+
+2. PRE-REQUIS
+-------------
+
+Avant de l'utiliser, assurez-vous que :
+- Python 3 est installe
+- les bibliotheques Python necessaires sont presentes
+- un fichier .env existe a la racine du projet ou dans le dossier updates
+- PostgreSQL est accessible si vous voulez l'authentification base de donnees
+
+3. STRUCTURE DU DOSSIER UPDATES
+--------------------------------
+
+Le dossier contient par exemple :
+- update_server.py : serveur HTTP qui sert les modules
+- README.txt : informations de base
+- uploads/ : stockage des fichiers telecharges
+- *.zip : modules disponibles a la distribution
+
+4. PREPARER UN MODULE
+----------------------
+
+Pour rendre un module disponible :
+1. placez votre fichier ZIP dans le dossier updates
+2. assurez-vous que le nom du fichier correspond a celui attendu par le serveur
+3. si besoin, adaptez la configuration du serveur ou du manifest
+
+Exemple :
+- Automobiles.zip
+- Paramètres.zip
+
+5. DEMARRER LE SERVEUR DE MODULES
+---------------------------------
+
+Ouvrez un terminal dans le dossier du projet :
+
+cd /home/fearless/Documents/Assurance/updates
+
+Puis lancez :
+
+python3 update_server.py
+
+Le serveur demarre alors sur l'adresse configuree, par defaut :
+- http://localhost:5000/
+
+6. CONFIGURATION DU FICHIER .ENV
+--------------------------------
+
+Le serveur lit certaines variables depuis le fichier .env.
+
+Exemple de contenu possible :
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=ams_db
+DB_USER=ams_admin
+DB_PASSWORD=Ams123_@
+
+Si vous n'utilisez pas PostgreSQL, vous pouvez laisser ces variables vides ou ne pas les renseigner.
+
+7. ACCES AU SERVEUR
+-------------------
+
+Une fois lance, vous pouvez ouvrir dans votre navigateur :
+
+http://localhost:5000/
+
+Le serveur propose aussi des endpoints utiles :
+- /api/modules
+- /api/stats
+- /api/health
+
+8. UTILISER LES MODULES DANS L'APPLICATION
+------------------------------------------
+
+L'application LOMETA peut ensuite :
+- interroger le serveur
+- recuperer la liste des modules disponibles
+- telecharger et installer les modules
+
+Si le client met a jour les modules, il doit pointer vers l'URL du serveur de mise a jour configuree dans l'application.
+
+9. MISE A JOUR D'UN MODULE
+--------------------------
+
+Pour publier une nouvelle version :
+1. remplacez le fichier ZIP du module par la nouvelle version
+2. assurez-vous que le nom du fichier est compatible
+3. redemarrez le serveur si necessaire
+
+10. REDEMARRER LE SERVEUR
+-------------------------
+
+Si vous avez modifie un module ou la configuration :
+
+Ctrl+C pour arreter le serveur
+python3 update_server.py
+
+11. RESOLUTION DE PROBLEMES
+---------------------------
+
+Si le serveur ne demarre pas :
+- verifiez que Python est installe
+- verifiez que les dependances sont presentes
+- verifiez les messages d'erreur affiches dans le terminal
+- verifiez le contenu du fichier .env
+- verifiez que le port 5000 est libre
+
+Commande pour verifier le port :
+
+ss -ltnp | grep 5000
+
+12. NOTES IMPORTANTES
+---------------------
+
+- Le serveur est principalement destine a distribuer des modules au client LOMETA.
+- Les modules doivent etre fournis sous forme d'archives ZIP.
+- Si vous avez besoin d'une version plus securisee ou accessible depuis un autre poste, il faudra configurer l'hote, le port et l'authentification.
