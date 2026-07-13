@@ -156,46 +156,6 @@ class VehicleController:
             traceback.print_exc()
             return None
 
-    # def get_vehicles_by_owner_id(self, owner_id: int, force_refresh: bool = False):
-    #     """Récupère les véhicules d'un propriétaire (avec cache)"""
-        
-    #     def load_vehicles():
-    #         return self.session.query(Vehicle).options(
-    #             selectinload(Vehicle.contract),
-    #             joinedload(Vehicle.owner)
-    #         ).filter(
-    #             Vehicle.owner_id == owner_id,
-    #             Vehicle.is_active == True
-    #         ).all()
-        
-    #     if force_refresh:
-    #         query_cache.invalidate(f"owner_{owner_id}")
-    #         return load_vehicles()
-        
-    #     return query_cache.get_or_compute(
-    #         f"vehicles_by_owner_{owner_id}",
-    #         compute_func=load_vehicles,
-    #         ttl=300
-    #     )
-
-    # def get_dashboard_stats(self, fleet_id=None):
-    #     """Calcule les KPI pour les widgets du haut de l'interface."""
-    #     query = self.session.query(Vehicle)
-    #     if fleet_id:
-    #         query = query.filter(Vehicle.fleet_id == fleet_id)
-
-    #     total = query.count()
-    #     actifs = query.filter(Vehicle.statut == "ACTIF").count()
-    #     expires = query.filter(Vehicle.statut == "EXPIRE").count()
-    #     prime_totale = self.session.query(func.sum(Vehicle.prime_emise)).scalar() or 0
-
-    #     return {
-    #         "total": total,
-    #         "actifs": actifs,
-    #         "expires": expires,
-    #         "prime_totale": f"{prime_totale:,.0f} FCFA"
-    #     }
-
     @with_db_timeout(30)
     def get_vehicles_by_owner_id(self, owner_id: int, force_refresh: bool = False):
         """Récupère les véhicules d'un propriétaire (avec cache)"""
@@ -2330,3 +2290,5 @@ class VehicleController:
             import traceback
             traceback.print_exc()
             return None
+
+    

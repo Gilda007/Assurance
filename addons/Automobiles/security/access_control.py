@@ -87,6 +87,25 @@ class Permissions:
     AUDIT_VIEW = "audit_view"
     AUDIT_EXPORT = "audit_export"
 
+    SINISTRE_VIEW = "sinistre_view"
+    SINISTRE_ADD = "sinistre_add"
+    SINISTRE_EDIT = "sinistre_edit"
+    SINISTRE_DELETE = "sinistre_delete"
+    SINISTRE_CLOSE = "sinistre_close"
+    
+    # Permissions expertises
+    EXPERTISE_VIEW = "expertise_view"
+    EXPERTISE_ADD = "expertise_add"
+    EXPERTISE_EDIT = "expertise_edit"
+    EXPERTISE_VALIDATE = "expertise_validate"
+    
+    # Permissions garages
+    GARAGE_VIEW = "garage_view"
+    GARAGE_ADD = "garage_add"
+    GARAGE_EDIT = "garage_edit"
+    GARAGE_DELETE = "garage_delete"
+    GARAGE_AGREE = "garage_agree"
+
 
 # ============================================================================
 # 3. MAPPING DES PERMISSIONS PAR RÔLE
@@ -126,6 +145,22 @@ ROLE_PERMISSIONS = {
         Permissions.REPORT_EXPORT,
         Permissions.AUDIT_VIEW,
         Permissions.AUDIT_EXPORT,
+        Permissions.SINISTRE_VIEW,
+        Permissions.SINISTRE_ADD,
+        Permissions.SINISTRE_EDIT,
+        Permissions.SINISTRE_DELETE,
+        Permissions.SINISTRE_CLOSE,
+        # Expertises
+        Permissions.EXPERTISE_VIEW,
+        Permissions.EXPERTISE_ADD,
+        Permissions.EXPERTISE_EDIT,
+        Permissions.EXPERTISE_VALIDATE,
+        # Garages
+        Permissions.GARAGE_VIEW,
+        Permissions.GARAGE_ADD,
+        Permissions.GARAGE_EDIT,
+        Permissions.GARAGE_DELETE,
+        Permissions.GARAGE_AGREE,
     ],
     Role.MANAGER: [
         Permissions.CONTACT_VIEW,
@@ -152,6 +187,16 @@ ROLE_PERMISSIONS = {
         Permissions.REPORT_VIEW,
         Permissions.REPORT_GENERATE,
         Permissions.REPORT_EXPORT,
+        Permissions.SINISTRE_VIEW,
+        Permissions.SINISTRE_ADD,
+        Permissions.SINISTRE_EDIT,
+        Permissions.SINISTRE_CLOSE,
+        Permissions.EXPERTISE_VIEW,
+        Permissions.EXPERTISE_ADD,
+        Permissions.EXPERTISE_EDIT,
+        Permissions.GARAGE_VIEW,
+        Permissions.GARAGE_ADD,
+        Permissions.GARAGE_EDIT,
     ],
     Role.AGENT: [
         Permissions.CONTACT_VIEW,
@@ -167,6 +212,11 @@ ROLE_PERMISSIONS = {
         Permissions.PAYMENT_VIEW,
         Permissions.PAYMENT_ADD,
         Permissions.FLEET_VIEW,
+        Permissions.SINISTRE_VIEW,
+        Permissions.SINISTRE_ADD,
+        Permissions.SINISTRE_EDIT,
+        Permissions.EXPERTISE_VIEW,
+        Permissions.GARAGE_VIEW,
     ],
     Role.USER: [
         Permissions.CONTACT_VIEW,
@@ -174,6 +224,9 @@ ROLE_PERMISSIONS = {
         Permissions.CONTRACT_VIEW,
         Permissions.PAYMENT_VIEW,
         Permissions.FLEET_VIEW,
+        Permissions.SINISTRE_VIEW,
+        Permissions.EXPERTISE_VIEW,
+        Permissions.GARAGE_VIEW,
     ],
     Role.GUEST: [],
 }

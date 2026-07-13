@@ -19,6 +19,9 @@ from addons.Automobiles.models.tarif_models import AutomobileTarif
 from addons.Automobiles.models.automobile_tranche import AutomobileTranche
 from addons.Automobiles.models.paiement_models import Paiement
 from addons.Automobiles.models.driver_models import Driver
+from addons.Automobiles.models.sinistre_models import Sinistre, Indemnisation, StatutSinistre, TypeSinistre
+from addons.Automobiles.models.expertise_models import Expertise, TypeExpertise, StatutExpertise
+from addons.Automobiles.models.garage_models import Garage, Intervention, TypeGarage, StatutAgrement
 
 # Modèles Vehicle (tous dans automobile_models.py)
 from addons.Automobiles.models.automobile_models import (

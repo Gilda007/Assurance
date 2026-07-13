@@ -73,6 +73,7 @@ class Contact(Base):
     vehicles = relationship("Vehicle", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
     fleets = relationship("Fleet", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
     contracts = relationship("Contrat", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
+    sinistres = relationship("Sinistre", back_populates="client")
 
     # --- TRAÇABILITÉ ---
     created_at = Column(DateTime, default=datetime.now)

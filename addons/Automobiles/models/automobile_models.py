@@ -397,8 +397,12 @@ class Vehicle(Base):
     guarantee_rates = relationship("VehicleGuaranteeRate", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
     guarantee_options = relationship("VehicleGuaranteeOption", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
     fleet_guarantees = relationship("VehicleFleetGuarantee", back_populates="vehicle", uselist=False, cascade="all, delete-orphan")
-    
+
+    sinistres = relationship("Sinistre", back_populates="vehicule", cascade="all, delete-orphan")
+    interventions = relationship("Intervention", back_populates="vehicule", cascade="all, delete-orphan")
     # --- PROPRIÉTÉS POUR LA COMPATIBILITÉ (ACCÈS DIRECT AUX VALEURS) ---
+
+    
     @property
     def categorie(self):
         """Accès direct à la catégorie pour compatibilité"""

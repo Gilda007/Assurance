@@ -8,6 +8,10 @@ from addons.Automobiles.controllers.automobile_tarif_controller import TarifCont
 from addons.Automobiles.controllers.paiement_controller import PaymentController
 from addons.Automobiles.controllers.reports_controller import ReportsController
 from addons.Automobiles.controllers.api_asac_controller import ASACAPIController
+from addons.Automobiles.controllers.automobile_controller import VehicleController
+from addons.Automobiles.controllers.sinistre_controller import SinistreController
+from addons.Automobiles.controllers.expertise_controller import ExpertiseController
+from addons.Automobiles.controllers.garage_controller import GarageController, InterventionController
 
 
 class AutomobileMainController:
@@ -24,6 +28,10 @@ class AutomobileMainController:
         self.paiements = PaymentController(self.session)
         self.reports = ReportsController(self.session, current_user_id)
         self.asac = ASACAPIController(self.session)
+        self.sinistre = SinistreController(self.session, self.user_id)
+        self.expertise = ExpertiseController(self.session, self.user_id)
+        self.garage = GarageController(self.session, self.user_id)
+        self.intervention = InterventionController(self.session, self.user_id)
         # self.compagnies = FleetController(session, current_user_id)
 
     def is_asac_available(self):

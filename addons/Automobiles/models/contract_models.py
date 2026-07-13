@@ -63,6 +63,10 @@ class Contrat(Base):
     fleet = relationship("Fleet", lazy="joined", back_populates="contract")
     drivers = relationship("Driver", back_populates="contract")
 
+    
+    # ✅ RELATION SINISTRES (corrigée)
+    sinistres = relationship("Sinistre", back_populates="contrat", cascade="all, delete-orphan")
+
 
 class AuditContratLog(Base):
     __tablename__ = 'audit_contrat_logs'

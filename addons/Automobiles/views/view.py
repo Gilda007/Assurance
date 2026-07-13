@@ -142,6 +142,9 @@ class VehicleMainView(QWidget):
         "import": Permissions.VEHICLE_EXPORT,
         "reports": Permissions.REPORT_VIEW,
         "settings": "admin_only",
+        "sinistres": Permissions.SINISTRE_VIEW,
+        "expertises": Permissions.EXPERTISE_VIEW,
+        "garages": Permissions.GARAGE_VIEW,
     }
     
     def __init__(self, controller, user=None):
@@ -230,6 +233,10 @@ class VehicleMainView(QWidget):
             ("contacts", "👥", "Clients"),
             ("companies", "🏢", "Compagnies"),
             ("contracts", "📄", "Contrats"),
+            # NOUVEAUX
+            ("sinistres", "⚠️", "Sinistres"),
+            ("expertises", "🔍", "Expertises"),
+            ("garages", "🔧", "Garages"),
             ("import", "📥", "Import ASAC"),
             ("reports", "📈", "Rapports"),
             ("settings", "⚙️", "Paramètres"),
@@ -266,6 +273,8 @@ class VehicleMainView(QWidget):
         footer_layout.addWidget(user_label)
         footer_layout.addWidget(version_label)
         sidebar_layout.addWidget(footer)
+
+
     
     def setup_content_area(self):
         """Configure la zone de contenu principale"""
@@ -366,6 +375,9 @@ class VehicleMainView(QWidget):
         from addons.Automobiles.views.reports_view import ReportView
         from addons.Automobiles.views.settings_view import SettingsView
         from addons.Automobiles.views.asac_import_view import ASACImportView 
+        from addons.Automobiles.views.sinistre.sinistre_list_view import SinistreListView
+        from addons.Automobiles.views.expertise.expertise_list_view import ExpertiseListView
+        from addons.Automobiles.views.garages.garage_list_view import GarageListView
         
         page_factories = {
             "dashboard": lambda: DashboardView(self.controller, self.user),
@@ -376,6 +388,9 @@ class VehicleMainView(QWidget):
             "import": lambda: ASACImportView(self.controller, self.user),
             "reports": lambda: ReportView(self.controller, self.user),
             "settings": lambda: SettingsView(self.controller, self.user),
+            "sinistres": lambda: SinistreListView(self.controller, self.user),
+            "expertises": lambda: ExpertiseListView(self.controller, self.user),
+            "garages": lambda: GarageListView(self.controller, self.user),
         }
         
         for key, factory in page_factories.items():
@@ -406,7 +421,10 @@ class VehicleMainView(QWidget):
             "contracts": "Gestion des Contrats",
             "import": "Import ASAC",
             "reports": "Rapports et Statistiques",
-            "settings": "Paramètres"
+            "settings": "Paramètres",
+            "sinistres": "Gestion des Sinistres",
+            "expertises": "Expertises Automobiles",
+            "garages": "Garages Agréés"
         }
         self.page_title.setText(titles.get(page_key, page_key))
         

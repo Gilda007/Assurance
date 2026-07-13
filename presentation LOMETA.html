@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stratégie de Contenu Sociale — CHONATE</title>
+    <title>LOMETA - Document Commercial</title>
     <style>
-        /* ===== RESET & BASE ===== */
+        /* --------------------------------------------------------------
+           RESET & BASE
+           -------------------------------------------------------------- */
         * {
             margin: 0;
             padding: 0;
@@ -13,876 +15,1528 @@
         }
 
         body {
-            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
-            background: #f5f3f0;
+            font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: #ffffff;
+            color: #1e293b;
+            line-height: 1.7;
             padding: 40px 20px;
-            display: flex;
-            justify-content: center;
         }
 
         .document {
             max-width: 1100px;
-            width: 100%;
+            margin: 0 auto;
             background: #ffffff;
-            padding: 50px 55px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
             border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.10);
-            line-height: 1.6;
-            color: #1e1e1e;
+            padding: 0;
+            overflow: hidden;
         }
 
-        /* ===== TYPOGRAPHIE ===== */
-        h1 {
-            font-size: 2.6rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            color: #1a2a3a;
-            border-bottom: 4px solid #c9a96e;
-            padding-bottom: 12px;
-            margin-bottom: 8px;
+        /* --------------------------------------------------------------
+           COUVERTURE
+           -------------------------------------------------------------- */
+        .cover {
+            background: #ffffff;
+            padding: 70px 60px 50px 60px;
+            text-align: center;
+            border-bottom: 1px solid #eef2f6;
         }
 
-        .sous-titre {
-            font-size: 1.1rem;
-            color: #4a5a6a;
-            margin-bottom: 35px;
+        .cover .badge {
+            display: inline-block;
+            background: #f1f5f9;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            padding: 6px 20px;
+            border-radius: 30px;
+            text-transform: uppercase;
+            margin-bottom: 28px;
+        }
+
+        .cover h1 {
+            font-size: 56px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            color: #0f172a;
+            margin-bottom: 4px;
+        }
+
+        .cover h1 span {
+            color: #2563eb;
+        }
+
+        .cover .sub {
+            font-size: 20px;
+            font-weight: 300;
+            color: #475569;
+            margin-bottom: 24px;
+            letter-spacing: 0.3px;
+        }
+
+        .cover .divider {
+            width: 72px;
+            height: 3px;
+            background: #2563eb;
+            margin: 0 auto 28px auto;
+            border-radius: 4px;
+        }
+
+        .cover .meta {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .cover .meta span {
+            color: #1e293b;
+            font-weight: 500;
+        }
+
+        .cover .meta .label {
+            color: #94a3b8;
             font-weight: 400;
-            border-bottom: 1px solid #e0dcd6;
-            padding-bottom: 18px;
         }
 
-        .nom-chorale {
-            color: #c9a96e;
+        /* --------------------------------------------------------------
+           TABLE DES MATIÈRES
+           -------------------------------------------------------------- */
+        .toc {
+            padding: 40px 60px 32px 60px;
+            background: #fafbfc;
+            border-bottom: 1px solid #eef2f6;
+        }
+
+        .toc h2 {
+            font-size: 18px;
             font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 20px;
+            letter-spacing: 0.3px;
         }
 
-        .slogan-dore {
-            color: #c9a96e;
-            font-style: italic;
-            font-weight: 600;
+        .toc-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 48px;
         }
 
+        .toc-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 14px;
+            color: #334155;
+            border-bottom: 1px dashed #eef2f6;
+        }
+
+        .toc-item .page {
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        /* --------------------------------------------------------------
+           CONTENU PRINCIPAL
+           -------------------------------------------------------------- */
+        .content {
+            padding: 48px 60px 56px 60px;
+        }
+
+        /* --------------------------------------------------------------
+           TITRES
+           -------------------------------------------------------------- */
         h2 {
-            font-size: 1.8rem;
-            font-weight: 600;
-            color: #1a2a3a;
-            margin-top: 40px;
-            margin-bottom: 16px;
-            border-left: 6px solid #c9a96e;
-            padding-left: 18px;
+            font-size: 26px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 48px;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eef2f6;
+            letter-spacing: -0.3px;
+        }
+
+        h2:first-of-type {
+            margin-top: 0;
+        }
+
+        h2 .num {
+            color: #2563eb;
+            font-weight: 800;
+            margin-right: 8px;
         }
 
         h3 {
-            font-size: 1.25rem;
+            font-size: 19px;
             font-weight: 600;
-            color: #2c3e50;
-            margin-top: 30px;
-            margin-bottom: 12px;
+            color: #1e293b;
+            margin-top: 28px;
+            margin-bottom: 10px;
         }
 
         h4 {
-            font-size: 1.05rem;
+            font-size: 16px;
             font-weight: 600;
-            color: #2c3e50;
+            color: #334155;
             margin-top: 20px;
+            margin-bottom: 8px;
+        }
+
+        /* --------------------------------------------------------------
+           PARAGRAPHES & LISTES
+           -------------------------------------------------------------- */
+        p {
+            font-size: 15px;
+            color: #334155;
+            margin-bottom: 16px;
+        }
+
+        ul, ol {
+            padding-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        ul li, ol li {
+            font-size: 15px;
+            color: #334155;
             margin-bottom: 6px;
         }
 
-        /* ===== SOMMAIRE ===== */
-        .sommaire {
-            background: #f8f6f2;
-            padding: 24px 30px;
-            border-radius: 10px;
-            margin: 30px 0 35px 0;
-            border: 1px solid #e6dfd6;
+        ul li::marker {
+            color: #2563eb;
         }
 
-        .sommaire ul {
-            columns: 2;
-            column-gap: 30px;
-            list-style: none;
-            padding: 0;
-            margin: 0;
+        /* --------------------------------------------------------------
+           ENCADRÉS
+           -------------------------------------------------------------- */
+        .encadre {
+            background: #fafbfc;
+            border-left: 4px solid #2563eb;
+            border-radius: 6px;
+            padding: 24px 28px;
+            margin: 24px 0 28px 0;
         }
 
-        .sommaire li {
-            padding: 5px 0;
-            font-weight: 500;
-            color: #1a2a3a;
-            break-inside: avoid;
+        .encadre p:last-child {
+            margin-bottom: 0;
         }
 
-        .sommaire li::before {
-            content: "▸ ";
-            color: #c9a96e;
-            font-weight: 700;
+        .encadre.vert {
+            border-left-color: #16a34a;
+            background: #f6fef9;
         }
 
-        /* ===== TABLEAUX ===== */
+        .encadre.orange {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+
+        /* --------------------------------------------------------------
+           TABLEAUX
+           -------------------------------------------------------------- */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 20px 0 28px 0;
+            border-radius: 8px;
+            border: 1px solid #eef2f6;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 18px 0 25px 0;
-            font-size: 0.95rem;
+            font-size: 14px;
         }
 
-        th {
-            background: #1a2a3a;
-            color: #fff;
-            font-weight: 600;
-            padding: 12px 14px;
+        table thead {
+            background: #f8fafc;
+        }
+
+        table th {
+            padding: 14px 18px;
             text-align: left;
+            font-weight: 600;
+            color: #0f172a;
+            border-bottom: 2px solid #eef2f6;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
-        td {
-            padding: 12px 14px;
-            border-bottom: 1px solid #e4dfd8;
-            vertical-align: top;
+        table td {
+            padding: 14px 18px;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
         }
 
-        tr:nth-child(even) td {
-            background: #faf8f5;
+        table tbody tr:last-child td {
+            border-bottom: none;
         }
 
-        tr:hover td {
-            background: #f3efe9;
+        table tbody tr:hover {
+            background: #fafbfc;
         }
 
-        .table-pilier th:first-child {
-            width: 8%;
-        }
-        .table-pilier th:nth-child(2) {
-            width: 32%;
-        }
-        .table-pilier th:nth-child(3) {
-            width: 28%;
-        }
-        .table-pilier th:nth-child(4) {
-            width: 32%;
+        .table-highlight {
+            background: #f8fafc;
+            font-weight: 600;
         }
 
-        .table-accroche th:first-child {
-            width: 8%;
-        }
-        .table-accroche th:nth-child(2) {
-            width: 92%;
-        }
-
-        .table-format th:first-child {
-            width: 15%;
-        }
-        .table-format th:nth-child(2) {
-            width: 25%;
-        }
-        .table-format th:nth-child(3) {
-            width: 40%;
-        }
-        .table-format th:nth-child(4) {
-            width: 20%;
+        /* --------------------------------------------------------------
+           TAGS / BADGES
+           -------------------------------------------------------------- */
+        .tag {
+            display: inline-block;
+            padding: 2px 14px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
         }
 
-        .table-kpi th:first-child {
-            width: 30%;
-        }
-        .table-kpi th:nth-child(2) {
-            width: 30%;
-        }
-        .table-kpi th:nth-child(3) {
-            width: 40%;
+        .tag-vert {
+            background: #dcfce7;
+            color: #166534;
         }
 
-        /* ===== BLOCS SPÉCIAUX ===== */
-        .bloc-objectif {
+        .tag-jaune {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .tag-bleu {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .tag-gris {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        /* --------------------------------------------------------------
+           GRILLE ROADMAP
+           -------------------------------------------------------------- */
+        .roadmap-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 16px;
-            margin: 18px 0 25px 0;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin: 18px 0 28px 0;
         }
 
-        .bloc-objectif-item {
-            background: #f8f6f2;
-            border-radius: 8px;
-            padding: 18px 16px;
-            border-top: 4px solid #c9a96e;
-        }
-
-        .bloc-objectif-item strong {
-            display: block;
-            font-size: 1.05rem;
-            color: #1a2a3a;
-            margin-bottom: 4px;
-        }
-
-        .bloc-objectif-item span {
-            font-size: 0.95rem;
-            color: #3d4d5d;
-        }
-
-        .bloc-accroche {
-            background: #faf8f5;
-            border-left: 5px solid #c9a96e;
-            padding: 14px 20px;
-            margin: 10px 0;
-            border-radius: 0 6px 6px 0;
-            font-style: italic;
-            color: #1a2a3a;
-        }
-
-        .highlight {
-            background: #faf6ed;
-            padding: 20px 25px;
-            border-radius: 10px;
-            border: 1px solid #e6dfd6;
-            margin: 25px 0;
-        }
-
-        .highlight strong {
-            color: #1a2a3a;
-        }
-
-        /* ===== LISTES ===== */
-        ul,
-        ol {
-            padding-left: 26px;
-            margin: 8px 0 14px 0;
-        }
-
-        li {
-            margin-bottom: 4px;
-        }
-
-        /* ===== EN-TÊTE CHORALE ===== */
-        .header-chorale {
+        .roadmap-item {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            background: #1a2a3a;
-            color: #fff;
-            padding: 18px 24px;
-            border-radius: 10px;
-            margin: 10px 0 25px 0;
+            gap: 14px;
+            background: #fafbfc;
+            border-radius: 8px;
+            padding: 16px 20px;
+            border: 1px solid #eef2f6;
+            transition: border-color 0.2s;
         }
 
-        .header-chorale .nom {
-            font-size: 1.8rem;
+        .roadmap-item:hover {
+            border-color: #2563eb;
+        }
+
+        .roadmap-item .icone {
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .roadmap-item .info {
+            flex: 1;
+        }
+
+        .roadmap-item .info .titre {
+            font-weight: 600;
+            color: #0f172a;
+            font-size: 15px;
+        }
+
+        .roadmap-item .info .desc {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .roadmap-item .statut {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 30px;
+            flex-shrink: 0;
+        }
+
+        .statut-dispo {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .statut-dev {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .statut-plan {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* --------------------------------------------------------------
+           PIED DE PAGE
+           -------------------------------------------------------------- */
+        .footer {
+            background: #f8fafc;
+            padding: 36px 60px 32px 60px;
+            border-top: 1px solid #eef2f6;
+            text-align: center;
+        }
+
+        .footer .brand {
+            font-size: 20px;
             font-weight: 700;
-            letter-spacing: 1px;
+            color: #0f172a;
+            margin-bottom: 4px;
         }
 
-        .header-chorale .nom span {
-            color: #c9a96e;
+        .footer .brand span {
+            color: #2563eb;
         }
 
-        .header-chorale .slogan {
-            font-size: 1.1rem;
-            opacity: 0.95;
-            font-style: italic;
-            color: #c9a96e;
-        }
-
-        /* ===== PIED DE PAGE ===== */
-        .footer-doc {
-            margin-top: 45px;
-            padding-top: 22px;
-            border-top: 2px solid #e4dfd8;
-            font-size: 0.95rem;
-            color: #4a5a6a;
+        .footer .contact {
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
+            gap: 32px;
             flex-wrap: wrap;
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 10px;
         }
 
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 800px) {
-            .document {
-                padding: 25px 20px;
+        .footer .contact a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .footer .contact a:hover {
+            text-decoration: underline;
+        }
+
+        .footer .copy {
+            margin-top: 16px;
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        /* --------------------------------------------------------------
+           RESPONSIVE
+           -------------------------------------------------------------- */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
             }
-            h1 {
-                font-size: 2.0rem;
+
+            .cover {
+                padding: 40px 24px 32px 24px;
             }
-            .sommaire ul {
-                columns: 1;
+
+            .cover h1 {
+                font-size: 34px;
             }
-            .bloc-objectif {
+
+            .cover .sub {
+                font-size: 16px;
+            }
+
+            .cover .meta {
+                gap: 16px;
+                font-size: 13px;
+            }
+
+            .toc {
+                padding: 24px 24px 20px 24px;
+            }
+
+            .toc-grid {
                 grid-template-columns: 1fr;
             }
-            table {
-                font-size: 0.85rem;
+
+            .content {
+                padding: 28px 24px 36px 24px;
             }
-            th,
-            td {
-                padding: 8px 10px;
+
+            h2 {
+                font-size: 22px;
             }
-            .table-pilier th:first-child,
-            .table-pilier th:nth-child(2),
-            .table-pilier th:nth-child(3),
-            .table-pilier th:nth-child(4) {
-                width: auto;
+
+            .roadmap-grid {
+                grid-template-columns: 1fr;
             }
-            .header-chorale {
+
+            .footer {
+                padding: 24px 24px 20px 24px;
+            }
+
+            .footer .contact {
                 flex-direction: column;
-                text-align: center;
-                gap: 8px;
+                gap: 6px;
             }
-            .header-chorale .nom {
-                font-size: 1.4rem;
+
+            table th,
+            table td {
+                padding: 10px 12px;
+                font-size: 13px;
             }
-            .header-chorale .slogan {
-                font-size: 0.95rem;
+
+            .encadre {
+                padding: 18px 20px;
             }
         }
 
         @media print {
             body {
-                background: #fff;
+                background: white;
                 padding: 0;
             }
+
             .document {
                 box-shadow: none;
                 border-radius: 0;
-                padding: 30px 40px;
             }
-            .bloc-objectif-item {
-                background: #f5f3ef !important;
+
+            .roadmap-item:hover {
+                border-color: #eef2f6;
+            }
+
+            .tag-vert,
+            .tag-jaune,
+            .tag-bleu,
+            .tag-gris,
+            .statut-dispo,
+            .statut-dev,
+            .statut-plan {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            th {
-                background: #1a2a3a !important;
+
+            .encadre {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
-            tr:nth-child(even) td {
-                background: #faf8f5 !important;
+
+            .cover .badge {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
-            }
-            .sommaire {
-                background: #f8f6f2 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .highlight {
-                background: #faf6ed !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .bloc-accroche {
-                background: #faf8f5 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .header-chorale {
-                background: #1a2a3a !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            body > button {
-                display: none !important;
             }
         }
     </style>
 </head>
 <body>
 
-    <div class="document" id="document-pdf">
+<div class="document">
 
-        <!-- ===== TITRE ===== -->
-        <h1>📋 STRATÉGIE DE CONTENU SOCIALE COMPLÈTE</h1>
-        <div class="sous-titre">
-            <strong>CHONATE</strong> — Chœur de la Nativité d'Ekoumdoum &bull; Juillet 2026
-        </div>
-
-        <!-- ===== EN-TÊTE CHORALE ===== -->
-        <div class="header-chorale">
-            <div class="nom">🎵 <span>CHONATE</span></div>
-            <div class="slogan">« <em>Par ma voix, je loue le Seigneur</em> »</div>
-        </div>
-
-        <!-- ===== SOMMAIRE ===== -->
-        <div class="sommaire">
-            <h3 style="margin-top:0; border-left:none; padding-left:0;">📑 Sommaire</h3>
-            <ul>
-                <li>1. Introduction &amp; Objectifs Stratégiques</li>
-                <li>2. Les 8 Piliers Thématiques</li>
-                <li>3. Banque d'Accroches "Coup de Poing"</li>
-                <li>4. Formats Récurrents (Rendez-Vous Hebdomadaires)</li>
-                <li>5. Calendrier Éditorial Type (Mensuel)</li>
-                <li>6. Conseils de Production (Tournage &amp; Montage)</li>
-                <li>7. Métriques de Succès et Indicateurs</li>
-                <li>8. Annexes</li>
-            </ul>
-        </div>
-
-        <!-- ============================================================ -->
-        <!-- 1. INTRODUCTION -->
-        <!-- ============================================================ -->
-        <h2>1. Introduction &amp; Objectifs Stratégiques</h2>
-
-        <h3>Contexte</h3>
-        <p>
-            À l'ère du scroll infini, <strong>CHONATE</strong> (Chœur de la Nativité d'Ekoumdoum) possède un potentiel exceptionnel pour rayonner bien au-delà de sa paroisse. Ce document vise à transformer votre chorale en une <strong>marque de contenu</strong> authentique, moderne et spirituellement impactante, tout en restant fidèle à sa devise : <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.
+    <!-- ============================================================
+    COUVERTURE
+    ============================================================ -->
+    <header class="cover">
+        <div class="badge">🔐 Logiciel certifié</div>
+        <h1>LOMETA</h1>
+        <p class="sub">Logiciel de Management et d'Évaluation des Transports Automobiles</p>
+        <div class="divider"></div>
+        <p style="font-size:17px; font-weight:400; color:#475569; margin-bottom:28px;">
+            Document Commercial et Technique
         </p>
-
-        <h3>Objectifs Stratégiques pour CHONATE</h3>
-        <div class="bloc-objectif">
-            <div class="bloc-objectif-item"><strong>🎯 Attirer</strong><span>Toucher les 18-35 ans d'Ekoumdoum et des environs via TikTok, Reels et Shorts.</span></div>
-            <div class="bloc-objectif-item"><strong>🔥 Motiver</strong><span>Valoriser le travail des choristes de CHONATE et renforcer la cohésion d'équipe.</span></div>
-            <div class="bloc-objectif-item"><strong>🙏 Évangéliser</strong><span>Utiliser la musique comme vecteur de foi et de témoignage dans la cité.</span></div>
-            <div class="bloc-objectif-item"><strong>📢 Recruter</strong><span>Donner envie aux talents musicaux d'Ekoumdoum de rejoindre CHONATE.</span></div>
-            <div class="bloc-objectif-item"><strong>❤️ Fidéliser</strong><span>Créer une communauté engagée autour des contenus de CHONATE.</span></div>
+        <div class="meta">
+            <span><span class="label">Version</span> 2.0</span>
+            <span><span class="label">Date</span> Juillet 2026</span>
+            <span><span class="label">Éditeur</span> Fearless Cybertech</span>
+            <span><span class="label">Contact</span> support@lometa.com</span>
         </div>
+    </header>
 
-        <h3>Cibles Prioritaires pour CHONATE</h3>
-        <ul>
-            <li><strong>🎯 Jeunes fidèles d'Ekoumdoum (18-30 ans)</strong> — recherchent authenticité et modernité.</li>
-            <li><strong>🎯 Choristes en herbe de la région</strong> — veulent apprendre et progresser.</li>
-            <li><strong>🎯 Communauté paroissiale de la Nativité</strong> — souhaite voir les coulisses de CHONATE.</li>
-            <li><strong>🎯 Public non-croyant d'Ekoumdoum</strong> — peut être touché par l'humanité des témoignages.</li>
-        </ul>
-
-        <!-- ============================================================ -->
-        <!-- 2. LES 8 PILIERS -->
-        <!-- ============================================================ -->
-        <h2>2. Les 8 Piliers Thématiques — <span class="nom-chorale">CHONATE</span></h2>
-        <p style="margin-bottom:20px; font-style:italic; color:#4a5a6a;">
-            <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span> — Chaque contenu est une occasion de porter la louange.
-        </p>
-
-        <!-- ---- PILIER 1 ---- -->
-        <h3>🎵 Pilier 1 — Les Coulisses et le "Bordel" Technique de CHONATE</h3>
-        <p><em>Montrer que chanter pour Dieu à CHONATE demande de la rigueur, de la technique et beaucoup de travail. Sortir du mythe du "on vient juste chanter".</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« Le déchiffrage d'un chant à CHONATE vs La paresse du dimanche »</td><td>Le travail de l'ombre avant la perfection dominicale</td><td>• Répétitions par pupitre • Pourquoi chanter faux à la répétition est obligatoire • Les heures cachées derrière 3 minutes de chant</td></tr>
-                <tr><td>2</td><td>« Quand le maestro de CHONATE change le tempo en plein direct »</td><td>L'improvisation et la connexion chef-choristes</td><td>• Décoder les gestes secrets du maestro • Réaction quand un soliste rate son entrée • Le regard du chef qui dit "Suivez-moi"</td></tr>
-                <tr><td>3</td><td>« Le technicien son : le 5ème pupitre invisible de CHONATE »</td><td>L'importance de la technique audio</td><td>• Pourquoi un mauvais micro gâche tout • Le stress des balances à 10 minutes du début • L'ingénieur son, héros méconnu</td></tr>
-                <tr><td>4</td><td>« Le crash-test à CHONATE : Quand l'électricité coupe en plein cantique »</td><td>Gestion des imprévus techniques</td><td>• Le choriste qui continue sans micro • Le solo "acapella" forcé • La réaction des fidèles</td></tr>
-                <tr><td>5</td><td>« Partition perdue, choriste de CHONATE en PLS »</td><td>L'urgence de dernière minute</td><td>• Ceux qui partagent leur partition au dernier moment • Le téléphone comme pense-bête • L'angoisse de la page qui ne se tourne pas</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ---- PILIER 2 ---- -->
-        <h3>🤝 Pilier 2 — Vie en Communauté à CHONATE — Solidarité, Retards et "Ndolo"</h3>
-        <p><em>Humaniser CHONATE avec humour en montrant les réalités sociales, les amitiés et les petits travers de ses membres.</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« La tontine de CHONATE vs Les cotisations de l'uniforme »</td><td>Organisation financière et entraide</td><td>• Le stress d'acheter le nouvel uniforme • Soutien dans les moments de joie ou de deuil • Le rôle du trésorier de CHONATE</td></tr>
-                <tr><td>2</td><td>« Le quart d'heure de grâce à CHONATE (Les retardataires chroniques) »</td><td>Discipline et gestion du temps (humour)</td><td>• Les excuses les plus folles • Le regard du président quand tu arrives pendant la prière • Celui qui arrive toujours à 18h05</td></tr>
-                <tr><td>3</td><td>« Le Ndolo à CHONATE : Mythe ou Réalité ? »</td><td>Les couples qui se forment grâce au chant</td><td>• Trouver son âme sœur au pupitre des Ténors • Les histoires d'amour aux pupitres de CHONATE • Gérer les distractions sentimentales</td></tr>
-                <tr><td>4</td><td>« Le repas de CHONATE : La vraie raison pour laquelle on vient »</td><td>La convivialité et la vie sociale</td><td>• Les plats typiques d'Ekoumdoum • Celui qui mange plus que les autres • Les grandes tablées et les confidences</td></tr>
-                <tr><td>5</td><td>« Le rang des choristes de CHONATE : La guerre des places »</td><td>Les rivalités amicales pour la meilleure place</td><td>• Celui qui veut toujours être devant • Pourquoi les basses sont au fond • Soprano à droite ou à gauche ?</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ---- PILIER 3 ---- -->
-        <h3>🔥 Pilier 3 — Briser les Mythes et Stéréotypes sur CHONATE</h3>
-        <p><em>Briser les stéréotypes sur les choristes de CHONATE avec autodérision et bienveillance.</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« Pourquoi les sopranos de CHONATE crient toujours plus fort au quartier ? »</td><td>Cliché sur la personnalité des pupitres</td><td>• Les basses qui parlent peu mais observent tout • Les altos sauveurs secrets • Les sopranos "stars" de CHONATE</td></tr>
-                <tr><td>2</td><td>« Être choriste à CHONATE en 2026 : Ringard ou Stylé ? »</td><td>Réconcilier la jeunesse d'Ekoumdoum avec le chant religieux</td><td>• On peut aimer la musique urbaine ET chanter à CHONATE • Le choriste ingénieur/étudiant le dimanche • CHONATE, c'est branché</td></tr>
-                <tr><td>3</td><td>« Les choristes de CHONATE ne dorment jamais ? »</td><td>L'énergie et l'engagement des choristes</td><td>• Les levers à 5h pour les messes de 7h • Les nuits blanches avant les concerts • La vie sociale sacrificiée</td></tr>
-                <tr><td>4</td><td>« On est tous frères et sœurs à CHONATE... jusqu'à la répétition »</td><td>Les disputes et réconciliations en chorale</td><td>• Les tensions pendant les répétitions • La réconciliation autour d'un verre • L'importance de la prière avant chaque répétition</td></tr>
-                <tr><td>5</td><td>« CHONATE : une secte ? »</td><td>Démystifier l'engagement choriste</td><td>• Pourquoi on passe autant de temps ensemble • Les valeurs qui nous unissent • Le "culte" du chant sacré</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ---- PILIER 4 ---- -->
-        <h3>🙏 Pilier 4 — Spiritualité et "Vocal Cardio" à CHONATE</h3>
-        <p><em>Expliquer l'impact spirituel et physique du chant de louange et d'adoration au sein de CHONATE, en écho à sa devise <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« Chanter deux fois à CHONATE, c'est prier deux fois ? »</td><td>La théologie et le sens profond du service musical</td><td>• Pourquoi la musique touche les cœurs • Témoignage d'une personne consolée par un chant de CHONATE • La puissance des paroles chantées</td></tr>
-                <tr><td>2</td><td>« Le Cardio spirituel de CHONATE : Pourquoi on sort fatigué d'une prestation »</td><td>L'engagement physique du choriste</td><td>• Tenue d'air, gestion du stress, posture • Exercices de respiration avant la scène • Chanter : un sport pour le corps et l'esprit</td></tr>
-                <tr><td>3</td><td>« Quand l'émotion submerge le soliste de CHONATE »</td><td>Les moments de grâce et de vulnérabilité</td><td>• Le chant qui fait pleurer le soliste en direct • Le témoignage derrière une chanson • L'Esprit Saint qui prend le contrôle</td></tr>
-                <tr><td>4</td><td>« Le chant de CHONATE qui a sauvé ma vie »</td><td>Témoignages forts des choristes</td><td>• Un choriste raconte comment un cantique l'a relevé • La puissance de la louange dans les moments difficiles • CHONATE comme famille spirituelle</td></tr>
-                <tr><td>5</td><td>« Pourquoi on chante à la Nativité d'Ekoumdoum ? »</td><td>Fondements bibliques et traditionnels</td><td>• Les Psaumes : le premier recueil de chants • La musique dans la tradition chrétienne • Le rôle du chant dans la liturgie</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ---- PILIER 5 ---- -->
-        <h3>🔄 Pilier 5 — Le Choc des Générations à CHONATE (Tradition vs Modernité)</h3>
-        <p><em>Jouer sur le contraste entre les cantiques anciens et les sonorités actuelles au sein de CHONATE. Une mine d'or pour les "duels" musicaux.</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« Quand le cantique 254 rencontre le rythme du Bikutsi à CHONATE »</td><td>Adapter un vieux cantique en version moderne</td><td>• "Dieu aime-t-il le Bikutsi ?" • La réaction du chef face aux propositions "trop street" • Le débat théologique à CHONATE</td></tr>
-                <tr><td>2</td><td>« Cantique en Latin ou Louange en Lingala à CHONATE ? »</td><td>La diversité linguistique dans le répertoire</td><td>• Les anciens qui s'endorment sur le nouveau chant • Les jeunes qui ne comprennent pas les vieux cantiques • Trouver l'équilibre à CHONATE</td></tr>
-                <tr><td>3</td><td>« Si nos grands-parents d'Ekoumdoum écoutaient la répétition de CHONATE »</td><td>Vidéo humoristique générationnelle</td><td>• "De mon temps, on chantait sans micro !" • Le choc des tenues • Les arrangements modernes qui font grincer des dents</td></tr>
-                <tr><td>4</td><td>« Le battle à CHONATE : Chant traditionnel vs Gospel contemporain »</td><td>Confrontation musicale amicale</td><td>• Harmonie classique vs adoration moderne • Instruments traditionnels vs claviers • Le public vote</td></tr>
-                <tr><td>5</td><td>« La relève de CHONATE est assurée ! »</td><td>Transmission et formation des jeunes</td><td>• Les jeunes qui reprennent les rênes • Les anciens qui transmettent leur expérience • La fierté intergénérationnelle de CHONATE</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ---- PILIER 6 ---- -->
-        <h3>👔 Pilier 6 — Le Dress Code et l'Uniforme de CHONATE</h3>
-        <p><em>L'uniforme est un sujet de conversation infini à CHONATE. Entre fierté, galère et moments cocasses.</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« Le drame du jour de la photo de promo de CHONATE »</td><td>Les préparatifs catastrophiques de la séance photo</td><td>• Celui qui oublie sa cravate • Celle qui a pris du poids • Chaussures noires ou marron ?</td></tr>
-                <tr><td>2</td><td>« Le marathon du repassage à CHONATE : La veille du 1er Mai »</td><td>L'entretien des tenues, un défi quotidien</td><td>• Trouver une chemise blanche à 23h • Les astuces pour repasser vite • Les marques de sueur après la prestation</td></tr>
-                <tr><td>3</td><td>« Le prix du pagne de CHONATE : La dette sacrée »</td><td>L'aspect financier de l'uniforme</td><td>• La tontine improvisée • Le regard du trésorier quand les cotisations sont en retard • La fierté du jour de la réception</td></tr>
-                <tr><td>4</td><td>« Le choriste de CHONATE qui n'a jamais son uniforme »</td><td>Humour autour du membre toujours mal équipé</td><td>• "J'ai oublié de le laver" • "Je l'ai prêté à mon cousin" • L'uniforme de récupération</td></tr>
-                <tr><td>5</td><td>« L'uniforme de deuil de CHONATE : la tenue la plus sérieuse »</td><td>Le respect et la solennité des obsèques</td><td>• Pourquoi un uniforme spécial • Le code couleur (noir ou bleu marine) • L'importance de l'apparence dans les moments de recueillement</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ---- PILIER 7 ---- -->
-        <h3>🎤 Pilier 7 — Les "Hacks" du Choriste de CHONATE (Conseils Pratiques)</h3>
-        <p><em>Devenir un compte "ressource" pour les choristes débutants ou en difficulté. Ça fidélise et ça crée de l'engagement.</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« La méthode infaillible de CHONATE pour ne plus perdre sa voix »</td><td>Santé vocale et échauffement</td><td>• Le remède de grand-mère (gingembre, citron, miel) • L'erreur fatale de boire de l'eau glacée • L'exercice de respiration pour tenir la note</td></tr>
-                <tr><td>2</td><td>« Comment lire une partition en 2 minutes (même débutant à CHONATE) »</td><td>Démystifier le solfège</td><td>• Astuces pour reconnaître les notes • Pourquoi les Altos ont la partition la plus difficile • Compter les temps (1, 2, 3, 4)</td></tr>
-                <tr><td>3</td><td>« Le secret des choristes pros de CHONATE : La tenue d'air (Posture) »</td><td>L'importance de la gestuelle et de la posture</td><td>• Le "ventre gonflé" pour mieux chanter • Ne pas croiser les bras sur scène • Respirer par le ventre</td></tr>
-                <tr><td>4</td><td>« La diction à CHONATE : Pourquoi on ne te comprend pas quand tu chantes »</td><td>L'articulation et la prononciation</td><td>• L'exercice des voyelles • Chanter avec un crayon entre les dents • Ouvrir la bouche</td></tr>
-                <tr><td>5</td><td>« 5 erreurs qui tuent ta prestation à CHONATE »</td><td>Les pièges à éviter en concert</td><td>• Regarder ses pieds • Ne pas écouter les autres pupitres • Crier au lieu de chanter • Oublier de sourire • Négliger l'échauffement</td></tr>
-                <tr><td>6</td><td>« Le chanteur de CHONATE qui veut tout faire : Le syndrome du soliste »</td><td>L'importance de rester à sa place</td><td>• Pourquoi on ne peut pas tous être solistes • L'art de chanter en chœur • L'humilité du choriste</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ---- PILIER 8 ---- -->
-        <h3>📅 Pilier 8 — Les Grands Rendez-vous de CHONATE et l'Impact Social</h3>
-        <p><em>Montrer que CHONATE ne se limite pas à la messe dominicale, mais qu'elle est un acteur clé de la vie sociale à Ekoumdoum, portant haut sa devise <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.</em></p>
-        <table class="table-pilier">
-            <thead>
-                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
-            </thead>
-            <tbody>
-                <tr><td>1</td><td>« CHONATE en mission : Le réveil à 4h du matin à Ekoumdoum »</td><td>L'engagement dans les moments de deuil</td><td>• La fatigue, l'émotion, la force de porter les familles • Le témoignage poignant • La préparation spirituelle</td></tr>
-                <tr><td>2</td><td>« 24h avant le grand concert de Noël/Pâques de CHONATE »</td><td>Le compte à rebours avant l'événement phare</td><td>• Derniers ajustements de costumes • Voix fatiguées, course pour imprimer les programmes • La prière finale</td></tr>
-                <tr><td>3</td><td>« Le défilé du 20 Mai : CHONATE représente l'Église dans la cité »</td><td>La chorale comme ambassadeur de la foi</td><td>• Le mélange des uniformes • Les répétitions sous le soleil • La fierté de chanter devant les autorités</td></tr>
-                <tr><td>4</td><td>« CHONATE au mariage : Le moment le plus heureux »</td><td>La célébration de l'amour par le chant</td><td>• Les chants de mariage qui font pleurer les invités • La gestion des émotions du soliste • La bénédiction du couple</td></tr>
-                <tr><td>5</td><td>« La tournée des villages : CHONATE en mission »</td><td>L'évangélisation itinérante</td><td>• Les voyages, les nuits chez l'habitant • La joie de chanter dans des églises modestes • L'accueil chaleureux</td></tr>
-                <tr><td>6</td><td>« Le concert de fin d'année de CHONATE : Le grand spectacle »</td><td>L'aboutissement d'une année de travail</td><td>• Préparatifs, billetterie, promotion • Le jour J : coulisses, trac, émotion • Les retours du public</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ============================================================ -->
-        <!-- 3. BANQUE D'ACROCHES -->
-        <!-- ============================================================ -->
-        <h2>3. Banque d'Accroches "Coup de Poing" — <span class="nom-chorale">CHONATE</span></h2>
-        <p style="margin-bottom:20px; font-style:italic; color:#4a5a6a;">
-            Chaque accroche est une invitation à découvrir CHONATE et sa devise : <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>
-        </p>
-
-        <h3>📌 Accroches "Choc &amp; Humour"</h3>
-        <table class="table-accroche">
-            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
-            <tbody>
-                <tr><td>1</td><td>« On t'a menti : faire partie de CHONATE, ce n'est pas juste croiser les bras et chanter les dimanches. »</td></tr>
-                <tr><td>2</td><td>« Tu penses que ton voisin de banc chante bien ? Attends de le voir sans micro à la répétition du jeudi de CHONATE. »</td></tr>
-                <tr><td>3</td><td>« Arrête de croire que CHONATE est réservée aux grands-parents, on est en 2026 ! »</td></tr>
-                <tr><td>4</td><td>« Si tu rates la prière avant la répétition de CHONATE, voici le regard que le président va te lancer... »</td></tr>
-                <tr><td>5</td><td>« CHONATE, ce club où on vient chanter pour Dieu ET régler ses comptes avec le voisin de pupitre. »</td></tr>
-            </tbody>
-        </table>
-
-        <h3>💕 Accroches "Ndolo &amp; Coulisses"</h3>
-        <table class="table-accroche">
-            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
-            <tbody>
-                <tr><td>1</td><td>« Tu cherches l'amour à Ekoumdoum ? Oublie les applications de rencontre, viens t'inscrire au pupitre des Ténors de CHONATE. »</td></tr>
-                <tr><td>2</td><td>« Quand le maestro de CHONATE fait ce geste avec sa main droite, ça veut dire qu'on est tous en train de gâter le chant. »</td></tr>
-                <tr><td>3</td><td>« L'uniforme du deuil ou du mariage à CHONATE : voici comment une chorale gère un budget de crise au pays. »</td></tr>
-                <tr><td>4</td><td>« Le plus gros mensonge de CHONATE : "Cette robe, elle me va encore". »</td></tr>
-                <tr><td>5</td><td>« Quand tu vois ton ancienne tenue de CHONATE sur le dos du nouveau membre... Et que tu trouves qu'il la porte mieux que toi. »</td></tr>
-            </tbody>
-        </table>
-
-        <h3>🎭 Accroches "Choc des Générations"</h3>
-        <table class="table-accroche">
-            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
-            <tbody>
-                <tr><td>1</td><td>« Le cantique de ton papa chanté par CHONATE en version Dancehall : C'est Saint ou C'est Blasphème ? »</td></tr>
-                <tr><td>2</td><td>« Si Dieu écoutait les répétitions de CHONATE, est-ce qu'Il danserait ou mettrait Ses doigts dans Ses oreilles ? »</td></tr>
-                <tr><td>3</td><td>« Nos grands-parents d'Ekoumdoum en train d'écouter le nouveau chant de CHONATE : leur réaction est PRICELESS. »</td></tr>
-            </tbody>
-        </table>
-
-        <h3>🎤 Accroches "Conseils &amp; Hacks"</h3>
-        <table class="table-accroche">
-            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
-            <tbody>
-                <tr><td>1</td><td>« Tu veux impressionner le chef de chœur de CHONATE ? Arrête de crier et apprends à poser ta voix. On t'explique. »</td></tr>
-                <tr><td>2</td><td>« Le Gombo miracle pour une voix claire avant le service de CHONATE : On vous donne la recette. »</td></tr>
-                <tr><td>3</td><td>« 5 erreurs que même les choristes expérimentés de CHONATE commettent encore. »</td></tr>
-            </tbody>
-        </table>
-
-        <h3>📅 Accroches "Événements"</h3>
-        <table class="table-accroche">
-            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
-            <tbody>
-                <tr><td>1</td><td>« Le concert de CHONATE est dans 3 jours et notre soliste a perdu la voix : Gestion de crise à la chorale. »</td></tr>
-                <tr><td>2</td><td>« Vous ne savez pas ce qu'il se passe dans la salle des choristes de CHONATE 30 minutes avant la messe des obsèques. »</td></tr>
-                <tr><td>3</td><td>« Ce moment où CHONATE entre dans l'église le jour de Pâques... »</td></tr>
-            </tbody>
-        </table>
-
-        <h3>🙏 Accroches "Spiritualité &amp; Émotion"</h3>
-        <table class="table-accroche">
-            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
-            <tbody>
-                <tr><td>1</td><td>« L'autre jour pendant l'adoration, le soliste de CHONATE a commencé à pleurer au milieu de son chant... Je vous explique pourquoi. »</td></tr>
-                <tr><td>2</td><td>« J'ai vu un chant de CHONATE de 4 minutes demander 3 mois de palabres et de répétitions intenses en coulisses. »</td></tr>
-                <tr><td>3</td><td>« On m'a demandé : "Est-ce que CHONATE peut louer Dieu en chantant du Gospel moderne au village ?" Ma réponse va vous surprendre. »</td></tr>
-                <tr><td>4</td><td>« Ce chant de CHONATE a sauvé mon mariage, j'ai dû rejoindre la chorale pour le chanter à chaque messe. »</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ============================================================ -->
-        <!-- 4. FORMATS RÉCURRENTS -->
-        <!-- ============================================================ -->
-        <h2>4. Formats Récurrents (Rendez-Vous Hebdomadaires) — <span class="nom-chorale">CHONATE</span></h2>
-        <p><em>Pour ancrer CHONATE dans les habitudes de votre communauté, toujours avec la devise à l'esprit : <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.</em></p>
-        <table class="table-format">
-            <thead>
-                <tr><th>Jour</th><th>Format</th><th>Description</th><th>Durée</th></tr>
-            </thead>
-            <tbody>
-                <tr><td><strong>LUNDI</strong></td><td>« Le Vocal Check de CHONATE »</td><td>Extrait brut de répétition (sans montage) pour montrer le travail en train de se faire.</td><td>15-30s</td></tr>
-                <tr><td><strong>MARDI</strong></td><td>« Le Témoignage d'un membre de CHONATE »</td><td>Un choriste raconte comment un chant de CHONATE l'a sauvé, consolé ou transformé.</td><td>45-60s</td></tr>
-                <tr><td><strong>MERCREDI</strong></td><td>« Le Hack du Choriste de CHONATE »</td><td>Un conseil vocal ou pratique (posture, respiration, diction).</td><td>30-45s</td></tr>
-                <tr><td><strong>JEUDI</strong></td><td>« La Répétition de CHONATE en Direct »</td><td>En direct ou en différé, un extrait de la répétition du jeudi soir.</td><td>30s-1min</td></tr>
-                <tr><td><strong>VENDREDI</strong></td><td>« Le Battle / Défi de CHONATE »</td><td>Défi musical : "Chantez ce cantique en un seul souffle" ou battle entre pupitres.</td><td>45-60s</td></tr>
-                <tr><td><strong>SAMEDI</strong></td><td>« Les Coulisses du Dimanche de CHONATE »</td><td>Préparation du service du lendemain (uniformes, partitions, prière).</td><td>30-45s</td></tr>
-                <tr><td><strong>DIMANCHE</strong></td><td>« L'Extrait de la Messe de CHONATE »</td><td>Le meilleur moment de la prestation dominicale.</td><td>30-60s</td></tr>
-            </tbody>
-        </table>
-
-        <!-- ============================================================ -->
-        <!-- 5. CALENDRIER ÉDITORIAL -->
-        <!-- ============================================================ -->
-        <h2>5. Calendrier Éditorial Type (Mois de 30 Jours) — <span class="nom-chorale">CHONATE</span></h2>
-        <p><em>Alternance des 8 piliers sur un mois type pour CHONATE.</em></p>
-        <table>
-            <thead>
-                <tr><th>Semaine</th><th>Lundi</th><th>Mardi</th><th>Mercredi</th><th>Jeudi</th><th>Vendredi</th><th>Samedi</th><th>Dimanche</th></tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>S1</strong></td>
-                    <td>Vocal Check (Coulisses)</td>
-                    <td>Témoignage (Spiritualité)</td>
-                    <td>Hack (Conseils)</td>
-                    <td>Répétition (Coulisses)</td>
-                    <td>Battle (Générations)</td>
-                    <td>Coulisses Dimanche</td>
-                    <td>Extrait Messe</td>
-                </tr>
-                <tr>
-                    <td><strong>S2</strong></td>
-                    <td>Vocal Check (Coulisses)</td>
-                    <td>Témoignage (Communauté)</td>
-                    <td>Hack (Conseils)</td>
-                    <td>Répétition (Coulisses)</td>
-                    <td>Battle (Uniforme)</td>
-                    <td>Coulisses Dimanche</td>
-                    <td>Extrait Messe</td>
-                </tr>
-                <tr>
-                    <td><strong>S3</strong></td>
-                    <td>Vocal Check (Coulisses)</td>
-                    <td>Témoignage (Émotion)</td>
-                    <td>Hack (Conseils)</td>
-                    <td>Répétition (Coulisses)</td>
-                    <td>Battle (Mythes)</td>
-                    <td>Coulisses Dimanche</td>
-                    <td>Extrait Messe</td>
-                </tr>
-                <tr>
-                    <td><strong>S4</strong></td>
-                    <td>Vocal Check (Coulisses)</td>
-                    <td>Témoignage (Événement)</td>
-                    <td>Hack (Conseils)</td>
-                    <td>Répétition (Coulisses)</td>
-                    <td>Battle (Dress Code)</td>
-                    <td>Coulisses Dimanche</td>
-                    <td>Extrait Messe</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <!-- ============================================================ -->
-        <!-- 6. CONSEILS DE PRODUCTION -->
-        <!-- ============================================================ -->
-        <h2>6. Conseils de Production (Tournage &amp; Montage) — <span class="nom-chorale">CHONATE</span></h2>
-
-        <h3>🎬 Pour les vidéos "Coulisses"</h3>
-        <ul>
-            <li><strong>Cadrage :</strong> Caméra à l'épaule ou posée sur un pupitre pour un effet "immersion".</li>
-            <li><strong>Son :</strong> Privilégier le son naturel (même imparfait) pour l'authenticité.</li>
-            <li><strong>Montage :</strong> Coupes rapides, transitions dynamiques.</li>
-            <li><strong>Musique :</strong> Utiliser un extrait du chant en cours de répétition de CHONATE comme bande-son.</li>
-        </ul>
-
-        <h3>🎤 Pour les "Témoignages"</h3>
-        <ul>
-            <li><strong>Cadrage :</strong> Face caméra, fond neutre (mur de l'église de la Nativité ou salle de répétition).</li>
-            <li><strong>Lumière :</strong> Naturelle, de préférence en journée.</li>
-            <li><strong>Son :</strong> Micro cravate ou micro-casque si possible.</li>
-            <li><strong>Montage :</strong> Rythme lent, laisser place à l'émotion.</li>
-        </ul>
-
-        <h3>🎵 Pour les "Extraits de Messe"</h3>
-        <ul>
-            <li><strong>Cadrage :</strong> Plans larges + plans serrés sur les choristes de CHONATE et le chef.</li>
-            <li><strong>Son :</strong> Essayer de capter le son de la table de mixage.</li>
-            <li><strong>Montage :</strong> Alterner plans d'ensemble et portraits.</li>
-            <li><strong>Titre :</strong> Nom du cantique + "CHONATE — <em>Par ma voix, je loue le Seigneur</em>".</li>
-        </ul>
-
-        <h3>💡 Conseils Généraux pour CHONATE</h3>
-        <ul>
-            <li><strong>Format vertical</strong> (9:16) pour TikTok/Reels/Shorts.</li>
-            <li><strong>Durée idéale :</strong> 15 à 60 secondes maximum.</li>
-            <li><strong>Sous-titres :</strong> TOUJOURS ajouter des sous-titres (lisibilité sans son).</li>
-            <li><strong>Hashtags :</strong> #CHONATE #ChoraleNativite #Ekoumdoum #Louange #Gospel #Cameroun #Adoration #ChantSacré #ParMaVoixJeLoueLeSeigneur.</li>
-            <li><strong>Fréquence :</strong> 1 à 2 vidéos par jour idéalement, minimum 1 par jour.</li>
-            <li><strong>Heure de publication :</strong> Entre 18h et 20h (pic d'activité des jeunes) ou entre 12h et 13h (pause déjeuner).</li>
-        </ul>
-
-        <!-- ============================================================ -->
-        <!-- 7. MÉTRIQUES -->
-        <!-- ============================================================ -->
-        <h2>7. Métriques de Succès et Indicateurs — <span class="nom-chorale">CHONATE</span></h2>
-
-        <h3>📊 Indicateurs Clés de Performance (KPI)</h3>
-        <table class="table-kpi">
-            <thead>
-                <tr><th>Indicateur</th><th>Objectif</th><th>Moyen de Mesure</th></tr>
-            </thead>
-            <tbody>
-                <tr><td><strong>Vues</strong></td><td>500+ par vidéo en moyenne</td><td>Statistiques TikTok/Reels/Shorts</td></tr>
-                <tr><td><strong>Engagement (likes, commentaires, partages)</strong></td><td>10% du nombre de vues</td><td>Rapport engagement/vues</td></tr>
-                <tr><td><strong>Taux de complétion</strong></td><td>70%+ (les gens regardent jusqu'au bout)</td><td>Statistiques de rétention</td></tr>
-                <tr><td><strong>Nouveaux abonnés</strong></td><td>+50 par mois</td><td>Compteur d'abonnés</td></tr>
-                <tr><td><strong>Temps de visionnage total</strong></td><td>100+ heures par mois</td><td>Statistiques avancées</td></tr>
-                <tr><td><strong>Conversion (demandes d'adhésion à CHONATE)</strong></td><td>5+ nouvelles demandes par mois</td><td>Nombre de messages/DM</td></tr>
-            </tbody>
-        </table>
-
-        <h3>📈 Objectifs Mensuels pour CHONATE</h3>
-        <div class="bloc-objectif">
-            <div class="bloc-objectif-item"><strong>Visibilité</strong><span>10 000+ vues totales sur le mois pour CHONATE</span></div>
-            <div class="bloc-objectif-item"><strong>Engagement</strong><span>500+ interactions (likes + commentaires + partages)</span></div>
-            <div class="bloc-objectif-item"><strong>Croissance</strong><span>50+ nouveaux abonnés à la page CHONATE</span></div>
-            <div class="bloc-objectif-item"><strong>Recrutement</strong><span>5+ demandes d'adhésion à CHONATE via les réseaux sociaux</span></div>
-            <div class="bloc-objectif-item"><strong>Notoriété</strong><span>Être identifié comme "la chorale qui cartonne sur TikTok à Ekoumdoum"</span></div>
+    <!-- ============================================================
+    TABLE DES MATIÈRES
+    ============================================================ -->
+    <section class="toc">
+        <h2>📋 Table des matières</h2>
+        <div class="toc-grid">
+            <div class="toc-item"><span>1. Avant-propos</span><span class="page">3</span></div>
+            <div class="toc-item"><span>2. Présentation générale et vision stratégique</span><span class="page">4</span></div>
+            <div class="toc-item"><span>3. Problèmes résolus par LOMETA</span><span class="page">6</span></div>
+            <div class="toc-item"><span>4. Bénéfices financiers et retour sur investissement</span><span class="page">7</span></div>
+            <div class="toc-item"><span>5. Fonctionnalités innovantes</span><span class="page">9</span></div>
+            <div class="toc-item"><span>6. Modules disponibles</span><span class="page">11</span></div>
+            <div class="toc-item"><span>7. Roadmap LOMETA 2026-2027</span><span class="page">13</span></div>
+            <div class="toc-item"><span>8. Certification et sécurité</span><span class="page">15</span></div>
+            <div class="toc-item"><span>9. Moyens de paiement intégrés</span><span class="page">17</span></div>
+            <div class="toc-item"><span>10. Conclusion et prochaines étapes</span><span class="page">19</span></div>
         </div>
+    </section>
 
-        <!-- ============================================================ -->
-        <!-- 8. ANNEXES -->
-        <!-- ============================================================ -->
-        <h2>8. Annexes — <span class="nom-chorale">CHONATE</span></h2>
+    <!-- ============================================================
+    CONTENU PRINCIPAL
+    ============================================================ -->
+    <main class="content">
 
-        <h3>Annexe 1 — Liste des Hashtags à Utiliser</h3>
-        <div class="highlight">
+        <!-- ============================================================
+        SECTION 1
+        ============================================================ -->
+        <section>
+            <h2><span class="num">1.</span> Avant-propos</h2>
+
             <p>
-                <strong>#CHONATE #ChoraleNativite #Ekoumdoum #Louange #Adoration #Gospel #ChantSacré #MusiqueChrétienne<br>
-                #ÉgliseCameroun #Cantiques #ChoraleDuCameroun #Nativité #VocalCardio #ChantReligieux<br>
-                #ChoraleDeJeunes #Foi #Spiritualité #CoulissesChorale #RepetitionChorale #Maestro #Pupitre #Harmonie<br>
-                #TikTokChorale #ReelsChorale #ShortsChorale #EkoumdoumTikTok #ParMaVoixJeLoueLeSeigneur</strong>
+                Ce document est destiné aux <strong>décideurs, directeurs généraux et responsables informatiques</strong>
+                des compagnies d'assurance, des gestionnaires de flottes et des courtiers.
+                Il présente LOMETA non seulement comme un outil de gestion, mais comme
+                <strong>une solution stratégique</strong> permettant de réaliser des gains de productivité
+                significatifs, d'optimiser les processus métier et d'offrir une expérience client supérieure.
             </p>
+
+            <p>
+                L'objectif de ce document est de vous fournir une vision claire et complète de ce que LOMETA
+                peut apporter à votre organisation, en termes de :
+            </p>
+            <ul>
+                <li><strong>Gains financiers</strong> : Réduction des coûts opérationnels et augmentation des revenus</li>
+                <li><strong>Productivité</strong> : Automatisation des tâches répétitives et optimisation des processus</li>
+                <li><strong>Sécurité</strong> : Protection des données et certification des modules</li>
+                <li><strong>Innovation</strong> : Intégration des technologies de pointe (Mobile Money, IA, API)</li>
+            </ul>
+        </section>
+
+        <!-- ============================================================
+        SECTION 2
+        ============================================================ -->
+        <section>
+            <h2><span class="num">2.</span> Présentation générale et vision stratégique</h2>
+
+            <h3>2.1 Qu'est-ce que LOMETA ?</h3>
+
+            <p>
+                LOMETA (Logiciel de Management et d'Évaluation des Transports Automobiles) est une plateforme
+                logicielle complète destinée aux professionnels de l'assurance automobile. Elle permet de gérer
+                l'ensemble des opérations liées à l'assurance des véhicules de manière centralisée, automatisée
+                et sécurisée.
+            </p>
+
+            <p>
+                LOMETA est conçu pour répondre aux besoins spécifiques du marché camerounais et de l'Afrique centrale,
+                en intégrant les particularités locales telles que :
+            </p>
+            <ul>
+                <li>Les modes de paiement mobile (Orange Money, MTN Mobile Money)</li>
+                <li>Les réglementations locales en matière d'assurance automobile</li>
+                <li>Les spécificités des flottes de véhicules d'entreprise</li>
+                <li>L'intégration avec l'ASAC (Agence de Sécurité et d'Assurance des Automobiles du Cameroun)</li>
+            </ul>
+
+            <h3>2.2 Vision stratégique</h3>
+
+            <p>
+                LOMETA ambitionne de devenir la <strong>référence en matière de gestion d'assurance automobile
+                au Cameroun et en Afrique centrale</strong>. Notre vision repose sur trois piliers fondamentaux :
+            </p>
+
+            <h4>Innovation technologique</h4>
+            <p>
+                LOMETA intègre les dernières avancées technologiques pour offrir une solution de pointe :
+                intelligence artificielle pour la détection de fraude, paiements mobiles, certification
+                numérique des modules et API ouvertes pour l'intégration avec les systèmes tiers.
+            </p>
+
+            <h4>Adaptabilité</h4>
+            <p>
+                Une architecture modulaire qui s'adapte aux besoins spécifiques de chaque organisation,
+                qu'il s'agisse d'une petite agence d'assurance ou d'une grande compagnie gérant des milliers
+                de véhicules. Chaque module peut être activé ou désactivé selon les besoins.
+            </p>
+
+            <h4>Sécurité et conformité</h4>
+            <p>
+                Des mécanismes avancés de protection des données, une authentification sécurisée des utilisateurs
+                et un système de certification des modules pour garantir l'intégrité et l'authenticité du logiciel.
+            </p>
+
+            <h3>2.3 Objectifs stratégiques du logiciel</h3>
+
+            <ul>
+                <li>
+                    <strong>Centralisation des données</strong> : LOMETA rassemble en un seul endroit l'ensemble
+                    des informations relatives à votre activité d'assurance automobile : véhicules, contrats,
+                    clients, paiements et documents.
+                </li>
+                <li>
+                    <strong>Automatisation des processus</strong> : Calcul automatique des primes, génération
+                    des documents contractuels et suivi des échéances sans intervention manuelle.
+                </li>
+                <li>
+                    <strong>Sécurité renforcée</strong> : Protection des données sensibles, authentification
+                    sécurisée et certification des modules.
+                </li>
+            </ul>
+
+            <div class="encadre">
+                <p>
+                    <strong>💡 À retenir :</strong> LOMETA est conçu pour vous faire gagner du temps,
+                    réduire les erreurs et sécuriser vos données, tout en offrant une expérience utilisateur
+                    moderne et intuitive.
+                </p>
+            </div>
+        </section>
+
+        <!-- ============================================================
+        SECTION 3
+        ============================================================ -->
+        <section>
+            <h2><span class="num">3.</span> Problèmes résolus par LOMETA</h2>
+
+            <h3>3.1 Problèmes identifiés dans le secteur</h3>
+
+            <p>
+                Le secteur de l'assurance automobile au Cameroun fait face à plusieurs défis majeurs
+                que LOMETA permet de surmonter efficacement :
+            </p>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Problème</th>
+                            <th>Impact</th>
+                            <th>Solution LOMETA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Dispersion des données</strong></td>
+                            <td>Perte de temps, erreurs, doublons</td>
+                            <td>Centralisation unique des données</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Calcul manuel des primes</strong></td>
+                            <td>Erreurs de calcul, temps perdu</td>
+                            <td>Calcul automatique et instantané</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Suivi des échéances</strong></td>
+                            <td>Contrats non renouvelés, pertes financières</td>
+                            <td>Notifications automatiques à 30, 15 et 7 jours</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Gestion des flottes</strong></td>
+                            <td>Difficulté à gérer plusieurs véhicules</td>
+                            <td>Gestion groupée avec tarifs préférentiels</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Paiements</strong></td>
+                            <td>Retards, suivi difficile</td>
+                            <td>Intégration Orange Money, MTN Mobile Money</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sécurité</strong></td>
+                            <td>Risques de fraude, accès non autorisés</td>
+                            <td>Certification des modules, authentification forte</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Génération de documents</strong></td>
+                            <td>Tâches répétitives, erreurs</td>
+                            <td>Génération automatique de tous les documents</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Importation des données</strong></td>
+                            <td>Saisie manuelle longue et fastidieuse</td>
+                            <td>Importation en masse depuis Excel/CSV</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>3.2 Bénéfices pour votre organisation</h3>
+
+            <ul>
+                <li>
+                    <strong>Gain de productivité</strong> : Réduction de 70 % du temps consacré aux tâches
+                    administratives grâce à l'automatisation.
+                </li>
+                <li>
+                    <strong>Réduction des erreurs</strong> : Élimination des erreurs de calcul et de saisie
+                    grâce à l'automatisation des processus.
+                </li>
+                <li>
+                    <strong>Amélioration de l'expérience client</strong> : Réponse plus rapide, suivi transparent,
+                    documents générés instantanément.
+                </li>
+                <li>
+                    <strong>Augmentation du chiffre d'affaires</strong> : Meilleur suivi des renouvellements
+                    et des paiements.
+                </li>
+            </ul>
+
+            <div class="encadre vert">
+                <p>
+                    <strong>✅ Résultat concret :</strong> Les utilisateurs de LOMETA constatent une amélioration
+                    significative de leur efficacité opérationnelle dès les premières semaines d'utilisation.
+                </p>
+            </div>
+        </section>
+
+        <!-- ============================================================
+        SECTION 4
+        ============================================================ -->
+        <section>
+            <h2><span class="num">4.</span> Bénéfices financiers et retour sur investissement</h2>
+
+            <h3>4.1 Gains de productivité estimés</h3>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Processus</th>
+                            <th>Avant LOMETA</th>
+                            <th>Avec LOMETA</th>
+                            <th>Gain</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Saisie d'un véhicule</td>
+                            <td>15 minutes</td>
+                            <td>3 minutes</td>
+                            <td><span class="tag tag-vert">80 %</span></td>
+                        </tr>
+                        <tr>
+                            <td>Calcul d'une prime</td>
+                            <td>10 minutes</td>
+                            <td>1 seconde</td>
+                            <td><span class="tag tag-vert">99 %</span></td>
+                        </tr>
+                        <tr>
+                            <td>Génération d'un contrat</td>
+                            <td>30 minutes</td>
+                            <td>1 minute</td>
+                            <td><span class="tag tag-vert">97 %</span></td>
+                        </tr>
+                        <tr>
+                            <td>Suivi des échéances</td>
+                            <td>2 heures / semaine</td>
+                            <td>Automatique</td>
+                            <td><span class="tag tag-vert">100 %</span></td>
+                        </tr>
+                        <tr>
+                            <td>Gestion des paiements</td>
+                            <td>45 minutes / jour</td>
+                            <td>5 minutes / jour</td>
+                            <td><span class="tag tag-vert">89 %</span></td>
+                        </tr>
+                        <tr class="table-highlight">
+                            <td><strong>TOTAL MENSUEL</strong></td>
+                            <td><strong>~ 50 heures</strong></td>
+                            <td><strong>~ 5 heures</strong></td>
+                            <td><span class="tag tag-vert">90 %</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>4.2 Retour sur investissement (ROI)</h3>
+
+            <div class="encadre">
+                <h4 style="margin-top:0; color:#0f172a;">💰 Investissement initial</h4>
+                <p style="font-size:24px; font-weight:700; color:#0f172a; margin-bottom:2px;">
+                    3 500 000 FCFA
+                </p>
+                <p style="font-size:14px; color:#64748b; margin-bottom:0;">
+                    (Licence perpétuelle + installation + formation)
+                </p>
+            </div>
+
+            <h4>Gains annuels estimés</h4>
+            <ul>
+                <li>
+                    <strong>Économie de temps</strong> (1 agent à 300 000 FCFA/mois) :
+                    3 600 000 FCFA / an
+                </li>
+                <li>
+                    <strong>Réduction des erreurs de calcul</strong> :
+                    1 500 000 FCFA / an
+                </li>
+                <li>
+                    <strong>Augmentation des renouvellements</strong> :
+                    2 000 000 FCFA / an
+                </li>
+                <li>
+                    <strong>Réduction des impayés</strong> :
+                    1 000 000 FCFA / an
+                </li>
+            </ul>
+
+            <p style="font-size:20px; font-weight:700; color:#0f172a; margin-top:12px;">
+                Gain total annuel : 8 100 000 FCFA
+            </p>
+
+            <p style="font-size:28px; font-weight:800; color:#16a34a; margin-top:4px;">
+                ROI : 132 % la première année
+            </p>
+
+            <h3>4.3 Avantages concurrentiels</h3>
+
+            <ul>
+                <li>
+                    <strong>Tarifs préférentiels</strong> pour les flottes grâce aux contrats groupés
+                </li>
+                <li>
+                    <strong>Réduction en masse</strong> sur les garanties pour les campagnes promotionnelles
+                </li>
+                <li>
+                    <strong>Notifications automatiques</strong> pour ne jamais manquer une échéance
+                </li>
+                <li>
+                    <strong>Certification des modules</strong> garantissant la sécurité et l'intégrité
+                </li>
+            </ul>
+        </section>
+
+        <!-- ============================================================
+        SECTION 5
+        ============================================================ -->
+        <section>
+            <h2><span class="num">5.</span> Fonctionnalités innovantes</h2>
+
+            <h3>5.1 Importation en masse (Mass Import)</h3>
+
+            <p>
+                La fonction d'importation en masse permet de charger simultanément des centaines de véhicules
+                depuis un fichier Excel ou CSV. Cette fonctionnalité est particulièrement utile pour :
+            </p>
+            <ul>
+                <li>Les gestionnaires de flottes qui doivent intégrer un parc entier</li>
+                <li>Les compagnies d'assurance qui migrent depuis un système existant</li>
+                <li>Les agences qui traitent de gros volumes de contrats</li>
+            </ul>
+            <p>
+                <strong>Gain de temps estimé :</strong> 95 % par rapport à la saisie manuelle.
+            </p>
+
+            <h3>5.2 Calcul automatique des primes</h3>
+
+            <p>
+                Le système calcule automatiquement les primes en fonction des caractéristiques du véhicule :
+            </p>
+            <ul>
+                <li>Puissance fiscale (CV)</li>
+                <li>Valeur à neuf et valeur vénale</li>
+                <li>Zone tarifaire (A, B ou C)</li>
+                <li>Garanties sélectionnées</li>
+                <li>Réductions et promotions</li>
+            </ul>
+            <p>
+                <strong>Zéro erreur de calcul</strong> : garantie.
+            </p>
+
+            <h3>5.3 Certification des modules</h3>
+
+            <p>
+                La certification des modules est un mécanisme de sécurité qui garantit l'intégrité et
+                l'authenticité des modules installés dans LOMETA :
+            </p>
+            <ul>
+                <li>
+                    <strong>Intégrité</strong> : Le module n'a pas été modifié après sa certification
+                </li>
+                <li>
+                    <strong>Authenticité</strong> : Le module provient bien de l'éditeur annoncé
+                </li>
+                <li>
+                    <strong>Sécurité</strong> : Le module ne contient pas de code malveillant
+                </li>
+                <li>
+                    <strong>Compatibilité</strong> : Le module est compatible avec la version de LOMETA
+                </li>
+            </ul>
+
+            <h3>5.4 Notifications automatiques</h3>
+
+            <p>
+                LOMETA assure un suivi rigoureux des échéances avec des notifications à plusieurs niveaux :
+            </p>
+            <ul>
+                <li><strong>30 jours avant</strong> : Alerte par email</li>
+                <li><strong>15 jours avant</strong> : Rappel dans le tableau de bord</li>
+                <li><strong>7 jours avant</strong> : Notification push</li>
+                <li><strong>Jour J</strong> : Alerte critique</li>
+            </ul>
+
+            <h3>5.5 Génération documentaire automatique</h3>
+
+            <p>
+                Tous les documents sont générés automatiquement au format PDF, prêts à être imprimés
+                ou envoyés par email :
+            </p>
+            <ul>
+                <li>Contrat d'assurance</li>
+                <li>Attestation d'assurance</li>
+                <li>Carte Rose</li>
+                <li>Vignette</li>
+                <li>Quittance</li>
+                <li>Devis</li>
+            </ul>
+
+            <div class="encadre">
+                <p>
+                    <strong>💡 À retenir :</strong> L'ensemble de ces fonctionnalités contribue à faire de
+                    LOMETA une solution complète, moderne et parfaitement adaptée aux besoins du marché
+                    camerounais.
+                </p>
+            </div>
+        </section>
+
+        <!-- ============================================================
+        SECTION 6
+        ============================================================ -->
+        <section>
+            <h2><span class="num">6.</span> Modules disponibles</h2>
+
+            <h3>6.1 Module Véhicules</h3>
+
+            <ul>
+                <li>Ajout, modification, suppression de véhicules</li>
+                <li>Recherche avancée (immatriculation, marque, modèle, châssis)</li>
+                <li>Fiche détaillée avec historique complet</li>
+                <li>Importation en masse depuis Excel</li>
+                <li>Statistiques et indicateurs clés</li>
+            </ul>
+
+            <h3>6.2 Module Contrats</h3>
+
+            <ul>
+                <li>Création de contrats en quelques clics</li>
+                <li>Renouvellement automatique</li>
+                <li>Suivi des échéances</li>
+                <li>Historique complet des paiements</li>
+                <li>Gestion des garanties</li>
+            </ul>
+
+            <h3>6.3 Module Clients</h3>
+
+            <ul>
+                <li>Profils particuliers et entreprises</li>
+                <li>Historique complet des contrats</li>
+                <li>Badges VIP et catégories</li>
+                <li>Suivi des paiements</li>
+            </ul>
+
+            <h3>6.4 Module Flottes</h3>
+
+            <ul>
+                <li>Création de flottes</li>
+                <li>Gestion groupée des contrats</li>
+                <li>Tarifs préférentiels</li>
+                <li>Rapports consolidés</li>
+            </ul>
+
+            <h3>6.5 Module Paiements</h3>
+
+            <ul>
+                <li>Enregistrement des paiements</li>
+                <li>Multiples modes de paiement (espèces, carte, virement, Mobile Money)</li>
+                <li>Génération automatique de reçus</li>
+                <li>Suivi des impayés</li>
+            </ul>
+
+            <h3>6.6 Module Rapports</h3>
+
+            <ul>
+                <li>Rapports de véhicules, contrats, clients</li>
+                <li>Rapports financiers</li>
+                <li>Rapports de flottes</li>
+                <li>Export PDF, Excel, CSV</li>
+            </ul>
+        </section>
+
+        <!-- ============================================================
+        SECTION 7
+        ============================================================ -->
+        <section>
+            <h2><span class="num">7.</span> Roadmap LOMETA 2026-2027</h2>
+
+            <p>
+                LOMETA est un produit vivant et évolutif. Notre feuille de route pour les 18 prochains mois
+                reflète notre engagement à innover continuellement pour répondre aux besoins changeants
+                du marché.
+            </p>
+
+            <h3>7.1 Disponible maintenant</h3>
+
+            <div class="roadmap-grid">
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Module Véhicules</div>
+                        <div class="desc">Gestion complète du parc automobile</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Module Contrats</div>
+                        <div class="desc">Gestion des polices d'assurance</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Module Clients</div>
+                        <div class="desc">Gestion des contacts et assurés</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Module Flottes</div>
+                        <div class="desc">Gestion des flottes de véhicules</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Module Paiements</div>
+                        <div class="desc">Suivi des transactions et échéances</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Certification des modules</div>
+                        <div class="desc">Sécurité et intégrité</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Importation en masse</div>
+                        <div class="desc">Import depuis Excel / CSV</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">✅</span>
+                    <div class="info">
+                        <div class="titre">Génération documentaire</div>
+                        <div class="desc">PDF, impression, email</div>
+                    </div>
+                    <span class="statut statut-dispo">Disponible</span>
+                </div>
+            </div>
+
+            <h3>7.2 En développement</h3>
+
+            <div class="roadmap-grid">
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">Module Sinistres</div>
+                        <div class="desc">Gestion complète des sinistres</div>
+                    </div>
+                    <span class="statut statut-dev">Q4 2026</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">Expertise Automobile</div>
+                        <div class="desc">Module d'expertise en ligne</div>
+                    </div>
+                    <span class="statut statut-dev">Q4 2026</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">Réseau Garages Agréés</div>
+                        <div class="desc">Gestion des garages partenaires</div>
+                    </div>
+                    <span class="statut statut-dev">Q1 2027</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">Orange Money &amp; MTN Mobile Money</div>
+                        <div class="desc">Intégration des paiements mobiles</div>
+                    </div>
+                    <span class="statut statut-dev">Q1 2027</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">Détection de Fraude</div>
+                        <div class="desc">Intelligence artificielle anti-fraude</div>
+                    </div>
+                    <span class="statut statut-dev">Q2 2027</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">API Bancaire</div>
+                        <div class="desc">Intégration bancaire automatisée</div>
+                    </div>
+                    <span class="statut statut-dev">Q2 2027</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">Paiement en ligne automatique</div>
+                        <div class="desc">Paiement automatique des primes</div>
+                    </div>
+                    <span class="statut statut-dev">Q2 2027</span>
+                </div>
+                <div class="roadmap-item">
+                    <span class="icone">🚧</span>
+                    <div class="info">
+                        <div class="titre">Application Mobile</div>
+                        <div class="desc">Application mobile pour les clients</div>
+                    </div>
+                    <span class="statut statut-dev">Q3 2027</span>
+                </div>
+            </div>
+
+            <h3>7.3 Vision à long terme</h3>
+
+            <ul>
+                <li>
+                    <strong>2027</strong> : Intelligence artificielle pour la détection de fraude et
+                    l'optimisation des primes
+                </li>
+                <li>
+                    <strong>2028</strong> : Blockchain pour la certification des modules et la traçabilité
+                    des transactions
+                </li>
+                <li>
+                    <strong>2029</strong> : Écosystème complet connectant assureurs, garages, experts
+                    et autorités
+                </li>
+            </ul>
+
+            <div class="encadre orange">
+                <p>
+                    <strong>📈 Pourquoi une roadmap ?</strong> Cette feuille de route démontre notre
+                    engagement à long terme et notre volonté d'investir continuellement dans l'innovation
+                    pour vous offrir une solution toujours plus performante.
+                </p>
+            </div>
+        </section>
+
+        <!-- ============================================================
+        SECTION 8
+        ============================================================ -->
+        <section>
+            <h2><span class="num">8.</span> Certification et sécurité</h2>
+
+            <h3>8.1 Qu'est-ce qu'un module certifié ?</h3>
+
+            <p>
+                Un module certifié est un module qui a été signé numériquement par une autorité de confiance,
+                telle que Fearless Cybertech. La certification garantit :
+            </p>
+            <ul>
+                <li>
+                    <strong>Intégrité</strong> : Le module n'a pas été modifié après sa certification
+                </li>
+                <li>
+                    <strong>Authenticité</strong> : Le module provient bien de l'éditeur annoncé
+                </li>
+                <li>
+                    <strong>Sécurité</strong> : Le module ne contient pas de code malveillant
+                </li>
+                <li>
+                    <strong>Compatibilité</strong> : Le module est compatible avec la version de LOMETA
+                </li>
+            </ul>
+
+            <h3>8.2 Structure d'un certificat</h3>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Champ</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Version</strong></td>
+                            <td>Version du schéma de certificat</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Module_name</strong></td>
+                            <td>Nom du module certifié</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Module_version</strong></td>
+                            <td>Version du module</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Certified_by</strong></td>
+                            <td>Entité ayant émis le certificat</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Certified_date</strong></td>
+                            <td>Date d'émission du certificat</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Certificate_id</strong></td>
+                            <td>Identifiant unique du certificat</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Checksums</strong></td>
+                            <td>Liste des sommes de contrôle SHA-256 de chaque fichier</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Signature</strong></td>
+                            <td>Signature numérique de l'ensemble</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Public_key</strong></td>
+                            <td>Clé publique associée</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>8.3 Gestion des certificats</h3>
+
+            <p>
+                LOMETA intègre un gestionnaire de certificats qui permet de :
+            </p>
+            <ul>
+                <li>Visualiser la liste de tous les certificats émis</li>
+                <li>Vérifier la validité d'un certificat</li>
+                <li>Révoquer un certificat (si le module est compromis)</li>
+                <li>Exporter les certificats pour audit</li>
+            </ul>
+
+            <div class="encadre vert">
+                <p>
+                    <strong>🔐 Sécurité renforcée :</strong> La certification des modules est un gage
+                    de qualité et de sécurité. Elle vous protège contre l'installation de modules
+                    malveillants ou non conformes.
+                </p>
+            </div>
+        </section>
+
+        <!-- ============================================================
+        SECTION 9
+        ============================================================ -->
+        <section>
+            <h2><span class="num">9.</span> Moyens de paiement intégrés</h2>
+
+            <h3>9.1 Modes de paiement disponibles</h3>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mode de paiement</th>
+                            <th>Statut</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Espèces</td>
+                            <td><span class="tag tag-vert">Disponible</span></td>
+                            <td>Paiement en liquide</td>
+                        </tr>
+                        <tr>
+                            <td>Carte bancaire</td>
+                            <td><span class="tag tag-vert">Disponible</span></td>
+                            <td>Visa, MasterCard</td>
+                        </tr>
+                        <tr>
+                            <td>Virement bancaire</td>
+                            <td><span class="tag tag-vert">Disponible</span></td>
+                            <td>Transferts interbancaires</td>
+                        </tr>
+                        <tr>
+                            <td>Chèque</td>
+                            <td><span class="tag tag-vert">Disponible</span></td>
+                            <td>Paiement par chèque</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Orange Money</strong></td>
+                            <td><span class="tag tag-jaune">En développement</span></td>
+                            <td>Paiement mobile Orange</td>
+                        </tr>
+                        <tr>
+                            <td><strong>MTN Mobile Money</strong></td>
+                            <td><span class="tag tag-jaune">En développement</span></td>
+                            <td>Paiement mobile MTN</td>
+                        </tr>
+                        <tr>
+                            <td><strong>API Bancaire</strong></td>
+                            <td><span class="tag tag-jaune">En développement</span></td>
+                            <td>Intégration bancaire automatisée</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Paiement en ligne</strong></td>
+                            <td><span class="tag tag-jaune">En développement</span></td>
+                            <td>Paiement automatique des primes</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h3>9.2 Avantages des paiements mobiles</h3>
+
+            <div class="encadre">
+                <h4 style="margin-top:0; color:#0f172a;">📱 Pourquoi intégrer Orange Money et MTN Mobile Money ?</h4>
+                <ul>
+                    <li>
+                        <strong>Accessibilité</strong> : Paiement depuis n'importe quel téléphone mobile,
+                        même sans compte bancaire
+                    </li>
+                    <li>
+                        <strong>Rapidité</strong> : Transaction instantanée, sans délai de traitement
+                    </li>
+                    <li>
+                        <strong>Sécurité</strong> : Authentification à double facteur et traçabilité
+                        des transactions
+                    </li>
+                    <li>
+                        <strong>Réduction des impayés</strong> : Paiement automatique des primes
+                    </li>
+                    <li>
+                        <strong>Conformité locale</strong> : Parfaitement adapté au contexte camerounais
+                        où les paiements mobiles sont devenus incontournables
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- ============================================================
+        SECTION 10
+        ============================================================ -->
+        <section>
+            <h2><span class="num">10.</span> Conclusion et prochaines étapes</h2>
+
+            <h3>10.1 Résumé des avantages</h3>
+
+            <p>
+                LOMETA est une solution complète, modulaire et sécurisée qui permet à votre organisation de :
+            </p>
+            <ul>
+                <li>
+                    <strong>Réduire les coûts</strong> : Jusqu'à 90 % de réduction du temps administratif
+                </li>
+                <li>
+                    <strong>Augmenter les revenus</strong> : Meilleur suivi des renouvellements
+                    et réduction des impayés
+                </li>
+                <li>
+                    <strong>Sécuriser les données</strong> : Certification des modules et authentification
+                    renforcée
+                </li>
+                <li>
+                    <strong>Améliorer l'expérience client</strong> : Réponse rapide, suivi transparent
+                    et documents générés instantanément
+                </li>
+                <li>
+                    <strong>Se différencier</strong> : Innovation technologique avec l'intégration
+                    des paiements mobiles et de l'intelligence artificielle
+                </li>
+            </ul>
+
+            <div class="encadre vert">
+                <p style="font-size:18px; font-weight:600; color:#0f172a; margin-bottom:4px;">
+                    📈 Un investissement rentable
+                </p>
+                <p style="margin-bottom:0;">
+                    Avec un ROI de 132 % la première année, LOMETA est un investissement stratégique
+                    qui se rentabilise rapidement.
+                </p>
+            </div>
+
+            <h3>10.2 Prochaines étapes</h3>
+
+            <ol>
+                <li>
+                    <strong>Démonstration personnalisée</strong> : Présentation adaptée à vos besoins
+                    spécifiques, avec cas d'usage concrets
+                </li>
+                <li>
+                    <strong>Étude de faisabilité</strong> : Analyse de votre infrastructure existante
+                    et identification des besoins
+                </li>
+                <li>
+                    <strong>Proposition commerciale</strong> : Offre personnalisée avec ROI détaillé
+                    et plan de déploiement
+                </li>
+                <li>
+                    <strong>Installation et déploiement</strong> : Mise en œuvre en moins de 2 semaines
+                </li>
+                <li>
+                    <strong>Formation</strong> : Prise en main rapide par vos équipes (formation
+                    sur site ou à distance)
+                </li>
+                <li>
+                    <strong>Suivi et support</strong> : Accompagnement continu et assistance technique
+                </li>
+            </ol>
+
+            <h3>10.3 Contact</h3>
+
+            <p>
+                Pour toute information complémentaire ou pour planifier une démonstration, n'hésitez pas
+                à nous contacter :
+            </p>
+
+            <div style="background:#f8fafc; border-radius:8px; padding:20px 24px; margin-top:8px;">
+                <p style="margin-bottom:4px;">
+                    <strong>Email :</strong>
+                    <a href="mailto:support@lometa.com" style="color:#2563eb; text-decoration:none;">
+                        support@lometa.com
+                    </a>
+                </p>
+                <p style="margin-bottom:4px;">
+                    <strong>Téléphone :</strong> +237 6XX XXX XXX
+                </p>
+                <p style="margin-bottom:0;">
+                    <strong>Site web :</strong>
+                    <a href="https://lometa.com" style="color:#2563eb; text-decoration:none;">
+                        lometa.com
+                    </a>
+                </p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ============================================================
+    PIED DE PAGE
+    ============================================================ -->
+    <footer class="footer">
+        <div class="brand">LOMETA <span>.</span></div>
+        <p style="font-size:14px; color:#475569; margin-bottom:0;">
+            Logiciel de Management et d'Évaluation des Transports Automobiles
+        </p>
+        <div class="contact">
+            <a href="mailto:support@lometa.com">📧 support@lometa.com</a>
+            <a href="https://lometa.com">🌐 lometa.com</a>
+            <span>🔐 v2.0</span>
         </div>
-
-
-        <h3>Annexe 2 — Coordonnées et Contacts CHONATE</h3>
-        <ul>
-            <li><strong>Nom complet :</strong> CHONATE — Chœur de la Nativité d'Ekoumdoum</li>
-            <li><strong>Devise :</strong> <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span></li>
-            <li><strong>Paroisse :</strong> Saint Joséphine Bakita, Ekoumdoum</li>
-            <li><strong>Réseaux sociaux :</strong> [À renseigner]</li>
-            <li><strong>Contact Président :</strong> 693090672/655335448</li>
-        </ul>
-
-        <!-- ============================================================ -->
-        <!-- FOOTER -->
-        <!-- ============================================================ -->
-        <div class="footer-doc">
-            <span><strong>Document réalisé pour :</strong> CHONATE — Chœur de la Nativité d'Ekoumdoum</span>
-            <span><strong>Date :</strong> Juillet 2026</span>
-            <span><strong>Version :</strong> 1.0 — Stratégie Complète</span>
+        <div class="copy">
+            © 2026 Fearless Cybertech — Tous droits réservés
         </div>
+    </footer>
 
-        <div style="text-align:center; margin-top:25px; font-style:italic; color:#5a6a7a; border-top:1px solid #e4dfd8; padding-top:18px;">
-            « Chantez à Dieu, faites retentir son nom, célébrez celui qui s'avance dans les plaines ! » — Psaume 68:5
-        </div>
-
-        <div style="text-align:center; margin-top:8px; font-style:italic; color:#c9a96e; font-weight:500;">
-            ✨ CHONATE — <em>Par ma voix, je loue le Seigneur</em> ✨
-        </div>
-
-    </div>
-    <!-- fin .document -->
-
-    <script>
-        // ===== BOUTON DE TÉLÉCHARGEMENT PDF =====
-        (function() {
-            const btn = document.createElement('button');
-            btn.textContent = '📄 Télécharger en PDF — CHONATE';
-            btn.style.cssText = `
-                        position: fixed;
-                        bottom: 30px;
-                        right: 30px;
-                        background: #1a2a3a;
-                        color: #fff;
-                        border: none;
-                        border-radius: 50px;
-                        padding: 16px 28px;
-                        font-size: 1.1rem;
-                        font-weight: 600;
-                        box-shadow: 0 6px 20px rgba(0,0,0,0.30);
-                        cursor: pointer;
-                        z-index: 9999;
-                        transition: background 0.2s;
-                        font-family: 'Segoe UI', system-ui, sans-serif;
-                    `;
-            btn.onmouseover = () => btn.style.background = '#2c3e50';
-            btn.onmouseout = () => btn.style.background = '#1a2a3a';
-            btn.onclick = () => window.print();
-            document.body.appendChild(btn);
-
-            // Cacher le bouton lors de l'impression
-            const stylePrint = document.createElement('style');
-            stylePrint.textContent = `
-                        @media print {
-                            body > button {
-                                display: none !important;
-                            }
-                            .document {
-                                box-shadow: none !important;
-                                border-radius: 0 !important;
-                                padding: 25px 30px !important;
-                            }
-                        }
-                    `;
-            document.head.appendChild(stylePrint);
-        })();
-    </script>
+</div>
 
 </body>
 </html>
