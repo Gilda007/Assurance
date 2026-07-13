@@ -4346,8 +4346,8 @@ class ContactListView(QWidget):
                 self.btn_delete.setVisible(False)
             if not SecurityManager.has_permission(role, Permissions.AUDIT_VIEW):
                 self.btn_audit.setVisible(False)
-            if not SecurityManager.has_permission(role, Permissions.EXPORT_PDF):
-                self.btn_export_pdf.setVisible(False)
+            # if not SecurityManager.has_permission(role, Permissions.EXPORT_PDF):
+            #     self.btn_export_pdf.setVisible(False)
     
     def refresh(self):
         """Rafraîchit la vue"""

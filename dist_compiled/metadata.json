@@ -1,0 +1,9 @@
+{
+    "source_directory": "addons/Automobiles",
+    "build_date": "2026-07-08T13:22:41+02:00",
+    "python_version": "Python 3.13.14",
+    "modules_count": 111,
+    "compilation_level": "optimized",
+    "compiler": "python3",
+    "archive": "Automobiles_compiled_20260708_132238.zip"
+}

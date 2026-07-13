@@ -85,7 +85,7 @@ class CustomUserForm(QDialog):
         self.password_input.setStyleSheet(style_input)
 
         self.role_combo = QComboBox()
-        self.role_combo.addItems(["agent", "admin"])
+        self.role_combo.addItems(["agent", "admin", "user", "guest", "manager"])
         self.role_combo.setStyleSheet(style_input)
 
         # Ajout au layout

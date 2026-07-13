@@ -209,8 +209,8 @@ class SimpleAuth:
     """Authentification simplifiée sans base de données (fallback)"""
     
     def __init__(self, username: str = None, password: str = None):
-        self.username = username or "admin"
-        self.password = password or "admin123"
+        self.username = username
+        self.password = password
     
     def authenticate_user(self, username: str, password: str) -> tuple:
         """Authentification simple"""

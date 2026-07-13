@@ -27,6 +27,7 @@ class ModuleManager:
             if not os.path.isdir(folder_path) or folder.startswith("__"):
                 continue
             manifest = self.loader.get_manifest(folder)
+            
             if manifest:
                 modules.append({
                     "name": folder,

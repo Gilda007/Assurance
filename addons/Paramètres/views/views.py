@@ -164,6 +164,7 @@ class ParametreMainView(QWidget):
             
         # On affiche la page correspondante
         self.container.setCurrentWidget(self.pages_cache[key])
+    
     # --- GÉNÉRATEURS DE PAGES ---
     def get_user_page(self):
         return UserListPage(self.controller, self.user)

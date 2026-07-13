@@ -221,7 +221,7 @@ class CrashHandler:
         crash_dir = os.path.join(os.path.expanduser("~"), "Documents", "LOMETA", "crashes")
         os.makedirs(crash_dir, exist_ok=True)
         
-        crash_file = os.path.join(crash_dir, f"crash_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
+        crash_file = os.path.join(crash_dir, f"crash_LOMETA{datetime.now().strftime('%Y%m%d_%H%M%S')}.log")
         with open(crash_file, 'w') as f:
             f.write(f"Crash report - {datetime.now()}\n")
             f.write(f"Signal: {signum}\n")
@@ -405,72 +405,6 @@ STYLE_SHEET = f"""
         background: {AppColors.PRIMARY_DARK};
     }}
 """
-
-# class UpdateChecker(QObject):
-#     """Vérificateur de modules avec signal"""
-    
-#     # Définir le signal comme attribut de classe
-#     modules_available = Signal(object)  # Signal émis quand des modules sont trouvés
-#     no_modules = Signal()                # Signal émis quand aucun module
-#     server_error = Signal()              # Signal émis quand erreur serveur
-    
-#     def __init__(self, parent=None):
-#         super().__init__(parent)
-#         self.client = UpdateClient()
-    
-#     def check(self, server_url="http://localhost:8000"):
-#         """Vérifie les modules disponibles dans un thread séparé"""
-        
-#         def check_thread():
-#             client = UpdateClient(server_url=server_url)
-#             status_code, modules = client.get_available_modules()
-            
-#             if status_code == 200 and modules:
-#                 # Émettre le signal avec les modules trouvés
-#                 self.modules_available.emit(modules)
-#             elif status_code == 200:
-#                 self.no_modules.emit()
-#             elif status_code == 404:
-#                 self.server_error.emit()
-#             else:
-#                 print(f"⚠️ Erreur de vérification: code {status_code}")
-        
-#         thread = threading.Thread(target=check_thread, daemon=True)
-#         thread.start()
-
-# class ModuleChecker(QObject):
-#     """Vérificateur de modules avec session LOMETA"""
-#     modules_found = Signal(object)
-    
-#     def __init__(self, session_token: str = None, parent=None):
-#         super().__init__(parent)
-#         self.session_token = session_token
-#         print(f"🔧 ModuleChecker initialisé avec token: {session_token is not None}")
-    
-#     def check(self):
-#         def check_thread():
-#             print(f"🔍 Vérification des modules...")
-#             print(f"   Token: {self.session_token[:20] if self.session_token else 'None'}...")
-            
-#             client = UpdateClient(server_url="http://192.168.100.89:8000", session_token=self.session_token)
-#             code, modules = client.get_available_modules()
-            
-#             print(f"   Code retour: {code}")
-            
-#             if code == 200 and modules:
-#                 print(f"   ✅ {len(modules)} module(s) trouvé(s)")
-#                 self.modules_found.emit(modules)
-#             elif code == 200:
-#                 print("✅ Aucun module disponible")
-#             elif code == 401:
-#                 print("⚠️ Session expirée, veuillez vous reconnecter")
-#                 # Tenter de rafraîchir la session ?
-#             elif code == 404:
-#                 print("⚠️ Serveur de mise à jour non accessible")
-#             else:
-#                 print(f"⚠️ Code inattendu: {code}")
-        
-#         threading.Thread(target=check_thread, daemon=True).start()
 
 class UpdateChecker(QObject):
     modules_available = Signal(object)
@@ -2201,6 +2135,7 @@ class MainWindow(QMainWindow):
             logger.info("Déconnexion")
             self.logout_requested.emit()
             self.close()
+            
     
     def closeEvent(self, event):
         """Fermeture"""
@@ -2330,6 +2265,9 @@ class AppController:
             self.app = QApplication(sys.argv)
         
         self.app.setStyle('Fusion')
+        self.main_window = None
+        self.login_view = None
+        self.setup_view = None
         
         try:
             Base.metadata.create_all(bind=engine)
@@ -2357,8 +2295,19 @@ class AppController:
         self.setup_view.show()
     
     def show_login(self):
-        if hasattr(self, 'setup_view'):
+        if self.main_window is not None:
+            self.main_window.close()
+            self.main_window = None
+
+        if self.setup_view is not None:
             self.setup_view.close()
+            self.setup_view = None
+
+        if self.login_view is not None:
+            self.login_view.show()
+            self.login_view.raise_()
+            self.login_view.activateWindow()
+            return
         
         self.login_view = LoginView()
         self.login_ctrl = LoginController(self.login_view)
@@ -2366,11 +2315,13 @@ class AppController:
         self.login_view.show()
     
     def launch_main_app(self, user):
-        if hasattr(self, 'login_view'):
+        if self.login_view is not None:
             self.login_view.close()
+            self.login_view = None
         
         self.main_window = MainWindow(user)
         self.main_window.current_user = user
+        self.main_window.logout_requested.connect(self.show_login, Qt.QueuedConnection)
         self.main_window.show()
 
 

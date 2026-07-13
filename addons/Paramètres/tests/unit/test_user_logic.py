@@ -1,7 +1,7 @@
 import unittest
 from core.database import SessionLocal, Base, engine
-from addons.user_manager.controllers.controller import UserController
-from addons.user_manager.models.models import User, AuditLog
+from addons.Paramètres.controllers.controller import UserController
+from addons.Paramètres.models.models import User, AuditLog
 
 class TestUserModuleManager(unittest.TestCase):
     

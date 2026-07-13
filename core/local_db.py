@@ -369,39 +369,76 @@ class LocalCache(QObject):
     # ============================================================================
     # STATISTIQUES ET MAINTENANCE
     # ============================================================================
-    
-    # def get_stats(self) -> Dict:
-    #     """Retourne les statistiques du cache"""
+    # def get_stats(self):
     #     try:
-    #         total = self.conn.execute("SELECT COUNT(*) FROM cache_items").fetchone()[0]
-    #         expired = self.conn.execute(
-    #             "SELECT COUNT(*) FROM cache_items WHERE expires_at IS NOT NULL AND expires_at < ?",
-    #             (time.time(),)
-    #         ).fetchone()[0]
-            
-    #         return {
-    #             'total_entries': total,
-    #             'expired_entries': expired,
-    #             'db_size_mb': self.get_size(),
-    #             'modules': self.get_modules_stats()
-    #         }
+    #         with self._get_connection() as conn:
+    #             cursor = conn.cursor()
+    #             cursor.execute("SELECT COUNT(*) FROM cache")
+    #             count = cursor.fetchone()[0]
+    #             print(f"📊 Cache SQLite: {count} entrées")
+    #             return {'total_entries': count, 'db_size_mb': 0}
     #     except Exception as e:
-    #         logger.error(f"Erreur get_stats: {e}")
-    #         return {}
+    #         print(f"❌ Erreur cache stats: {e}")
+    #         return {'total_entries': 0, 'db_size_mb': 0}
 
-    # Dans core/local_db.py, ajoutez des logs
-    def get_stats(self):
+    def get_stats(self) -> Dict:
+        """Statistiques du cache"""
         try:
-            with self._get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("SELECT COUNT(*) FROM cache")
-                count = cursor.fetchone()[0]
-                print(f"📊 Cache SQLite: {count} entrées")
-                return {'total_entries': count, 'db_size_mb': 0}
+            # Compter les entrées
+            cursor = self.conn.execute("SELECT COUNT(*) FROM cache_items")
+            total_entries = cursor.fetchone()[0]
+            
+            # Compter les collections
+            cursor = self.conn.execute("SELECT COUNT(*) FROM cache_collections")
+            collections_count = cursor.fetchone()[0]
+            
+            # Taille de la base
+            size_mb = self.get_size()
+            
+            # Entrées expirées
+            now = time.time()
+            cursor = self.conn.execute(
+                "SELECT COUNT(*) FROM cache_items WHERE expires_at IS NOT NULL AND expires_at < ?",
+                (now,)
+            )
+            expired_count = cursor.fetchone()[0]
+            
+            # Statistiques par module
+            modules_stats = self.get_modules_stats()
+            
+            # Top 10 des clés les plus consultées
+            cursor = self.conn.execute("""
+                SELECT key, access_count, module 
+                FROM cache_items 
+                ORDER BY access_count DESC 
+                LIMIT 10
+            """)
+            top_keys = [{'key': row['key'], 'access_count': row['access_count'], 'module': row['module']} 
+                    for row in cursor.fetchall()]
+            
+            return {
+                'total_entries': total_entries,
+                'collections_count': collections_count,
+                'expired_entries': expired_count,
+                'db_size_mb': round(size_mb, 2),
+                'modules_stats': modules_stats,
+                'top_keys': top_keys,
+                'db_path': str(self.db_path),
+                'journal_mode': self.conn.execute("PRAGMA journal_mode").fetchone()[0]
+            }
+            
         except Exception as e:
-            print(f"❌ Erreur cache stats: {e}")
-            return {'total_entries': 0, 'db_size_mb': 0}
-    
+            logger.error(f"Erreur cache stats: {e}")
+            return {
+                'total_entries': 0,
+                'collections_count': 0,
+                'expired_entries': 0,
+                'db_size_mb': 0,
+                'modules_stats': {},
+                'top_keys': [],
+                'error': str(e)
+            }
+
     def get_modules_stats(self) -> Dict:
         """Statistiques par module"""
         try:

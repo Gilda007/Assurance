@@ -1,1746 +1,888 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOMETA - Guide d'utilisation</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Stratégie de Contenu Sociale — CHONATE</title>
     <style>
-        /* ===== STYLES GÉNÉRAUX ===== */
+        /* ===== RESET & BASE ===== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
-            font-family: 'Segoe UI', 'Inter', system-ui, -apple-system, sans-serif;
-            background: #f0f4f8;
-            color: #1a202c;
-            padding: 40px;
-            line-height: 1.6;
-        }
-        
-        .page {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 20px;
-            padding: 48px;
-            margin-bottom: 40px;
-            page-break-after: always;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-            min-height: 100vh;
-            position: relative;
-        }
-        
-        .page::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #2563eb, #3b82f6, #2563eb);
-            opacity: 0.3;
-        }
-        
-        .page:last-child {
-            page-break-after: avoid;
-            margin-bottom: 0;
-        }
-        
-        .header {
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 16px;
-            margin-bottom: 30px;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #f5f3f0;
+            padding: 40px 20px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            justify-content: center;
         }
-        
-        .header .logo {
-            font-size: 28px;
-            font-weight: 800;
-            color: #1e293b;
+
+        .document {
+            max-width: 1100px;
+            width: 100%;
+            background: #ffffff;
+            padding: 50px 55px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.10);
+            line-height: 1.6;
+            color: #1e1e1e;
         }
-        
-        .header .logo span {
-            color: #2563eb;
-        }
-        
-        .header .tagline {
-            font-size: 12px;
-            color: #94a3b8;
-            text-align: right;
-        }
-        
-        .header .page-number {
-            font-size: 11px;
-            color: #cbd5e1;
-        }
-        
+
+        /* ===== TYPOGRAPHIE ===== */
         h1 {
-            font-size: 42px;
-            font-weight: 800;
-            color: #0f172a;
-            margin-bottom: 20px;
-            letter-spacing: -1px;
-        }
-        
-        h1 .highlight {
-            color: #2563eb;
-        }
-        
-        h2 {
-            font-size: 24px;
+            font-size: 2.6rem;
             font-weight: 700;
-            color: #2563eb;
-            margin-bottom: 16px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        
-        h3 {
-            font-size: 18px;
-            font-weight: 600;
-            color: #1e293b;
-            margin: 16px 0 10px 0;
-        }
-        
-        h4 {
-            font-size: 15px;
-            font-weight: 600;
-            color: #2563eb;
-            margin: 12px 0 6px 0;
-        }
-        
-        p {
-            color: #475569;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-        
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-        
-        .grid-3 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .grid-4 {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr 1fr;
-            gap: 16px;
-        }
-        
-        .card {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            padding: 20px 24px;
-            transition: all 0.3s ease;
-        }
-        
-        .card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
-        }
-        
-        .card .icon {
-            font-size: 32px;
+            letter-spacing: -0.5px;
+            color: #1a2a3a;
+            border-bottom: 4px solid #c9a96e;
+            padding-bottom: 12px;
             margin-bottom: 8px;
         }
-        
-        .card .title {
-            font-size: 16px;
+
+        .sous-titre {
+            font-size: 1.1rem;
+            color: #4a5a6a;
+            margin-bottom: 35px;
+            font-weight: 400;
+            border-bottom: 1px solid #e0dcd6;
+            padding-bottom: 18px;
+        }
+
+        .nom-chorale {
+            color: #c9a96e;
             font-weight: 700;
-            color: #2563eb;
-            margin-bottom: 4px;
         }
-        
-        .card .desc {
-            font-size: 12px;
-            color: #64748b;
+
+        .slogan-dore {
+            color: #c9a96e;
+            font-style: italic;
+            font-weight: 600;
         }
-        
-        .card .value {
-            font-size: 28px;
-            font-weight: 800;
-            color: #0f172a;
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1a2a3a;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            border-left: 6px solid #c9a96e;
+            padding-left: 18px;
         }
-        
+
+        h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-top: 30px;
+            margin-bottom: 12px;
+        }
+
+        h4 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-top: 20px;
+            margin-bottom: 6px;
+        }
+
+        /* ===== SOMMAIRE ===== */
+        .sommaire {
+            background: #f8f6f2;
+            padding: 24px 30px;
+            border-radius: 10px;
+            margin: 30px 0 35px 0;
+            border: 1px solid #e6dfd6;
+        }
+
+        .sommaire ul {
+            columns: 2;
+            column-gap: 30px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sommaire li {
+            padding: 5px 0;
+            font-weight: 500;
+            color: #1a2a3a;
+            break-inside: avoid;
+        }
+
+        .sommaire li::before {
+            content: "▸ ";
+            color: #c9a96e;
+            font-weight: 700;
+        }
+
+        /* ===== TABLEAUX ===== */
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 16px 0;
-            font-size: 13px;
+            margin: 18px 0 25px 0;
+            font-size: 0.95rem;
         }
-        
-        table th {
-            background: #f1f5f9;
-            color: #2563eb;
-            padding: 12px 16px;
-            text-align: left;
-            font-weight: 700;
-            border-bottom: 2px solid #e2e8f0;
-        }
-        
-        table td {
-            padding: 10px 16px;
-            color: #475569;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        
-        table tr:hover td {
-            background: #f8fafc;
-        }
-        
-        .code-block {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 16px 20px;
-            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-            font-size: 12px;
-            color: #1e293b;
-            overflow-x: auto;
-            margin: 12px 0;
-        }
-        
-        .code-block .comment {
-            color: #94a3b8;
-        }
-        
-        .code-block .keyword {
-            color: #db2777;
-        }
-        
-        .code-block .string {
-            color: #d97706;
-        }
-        
-        .code-block .function {
-            color: #2563eb;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 14px;
-            border-radius: 20px;
-            font-size: 11px;
+
+        th {
+            background: #1a2a3a;
+            color: #fff;
             font-weight: 600;
+            padding: 12px 14px;
+            text-align: left;
         }
-        
-        .badge-green {
-            background: #d1fae5;
-            color: #065f46;
+
+        td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #e4dfd8;
+            vertical-align: top;
         }
-        
-        .badge-blue {
-            background: #dbeafe;
-            color: #1e40af;
+
+        tr:nth-child(even) td {
+            background: #faf8f5;
         }
-        
-        .badge-yellow {
-            background: #fef3c7;
-            color: #92400e;
+
+        tr:hover td {
+            background: #f3efe9;
         }
-        
-        .badge-purple {
-            background: #ede9fe;
-            color: #5b21b6;
+
+        .table-pilier th:first-child {
+            width: 8%;
         }
-        
-        .badge-red {
-            background: #fee2e2;
-            color: #991b1b;
+        .table-pilier th:nth-child(2) {
+            width: 32%;
         }
-        
-        .badge-cyan {
-            background: #cffafe;
-            color: #0e7490;
+        .table-pilier th:nth-child(3) {
+            width: 28%;
         }
-        
-        .footer {
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: #94a3b8;
+        .table-pilier th:nth-child(4) {
+            width: 32%;
         }
-        
-        .divider {
-            border: none;
-            height: 1px;
-            background: linear-gradient(to right, transparent, #e2e8f0, transparent);
-            margin: 30px 0;
+
+        .table-accroche th:first-child {
+            width: 8%;
         }
-        
-        .section-box {
-            padding: 16px 20px;
-            background: #f8fafc;
-            border-radius: 12px;
-            border-left: 3px solid #2563eb;
-            margin-top: 16px;
+        .table-accroche th:nth-child(2) {
+            width: 92%;
         }
-        
-        .section-box p {
-            margin: 0;
-            color: #475569;
-            font-size: 13px;
+
+        .table-format th:first-child {
+            width: 15%;
         }
-        
-        .section-box strong {
-            color: #2563eb;
+        .table-format th:nth-child(2) {
+            width: 25%;
         }
-        
-        .cover {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 80vh;
-            text-align: center;
+        .table-format th:nth-child(3) {
+            width: 40%;
         }
-        
-        .cover .logo-big {
-            font-size: 72px;
-            font-weight: 900;
-            color: #0f172a;
-            letter-spacing: -2px;
+        .table-format th:nth-child(4) {
+            width: 20%;
         }
-        
-        .cover .logo-big .blue {
-            color: #2563eb;
+
+        .table-kpi th:first-child {
+            width: 30%;
         }
-        
-        .cover .subtitle {
-            font-size: 22px;
-            color: #2563eb;
-            margin-top: 12px;
-            font-weight: 300;
-            letter-spacing: 2px;
+        .table-kpi th:nth-child(2) {
+            width: 30%;
         }
-        
-        .cover .description {
-            font-size: 16px;
-            color: #475569;
-            max-width: 600px;
-            margin: 16px auto;
+        .table-kpi th:nth-child(3) {
+            width: 40%;
         }
-        
-        .cover .divider-line {
-            width: 80px;
-            height: 2px;
-            background: linear-gradient(90deg, #2563eb, #3b82f6);
-            margin: 24px auto;
-            border-radius: 2px;
-        }
-        
-        .cover .version {
-            font-size: 13px;
-            color: #94a3b8;
-        }
-        
-        .cover .copyright {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 8px;
-        }
-        
-        .cover .badges {
-            display: flex;
+
+        /* ===== BLOCS SPÉCIAUX ===== */
+        .bloc-objectif {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 16px;
-            justify-content: center;
+            margin: 18px 0 25px 0;
+        }
+
+        .bloc-objectif-item {
+            background: #f8f6f2;
+            border-radius: 8px;
+            padding: 18px 16px;
+            border-top: 4px solid #c9a96e;
+        }
+
+        .bloc-objectif-item strong {
+            display: block;
+            font-size: 1.05rem;
+            color: #1a2a3a;
+            margin-bottom: 4px;
+        }
+
+        .bloc-objectif-item span {
+            font-size: 0.95rem;
+            color: #3d4d5d;
+        }
+
+        .bloc-accroche {
+            background: #faf8f5;
+            border-left: 5px solid #c9a96e;
+            padding: 14px 20px;
+            margin: 10px 0;
+            border-radius: 0 6px 6px 0;
+            font-style: italic;
+            color: #1a2a3a;
+        }
+
+        .highlight {
+            background: #faf6ed;
+            padding: 20px 25px;
+            border-radius: 10px;
+            border: 1px solid #e6dfd6;
+            margin: 25px 0;
+        }
+
+        .highlight strong {
+            color: #1a2a3a;
+        }
+
+        /* ===== LISTES ===== */
+        ul,
+        ol {
+            padding-left: 26px;
+            margin: 8px 0 14px 0;
+        }
+
+        li {
+            margin-bottom: 4px;
+        }
+
+        /* ===== EN-TÊTE CHORALE ===== */
+        .header-chorale {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             flex-wrap: wrap;
-            margin-top: 32px;
+            background: #1a2a3a;
+            color: #fff;
+            padding: 18px 24px;
+            border-radius: 10px;
+            margin: 10px 0 25px 0;
         }
-        
-        ul {
-            list-style: none;
-            padding: 0;
+
+        .header-chorale .nom {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
         }
-        
-        ul li {
-            padding: 6px 0;
-            border-bottom: 1px solid #f1f5f9;
-            color: #475569;
-            font-size: 13px;
+
+        .header-chorale .nom span {
+            color: #c9a96e;
         }
-        
-        ul li:last-child {
-            border-bottom: none;
+
+        .header-chorale .slogan {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            font-style: italic;
+            color: #c9a96e;
         }
-        
-        ul li .icon {
-            margin-right: 8px;
-        }
-        
-        .toc-item {
+
+        /* ===== PIED DE PAGE ===== */
+        .footer-doc {
+            margin-top: 45px;
+            padding-top: 22px;
+            border-top: 2px solid #e4dfd8;
+            font-size: 0.95rem;
+            color: #4a5a6a;
             display: flex;
             justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 14px;
-            color: #475569;
+            flex-wrap: wrap;
         }
-        
-        .toc-item:hover {
-            color: #0f172a;
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 800px) {
+            .document {
+                padding: 25px 20px;
+            }
+            h1 {
+                font-size: 2.0rem;
+            }
+            .sommaire ul {
+                columns: 1;
+            }
+            .bloc-objectif {
+                grid-template-columns: 1fr;
+            }
+            table {
+                font-size: 0.85rem;
+            }
+            th,
+            td {
+                padding: 8px 10px;
+            }
+            .table-pilier th:first-child,
+            .table-pilier th:nth-child(2),
+            .table-pilier th:nth-child(3),
+            .table-pilier th:nth-child(4) {
+                width: auto;
+            }
+            .header-chorale {
+                flex-direction: column;
+                text-align: center;
+                gap: 8px;
+            }
+            .header-chorale .nom {
+                font-size: 1.4rem;
+            }
+            .header-chorale .slogan {
+                font-size: 0.95rem;
+            }
         }
-        
-        .tip-box {
-            background: #dbeafe;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin: 12px 0;
-            border-left: 4px solid #2563eb;
-        }
-        
-        .tip-box .tip-icon {
-            font-size: 20px;
-            margin-right: 10px;
-        }
-        
-        .tip-box strong {
-            color: #2563eb;
-        }
-        
-        .warning-box {
-            background: #fef3c7;
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin: 12px 0;
-            border-left: 4px solid #d97706;
-        }
-        
-        .warning-box .warning-icon {
-            font-size: 20px;
-            margin-right: 10px;
-        }
-        
-        .warning-box strong {
-            color: #d97706;
-        }
-        
+
         @media print {
-            body { background: white; padding: 20px; }
-            .page { background: white; border: 1px solid #e2e8f0; box-shadow: none; padding: 30px; page-break-after: always; margin-bottom: 20px; }
-            .page::before, .page::after { display: none; }
-            .page:last-child { page-break-after: avoid; }
-            .header .logo { color: #1e293b; }
-            .header .logo span { color: #2563eb; }
-            .header .tagline { color: #94a3b8; }
-            .header .page-number { color: #cbd5e1; }
-            h1 { color: #0f172a; }
-            h1 .highlight { color: #2563eb; }
-            h2 { color: #2563eb; }
-            h3 { color: #1e293b; }
-            p { color: #475569; }
-            .card { background: #f8fafc; border-color: #e2e8f0; }
-            .card .title { color: #2563eb; }
-            .card .desc { color: #64748b; }
-            .card .value { color: #0f172a; }
-            table th { background: #f1f5f9; color: #2563eb; border-color: #e2e8f0; }
-            table td { color: #475569; border-color: #f1f5f9; }
-            .code-block { background: #f8fafc; border-color: #e2e8f0; color: #1e293b; }
-            .code-block .comment { color: #94a3b8; }
-            .code-block .keyword { color: #db2777; }
-            .code-block .string { color: #d97706; }
-            .code-block .function { color: #2563eb; }
-            .badge-green { background: #d1fae5; color: #065f46; }
-            .badge-blue { background: #dbeafe; color: #1e40af; }
-            .badge-yellow { background: #fef3c7; color: #92400e; }
-            .badge-purple { background: #ede9fe; color: #5b21b6; }
-            .badge-red { background: #fee2e2; color: #991b1b; }
-            .divider { background: linear-gradient(to right, transparent, #e2e8f0, transparent); }
-            .footer { color: #94a3b8; border-color: #e2e8f0; }
-            .section-box { background: #f8fafc; border-color: #2563eb; }
-            .section-box p { color: #475569; }
-            .cover .logo-big { color: #0f172a; }
-            .cover .logo-big .blue { color: #2563eb; }
-            .cover .subtitle { color: #2563eb; }
-            .cover .description { color: #475569; }
-            .cover .version { color: #94a3b8; }
-            .cover .copyright { color: #94a3b8; }
-            .cover .divider-line { background: #94a3b8; }
-            .toc-item { color: #475569; border-color: #f1f5f9; }
-            .toc-item:hover { color: #0f172a; }
-            ul li { color: #475569; border-color: #f1f5f9; }
-            .tip-box { background: #dbeafe; }
-            .warning-box { background: #fef3c7; }
-            .grid-2, .grid-3, .grid-4 { break-inside: avoid; }
-            .page { break-inside: avoid; }
-        }
-        
-        @media (max-width: 768px) {
-            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
-            body { padding: 16px; }
-            .page { padding: 24px; }
-            h1 { font-size: 28px; }
-            h2 { font-size: 20px; }
-            .cover .logo-big { font-size: 48px; }
-            .cover .subtitle { font-size: 18px; }
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .document {
+                box-shadow: none;
+                border-radius: 0;
+                padding: 30px 40px;
+            }
+            .bloc-objectif-item {
+                background: #f5f3ef !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            th {
+                background: #1a2a3a !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            tr:nth-child(even) td {
+                background: #faf8f5 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .sommaire {
+                background: #f8f6f2 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .highlight {
+                background: #faf6ed !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .bloc-accroche {
+                background: #faf8f5 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .header-chorale {
+                background: #1a2a3a !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            body > button {
+                display: none !important;
+            }
         }
     </style>
 </head>
 <body>
 
-<!-- ============================================================ -->
-<!-- PAGE 1 : COUVERTURE -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="cover">
-        <div class="logo-big">LOMETA<span class="blue">.</span></div>
-        <div class="subtitle">Logiciel de Management et d'Évaluation des Transports Automobiles</div>
-        <div class="divider-line"></div>
-        <p class="description">
-            Guide d'utilisation complet<br>
-            Gérez efficacement vos véhicules, contrats et assurances
+    <div class="document" id="document-pdf">
+
+        <!-- ===== TITRE ===== -->
+        <h1>📋 STRATÉGIE DE CONTENU SOCIALE COMPLÈTE</h1>
+        <div class="sous-titre">
+            <strong>CHONATE</strong> — Chœur de la Nativité d'Ekoumdoum &bull; Juillet 2026
+        </div>
+
+        <!-- ===== EN-TÊTE CHORALE ===== -->
+        <div class="header-chorale">
+            <div class="nom">🎵 <span>CHONATE</span></div>
+            <div class="slogan">« <em>Par ma voix, je loue le Seigneur</em> »</div>
+        </div>
+
+        <!-- ===== SOMMAIRE ===== -->
+        <div class="sommaire">
+            <h3 style="margin-top:0; border-left:none; padding-left:0;">📑 Sommaire</h3>
+            <ul>
+                <li>1. Introduction &amp; Objectifs Stratégiques</li>
+                <li>2. Les 8 Piliers Thématiques</li>
+                <li>3. Banque d'Accroches "Coup de Poing"</li>
+                <li>4. Formats Récurrents (Rendez-Vous Hebdomadaires)</li>
+                <li>5. Calendrier Éditorial Type (Mensuel)</li>
+                <li>6. Conseils de Production (Tournage &amp; Montage)</li>
+                <li>7. Métriques de Succès et Indicateurs</li>
+                <li>8. Annexes</li>
+            </ul>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- 1. INTRODUCTION -->
+        <!-- ============================================================ -->
+        <h2>1. Introduction &amp; Objectifs Stratégiques</h2>
+
+        <h3>Contexte</h3>
+        <p>
+            À l'ère du scroll infini, <strong>CHONATE</strong> (Chœur de la Nativité d'Ekoumdoum) possède un potentiel exceptionnel pour rayonner bien au-delà de sa paroisse. Ce document vise à transformer votre chorale en une <strong>marque de contenu</strong> authentique, moderne et spirituellement impactante, tout en restant fidèle à sa devise : <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.
         </p>
-        <div class="badges">
-            <span class="badge badge-green">✅ Guide utilisateur</span>
-            <span class="badge badge-blue">📖 Complet</span>
-            <span class="badge badge-yellow">📦 Modulaire</span>
-            <span class="badge badge-purple">🚀 Performance</span>
+
+        <h3>Objectifs Stratégiques pour CHONATE</h3>
+        <div class="bloc-objectif">
+            <div class="bloc-objectif-item"><strong>🎯 Attirer</strong><span>Toucher les 18-35 ans d'Ekoumdoum et des environs via TikTok, Reels et Shorts.</span></div>
+            <div class="bloc-objectif-item"><strong>🔥 Motiver</strong><span>Valoriser le travail des choristes de CHONATE et renforcer la cohésion d'équipe.</span></div>
+            <div class="bloc-objectif-item"><strong>🙏 Évangéliser</strong><span>Utiliser la musique comme vecteur de foi et de témoignage dans la cité.</span></div>
+            <div class="bloc-objectif-item"><strong>📢 Recruter</strong><span>Donner envie aux talents musicaux d'Ekoumdoum de rejoindre CHONATE.</span></div>
+            <div class="bloc-objectif-item"><strong>❤️ Fidéliser</strong><span>Créer une communauté engagée autour des contenus de CHONATE.</span></div>
         </div>
-        <div class="version">Version 1.0.0</div>
-        <div class="copyright">© 2026 Fearless Cybertech</div>
-        <div class="footer-text">Guide d'utilisation - Juillet 2026</div>
-    </div>
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 1</span>
-    </div>
-</div>
 
-<!-- ============================================================ -->
-<!-- PAGE 2 : SOMMAIRE -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 2</div>
-        </div>
-    </div>
-
-    <h1>📋 Sommaire</h1>
-    
-    <div style="max-width: 600px; margin: 20px 0;">
-        <div class="toc-item"><span>1. Présentation générale</span><span class="badge badge-blue">03</span></div>
-        <div class="toc-item"><span>2. Connexion et interface</span><span class="badge badge-blue">04</span></div>
-        <div class="toc-item"><span>3. Gestion des véhicules</span><span class="badge badge-blue">05</span></div>
-        <div class="toc-item"><span>4. Gestion des contrats</span><span class="badge badge-blue">07</span></div>
-        <div class="toc-item"><span>5. Gestion des garanties</span><span class="badge badge-blue">09</span></div>
-        <div class="toc-item"><span>6. Gestion des flottes</span><span class="badge badge-blue">10</span></div>
-        <div class="toc-item"><span>7. Gestion des clients</span><span class="badge badge-blue">11</span></div>
-        <div class="toc-item"><span>8. Paiements et échéances</span><span class="badge badge-blue">12</span></div>
-        <div class="toc-item"><span>9. Documents et impressions</span><span class="badge badge-blue">13</span></div>
-        <div class="toc-item"><span>10. Rapports et statistiques</span><span class="badge badge-blue">14</span></div>
-        <div class="toc-item"><span>11. Certification des modules</span><span class="badge badge-blue">15</span></div>
-        <div class="toc-item"><span>12. Raccourcis clavier</span><span class="badge badge-blue">16</span></div>
-    </div>
-
-    <div class="section-box">
-        <p>💡 <strong>LOMETA</strong> est une solution complète pour la gestion d'assurance automobile. Ce guide vous accompagne dans l'utilisation de toutes ses fonctionnalités.</p>
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 2</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 3 : PRÉSENTATION GÉNÉRALE -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 3</div>
-        </div>
-    </div>
-
-    <h1>📌 Présentation générale</h1>
-
-    <h2>Qu'est-ce que LOMETA ?</h2>
-    <p>
-        <strong>LOMETA</strong> (Logiciel de Management et d'Évaluation des Transports Automobiles) est une 
-        plateforme complète qui permet aux professionnels de l'assurance automobile de gérer l'ensemble 
-        de leurs opérations de manière centralisée et efficace.
-    </p>
-
-    <h2>🎯 Objectifs du logiciel</h2>
-    <div class="grid-3" style="margin: 16px 0;">
-        <div class="card">
-            <div class="icon">🏦</div>
-            <div class="title">Centralisation</div>
-            <div class="desc">Toutes vos données d'assurance rassemblées en un seul endroit : véhicules, contrats, clients, paiements et documents.</div>
-        </div>
-        <div class="card">
-            <div class="icon">⚙️</div>
-            <div class="title">Automatisation</div>
-            <div class="desc">Calcul automatique des primes, génération des documents et suivi des échéances sans intervention manuelle.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🔐</div>
-            <div class="title">Sécurité</div>
-            <div class="desc">Protection des données sensibles, authentification sécurisée et certification des modules pour garantir l'intégrité.</div>
-        </div>
-    </div>
-
-    <h2>👥 Profils utilisateurs</h2>
-    <div class="grid-4" style="margin: 16px 0;">
-        <div class="card">
-            <div class="icon">🏢</div>
-            <div class="title">Compagnies</div>
-            <div class="desc">Gestion des contrats, suivi des primes, gestion des sinistres et reporting.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🏪</div>
-            <div class="title">Agences</div>
-            <div class="desc">Création de devis, émission de contrats, suivi client et gestion des paiements.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🚛</div>
-            <div class="title">Gestionnaires de flottes</div>
-            <div class="desc">Supervision des véhicules d'entreprise, gestion des polices groupées et reporting.</div>
-        </div>
-        <div class="card">
-            <div class="icon">👤</div>
-            <div class="title">Particuliers</div>
-            <div class="desc">Gestion de ses véhicules, consultation des contrats et suivi des paiements.</div>
-        </div>
-    </div>
-
-    <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <strong>Astuce :</strong> LOMETA est conçu pour s'adapter à votre profil. Les fonctionnalités disponibles varient selon votre rôle (administrateur, agent, gestionnaire de flotte, etc.).
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 3</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 4 : CONNEXION ET INTERFACE -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 4</div>
-        </div>
-    </div>
-
-    <h1>🔑 Connexion et interface</h1>
-
-    <h2>Écran de connexion</h2>
-    <p>
-        Pour accéder à LOMETA, saisissez vos identifiants (email et mot de passe) dans l'écran de connexion. 
-        Si vous êtes un nouvel utilisateur, votre administrateur vous fournira vos accès.
-    </p>
-
-    <div class="tip-box">
-        <span class="tip-icon">🔐</span>
-        <strong>Sécurité :</strong> Si vous avez oublié votre mot de passe, utilisez le lien "Mot de passe oublié" pour recevoir un email de réinitialisation.
-    </div>
-
-    <h2>🖥️ Interface principale</h2>
-    <p>
-        Une fois connecté, vous arrivez sur le <strong>Tableau de bord</strong> qui vous donne une vue d'ensemble de votre activité :
-    </p>
-
-    <div style="background: #f8fafc; border-radius: 14px; padding: 20px; border: 1px solid #e2e8f0; margin: 12px 0;">
-        <h4>📊 Le tableau de bord affiche :</h4>
+        <h3>Cibles Prioritaires pour CHONATE</h3>
         <ul>
-            <li><strong>📈 Statistiques clés</strong> : Nombre de véhicules, contrats actifs, clients, primes totales, sinistres en cours.</li>
-            <li><strong>📋 Activités récentes</strong> : Les dernières actions effectuées (création de contrat, paiement, modification de véhicule).</li>
-            <li><strong>🔔 Notifications</strong> : Alertes sur les échéances proches, les contrats expirant, les paiements en attente.</li>
-            <li><strong>📊 Graphiques</strong> : Évolution des primes, répartition des garanties, tendances des sinistres.</li>
+            <li><strong>🎯 Jeunes fidèles d'Ekoumdoum (18-30 ans)</strong> — recherchent authenticité et modernité.</li>
+            <li><strong>🎯 Choristes en herbe de la région</strong> — veulent apprendre et progresser.</li>
+            <li><strong>🎯 Communauté paroissiale de la Nativité</strong> — souhaite voir les coulisses de CHONATE.</li>
+            <li><strong>🎯 Public non-croyant d'Ekoumdoum</strong> — peut être touché par l'humanité des témoignages.</li>
         </ul>
-    </div>
 
-    <h3>🧭 Navigation</h3>
-    <p>
-        La barre latérale gauche vous permet d'accéder aux différents modules :
-    </p>
-    <ul>
-        <li><strong>🏠 Tableau de bord</strong> - Vue d'ensemble et indicateurs clés</li>
-        <li><strong>🚗 Véhicules</strong> - Gestion du parc automobile</li>
-        <li><strong>📄 Contrats</strong> - Gestion des polices d'assurance</li>
-        <li><strong>👥 Clients</strong> - Gestion des contacts et clients</li>
-        <li><strong>🚛 Flottes</strong> - Gestion des flottes de véhicules</li>
-        <li><strong>💰 Paiements</strong> - Suivi des transactions et échéances</li>
-        <li><strong>📊 Rapports</strong> - Génération de rapports et statistiques</li>
-        <li><strong>⚙️ Paramètres</strong> - Configuration du compte et de l'application</li>
-    </ul>
-
-    <div class="tip-box">
-        <span class="tip-icon">⌨️</span>
-        <strong>Raccourcis :</strong> Utilisez les raccourcis clavier pour naviguer plus rapidement : <code>Ctrl+D</code> pour le tableau de bord, <code>Ctrl+F</code> pour la recherche, <code>F5</code> pour rafraîchir.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 4</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 5 : GESTION DES VÉHICULES -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 5</div>
-        </div>
-    </div>
-
-    <h1>🚗 Gestion des véhicules</h1>
-
-    <p>
-        Le module <strong>Véhicules</strong> est le cœur de LOMETA. Il permet d'enregistrer, de modifier et de suivre l'ensemble des véhicules assurés.
-    </p>
-
-    <h2>Ajouter un véhicule</h2>
-    <p>Pour ajouter un nouveau véhicule dans la base :</p>
-    <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-bottom: 12px;">
-        <li>Cliquez sur le bouton <strong>"+ Nouveau véhicule"</strong></li>
-        <li>Remplissez les informations obligatoires :</li>
-        <ul>
-            <li><strong>🔴 Immatriculation</strong> (obligatoire) - Plaque d'immatriculation du véhicule</li>
-            <li><strong>🔴 Marque et Modèle</strong> (obligatoires) - Ex: Toyota Hilux</li>
-            <li><strong>Châssis</strong> - Numéro de série (VIN)</li>
-            <li><strong>Année</strong> - Année de mise en circulation</li>
-            <li><strong>Puissance fiscale</strong> - En CV (chevaux fiscaux)</li>
-            <li><strong>Énergie</strong> - Essence, Diesel, Électrique, Hybride</li>
-            <li><strong>Nombre de places</strong> - Capacité du véhicule</li>
-            <li><strong>Valeur à neuf</strong> - Prix d'achat du véhicule</li>
-            <li><strong>Valeur vénale</strong> - Valeur actuelle estimée</li>
-            <li><strong>Catégorie</strong> - VP (Particulier), VU (Utilitaire), PL (Poids Lourd), etc.</li>
-            <li><strong>Zone tarifaire</strong> - A, B ou C selon la localisation</li>
-        </ul>
-        <li>Cliquez sur <strong>"Enregistrer"</strong> pour valider</li>
-    </ol>
-
-    <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <strong>Astuce :</strong> Si vous avez plusieurs véhicules à ajouter, utilisez la fonction d'<strong>importation en masse</strong> depuis un fichier Excel ou CSV.
-    </div>
-
-    <h2>🔍 Rechercher un véhicule</h2>
-    <p>
-        Utilisez la barre de recherche en haut de l'écran pour retrouver rapidement un véhicule par :
-    </p>
-    <ul>
-        <li><strong>Immatriculation</strong> (recherche partielle possible)</li>
-        <li><strong>Marque et modèle</strong></li>
-        <li><strong>Nom du propriétaire</strong></li>
-        <li><strong>Numéro de châssis</strong></li>
-    </ul>
-
-    <h2>📋 Fiche détaillée du véhicule</h2>
-    <p>
-        En cliquant sur un véhicule dans la liste, vous accédez à sa fiche détaillée qui regroupe :
-    </p>
-    <ul>
-        <li><strong>📋 Informations générales</strong> : Immatriculation, marque, modèle, année, énergie, puissance, places</li>
-        <li><strong>🛡️ Garanties</strong> : Liste des garanties souscrites avec leurs montants</li>
-        <li><strong>📄 Contrat</strong> : Détails du contrat d'assurance en cours</li>
-        <li><strong>💰 Finances</strong> : Historique des paiements, échéances, solde restant</li>
-        <li><strong>📊 Statistiques</strong> : Évolution des primes, sinistres, bonus/malus</li>
-        <li><strong>📁 Documents</strong> : Tous les documents associés (Carte Rose, attestation, etc.)</li>
-    </ul>
-
-    <div class="warning-box">
-        <span class="warning-icon">⚠️</span>
-        <strong>Important :</strong> Les informations du véhicule sont utilisées pour le calcul automatique des primes. Assurez-vous de les maintenir à jour (valeur vénale, date de mise en circulation, etc.).
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 5</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 6 : GESTION DES VÉHICULES (suite) -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 6</div>
-        </div>
-    </div>
-
-    <h1>🚗 Gestion des véhicules (suite)</h1>
-
-    <h2>📥 Importer des véhicules en masse</h2>
-    <p>
-        Pour importer plusieurs véhicules simultanément :
-    </p>
-    <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-bottom: 12px;">
-        <li>Cliquez sur le bouton <strong>"Importer"</strong></li>
-        <li>Téléchargez le <strong>modèle Excel</strong> fourni</li>
-        <li>Remplissez les colonnes avec vos données</li>
-        <li>Importez le fichier pour créer automatiquement tous les véhicules</li>
-    </ol>
-
-    <div class="tip-box">
-        <span class="tip-icon">📋</span>
-        <strong>Le modèle Excel comprend :</strong>
-        <ul style="margin-top: 6px;">
-            <li>Immatriculation (obligatoire)</li>
-            <li>Marque et Type (obligatoire)</li>
-            <li>Genre, Puissance en CV, Usage, Nombre de Places</li>
-            <li>Valeur Neuve, Valeur Venale, PMEC</li>
-            <li>Détails des garanties (RC/RTI, Vol, Incendie, DTA, etc.)</li>
-            <li>Primes et réductions</li>
-        </ul>
-    </div>
-
-    <h2>📊 Suivi du parc automobile</h2>
-    <p>
-        Le module Véhicules vous permet de suivre l'évolution de votre parc avec des indicateurs clés :
-    </p>
-    <ul>
-        <li><strong>🚗 Nombre total de véhicules</strong> - Vue d'ensemble du parc</li>
-        <li><strong>📅 Répartition par année</strong> - Âge moyen du parc</li>
-        <li><strong>🔋 Répartition par énergie</strong> - Essence, Diesel, Électrique</li>
-        <li><strong>🏷️ Répartition par catégorie</strong> - VP, VU, PL, etc.</li>
-        <li><strong>📄 Statut des contrats</strong> - Véhicules assurés vs non-assurés</li>
-    </ul>
-
-    <div class="section-box">
-        <p>📈 <strong>Indicateur clé :</strong> Le taux de renouvellement des contrats vous permet d'identifier les véhicules dont l'assurance arrive à échéance et de planifier les renouvellements.</p>
-    </div>
-
-    <h2>📁 Documents associés</h2>
-    <p>Pour chaque véhicule, vous pouvez gérer les documents suivants :</p>
-    <ul>
-        <li><strong>📄 Contrat d'assurance</strong> - PDF de la police</li>
-        <li><strong>🛡️ Attestation</strong> - Attestation d'assurance</li>
-        <li><strong>📊 Devis</strong> - Devis initial ou de renouvellement</li>
-        <li><strong>📋 Carte Rose</strong> - Document officiel d'assurance</li>
-        <li><strong>🎫 Vignette</strong> - Vignette à apposer sur le pare-brise</li>
-        <li><strong>🧾 Quittance</strong> - Preuve de paiement</li>
-    </ul>
-
-    <div class="warning-box">
-        <span class="warning-icon">⚠️</span>
-        <strong>Attention :</strong> La suppression d'un véhicule est définitive et supprime également ses contrats et documents associés. Utilisez plutôt la fonction "Désactiver" si le véhicule n'est plus assuré.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 6</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 7 : GESTION DES CONTRATS -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 7</div>
-        </div>
-    </div>
-
-    <h1>📄 Gestion des contrats</h1>
-
-    <p>
-        Le module <strong>Contrats</strong> permet de gérer l'ensemble des polices d'assurance, de la souscription au renouvellement.
-    </p>
-
-    <h2>Créer un contrat</h2>
-    <p>La création d'un contrat se fait en quelques étapes :</p>
-    <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-bottom: 12px;">
-        <li>Sélectionnez le <strong>véhicule</strong> à assurer</li>
-        <li>Choisissez la <strong>compagnie d'assurance</strong></li>
-        <li>Définissez la <strong>période</strong> de validité (date de début et date de fin)</li>
-        <li>Sélectionnez les <strong>garanties</strong> souhaitées</li>
-        <li>Indiquez les <strong>frais</strong> supplémentaires (accessoires, ASAC, carte rose, vignette)</li>
-        <li>Validez pour générer le <strong>numéro de police</strong> et le contrat</li>
-    </ol>
-
-    <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <strong>Astuce :</strong> Le contrat peut être créé à partir d'un devis existant. Le numéro de police est attribué automatiquement selon les paramètres de la compagnie.
-    </div>
-
-    <h2>📊 Suivi des contrats</h2>
-    <p>Chaque contrat dispose d'une fiche détaillée avec :</p>
-    <ul>
-        <li><strong>📋 Informations générales</strong> : Numéro de police, compagnie, périodes, statut</li>
-        <li><strong>🛡️ Garanties souscrites</strong> : Détail des garanties et leurs montants</li>
-        <li><strong>💰 Récapitulatif financier</strong> : Prime brute, réduction, prime nette, frais, PTTC</li>
-        <li><strong>💳 Historique des paiements</strong> : Toutes les transactions effectuées</li>
-        <li><strong>📅 Échéancier</strong> : Calendrier des paiements à venir</li>
-        <li><strong>📄 Documents</strong> : Tous les documents associés (contrat, avenants, etc.)</li>
-    </ul>
-
-    <h2>🔄 Renouvellement automatique</h2>
-    <p>
-        LOMETA gère le renouvellement des contrats de manière automatique :
-    </p>
-    <ul>
-        <li><strong>📅 30 jours avant l'échéance</strong> : Une notification est envoyée</li>
-        <li><strong>📅 15 jours avant l'échéance</strong> : Un rappel est affiché dans le tableau de bord</li>
-        <li><strong>📅 Jour de l'échéance</strong> : Le contrat est automatiquement renouvelé si la case "Renouvellement automatique" est cochée</li>
-        <li><strong>📅 Après l'échéance</strong> : Le contrat passe en statut "En attente" si non renouvelé</li>
-    </ul>
-
-    <div class="warning-box">
-        <span class="warning-icon">⚠️</span>
-        <strong>Important :</strong> Le renouvellement automatique n'engage pas automatiquement le paiement. Vous devez valider les conditions et procéder au paiement pour que le nouveau contrat soit effectif.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 7</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 8 : GESTION DES CONTRATS (suite) -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 8</div>
-        </div>
-    </div>
-
-    <h1>📄 Gestion des contrats (suite)</h1>
-
-    <h2>📊 États d'un contrat</h2>
-    <div style="background: #f8fafc; border-radius: 14px; padding: 16px; border: 1px solid #e2e8f0; margin: 12px 0;">
-        <table>
-            <tr><th>Statut</th><th>Description</th><th>Actions possibles</th></tr>
-            <tr><td><span class="badge badge-green">Actif</span></td><td>Contrat en cours de validité</td><td>Modifier, résilier, renouveler, imprimer</td></tr>
-            <tr><td><span class="badge badge-yellow">En attente</span></td><td>Contrat créé mais non validé</td><td>Valider, modifier, supprimer</td></tr>
-            <tr><td><span class="badge badge-red">Expiré</span></td><td>Contrat arrivé à échéance</td><td>Renouveler, archiver</td></tr>
-            <tr><td><span class="badge badge-purple">Résilié</span></td><td>Contrat résilié avant échéance</td><td>Archiver, voir historique</td></tr>
-            <tr><td><span class="badge badge-cyan">À renouveler</span></td><td>Contrat arrivant à échéance</td><td>Renouveler, modifier, voir détails</td></tr>
-        </table>
-    </div>
-
-    <h2>💳 Gestion des paiements</h2>
-    <p>
-        Chaque contrat est associé à un historique de paiements complet :
-    </p>
-    <ul>
-        <li><strong>📥 Paiement unique</strong> : Enregistrement d'un paiement ponctuel</li>
-        <li><strong>📅 Paiements échelonnés</strong> : Gestion des mensualités ou trimestrialités</li>
-        <li><strong>💳 Modes de paiement</strong> : Espèces, carte bancaire, virement, chèque, mobile money</li>
-        <li><strong>📄 Reçus</strong> : Génération automatique de reçus et quittances</li>
-        <li><strong>📊 Suivi</strong> : État des paiements, solde restant, historique des transactions</li>
-    </ul>
-
-    <div class="tip-box">
-        <span class="tip-icon">💰</span>
-        <strong>Conseil :</strong> Activez les notifications pour les échéances de paiement afin de ne jamais manquer un règlement. Le système vous alertera automatiquement.
-    </div>
-
-    <h2>📄 Documents contractuels</h2>
-    <p>Pour chaque contrat, vous pouvez générer et imprimer :</p>
-    <div class="grid-2" style="margin: 12px 0;">
-        <div class="card">
-            <div class="title">📄 Contrat d'assurance</div>
-            <div class="desc">Document complet de la police</div>
-        </div>
-        <div class="card">
-            <div class="title">🛡️ Attestation</div>
-            <div class="desc">Attestation d'assurance pour le conducteur</div>
-        </div>
-        <div class="card">
-            <div class="title">📋 Carte Rose</div>
-            <div class="desc">Document officiel à conserver dans le véhicule</div>
-        </div>
-        <div class="card">
-            <div class="title">🎫 Vignette</div>
-            <div class="desc">Vignette à apposer sur le pare-brise</div>
-        </div>
-        <div class="card">
-            <div class="title">🧾 Quittance</div>
-            <div class="desc">Preuve de paiement des primes</div>
-        </div>
-        <div class="card">
-            <div class="title">📊 Devis</div>
-            <div class="desc">Devis détaillé avec toutes les garanties</div>
-        </div>
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 8</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 9 : GESTION DES GARANTIES -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 9</div>
-        </div>
-    </div>
-
-    <h1>🛡️ Gestion des garanties</h1>
-
-    <p>
-        Le module <strong>Garanties</strong> vous permet de configurer et de suivre l'ensemble des garanties proposées pour les contrats d'assurance automobile.
-    </p>
-
-    <h2>📋 Types de garanties</h2>
-    <div class="grid-3" style="margin: 16px 0;">
-        <div class="card">
-            <div class="icon">🛡️</div>
-            <div class="title">RC - Responsabilité Civile</div>
-            <div class="desc">Garantie obligatoire qui couvre les dommages causés à des tiers par le véhicule assuré. C'est la base de tout contrat d'assurance automobile.</div>
-        </div>
-        <div class="card">
-            <div class="icon">⚖️</div>
-            <div class="title">DR - Défense et Recours</div>
-            <div class="desc">Protège l'assuré en cas de litige, en prenant en charge les frais de défense juridique suite à un accident.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🚗</div>
-            <div class="title">VOL - Vol du véhicule</div>
-            <div class="desc">Indemnise l'assuré en cas de vol total ou partiel du véhicule. Le montant dépend de la valeur vénale du véhicule.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🔫</div>
-            <div class="title">VB - Vol à main armée</div>
-            <div class="desc">Garantie spécifique pour les vols avec violence, offrant une protection renforcée contre ce type de sinistre.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🔥</div>
-            <div class="title">Incendie</div>
-            <div class="desc">Couvre les dommages causés par un incendie, qu'il soit d'origine accidentelle ou criminelle.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🪟</div>
-            <div class="title">Bris de glaces</div>
-            <div class="desc">Prend en charge le remplacement des vitres et pare-brise endommagés, sans franchise dans la plupart des cas.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🔧</div>
-            <div class="title">AR - Assistance Réparation</div>
-            <div class="desc">Garantie qui couvre les frais de réparation en cas de panne ou d'accident, avec une assistance 24h/24.</div>
-        </div>
-        <div class="card">
-            <div class="icon">💥</div>
-            <div class="title">DTA - Dommages Tous Accidents</div>
-            <div class="desc">Garantie complète qui couvre tous les dommages au véhicule, quel que soit le responsable de l'accident.</div>
-        </div>
-        <div class="card">
-            <div class="icon">👥</div>
-            <div class="title">IPT - Individuelle Personnes Transportées</div>
-            <div class="desc">Protège les passagers transportés par le véhicule, en cas de dommages corporels.</div>
-        </div>
-    </div>
-
-    <h2>⚙️ Configuration des garanties</h2>
-    <p>
-        Pour chaque contrat, vous pouvez sélectionner les garanties souhaitées et configurer :
-    </p>
-    <ul>
-        <li><strong>Montant de la garantie</strong> : Valeur assurée pour chaque garantie</li>
-        <li><strong>Réductions</strong> : Pourcentage de réduction applicable (ex: -10% sur RC, -50% sur Vol)</li>
-        <li><strong>Franchises</strong> : Montant restant à la charge de l'assuré en cas de sinistre</li>
-        <li><strong>Options spécifiques</strong> : Personnalisation selon les besoins du client</li>
-    </ul>
-
-    <div class="tip-box">
-        <span class="tip-icon">💰</span>
-        <strong>Conseil :</strong> Le calcul des primes est automatique. Vous pouvez appliquer des réductions en masse sur les garanties sélectionnées via la fonction "Réduction en masse" dans le tableau des véhicules.
-    </div>
-
-    <div class="warning-box">
-        <span class="warning-icon">⚠️</span>
-        <strong>Important :</strong> La RC (Responsabilité Civile) est obligatoire. Les autres garanties sont optionnelles mais fortement recommandées pour une protection complète.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 9</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 10 : GESTION DES FLOTTES -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 10</div>
-        </div>
-    </div>
-
-    <h1>🚛 Gestion des flottes</h1>
-
-    <p>
-        Le module <strong>Flottes</strong> permet de regrouper et de gérer plusieurs véhicules appartenant à une même entreprise ou organisation.
-    </p>
-
-    <h2>📋 Qu'est-ce qu'une flotte ?</h2>
-    <p>
-        Une flotte est un ensemble de véhicules gérés de manière groupée. Cela permet de :
-    </p>
-    <ul>
-        <li><strong>Centraliser</strong> les informations de tous les véhicules</li>
-        <li><strong>Simplifier</strong> la gestion des contrats d'assurance</li>
-        <li><strong>Optimiser</strong> les coûts avec des tarifs préférentiels</li>
-        <li><strong>Suivre</strong> globalement les échéances et les paiements</li>
-        <li><strong>Générer</strong> des rapports consolidés par flotte</li>
-    </ul>
-
-    <h2>🚀 Créer une flotte</h2>
-    <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-bottom: 12px;">
-        <li>Cliquez sur <strong>"+ Nouvelle flotte"</strong></li>
-        <li>Saisissez le <strong>nom</strong> et le <strong>code</strong> de la flotte</li>
-        <li>Sélectionnez le <strong>propriétaire</strong> (le contact associé)</li>
-        <li>Choisissez l'<strong>assureur</strong> (compagnie d'assurance)</li>
-        <li>Définissez la <strong>période</strong> de validité</li>
-        <li>Ajoutez les <strong>véhicules</strong> à la flotte</li>
-        <li>Validez pour créer la flotte</li>
-    </ol>
-
-    <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <strong>Astuce :</strong> Vous pouvez importer une flotte complète depuis un fichier Excel. Utilisez la fonction <strong>"Importer"</strong> pour charger plusieurs véhicules en une seule fois.
-    </div>
-
-    <h2>📥 Importer une flotte</h2>
-    <p>
-        L'importation de flotte est une fonctionnalité avancée qui permet de :
-    </p>
-    <ul>
-        <li><strong>Charger</strong> un fichier Excel ou CSV contenant tous les véhicules</li>
-        <li><strong>Calculer automatiquement</strong> les garanties pour chaque véhicule</li>
-        <li><strong>Appliquer</strong> des réductions en masse sur les garanties</li>
-        <li><strong>Générer</strong> les contrats pour tous les véhicules de la flotte</li>
-        <li><strong>Vérifier</strong> les données avant l'importation définitive</li>
-    </ul>
-
-    <div class="section-box">
-        <p>📋 <strong>Le tableau d'importation affiche :</strong> Imm. matriculation, Marque, Type, Genre, Puissance, Usage, Places, PMEC, Valeurs, Détail des garanties, Primes, et une colonne d'actions pour modifier chaque véhicule.</p>
-    </div>
-
-    <h2>📊 Suivi des flottes</h2>
-    <p>
-        La fiche détaillée d'une flotte vous permet de :
-    </p>
-    <ul>
-        <li><strong>Voir</strong> tous les véhicules de la flotte</li>
-        <li><strong>Gérer</strong> les contrats de chaque véhicule</li>
-        <li><strong>Suivre</strong> les échéances globales</li>
-        <li><strong>Générer</strong> des rapports consolidés</li>
-        <li><strong>Exporter</strong> les données de la flotte</li>
-    </ul>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 10</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 11 : GESTION DES CLIENTS -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 11</div>
-        </div>
-    </div>
-
-    <h1>👥 Gestion des clients</h1>
-
-    <p>
-        Le module <strong>Clients</strong> (ou Contacts) permet de gérer l'ensemble des personnes et entreprises liées à vos contrats d'assurance.
-    </p>
-
-    <h2>📋 Qui sont les clients ?</h2>
-    <p>
-        Un client peut être :
-    </p>
-    <ul>
-        <li><strong>Un particulier</strong> : Personne physique assurant son véhicule personnel</li>
-        <li><strong>Une entreprise</strong> : Personne morale assurant ses véhicules de société</li>
-        <li><strong>Un gestionnaire de flotte</strong> : Professionnel gérant plusieurs véhicules</li>
-        <li><strong>Un courtier</strong> : Intermédiaire entre l'assuré et la compagnie</li>
-    </ul>
-
-    <h2>➕ Ajouter un client</h2>
-    <p>Pour créer un nouveau client dans la base :</p>
-    <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-bottom: 12px;">
-        <li>Cliquez sur <strong>"Nouveau client"</strong> ou <strong>"Nouveau contact"</strong></li>
-        <li>Remplissez les informations d'identité :</li>
-        <ul>
-            <li><strong>Nom et prénom</strong> (ou raison sociale)</li>
-            <li><strong>Date de naissance</strong> (pour les particuliers)</li>
-            <li><strong>Nationalité</strong></li>
-            <li><strong>Numéro contribuable</strong> (si disponible)</li>
-            <li><strong>Catégorie socio-professionnelle</strong></li>
-        </ul>
-        <li>Ajoutez les coordonnées :</li>
-        <ul>
-            <li><strong>Téléphone</strong> (principal et portable)</li>
-            <li><strong>Email</strong> (principal et secondaire)</li>
-            <li><strong>Adresse postale</strong> et <strong>ville</strong></li>
-            <li><strong>Numéro de permis de conduire</strong></li>
-        </ul>
-        <li>Précisez le <strong>type de client</strong> et le <strong>statut VIP</strong> si applicable</li>
-        <li>Attribuez un <strong>chargé de clientèle</strong></li>
-        <li>Validez pour enregistrer le client</li>
-    </ol>
-
-    <h2>📊 Fiche détaillée du client</h2>
-    <p>
-        La fiche client regroupe toutes les informations et activités liées à ce contact :
-    </p>
-    <ul>
-        <li><strong>👤 Informations personnelles</strong> : Identité, coordonnées, documents</li>
-        <li><strong>📄 Contrats</strong> : Tous les contrats d'assurance du client</li>
-        <li><strong>🚗 Véhicules</strong> : Tous les véhicules associés au client</li>
-        <li><strong>🚛 Flottes</strong> : Les flottes dont le client est propriétaire</li>
-        <li><strong>📎 Documents</strong> : Tous les documents liés au client</li>
-        <li><strong>📊 Statistiques</strong> : Primes totales, nombre de contrats, historique</li>
-    </ul>
-
-    <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <strong>Astuce :</strong> Utilisez les badges "Type de client" et "Statut VIP" pour identifier rapidement vos clients prioritaires et adapter votre suivi.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 11</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 12 : PAIEMENTS ET ÉCHÉANCES -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 12</div>
-        </div>
-    </div>
-
-    <h1>💰 Paiements et échéances</h1>
-
-    <p>
-        Le module <strong>Paiements</strong> vous permet de suivre l'ensemble des transactions financières liées aux contrats d'assurance.
-    </p>
-
-    <h2>💳 Enregistrer un paiement</h2>
-    <p>Pour enregistrer un paiement sur un contrat :</p>
-    <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-bottom: 12px;">
-        <li>Ouvrez la fiche du <strong>contrat</strong> concerné</li>
-        <li>Dans la section <strong>"Paiements"</strong>, cliquez sur "Nouveau paiement"</li>
-        <li>Saisissez le <strong>montant</strong> versé</li>
-        <li>Choisissez le <strong>mode de paiement</strong> :</li>
-        <ul>
-            <li><strong>Espèces</strong></li>
-            <li><strong>Carte bancaire</strong></li>
-            <li><strong>Virement</strong></li>
-            <li><strong>Chèque</strong></li>
-            <li><strong>Orange Money</strong></li>
-            <li><strong>MTN Mobile Money</strong></li>
-        </ul>
-        <li>Ajoutez une <strong>note</strong> si nécessaire</li>
-        <li>Validez pour enregistrer le paiement</li>
-    </ol>
-
-    <div class="tip-box">
-        <span class="tip-icon">📋</span>
-        <strong>Automatisation :</strong> Un reçu est automatiquement généré pour chaque paiement. Vous pouvez l'imprimer ou l'envoyer par email au client.
-    </div>
-
-    <h2>📊 Suivi des échéances</h2>
-    <p>
-        LOMETA vous aide à ne jamais manquer une échéance de paiement :
-    </p>
-    <ul>
-        <li><strong>📅 Visualisation</strong> : Calendrier des paiements à venir</li>
-        <li><strong>🔔 Notifications</strong> : Alertes 30 jours, 15 jours et 7 jours avant l'échéance</li>
-        <li><strong>📊 État des paiements</strong> : Statut des paiements (en attente, partiel, complet)</li>
-        <li><strong>💳 Solde restant</strong> : Affichage clair du montant restant à payer</li>
-    </ul>
-
-    <div class="section-box">
-        <p>📊 <strong>Indicateur clé :</strong> Le taux de recouvrement vous permet de mesurer l'efficacité de votre gestion des paiements et d'identifier les retards.</p>
-    </div>
-
-    <h2>📄 Documents financiers</h2>
-    <p>Pour chaque paiement, vous pouvez générer :</p>
-    <ul>
-        <li><strong>🧾 Reçu de paiement</strong> : Preuve de la transaction</li>
-        <li><strong>📊 Quittance</strong> : Document officiel de paiement de la prime</li>
-        <li><strong>📋 Relevé de compte</strong> : Historique complet des transactions</li>
-        <li><strong>📄 Facture</strong> : Pour les paiements professionnels</li>
-    </ul>
-
-    <div class="warning-box">
-        <span class="warning-icon">⚠️</span>
-        <strong>Important :</strong> Un contrat non payé à échéance est automatiquement suspendu. Assurez-vous de valider les paiements dans les délais pour maintenir la couverture d'assurance.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 12</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 13 : DOCUMENTS ET IMPRESSIONS -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 13</div>
-        </div>
-    </div>
-
-    <h1>📁 Documents et impressions</h1>
-
-    <p>
-        LOMETA intègre un module complet de génération et d'impression de documents pour tous vos besoins administratifs.
-    </p>
-
-    <h2>🖨️ Types de documents disponibles</h2>
-    <div class="grid-3" style="margin: 16px 0;">
-        <div class="card">
-            <div class="icon">📄</div>
-            <div class="title">Contrat d'assurance</div>
-            <div class="desc">Document complet de la police avec toutes les garanties et conditions. Format PDF imprimable.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🛡️</div>
-            <div class="title">Attestation</div>
-            <div class="desc">Attestation d'assurance officielle à fournir en cas de contrôle. Contient les informations essentielles du contrat.</div>
-        </div>
-        <div class="card">
-            <div class="icon">📋</div>
-            <div class="title">Carte Rose</div>
-            <div class="desc">Document officiel à conserver dans le véhicule. Format papier A4 avec toutes les mentions légales.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🎫</div>
-            <div class="title">Vignette</div>
-            <div class="desc">Vignette à apposer sur le pare-brise. Format adapté avec logo et numéro de police.</div>
-        </div>
-        <div class="card">
-            <div class="icon">🧾</div>
-            <div class="title">Quittance</div>
-            <div class="desc">Preuve de paiement de la prime d'assurance. Utile pour justifier le règlement.</div>
-        </div>
-        <div class="card">
-            <div class="icon">📊</div>
-            <div class="title">Devis</div>
-            <div class="desc">Devis détaillé avec toutes les garanties, leurs montants et les conditions. Parfait pour les propositions commerciales.</div>
-        </div>
-    </div>
-
-    <h2>📤 Impression et export</h2>
-    <p>
-        Pour chaque document, vous avez plusieurs options :
-    </p>
-    <ul>
-        <li><strong>🖨️ Impression directe</strong> : Envoyer le document vers votre imprimante</li>
-        <li><strong>📄 Export PDF</strong> : Sauvegarder le document au format PDF</li>
-        <li><strong>📧 Envoi par email</strong> : Envoyer le document directement au client</li>
-        <li><strong>📥 Téléchargement</strong> : Télécharger le document sur votre ordinateur</li>
-    </ul>
-
-    <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <strong>Astuce :</strong> Utilisez l'<strong>impression groupée</strong> pour générer plusieurs documents en une seule fois. Sélectionnez plusieurs véhicules et choisissez le document à imprimer.
-    </div>
-
-    <h2>📋 Gestion des documents</h2>
-    <p>
-        Tous les documents générés sont automatiquement archivés dans le système et accessibles à tout moment :
-    </p>
-    <ul>
-        <li><strong>📁 Historique</strong> : Tous les documents générés pour chaque véhicule</li>
-        <li><strong>🔍 Recherche</strong> : Retrouvez un document par date, type ou numéro de police</li>
-        <li><strong>📤 Export</strong> : Téléchargez les documents en lot ou individuellement</li>
-        <li><strong>🗑️ Gestion</strong> : Supprimez les documents obsolètes</li>
-    </ul>
-
-    <div class="section-box">
-        <p>📋 <strong>Note :</strong> Les documents sont générés avec vos informations de compagnie (logo, adresse, coordonnées). Personnalisez les modèles dans les paramètres de l'application.</p>
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 13</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 14 : RAPPORTS ET STATISTIQUES -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 14</div>
-        </div>
-    </div>
-
-    <h1>📊 Rapports et statistiques</h1>
-
-    <p>
-        Le module <strong>Rapports</strong> vous permet d'analyser en profondeur vos données et de prendre des décisions éclairées.
-    </p>
-
-    <h2>📈 Tableaux de bord</h2>
-    <p>
-        Le tableau de bord principal vous offre une vue d'ensemble de votre activité avec :
-    </p>
-    <ul>
-        <li><strong>📊 Indicateurs clés (KPI)</strong> : Nombre de véhicules, contrats actifs, primes totales, clients, sinistres</li>
-        <li><strong>📈 Graphiques</strong> : Évolution des primes, répartition des garanties, tendances des sinistres</li>
-        <li><strong>📋 Activités récentes</strong> : Dernières actions effectuées dans le système</li>
-        <li><strong>🔔 Notifications</strong> : Alertes sur les échéances et événements importants</li>
-    </ul>
-
-    <h2>📊 Rapports personnalisés</h2>
-    <p>
-        Vous pouvez générer des rapports personnalisés selon vos besoins :
-    </p>
-    <div class="grid-2" style="margin: 12px 0;">
-        <div class="card">
-            <div class="title">📄 Rapports de véhicules</div>
-            <div class="desc">Liste complète des véhicules avec toutes leurs caractéristiques, garanties et statut des contrats.</div>
-        </div>
-        <div class="card">
-            <div class="title">📄 Rapports de contrats</div>
-            <div class="desc">Récapitulatif des contrats en cours, expirés, à renouveler, avec les primes et les paiements.</div>
-        </div>
-        <div class="card">
-            <div class="title">📄 Rapports clients</div>
-            <div class="desc">Analyse de la clientèle : répartition par type, ancienneté, primes totales, fidélité.</div>
-        </div>
-        <div class="card">
-            <div class="title">📄 Rapports financiers</div>
-            <div class="desc">Suivi des paiements, échéances, impayés, avec des indicateurs de performance.</div>
-        </div>
-        <div class="card">
-            <div class="title">📄 Rapports de flottes</div>
-            <div class="desc">Analyse consolidée par flotte : nombre de véhicules, primes totales, performance.</div>
-        </div>
-        <div class="card">
-            <div class="title">📄 Rapports de sinistres</div>
-            <div class="desc">Historique des sinistres, fréquence, coût moyen, tendances par type de garantie.</div>
-        </div>
-    </div>
-
-    <h2>📤 Export des rapports</h2>
-    <p>
-        Tous les rapports peuvent être exportés dans différents formats :
-    </p>
-    <ul>
-        <li><strong>📄 PDF</strong> : Pour une impression professionnelle</li>
-        <li><strong>📊 Excel</strong> : Pour une analyse poussée des données</li>
-        <li><strong>📋 CSV</strong> : Pour une intégration avec d'autres outils</li>
-        <li><strong>🖨️ Impression</strong> : Envoi direct vers l'imprimante</li>
-    </ul>
-
-    <div class="tip-box">
-        <span class="tip-icon">💡</span>
-        <strong>Astuce :</strong> Programmez l'envoi automatique de rapports périodiques (mensuels, trimestriels) à vos équipes ou à vos clients pour un suivi continu.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 14</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 15 : CERTIFICATION DES MODULES -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 15</div>
-        </div>
-    </div>
-
-    <h1>🔐 Certification des modules</h1>
-
-    <p>
-        La certification des modules est un mécanisme de sécurité qui garantit l'intégrité et l'authenticité des modules installés dans LOMETA.
-    </p>
-
-    <h2>📋 Qu'est-ce qu'un module certifié ?</h2>
-    <p>
-        Un module certifié est un module qui a été <strong>signé numériquement</strong> par une autorité de confiance (LOMETA ou un éditeur certifié). La certification garantit que :
-    </p>
-    <ul>
-        <li><strong>✅ Intégrité</strong> : Le module n'a pas été modifié après sa certification</li>
-        <li><strong>✅ Authenticité</strong> : Le module provient bien de l'éditeur annoncé</li>
-        <li><strong>✅ Sécurité</strong> : Le module ne contient pas de code malveillant</li>
-        <li><strong>✅ Compatibilité</strong> : Le module est compatible avec votre version de LOMETA</li>
-    </ul>
-
-    <h2>🔍 Comment vérifier la certification d'un module ?</h2>
-    <p>
-        Pour vérifier qu'un module est certifié :
-    </p>
-    <ol style="color: #475569; font-size: 14px; padding-left: 20px; margin-bottom: 12px;">
-        <li>Ouvrez le dossier du module dans l'interface de LOMETA</li>
-        <li>Recherchez le fichier <strong>certificate.json</strong> à la racine du module</li>
-        <li>Vérifiez la présence du badge <span class="badge badge-green">✅ Certifié</span> dans l'interface</li>
-        <li>Consultez les détails du certificat :</li>
-        <ul>
-            <li><strong>Nom du module</strong></li>
-            <li><strong>Version</strong></li>
-            <li><strong>Certifié par</strong> (LOMETA ou l'éditeur)</li>
-            <li><strong>ID de certification</strong></li>
-            <li><strong>Date de certification</strong></li>
-        </ul>
-    </ol>
-
-    <div class="tip-box">
-        <span class="tip-icon">🔐</span>
-        <strong>Sécurité :</strong> Un module certifié affiche un badge vert dans l'interface. En cas de doute, vous pouvez vérifier manuellement la signature du certificat.
-    </div>
-
-    <h2>🔧 Gestion des certificats</h2>
-    <p>
-        LOMETA intègre un gestionnaire de certificats qui vous permet de :
-    </p>
-    <ul>
-        <li><strong>📋 Voir</strong> la liste de tous les certificats émis</li>
-        <li><strong>🔍 Vérifier</strong> la validité d'un certificat</li>
-        <li><strong>❌ Révoquer</strong> un certificat (si le module est compromis)</li>
-        <li><strong>📄 Exporter</strong> les certificats pour audit</li>
-    </ul>
-
-    <div class="section-box">
-        <p>💡 <strong>Bon à savoir :</strong> La certification des modules est optionnelle mais fortement recommandée pour garantir la sécurité de votre système. Les modules certifiés sont prioritaires lors des mises à jour.</p>
-    </div>
-
-    <h2>📋 Commandes de certification</h2>
-    <p>Pour les administrateurs, voici les commandes disponibles :</p>
-    <ul>
-        <li><strong>Setup</strong> : Configurer les clés de certification</li>
-        <li><strong>Certify</strong> : Certifier un module (--module /chemin)</li>
-        <li><strong>Verify</strong> : Vérifier un module certifié (--module /chemin)</li>
-        <li><strong>List</strong> : Lister tous les certificats émis</li>
-        <li><strong>Revoke</strong> : Révoquer un certificat (--id CERT_ID)</li>
-    </ul>
-
-    <div class="warning-box">
-        <span class="warning-icon">⚠️</span>
-        <strong>Important :</strong> N'installez jamais un module non certifié sur votre système. Les modules non certifiés peuvent compromettre la sécurité de vos données.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 15</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 16 : RACCOURCIS CLAVIER -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 16</div>
-        </div>
-    </div>
-
-    <h1>⌨️ Raccourcis clavier</h1>
-
-    <p>
-        Pour gagner en efficacité, LOMETA propose de nombreux raccourcis clavier. Voici la liste complète :
-    </p>
-
-    <h2>🖥️ Navigation générale</h2>
-    <div style="background: #f8fafc; border-radius: 14px; padding: 16px; border: 1px solid #e2e8f0; margin: 12px 0;">
-        <table>
-            <tr><th>Raccourci</th><th>Action</th></tr>
-            <tr><td><code>Ctrl + D</code></td><td>Retour au tableau de bord</td></tr>
-            <tr><td><code>Ctrl + F</code></td><td>Activer la recherche</td></tr>
-            <tr><td><code>F5</code></td><td>Rafraîchir les données</td></tr>
-            <tr><td><code>F11</code></td><td>Basculer en plein écran</td></tr>
-            <tr><td><code>Ctrl + Q</code></td><td>Quitter l'application</td></tr>
-            <tr><td><code>Ctrl + W</code></td><td>Fermer l'onglet actif</td></tr>
-            <tr><td><code>Ctrl + Tab</code></td><td>Naviguer entre les onglets</td></tr>
-        </table>
-    </div>
-
-    <h2>📋 Gestion des données</h2>
-    <div style="background: #f8fafc; border-radius: 14px; padding: 16px; border: 1px solid #e2e8f0; margin: 12px 0;">
-        <table>
-            <tr><th>Raccourci</th><th>Action</th></tr>
-            <tr><td><code>Ctrl + N</code></td><td>Créer un nouvel élément (véhicule, contrat, client)</td></tr>
-            <tr><td><code>Ctrl + S</code></td><td>Sauvegarder les modifications</td></tr>
-            <tr><td><code>Ctrl + E</code></td><td>Modifier l'élément sélectionné</td></tr>
-            <tr><td><code>Suppr</code></td><td>Supprimer l'élément sélectionné</td></tr>
-            <tr><td><code>Ctrl + Z</code></td><td>Annuler la dernière action</td></tr>
-            <tr><td><code>Ctrl + Shift + Z</code></td><td>Rétablir l'action annulée</td></tr>
-        </table>
-    </div>
-
-    <h2>🖨️ Impression et export</h2>
-    <div style="background: #f8fafc; border-radius: 14px; padding: 16px; border: 1px solid #e2e8f0; margin: 12px 0;">
-        <table>
-            <tr><th>Raccourci</th><th>Action</th></tr>
-            <tr><td><code>Ctrl + P</code></td><td>Imprimer le document en cours</td></tr>
-            <tr><td><code>Ctrl + Shift + P</code></td><td>Exporter en PDF</td></tr>
-            <tr><td><code>Ctrl + Shift + E</code></td><td>Exporter en Excel</td></tr>
-        </table>
-    </div>
-
-    <h2>🔍 Recherche et filtres</h2>
-    <div style="background: #f8fafc; border-radius: 14px; padding: 16px; border: 1px solid #e2e8f0; margin: 12px 0;">
-        <table>
-            <tr><th>Raccourci</th><th>Action</th></tr>
-            <tr><td><code>Ctrl + F</code></td><td>Ouvrir la recherche</td></tr>
-            <tr><td><code>Escape</code></td><td>Fermer la recherche</td></tr>
-            <tr><td><code>Enter</code></td><td>Valider la recherche</td></tr>
-            <tr><td><code>F3</code></td><td>Rechercher suivant</td></tr>
-            <tr><td><code>Shift + F3</code></td><td>Rechercher précédent</td></tr>
-        </table>
-    </div>
-
-    <h2>💡 Conseils d'utilisation</h2>
-    <div class="tip-box">
-        <span class="tip-icon">⌨️</span>
-        <strong>Productivité :</strong> Utilisez les raccourcis clavier pour naviguer plus rapidement et gagner en efficacité. Les combinaisons sont intuitives et faciles à mémoriser.
-    </div>
-    <div class="tip-box">
-        <span class="tip-icon">🎯</span>
-        <strong>Personnalisation :</strong> Vous pouvez personnaliser certains raccourcis dans les paramètres de l'application pour les adapter à vos habitudes.
-    </div>
-
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 16</span>
-    </div>
-</div>
-
-<!-- ============================================================ -->
-<!-- PAGE 17 : CONCLUSION -->
-<!-- ============================================================ -->
-<div class="page">
-    <div class="header">
-        <div class="logo">LOMETA<span>.</span></div>
-        <div>
-            <div class="tagline">Guide d'utilisation</div>
-            <div class="page-number">Page 17</div>
-        </div>
-    </div>
-
-    <h1>🎯 Conclusion</h1>
-
-    <div style="text-align: center; margin: 30px 0;">
-        <div style="font-size: 60px;">🚀</div>
-        <p style="font-size: 20px; font-weight: 700; color: #2563eb; margin: 10px 0;">
-            LOMETA
+        <!-- ============================================================ -->
+        <!-- 2. LES 8 PILIERS -->
+        <!-- ============================================================ -->
+        <h2>2. Les 8 Piliers Thématiques — <span class="nom-chorale">CHONATE</span></h2>
+        <p style="margin-bottom:20px; font-style:italic; color:#4a5a6a;">
+            <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span> — Chaque contenu est une occasion de porter la louange.
         </p>
-        <p style="font-size: 16px; color: #475569;">
-            Logiciel de Management et d'Évaluation des Transports Automobiles
+
+        <!-- ---- PILIER 1 ---- -->
+        <h3>🎵 Pilier 1 — Les Coulisses et le "Bordel" Technique de CHONATE</h3>
+        <p><em>Montrer que chanter pour Dieu à CHONATE demande de la rigueur, de la technique et beaucoup de travail. Sortir du mythe du "on vient juste chanter".</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« Le déchiffrage d'un chant à CHONATE vs La paresse du dimanche »</td><td>Le travail de l'ombre avant la perfection dominicale</td><td>• Répétitions par pupitre • Pourquoi chanter faux à la répétition est obligatoire • Les heures cachées derrière 3 minutes de chant</td></tr>
+                <tr><td>2</td><td>« Quand le maestro de CHONATE change le tempo en plein direct »</td><td>L'improvisation et la connexion chef-choristes</td><td>• Décoder les gestes secrets du maestro • Réaction quand un soliste rate son entrée • Le regard du chef qui dit "Suivez-moi"</td></tr>
+                <tr><td>3</td><td>« Le technicien son : le 5ème pupitre invisible de CHONATE »</td><td>L'importance de la technique audio</td><td>• Pourquoi un mauvais micro gâche tout • Le stress des balances à 10 minutes du début • L'ingénieur son, héros méconnu</td></tr>
+                <tr><td>4</td><td>« Le crash-test à CHONATE : Quand l'électricité coupe en plein cantique »</td><td>Gestion des imprévus techniques</td><td>• Le choriste qui continue sans micro • Le solo "acapella" forcé • La réaction des fidèles</td></tr>
+                <tr><td>5</td><td>« Partition perdue, choriste de CHONATE en PLS »</td><td>L'urgence de dernière minute</td><td>• Ceux qui partagent leur partition au dernier moment • Le téléphone comme pense-bête • L'angoisse de la page qui ne se tourne pas</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ---- PILIER 2 ---- -->
+        <h3>🤝 Pilier 2 — Vie en Communauté à CHONATE — Solidarité, Retards et "Ndolo"</h3>
+        <p><em>Humaniser CHONATE avec humour en montrant les réalités sociales, les amitiés et les petits travers de ses membres.</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« La tontine de CHONATE vs Les cotisations de l'uniforme »</td><td>Organisation financière et entraide</td><td>• Le stress d'acheter le nouvel uniforme • Soutien dans les moments de joie ou de deuil • Le rôle du trésorier de CHONATE</td></tr>
+                <tr><td>2</td><td>« Le quart d'heure de grâce à CHONATE (Les retardataires chroniques) »</td><td>Discipline et gestion du temps (humour)</td><td>• Les excuses les plus folles • Le regard du président quand tu arrives pendant la prière • Celui qui arrive toujours à 18h05</td></tr>
+                <tr><td>3</td><td>« Le Ndolo à CHONATE : Mythe ou Réalité ? »</td><td>Les couples qui se forment grâce au chant</td><td>• Trouver son âme sœur au pupitre des Ténors • Les histoires d'amour aux pupitres de CHONATE • Gérer les distractions sentimentales</td></tr>
+                <tr><td>4</td><td>« Le repas de CHONATE : La vraie raison pour laquelle on vient »</td><td>La convivialité et la vie sociale</td><td>• Les plats typiques d'Ekoumdoum • Celui qui mange plus que les autres • Les grandes tablées et les confidences</td></tr>
+                <tr><td>5</td><td>« Le rang des choristes de CHONATE : La guerre des places »</td><td>Les rivalités amicales pour la meilleure place</td><td>• Celui qui veut toujours être devant • Pourquoi les basses sont au fond • Soprano à droite ou à gauche ?</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ---- PILIER 3 ---- -->
+        <h3>🔥 Pilier 3 — Briser les Mythes et Stéréotypes sur CHONATE</h3>
+        <p><em>Briser les stéréotypes sur les choristes de CHONATE avec autodérision et bienveillance.</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« Pourquoi les sopranos de CHONATE crient toujours plus fort au quartier ? »</td><td>Cliché sur la personnalité des pupitres</td><td>• Les basses qui parlent peu mais observent tout • Les altos sauveurs secrets • Les sopranos "stars" de CHONATE</td></tr>
+                <tr><td>2</td><td>« Être choriste à CHONATE en 2026 : Ringard ou Stylé ? »</td><td>Réconcilier la jeunesse d'Ekoumdoum avec le chant religieux</td><td>• On peut aimer la musique urbaine ET chanter à CHONATE • Le choriste ingénieur/étudiant le dimanche • CHONATE, c'est branché</td></tr>
+                <tr><td>3</td><td>« Les choristes de CHONATE ne dorment jamais ? »</td><td>L'énergie et l'engagement des choristes</td><td>• Les levers à 5h pour les messes de 7h • Les nuits blanches avant les concerts • La vie sociale sacrificiée</td></tr>
+                <tr><td>4</td><td>« On est tous frères et sœurs à CHONATE... jusqu'à la répétition »</td><td>Les disputes et réconciliations en chorale</td><td>• Les tensions pendant les répétitions • La réconciliation autour d'un verre • L'importance de la prière avant chaque répétition</td></tr>
+                <tr><td>5</td><td>« CHONATE : une secte ? »</td><td>Démystifier l'engagement choriste</td><td>• Pourquoi on passe autant de temps ensemble • Les valeurs qui nous unissent • Le "culte" du chant sacré</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ---- PILIER 4 ---- -->
+        <h3>🙏 Pilier 4 — Spiritualité et "Vocal Cardio" à CHONATE</h3>
+        <p><em>Expliquer l'impact spirituel et physique du chant de louange et d'adoration au sein de CHONATE, en écho à sa devise <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« Chanter deux fois à CHONATE, c'est prier deux fois ? »</td><td>La théologie et le sens profond du service musical</td><td>• Pourquoi la musique touche les cœurs • Témoignage d'une personne consolée par un chant de CHONATE • La puissance des paroles chantées</td></tr>
+                <tr><td>2</td><td>« Le Cardio spirituel de CHONATE : Pourquoi on sort fatigué d'une prestation »</td><td>L'engagement physique du choriste</td><td>• Tenue d'air, gestion du stress, posture • Exercices de respiration avant la scène • Chanter : un sport pour le corps et l'esprit</td></tr>
+                <tr><td>3</td><td>« Quand l'émotion submerge le soliste de CHONATE »</td><td>Les moments de grâce et de vulnérabilité</td><td>• Le chant qui fait pleurer le soliste en direct • Le témoignage derrière une chanson • L'Esprit Saint qui prend le contrôle</td></tr>
+                <tr><td>4</td><td>« Le chant de CHONATE qui a sauvé ma vie »</td><td>Témoignages forts des choristes</td><td>• Un choriste raconte comment un cantique l'a relevé • La puissance de la louange dans les moments difficiles • CHONATE comme famille spirituelle</td></tr>
+                <tr><td>5</td><td>« Pourquoi on chante à la Nativité d'Ekoumdoum ? »</td><td>Fondements bibliques et traditionnels</td><td>• Les Psaumes : le premier recueil de chants • La musique dans la tradition chrétienne • Le rôle du chant dans la liturgie</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ---- PILIER 5 ---- -->
+        <h3>🔄 Pilier 5 — Le Choc des Générations à CHONATE (Tradition vs Modernité)</h3>
+        <p><em>Jouer sur le contraste entre les cantiques anciens et les sonorités actuelles au sein de CHONATE. Une mine d'or pour les "duels" musicaux.</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« Quand le cantique 254 rencontre le rythme du Bikutsi à CHONATE »</td><td>Adapter un vieux cantique en version moderne</td><td>• "Dieu aime-t-il le Bikutsi ?" • La réaction du chef face aux propositions "trop street" • Le débat théologique à CHONATE</td></tr>
+                <tr><td>2</td><td>« Cantique en Latin ou Louange en Lingala à CHONATE ? »</td><td>La diversité linguistique dans le répertoire</td><td>• Les anciens qui s'endorment sur le nouveau chant • Les jeunes qui ne comprennent pas les vieux cantiques • Trouver l'équilibre à CHONATE</td></tr>
+                <tr><td>3</td><td>« Si nos grands-parents d'Ekoumdoum écoutaient la répétition de CHONATE »</td><td>Vidéo humoristique générationnelle</td><td>• "De mon temps, on chantait sans micro !" • Le choc des tenues • Les arrangements modernes qui font grincer des dents</td></tr>
+                <tr><td>4</td><td>« Le battle à CHONATE : Chant traditionnel vs Gospel contemporain »</td><td>Confrontation musicale amicale</td><td>• Harmonie classique vs adoration moderne • Instruments traditionnels vs claviers • Le public vote</td></tr>
+                <tr><td>5</td><td>« La relève de CHONATE est assurée ! »</td><td>Transmission et formation des jeunes</td><td>• Les jeunes qui reprennent les rênes • Les anciens qui transmettent leur expérience • La fierté intergénérationnelle de CHONATE</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ---- PILIER 6 ---- -->
+        <h3>👔 Pilier 6 — Le Dress Code et l'Uniforme de CHONATE</h3>
+        <p><em>L'uniforme est un sujet de conversation infini à CHONATE. Entre fierté, galère et moments cocasses.</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« Le drame du jour de la photo de promo de CHONATE »</td><td>Les préparatifs catastrophiques de la séance photo</td><td>• Celui qui oublie sa cravate • Celle qui a pris du poids • Chaussures noires ou marron ?</td></tr>
+                <tr><td>2</td><td>« Le marathon du repassage à CHONATE : La veille du 1er Mai »</td><td>L'entretien des tenues, un défi quotidien</td><td>• Trouver une chemise blanche à 23h • Les astuces pour repasser vite • Les marques de sueur après la prestation</td></tr>
+                <tr><td>3</td><td>« Le prix du pagne de CHONATE : La dette sacrée »</td><td>L'aspect financier de l'uniforme</td><td>• La tontine improvisée • Le regard du trésorier quand les cotisations sont en retard • La fierté du jour de la réception</td></tr>
+                <tr><td>4</td><td>« Le choriste de CHONATE qui n'a jamais son uniforme »</td><td>Humour autour du membre toujours mal équipé</td><td>• "J'ai oublié de le laver" • "Je l'ai prêté à mon cousin" • L'uniforme de récupération</td></tr>
+                <tr><td>5</td><td>« L'uniforme de deuil de CHONATE : la tenue la plus sérieuse »</td><td>Le respect et la solennité des obsèques</td><td>• Pourquoi un uniforme spécial • Le code couleur (noir ou bleu marine) • L'importance de l'apparence dans les moments de recueillement</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ---- PILIER 7 ---- -->
+        <h3>🎤 Pilier 7 — Les "Hacks" du Choriste de CHONATE (Conseils Pratiques)</h3>
+        <p><em>Devenir un compte "ressource" pour les choristes débutants ou en difficulté. Ça fidélise et ça crée de l'engagement.</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« La méthode infaillible de CHONATE pour ne plus perdre sa voix »</td><td>Santé vocale et échauffement</td><td>• Le remède de grand-mère (gingembre, citron, miel) • L'erreur fatale de boire de l'eau glacée • L'exercice de respiration pour tenir la note</td></tr>
+                <tr><td>2</td><td>« Comment lire une partition en 2 minutes (même débutant à CHONATE) »</td><td>Démystifier le solfège</td><td>• Astuces pour reconnaître les notes • Pourquoi les Altos ont la partition la plus difficile • Compter les temps (1, 2, 3, 4)</td></tr>
+                <tr><td>3</td><td>« Le secret des choristes pros de CHONATE : La tenue d'air (Posture) »</td><td>L'importance de la gestuelle et de la posture</td><td>• Le "ventre gonflé" pour mieux chanter • Ne pas croiser les bras sur scène • Respirer par le ventre</td></tr>
+                <tr><td>4</td><td>« La diction à CHONATE : Pourquoi on ne te comprend pas quand tu chantes »</td><td>L'articulation et la prononciation</td><td>• L'exercice des voyelles • Chanter avec un crayon entre les dents • Ouvrir la bouche</td></tr>
+                <tr><td>5</td><td>« 5 erreurs qui tuent ta prestation à CHONATE »</td><td>Les pièges à éviter en concert</td><td>• Regarder ses pieds • Ne pas écouter les autres pupitres • Crier au lieu de chanter • Oublier de sourire • Négliger l'échauffement</td></tr>
+                <tr><td>6</td><td>« Le chanteur de CHONATE qui veut tout faire : Le syndrome du soliste »</td><td>L'importance de rester à sa place</td><td>• Pourquoi on ne peut pas tous être solistes • L'art de chanter en chœur • L'humilité du choriste</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ---- PILIER 8 ---- -->
+        <h3>📅 Pilier 8 — Les Grands Rendez-vous de CHONATE et l'Impact Social</h3>
+        <p><em>Montrer que CHONATE ne se limite pas à la messe dominicale, mais qu'elle est un acteur clé de la vie sociale à Ekoumdoum, portant haut sa devise <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.</em></p>
+        <table class="table-pilier">
+            <thead>
+                <tr><th>#</th><th>Titre de la Vidéo</th><th>Sujet Principal</th><th>Sous-points</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>1</td><td>« CHONATE en mission : Le réveil à 4h du matin à Ekoumdoum »</td><td>L'engagement dans les moments de deuil</td><td>• La fatigue, l'émotion, la force de porter les familles • Le témoignage poignant • La préparation spirituelle</td></tr>
+                <tr><td>2</td><td>« 24h avant le grand concert de Noël/Pâques de CHONATE »</td><td>Le compte à rebours avant l'événement phare</td><td>• Derniers ajustements de costumes • Voix fatiguées, course pour imprimer les programmes • La prière finale</td></tr>
+                <tr><td>3</td><td>« Le défilé du 20 Mai : CHONATE représente l'Église dans la cité »</td><td>La chorale comme ambassadeur de la foi</td><td>• Le mélange des uniformes • Les répétitions sous le soleil • La fierté de chanter devant les autorités</td></tr>
+                <tr><td>4</td><td>« CHONATE au mariage : Le moment le plus heureux »</td><td>La célébration de l'amour par le chant</td><td>• Les chants de mariage qui font pleurer les invités • La gestion des émotions du soliste • La bénédiction du couple</td></tr>
+                <tr><td>5</td><td>« La tournée des villages : CHONATE en mission »</td><td>L'évangélisation itinérante</td><td>• Les voyages, les nuits chez l'habitant • La joie de chanter dans des églises modestes • L'accueil chaleureux</td></tr>
+                <tr><td>6</td><td>« Le concert de fin d'année de CHONATE : Le grand spectacle »</td><td>L'aboutissement d'une année de travail</td><td>• Préparatifs, billetterie, promotion • Le jour J : coulisses, trac, émotion • Les retours du public</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================================ -->
+        <!-- 3. BANQUE D'ACROCHES -->
+        <!-- ============================================================ -->
+        <h2>3. Banque d'Accroches "Coup de Poing" — <span class="nom-chorale">CHONATE</span></h2>
+        <p style="margin-bottom:20px; font-style:italic; color:#4a5a6a;">
+            Chaque accroche est une invitation à découvrir CHONATE et sa devise : <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>
         </p>
-    </div>
 
-    <p style="text-align: center; max-width: 700px; margin: 20px auto; font-size: 15px; color: #475569;">
-        Une solution <strong style="color: #2563eb;">complète, modulaire et sécurisée</strong> 
-        pour la gestion d'assurance automobile. Ce guide vous a présenté l'ensemble des fonctionnalités 
-        disponibles pour optimiser votre travail quotidien.
-    </p>
+        <h3>📌 Accroches "Choc &amp; Humour"</h3>
+        <table class="table-accroche">
+            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td>« On t'a menti : faire partie de CHONATE, ce n'est pas juste croiser les bras et chanter les dimanches. »</td></tr>
+                <tr><td>2</td><td>« Tu penses que ton voisin de banc chante bien ? Attends de le voir sans micro à la répétition du jeudi de CHONATE. »</td></tr>
+                <tr><td>3</td><td>« Arrête de croire que CHONATE est réservée aux grands-parents, on est en 2026 ! »</td></tr>
+                <tr><td>4</td><td>« Si tu rates la prière avant la répétition de CHONATE, voici le regard que le président va te lancer... »</td></tr>
+                <tr><td>5</td><td>« CHONATE, ce club où on vient chanter pour Dieu ET régler ses comptes avec le voisin de pupitre. »</td></tr>
+            </tbody>
+        </table>
 
-    <div class="grid-3" style="margin: 30px 0;">
-        <div style="background: #f8fafc; border-radius: 14px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
-            <div style="font-size: 28px;">✅</div>
-            <div style="color: #2563eb; font-weight: 700;">Modularité</div>
-            <div style="color: #64748b; font-size: 12px;">Architecture extensible par modules pour s'adapter à vos besoins</div>
+        <h3>💕 Accroches "Ndolo &amp; Coulisses"</h3>
+        <table class="table-accroche">
+            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td>« Tu cherches l'amour à Ekoumdoum ? Oublie les applications de rencontre, viens t'inscrire au pupitre des Ténors de CHONATE. »</td></tr>
+                <tr><td>2</td><td>« Quand le maestro de CHONATE fait ce geste avec sa main droite, ça veut dire qu'on est tous en train de gâter le chant. »</td></tr>
+                <tr><td>3</td><td>« L'uniforme du deuil ou du mariage à CHONATE : voici comment une chorale gère un budget de crise au pays. »</td></tr>
+                <tr><td>4</td><td>« Le plus gros mensonge de CHONATE : "Cette robe, elle me va encore". »</td></tr>
+                <tr><td>5</td><td>« Quand tu vois ton ancienne tenue de CHONATE sur le dos du nouveau membre... Et que tu trouves qu'il la porte mieux que toi. »</td></tr>
+            </tbody>
+        </table>
+
+        <h3>🎭 Accroches "Choc des Générations"</h3>
+        <table class="table-accroche">
+            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td>« Le cantique de ton papa chanté par CHONATE en version Dancehall : C'est Saint ou C'est Blasphème ? »</td></tr>
+                <tr><td>2</td><td>« Si Dieu écoutait les répétitions de CHONATE, est-ce qu'Il danserait ou mettrait Ses doigts dans Ses oreilles ? »</td></tr>
+                <tr><td>3</td><td>« Nos grands-parents d'Ekoumdoum en train d'écouter le nouveau chant de CHONATE : leur réaction est PRICELESS. »</td></tr>
+            </tbody>
+        </table>
+
+        <h3>🎤 Accroches "Conseils &amp; Hacks"</h3>
+        <table class="table-accroche">
+            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td>« Tu veux impressionner le chef de chœur de CHONATE ? Arrête de crier et apprends à poser ta voix. On t'explique. »</td></tr>
+                <tr><td>2</td><td>« Le Gombo miracle pour une voix claire avant le service de CHONATE : On vous donne la recette. »</td></tr>
+                <tr><td>3</td><td>« 5 erreurs que même les choristes expérimentés de CHONATE commettent encore. »</td></tr>
+            </tbody>
+        </table>
+
+        <h3>📅 Accroches "Événements"</h3>
+        <table class="table-accroche">
+            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td>« Le concert de CHONATE est dans 3 jours et notre soliste a perdu la voix : Gestion de crise à la chorale. »</td></tr>
+                <tr><td>2</td><td>« Vous ne savez pas ce qu'il se passe dans la salle des choristes de CHONATE 30 minutes avant la messe des obsèques. »</td></tr>
+                <tr><td>3</td><td>« Ce moment où CHONATE entre dans l'église le jour de Pâques... »</td></tr>
+            </tbody>
+        </table>
+
+        <h3>🙏 Accroches "Spiritualité &amp; Émotion"</h3>
+        <table class="table-accroche">
+            <thead><tr><th>#</th><th>Accroche</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td>« L'autre jour pendant l'adoration, le soliste de CHONATE a commencé à pleurer au milieu de son chant... Je vous explique pourquoi. »</td></tr>
+                <tr><td>2</td><td>« J'ai vu un chant de CHONATE de 4 minutes demander 3 mois de palabres et de répétitions intenses en coulisses. »</td></tr>
+                <tr><td>3</td><td>« On m'a demandé : "Est-ce que CHONATE peut louer Dieu en chantant du Gospel moderne au village ?" Ma réponse va vous surprendre. »</td></tr>
+                <tr><td>4</td><td>« Ce chant de CHONATE a sauvé mon mariage, j'ai dû rejoindre la chorale pour le chanter à chaque messe. »</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================================ -->
+        <!-- 4. FORMATS RÉCURRENTS -->
+        <!-- ============================================================ -->
+        <h2>4. Formats Récurrents (Rendez-Vous Hebdomadaires) — <span class="nom-chorale">CHONATE</span></h2>
+        <p><em>Pour ancrer CHONATE dans les habitudes de votre communauté, toujours avec la devise à l'esprit : <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span>.</em></p>
+        <table class="table-format">
+            <thead>
+                <tr><th>Jour</th><th>Format</th><th>Description</th><th>Durée</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>LUNDI</strong></td><td>« Le Vocal Check de CHONATE »</td><td>Extrait brut de répétition (sans montage) pour montrer le travail en train de se faire.</td><td>15-30s</td></tr>
+                <tr><td><strong>MARDI</strong></td><td>« Le Témoignage d'un membre de CHONATE »</td><td>Un choriste raconte comment un chant de CHONATE l'a sauvé, consolé ou transformé.</td><td>45-60s</td></tr>
+                <tr><td><strong>MERCREDI</strong></td><td>« Le Hack du Choriste de CHONATE »</td><td>Un conseil vocal ou pratique (posture, respiration, diction).</td><td>30-45s</td></tr>
+                <tr><td><strong>JEUDI</strong></td><td>« La Répétition de CHONATE en Direct »</td><td>En direct ou en différé, un extrait de la répétition du jeudi soir.</td><td>30s-1min</td></tr>
+                <tr><td><strong>VENDREDI</strong></td><td>« Le Battle / Défi de CHONATE »</td><td>Défi musical : "Chantez ce cantique en un seul souffle" ou battle entre pupitres.</td><td>45-60s</td></tr>
+                <tr><td><strong>SAMEDI</strong></td><td>« Les Coulisses du Dimanche de CHONATE »</td><td>Préparation du service du lendemain (uniformes, partitions, prière).</td><td>30-45s</td></tr>
+                <tr><td><strong>DIMANCHE</strong></td><td>« L'Extrait de la Messe de CHONATE »</td><td>Le meilleur moment de la prestation dominicale.</td><td>30-60s</td></tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================================ -->
+        <!-- 5. CALENDRIER ÉDITORIAL -->
+        <!-- ============================================================ -->
+        <h2>5. Calendrier Éditorial Type (Mois de 30 Jours) — <span class="nom-chorale">CHONATE</span></h2>
+        <p><em>Alternance des 8 piliers sur un mois type pour CHONATE.</em></p>
+        <table>
+            <thead>
+                <tr><th>Semaine</th><th>Lundi</th><th>Mardi</th><th>Mercredi</th><th>Jeudi</th><th>Vendredi</th><th>Samedi</th><th>Dimanche</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>S1</strong></td>
+                    <td>Vocal Check (Coulisses)</td>
+                    <td>Témoignage (Spiritualité)</td>
+                    <td>Hack (Conseils)</td>
+                    <td>Répétition (Coulisses)</td>
+                    <td>Battle (Générations)</td>
+                    <td>Coulisses Dimanche</td>
+                    <td>Extrait Messe</td>
+                </tr>
+                <tr>
+                    <td><strong>S2</strong></td>
+                    <td>Vocal Check (Coulisses)</td>
+                    <td>Témoignage (Communauté)</td>
+                    <td>Hack (Conseils)</td>
+                    <td>Répétition (Coulisses)</td>
+                    <td>Battle (Uniforme)</td>
+                    <td>Coulisses Dimanche</td>
+                    <td>Extrait Messe</td>
+                </tr>
+                <tr>
+                    <td><strong>S3</strong></td>
+                    <td>Vocal Check (Coulisses)</td>
+                    <td>Témoignage (Émotion)</td>
+                    <td>Hack (Conseils)</td>
+                    <td>Répétition (Coulisses)</td>
+                    <td>Battle (Mythes)</td>
+                    <td>Coulisses Dimanche</td>
+                    <td>Extrait Messe</td>
+                </tr>
+                <tr>
+                    <td><strong>S4</strong></td>
+                    <td>Vocal Check (Coulisses)</td>
+                    <td>Témoignage (Événement)</td>
+                    <td>Hack (Conseils)</td>
+                    <td>Répétition (Coulisses)</td>
+                    <td>Battle (Dress Code)</td>
+                    <td>Coulisses Dimanche</td>
+                    <td>Extrait Messe</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- ============================================================ -->
+        <!-- 6. CONSEILS DE PRODUCTION -->
+        <!-- ============================================================ -->
+        <h2>6. Conseils de Production (Tournage &amp; Montage) — <span class="nom-chorale">CHONATE</span></h2>
+
+        <h3>🎬 Pour les vidéos "Coulisses"</h3>
+        <ul>
+            <li><strong>Cadrage :</strong> Caméra à l'épaule ou posée sur un pupitre pour un effet "immersion".</li>
+            <li><strong>Son :</strong> Privilégier le son naturel (même imparfait) pour l'authenticité.</li>
+            <li><strong>Montage :</strong> Coupes rapides, transitions dynamiques.</li>
+            <li><strong>Musique :</strong> Utiliser un extrait du chant en cours de répétition de CHONATE comme bande-son.</li>
+        </ul>
+
+        <h3>🎤 Pour les "Témoignages"</h3>
+        <ul>
+            <li><strong>Cadrage :</strong> Face caméra, fond neutre (mur de l'église de la Nativité ou salle de répétition).</li>
+            <li><strong>Lumière :</strong> Naturelle, de préférence en journée.</li>
+            <li><strong>Son :</strong> Micro cravate ou micro-casque si possible.</li>
+            <li><strong>Montage :</strong> Rythme lent, laisser place à l'émotion.</li>
+        </ul>
+
+        <h3>🎵 Pour les "Extraits de Messe"</h3>
+        <ul>
+            <li><strong>Cadrage :</strong> Plans larges + plans serrés sur les choristes de CHONATE et le chef.</li>
+            <li><strong>Son :</strong> Essayer de capter le son de la table de mixage.</li>
+            <li><strong>Montage :</strong> Alterner plans d'ensemble et portraits.</li>
+            <li><strong>Titre :</strong> Nom du cantique + "CHONATE — <em>Par ma voix, je loue le Seigneur</em>".</li>
+        </ul>
+
+        <h3>💡 Conseils Généraux pour CHONATE</h3>
+        <ul>
+            <li><strong>Format vertical</strong> (9:16) pour TikTok/Reels/Shorts.</li>
+            <li><strong>Durée idéale :</strong> 15 à 60 secondes maximum.</li>
+            <li><strong>Sous-titres :</strong> TOUJOURS ajouter des sous-titres (lisibilité sans son).</li>
+            <li><strong>Hashtags :</strong> #CHONATE #ChoraleNativite #Ekoumdoum #Louange #Gospel #Cameroun #Adoration #ChantSacré #ParMaVoixJeLoueLeSeigneur.</li>
+            <li><strong>Fréquence :</strong> 1 à 2 vidéos par jour idéalement, minimum 1 par jour.</li>
+            <li><strong>Heure de publication :</strong> Entre 18h et 20h (pic d'activité des jeunes) ou entre 12h et 13h (pause déjeuner).</li>
+        </ul>
+
+        <!-- ============================================================ -->
+        <!-- 7. MÉTRIQUES -->
+        <!-- ============================================================ -->
+        <h2>7. Métriques de Succès et Indicateurs — <span class="nom-chorale">CHONATE</span></h2>
+
+        <h3>📊 Indicateurs Clés de Performance (KPI)</h3>
+        <table class="table-kpi">
+            <thead>
+                <tr><th>Indicateur</th><th>Objectif</th><th>Moyen de Mesure</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Vues</strong></td><td>500+ par vidéo en moyenne</td><td>Statistiques TikTok/Reels/Shorts</td></tr>
+                <tr><td><strong>Engagement (likes, commentaires, partages)</strong></td><td>10% du nombre de vues</td><td>Rapport engagement/vues</td></tr>
+                <tr><td><strong>Taux de complétion</strong></td><td>70%+ (les gens regardent jusqu'au bout)</td><td>Statistiques de rétention</td></tr>
+                <tr><td><strong>Nouveaux abonnés</strong></td><td>+50 par mois</td><td>Compteur d'abonnés</td></tr>
+                <tr><td><strong>Temps de visionnage total</strong></td><td>100+ heures par mois</td><td>Statistiques avancées</td></tr>
+                <tr><td><strong>Conversion (demandes d'adhésion à CHONATE)</strong></td><td>5+ nouvelles demandes par mois</td><td>Nombre de messages/DM</td></tr>
+            </tbody>
+        </table>
+
+        <h3>📈 Objectifs Mensuels pour CHONATE</h3>
+        <div class="bloc-objectif">
+            <div class="bloc-objectif-item"><strong>Visibilité</strong><span>10 000+ vues totales sur le mois pour CHONATE</span></div>
+            <div class="bloc-objectif-item"><strong>Engagement</strong><span>500+ interactions (likes + commentaires + partages)</span></div>
+            <div class="bloc-objectif-item"><strong>Croissance</strong><span>50+ nouveaux abonnés à la page CHONATE</span></div>
+            <div class="bloc-objectif-item"><strong>Recrutement</strong><span>5+ demandes d'adhésion à CHONATE via les réseaux sociaux</span></div>
+            <div class="bloc-objectif-item"><strong>Notoriété</strong><span>Être identifié comme "la chorale qui cartonne sur TikTok à Ekoumdoum"</span></div>
         </div>
-        <div style="background: #f8fafc; border-radius: 14px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
-            <div style="font-size: 28px;">🔒</div>
-            <div style="color: #2563eb; font-weight: 700;">Sécurité</div>
-            <div style="color: #64748b; font-size: 12px;">Certification, chiffrement et authentification renforcés</div>
-        </div>
-        <div style="background: #f8fafc; border-radius: 14px; padding: 20px; text-align: center; border: 1px solid #e2e8f0;">
-            <div style="font-size: 28px;">⚡</div>
-            <div style="color: #2563eb; font-weight: 700;">Performance</div>
-            <div style="color: #64748b; font-size: 12px;">Optimisé pour gérer de grands volumes de données</div>
-        </div>
-    </div>
 
-    <div class="section-box" style="text-align: center; border-left-color: #2563eb;">
-        <p style="color: #475569; font-size: 14px;">
-            📞 <strong>Besoin d'aide ?</strong> Consultez la documentation en ligne ou contactez notre support à 
-            <strong style="color: #2563eb;">support@lometa.com</strong>
-        </p>
-    </div>
+        <!-- ============================================================ -->
+        <!-- 8. ANNEXES -->
+        <!-- ============================================================ -->
+        <h2>8. Annexes — <span class="nom-chorale">CHONATE</span></h2>
 
-    <div style="text-align: center; margin-top: 30px;">
-        <p style="color: #94a3b8; font-size: 12px;">
-            © 2026 Fearless Cybertech - Tous droits réservés
-        </p>
-        <div style="display: flex; justify-content: center; gap: 24px; margin-top: 10px; font-size: 11px; color: #94a3b8;">
-            <span style="color: #2563eb;">📧 support@lometa.com</span>
-            <span style="color: #2563eb;">🌐 lometa.com</span>
-            <span style="color: #d97706;">🔐 v1.0.0</span>
+        <h3>Annexe 1 — Liste des Hashtags à Utiliser</h3>
+        <div class="highlight">
+            <p>
+                <strong>#CHONATE #ChoraleNativite #Ekoumdoum #Louange #Adoration #Gospel #ChantSacré #MusiqueChrétienne<br>
+                #ÉgliseCameroun #Cantiques #ChoraleDuCameroun #Nativité #VocalCardio #ChantReligieux<br>
+                #ChoraleDeJeunes #Foi #Spiritualité #CoulissesChorale #RepetitionChorale #Maestro #Pupitre #Harmonie<br>
+                #TikTokChorale #ReelsChorale #ShortsChorale #EkoumdoumTikTok #ParMaVoixJeLoueLeSeigneur</strong>
+            </p>
         </div>
-    </div>
 
-    <div class="footer">
-        <span>LOMETA - Guide d'utilisation</span>
-        <span class="page-number">Page 17</span>
+
+        <h3>Annexe 2 — Coordonnées et Contacts CHONATE</h3>
+        <ul>
+            <li><strong>Nom complet :</strong> CHONATE — Chœur de la Nativité d'Ekoumdoum</li>
+            <li><strong>Devise :</strong> <span class="slogan-dore">« Par ma voix, je loue le Seigneur »</span></li>
+            <li><strong>Paroisse :</strong> Saint Joséphine Bakita, Ekoumdoum</li>
+            <li><strong>Réseaux sociaux :</strong> [À renseigner]</li>
+            <li><strong>Contact Président :</strong> 693090672/655335448</li>
+        </ul>
+
+        <!-- ============================================================ -->
+        <!-- FOOTER -->
+        <!-- ============================================================ -->
+        <div class="footer-doc">
+            <span><strong>Document réalisé pour :</strong> CHONATE — Chœur de la Nativité d'Ekoumdoum</span>
+            <span><strong>Date :</strong> Juillet 2026</span>
+            <span><strong>Version :</strong> 1.0 — Stratégie Complète</span>
+        </div>
+
+        <div style="text-align:center; margin-top:25px; font-style:italic; color:#5a6a7a; border-top:1px solid #e4dfd8; padding-top:18px;">
+            « Chantez à Dieu, faites retentir son nom, célébrez celui qui s'avance dans les plaines ! » — Psaume 68:5
+        </div>
+
+        <div style="text-align:center; margin-top:8px; font-style:italic; color:#c9a96e; font-weight:500;">
+            ✨ CHONATE — <em>Par ma voix, je loue le Seigneur</em> ✨
+        </div>
+
     </div>
-</div>
+    <!-- fin .document -->
+
+    <script>
+        // ===== BOUTON DE TÉLÉCHARGEMENT PDF =====
+        (function() {
+            const btn = document.createElement('button');
+            btn.textContent = '📄 Télécharger en PDF — CHONATE';
+            btn.style.cssText = `
+                        position: fixed;
+                        bottom: 30px;
+                        right: 30px;
+                        background: #1a2a3a;
+                        color: #fff;
+                        border: none;
+                        border-radius: 50px;
+                        padding: 16px 28px;
+                        font-size: 1.1rem;
+                        font-weight: 600;
+                        box-shadow: 0 6px 20px rgba(0,0,0,0.30);
+                        cursor: pointer;
+                        z-index: 9999;
+                        transition: background 0.2s;
+                        font-family: 'Segoe UI', system-ui, sans-serif;
+                    `;
+            btn.onmouseover = () => btn.style.background = '#2c3e50';
+            btn.onmouseout = () => btn.style.background = '#1a2a3a';
+            btn.onclick = () => window.print();
+            document.body.appendChild(btn);
+
+            // Cacher le bouton lors de l'impression
+            const stylePrint = document.createElement('style');
+            stylePrint.textContent = `
+                        @media print {
+                            body > button {
+                                display: none !important;
+                            }
+                            .document {
+                                box-shadow: none !important;
+                                border-radius: 0 !important;
+                                padding: 25px 30px !important;
+                            }
+                        }
+                    `;
+            document.head.appendChild(stylePrint);
+        })();
+    </script>
 
 </body>
 </html>

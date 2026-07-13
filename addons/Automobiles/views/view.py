@@ -14,6 +14,7 @@ from PySide6.QtGui import QFont, QIcon, QPixmap, QColor
 
 from addons.Automobiles.views.style import Colors, Fonts, Spacing, apply_global_style
 from addons.Automobiles.views.widgets.modern_card import ModernCard
+from addons.Automobiles.security.access_control import Permissions, SecurityManager, Role
 
 
 class ModernSidebarButton(QPushButton):
@@ -131,11 +132,23 @@ class StatsCard(ModernCard):
 
 class VehicleMainView(QWidget):
     """Vue principale modernisée"""
+
+    PAGE_PERMISSIONS = {
+        "dashboard": None,
+        "vehicles": Permissions.VEHICLE_VIEW,
+        "contacts": Permissions.CONTACT_VIEW,
+        "companies": Permissions.CONTACT_VIEW,
+        "contracts": Permissions.CONTRACT_VIEW,
+        "import": Permissions.VEHICLE_EXPORT,
+        "reports": Permissions.REPORT_VIEW,
+        "settings": "admin_only",
+    }
     
     def __init__(self, controller, user=None):
         super().__init__()
         self.controller = controller
         self.user = user
+        self.user_role = getattr(user, 'role', None) if user is not None else None
         self.setup_ui()
         self.load_initial_data()
     
@@ -223,6 +236,8 @@ class VehicleMainView(QWidget):
         ]
         
         for key, icon, text in nav_items:
+            if not self.can_access_page(key):
+                continue
             btn = ModernSidebarButton(f"  {icon}  {text}", icon, key == "dashboard")
             btn.clicked.connect(lambda checked, k=key: self.switch_page(k))
             nav_layout.addWidget(btn)
@@ -352,20 +367,32 @@ class VehicleMainView(QWidget):
         from addons.Automobiles.views.settings_view import SettingsView
         from addons.Automobiles.views.asac_import_view import ASACImportView 
         
-        self.pages["dashboard"] = DashboardView(self.controller, self.user)
-        self.pages["vehicles"] = VehiculeModuleView(self.controller, self.user)
-        self.pages["contacts"] = ContactListView(self.controller, self.user)
-        self.pages["companies"] = CompanyTariffView(self.controller, self.user)
-        self.pages["contracts"] = ContractView(self.controller, self.user)
-        self.pages["import"] = ASACImportView(self.controller, self.user)
-        self.pages["reports"] = ReportView(self.controller, self.user)
-        self.pages["settings"] = SettingsView(self.controller, self.user)
+        page_factories = {
+            "dashboard": lambda: DashboardView(self.controller, self.user),
+            "vehicles": lambda: VehiculeModuleView(self.controller, self.user),
+            "contacts": lambda: ContactListView(self.controller, self.user),
+            "companies": lambda: CompanyTariffView(self.controller, self.user),
+            "contracts": lambda: ContractView(self.controller, self.user),
+            "import": lambda: ASACImportView(self.controller, self.user),
+            "reports": lambda: ReportView(self.controller, self.user),
+            "settings": lambda: SettingsView(self.controller, self.user),
+        }
         
-        for key, page in self.pages.items():
-            self.stacked_widget.addWidget(page)
+        for key, factory in page_factories.items():
+            if not self.can_access_page(key):
+                continue
+            self.pages[key] = factory()
+            self.stacked_widget.addWidget(self.pages[key])
+        
+        if not self.pages:
+            self.pages["dashboard"] = DashboardView(self.controller, self.user)
+            self.stacked_widget.addWidget(self.pages["dashboard"])
     
     def switch_page(self, page_key: str):
         """Change de page avec animation"""
+        if page_key not in self.pages:
+            page_key = next(iter(self.pages), "dashboard")
+        
         # Mettre à jour les boutons
         for key, btn in self.nav_buttons.items():
             btn.set_active(key == page_key)
@@ -394,8 +421,17 @@ class VehicleMainView(QWidget):
     
     def load_initial_data(self):
         """Charge les données initiales"""
-        # Déclencher le chargement des données
-        pass
+        if self.pages:
+            self.switch_page(next(iter(self.pages)))
+
+    def can_access_page(self, page_key: str) -> bool:
+        """Retourne True si le rôle courant peut accéder à la page."""
+        permission = self.PAGE_PERMISSIONS.get(page_key)
+        if permission is None:
+            return True
+        if permission == "admin_only":
+            return self.user_role == Role.ADMIN.value or self.user_role == Role.ADMIN
+        return SecurityManager.has_permission(self.user_role, permission)
 
     # addons/Automobiles/views/view.py - Dans VehicleMainView
 
