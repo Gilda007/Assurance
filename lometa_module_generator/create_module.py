@@ -103,19 +103,6 @@ def ensure_dir(path):
     """Crée un répertoire s'il n'existe pas."""
     path.mkdir(parents=True, exist_ok=True)
 
-def certify_module_after_creation(module_dir):
-    """Certifie automatiquement un module après sa création."""
-    try:
-        from certificate_manager import CertificateManager
-        manager = CertificateManager()
-        cert = manager.certify_module(module_dir, "LOMETA Generator")
-        if cert:
-            print_success("Module certifié automatiquement !")
-            return True
-    except ImportError:
-        print_warning("Certificate Manager non disponible. Module non certifié.")
-        return False
-
 # ============================================================================
 # TEMPLATES
 # ============================================================================
@@ -144,6 +131,383 @@ TEMPLATES = {
 }
 
 # ============================================================================
+# TEMPLATES POUR main_ui.py ET view.py
+# ============================================================================
+
+def get_main_ui_template(module_name, class_name):
+    """Génère le template pour main_ui.py"""
+    return f'''from core.base_module import BaseModule
+from PySide6.QtWidgets import QPushButton, QVBoxLayout
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QIcon
+from core.alerts import AlertManager
+
+from addons.{module_name}.views.view import {class_name}
+
+
+# Style moderne pour le bouton de la barre latérale
+MODERN_BTN_STYLE = """
+QPushButton {{
+    background-color: transparent;
+    color: #546e7a;
+    border: none;
+    border-radius: 8px;
+    text-align: left;
+    padding-left: 15px;
+    font-size: 14px;
+    font-weight: 500;
+}}
+QPushButton:hover {{
+    background-color: #f1f3f4;
+    color: #1a73e8;
+}}
+QPushButton:checked {{
+    background-color: #e8f0fe;
+    color: #1a73e8;
+    border-right: 3px solid #1a73e8;
+}}
+"""
+
+
+class {class_name}Module(BaseModule):
+    def __init__(self, main_window=None, controller=None):
+        """Initialisation du module avec controller"""
+        super().__init__(main_window)
+        self.controller = controller
+        self.db_session = None
+        self.current_user = None
+        self.view = None
+        self.btn = None
+        
+    def setup(self):
+        """Initialisation silencieuse du module"""
+        # 1. Récupération sécurisée de la session
+        self.db_session = getattr(self.main_window, 'db_session', None)
+        self.current_user = getattr(self.main_window, 'current_user', None)
+        
+        # 2. Création du bouton avec un style Premium
+        self.btn = QPushButton("  👤 {module_name}")
+        self.btn.setCheckable(True)
+        self.btn.setFixedHeight(50)
+        self.btn.setCursor(Qt.PointingHandCursor)
+        self.btn.setStyleSheet(MODERN_BTN_STYLE)
+        
+        # 3. Connexion de l'événement
+        self.btn.clicked.connect(self.activate_module)
+        
+        # 4. Ajout au menu latéral
+        if hasattr(self.main_window, 'sidebar_layout'):
+            self.main_window.sidebar_layout.addWidget(self.btn)
+
+    def activate_module(self):
+        """Logique d'activation avec récupération dynamique de l'utilisateur"""
+        try:
+            # RECHERCHE DYNAMIQUE : On va chercher l'info fraîche dans la fenêtre principale
+            user = getattr(self.main_window, 'current_user', None)
+            db_session = getattr(self.main_window, 'db_session', None)
+
+            if not user:
+                AlertManager.show_error(self.main_window, "Sécurité", "Aucun utilisateur connecté détecté.")
+                return
+
+            # Mise à jour de la référence locale
+            self.current_user = user
+            self.db_session = db_session
+
+            # Création de la vue avec le controller
+            self.view = {class_name}(controller=self.controller, user=self.current_user)
+            
+            # Affichage dans la fenêtre principale
+            self.main_window.set_content_widget(self.view)
+            
+            # Mettre à jour l'état du bouton
+            self.btn.setChecked(True)
+
+        except Exception as e:
+            AlertManager.show_error(self.main_window, "Erreur", str(e))
+'''
+
+def get_view_template(module_name, class_name):
+    """Génère le template pour view.py"""
+    return f'''from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, 
+                             QTableWidgetItem, QHeaderView, QLabel, QPushButton, 
+                             QListWidgetItem, QStackedWidget, QListWidget, QFrame, 
+                             QMessageBox, QDialog, QGraphicsDropShadowEffect)
+from PySide6.QtCore import Qt, QSize
+from PySide6.QtGui import QColor, QIcon, QFont
+
+
+class {class_name}(QWidget):
+    def __init__(self, controller=None, user=None):
+        super().__init__()
+        self.controller = controller
+        self.user = user
+        self.pages_cache = {{}}
+
+        # Style Global du Widget Principal
+        self.setObjectName("MainSettingsWindow")
+        self.setStyleSheet("background-color: #f8fafc;")
+
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
+        
+        # Configurer la sidebar et le contenu
+        self.setup_sidebar()
+        self.setup_content_area()
+        
+        # Sélectionner la première page par défaut
+        if hasattr(self, 'sidebar') and self.sidebar.count() > 0:
+            self.sidebar.setCurrentRow(0)
+
+    def setup_sidebar(self):
+        """Création de la barre latérale avec les pages"""
+        # Conteneur de la sidebar
+        self.sidebar_container = QFrame()
+        self.sidebar_container.setFixedWidth(250)
+        self.sidebar_container.setStyleSheet("""
+            QFrame {{
+                background-color: white;
+                border-radius: 0px;
+                border-right: 1px solid #e2e8f0;
+            }}
+        """)
+        
+        sidebar_layout = QVBoxLayout(self.sidebar_container)
+        sidebar_layout.setContentsMargins(15, 20, 15, 20)
+        sidebar_layout.setSpacing(10)
+        
+        # Titre de la sidebar
+        title_label = QLabel("📋 Menu")
+        title_label.setStyleSheet("""
+            QLabel {{
+                font-size: 16px;
+                font-weight: bold;
+                color: #1e293b;
+                padding-bottom: 15px;
+                border-bottom: 2px solid #e2e8f0;
+            }}
+        """)
+        sidebar_layout.addWidget(title_label)
+        
+        # Liste des pages
+        self.sidebar = QListWidget()
+        self.sidebar.setStyleSheet("""
+            QListWidget {{
+                background-color: transparent;
+                border: none;
+                outline: none;
+            }}
+            QListWidget::item {{
+                padding: 12px 15px;
+                border-radius: 8px;
+                color: #64748b;
+                font-size: 14px;
+                font-weight: 500;
+            }}
+            QListWidget::item:hover {{
+                background-color: #f1f5f9;
+                color: #1e293b;
+            }}
+            QListWidget::item:selected {{
+                background-color: #e2e8f0;
+                color: #1a73e8;
+            }}
+        """)
+        self.sidebar.setFixedWidth(220)
+        
+        # Ajout des pages
+        pages = [
+            ("Accueil", "🏠"),
+            ("Véhicules", "🚗"),
+            ("Contrats", "📄"),
+            ("Clients", "👤"),
+            ("Rapports", "📊"),
+            ("Paramètres", "⚙️")
+        ]
+        
+        for text, icon in pages:
+            item = QListWidgetItem(f"{{icon}} {{text}}")
+            self.sidebar.addItem(item)
+        
+        self.sidebar.currentRowChanged.connect(self.switch_page)
+        sidebar_layout.addWidget(self.sidebar)
+        
+        # Informations utilisateur en bas
+        user_info = QFrame()
+        user_info.setStyleSheet("""
+            QFrame {{
+                background-color: #f8fafc;
+                border-radius: 10px;
+                padding: 10px;
+                margin-top: 20px;
+            }}
+            QLabel {{
+                color: #1e293b;
+                font-size: 12px;
+            }}
+        """)
+        user_layout = QVBoxLayout(user_info)
+        
+        user_name = QLabel(f"👤 {{self.user.username if self.user else 'Utilisateur'}}")
+        user_name.setStyleSheet("font-weight: bold; font-size: 13px;")
+        user_layout.addWidget(user_name)
+        
+        user_role = QLabel(f"Rôle: {{self.user.role if self.user else 'Non défini'}}")
+        user_role.setStyleSheet("color: #64748b; font-size: 11px;")
+        user_layout.addWidget(user_role)
+        
+        sidebar_layout.addWidget(user_info)
+        
+        # Ajout de la sidebar au layout principal
+        self.layout.addWidget(self.sidebar_container)
+
+    def setup_content_area(self):
+        """Zone de contenu avec effet d'ombre interne"""
+        self.content_container = QFrame()
+        self.content_layout = QVBoxLayout(self.content_container)
+        self.content_layout.setContentsMargins(30, 30, 30, 30)
+
+        # Stack d'affichage (Pages)
+        self.container = QStackedWidget()
+        self.container.setStyleSheet("""
+            QStackedWidget {{
+                background-color: white; 
+                border-radius: 20px; 
+                border: 1px solid #e2e8f0;
+            }}
+        """)
+        
+        # Ajout d'une ombre portée douce au conteneur de contenu
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        self.container.setGraphicsEffect(shadow)
+
+        # --- PAGE 1 : ACCUEIL (Hello World) ---
+        hello_page = QWidget()
+        hello_layout = QVBoxLayout(hello_page)
+        hello_layout.setAlignment(Qt.AlignCenter)
+        
+        hello_label = QLabel("Hello World")
+        hello_label.setStyleSheet("""
+            QLabel {{
+                font-size: 48px;
+                font-weight: bold;
+                color: #1e293b;
+                background-color: transparent;
+                padding: 20px;
+            }}
+        """)
+        hello_label.setAlignment(Qt.AlignCenter)
+        
+        subtitle_label = QLabel("Bienvenue dans LOMETA")
+        subtitle_label.setStyleSheet("""
+            QLabel {{
+                font-size: 18px;
+                color: #64748b;
+                background-color: transparent;
+            }}
+        """)
+        subtitle_label.setAlignment(Qt.AlignCenter)
+        
+        hello_layout.addWidget(hello_label)
+        hello_layout.addWidget(subtitle_label)
+        self.container.addWidget(hello_page)
+
+        # --- PAGE 2 : VÉHICULES ---
+        vehicles_page = QWidget()
+        vehicles_layout = QVBoxLayout(vehicles_page)
+        vehicles_layout.setAlignment(Qt.AlignCenter)
+        
+        vehicles_label = QLabel("🚗 Gestion des Véhicules")
+        vehicles_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #1e293b;")
+        vehicles_label.setAlignment(Qt.AlignCenter)
+        vehicles_layout.addWidget(vehicles_label)
+        
+        vehicles_sub = QLabel("Module en cours de développement")
+        vehicles_sub.setStyleSheet("font-size: 14px; color: #64748b;")
+        vehicles_sub.setAlignment(Qt.AlignCenter)
+        vehicles_layout.addWidget(vehicles_sub)
+        self.container.addWidget(vehicles_page)
+
+        # --- PAGE 3 : CONTRATS ---
+        contracts_page = QWidget()
+        contracts_layout = QVBoxLayout(contracts_page)
+        contracts_layout.setAlignment(Qt.AlignCenter)
+        
+        contracts_label = QLabel("📄 Gestion des Contrats")
+        contracts_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #1e293b;")
+        contracts_label.setAlignment(Qt.AlignCenter)
+        contracts_layout.addWidget(contracts_label)
+        
+        contracts_sub = QLabel("Module en cours de développement")
+        contracts_sub.setStyleSheet("font-size: 14px; color: #64748b;")
+        contracts_sub.setAlignment(Qt.AlignCenter)
+        contracts_layout.addWidget(contracts_sub)
+        self.container.addWidget(contracts_page)
+
+        # --- PAGE 4 : CLIENTS ---
+        clients_page = QWidget()
+        clients_layout = QVBoxLayout(clients_page)
+        clients_layout.setAlignment(Qt.AlignCenter)
+        
+        clients_label = QLabel("👤 Gestion des Clients")
+        clients_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #1e293b;")
+        clients_label.setAlignment(Qt.AlignCenter)
+        clients_layout.addWidget(clients_label)
+        
+        clients_sub = QLabel("Module en cours de développement")
+        clients_sub.setStyleSheet("font-size: 14px; color: #64748b;")
+        clients_sub.setAlignment(Qt.AlignCenter)
+        clients_layout.addWidget(clients_sub)
+        self.container.addWidget(clients_page)
+
+        # --- PAGE 5 : RAPPORTS ---
+        reports_page = QWidget()
+        reports_layout = QVBoxLayout(reports_page)
+        reports_layout.setAlignment(Qt.AlignCenter)
+        
+        reports_label = QLabel("📊 Rapports et Statistiques")
+        reports_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #1e293b;")
+        reports_label.setAlignment(Qt.AlignCenter)
+        reports_layout.addWidget(reports_label)
+        
+        reports_sub = QLabel("Module en cours de développement")
+        reports_sub.setStyleSheet("font-size: 14px; color: #64748b;")
+        reports_sub.setAlignment(Qt.AlignCenter)
+        reports_layout.addWidget(reports_sub)
+        self.container.addWidget(reports_page)
+
+        # --- PAGE 6 : PARAMÈTRES ---
+        settings_page = QWidget()
+        settings_layout = QVBoxLayout(settings_page)
+        settings_layout.setAlignment(Qt.AlignCenter)
+        
+        settings_label = QLabel("⚙️ Paramètres")
+        settings_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #1e293b;")
+        settings_label.setAlignment(Qt.AlignCenter)
+        settings_layout.addWidget(settings_label)
+        
+        settings_sub = QLabel("Configuration de l'application")
+        settings_sub.setStyleSheet("font-size: 14px; color: #64748b;")
+        settings_sub.setAlignment(Qt.AlignCenter)
+        settings_layout.addWidget(settings_sub)
+        self.container.addWidget(settings_page)
+
+        # Ajout du conteneur principal
+        self.content_layout.addWidget(self.container)
+        self.layout.addWidget(self.content_container)
+
+    def switch_page(self, index):
+        """Changer la page affichée"""
+        if index >= 0 and index < self.container.count():
+            self.container.setCurrentIndex(index)
+'''
+
+# ============================================================================
 # MODULE CREATION
 # ============================================================================
 
@@ -151,7 +515,7 @@ def create_module_structure(config):
     """Crée la structure du module selon la configuration."""
     module_name = config['name']
     output_dir = config['output_dir']
-    template_type = config.get('template', 'simple')
+    class_name = pascal_case(module_name) + "MainView"
     
     print_header(f"📦 Création du module {module_name}")
     
@@ -179,13 +543,23 @@ def create_module_structure(config):
         if not file_path.exists():
             file_path.write_text(content, encoding="utf-8")
     
+    # Création de main_ui.py à la racine
+    main_ui_content = get_main_ui_template(module_name, class_name)
+    (output_dir / "main_ui.py").write_text(main_ui_content, encoding="utf-8")
+    print_success(f"Fichier main_ui.py créé")
+    
+    # Création de view.py dans le dossier views
+    view_content = get_view_template(module_name, class_name)
+    (output_dir / "views" / "view.py").write_text(view_content, encoding="utf-8")
+    print_success(f"Fichier views/view.py créé")
+    
     # Manifest
     manifest = {
-        "name": config['name'],
+        "name": module_name,
         "version": config['version'],
         "description": config['description'],
         "author": config['author'],
-        "entry_point": config['entry_point'],
+        "entry_point": "main_ui.py",
         "enabled": config['enabled'],
         "category": config['category'],
         "min_app_version": config['min_app_version'],
@@ -195,6 +569,8 @@ def create_module_structure(config):
         "license": config.get('license', 'MIT'),
         "repository": config.get('repository', ''),
         "keywords": config.get('keywords', []),
+        "main_class": f"{class_name}Module",
+        "view_class": class_name
     }
     
     (output_dir / "manifest.json").write_text(
@@ -202,8 +578,7 @@ def create_module_structure(config):
         encoding="utf-8"
     )
     
-    # ✅ README avec f-string correctement fermé (utilisation de ''' pour les blocs de code)
-        # README - Version corrigée sans f-string avec triples guillemets
+    # README
     readme_content = (
         f"# {module_name}\n\n"
         f"## 📋 Description\n{config['description']}\n\n"
@@ -227,8 +602,9 @@ def create_module_structure(config):
         f"├── templates/       # Templates HTML\n"
         f"├── tests/           # Tests unitaires\n"
         f"├── migrations/      # Migrations de base de données\n"
+        f"├── main_ui.py       # Point d'entrée principal\n"
         f"├── manifest.json    # Configuration du module\n"
-        f"└── main.py          # Point d'entrée\n"
+        f"└── README.md        # Documentation\n"
         f"```\n\n"
         f"## 🛠️ Développement\n```bash\n"
         f"# Lancer les tests\n"
@@ -239,7 +615,7 @@ def create_module_structure(config):
     )
     
     (output_dir / "README.md").write_text(readme_content, encoding="utf-8")
-
+    print_success(f"README.md créé")
 
 # ============================================================================
 # MAIN
@@ -284,7 +660,7 @@ def main():
         'version': version,
         'description': description,
         'author': author,
-        'entry_point': 'main.py',
+        'entry_point': 'main_ui.py',
         'enabled': enabled,
         'category': category,
         'min_app_version': min_app_version,
@@ -312,6 +688,11 @@ def main():
             print(f"   Dépendances: {', '.join(dependencies)}")
         print(f"   Activé: {color('Oui' if enabled else 'Non', 'green' if enabled else 'red')}")
         print(f"\n📁 Emplacement: {output_dir}")
+        print(f"\n📄 Fichiers créés:")
+        print(f"   - {output_dir}/main_ui.py")
+        print(f"   - {output_dir}/views/view.py")
+        print(f"   - {output_dir}/manifest.json")
+        print(f"   - {output_dir}/README.md")
         
         print("\n" + color("="*60, 'cyan'))
         print(color("✅ Module créé avec succès !", 'bold'))
@@ -324,6 +705,8 @@ def main():
         
     except Exception as e:
         print_error(f"Erreur lors de la création du module: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 # ============================================================================
