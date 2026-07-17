@@ -73,6 +73,27 @@ class CarteRosePrinter:
             y = int(ymm * scale)
             painter.drawText(x, y, str(text).upper())
 
+        def format_date(date_value):
+            """Formate une date en JJ/MM/AAAA"""
+            if not date_value:
+                return ""
+            try:
+                from datetime import datetime
+                if isinstance(date_value, datetime):
+                    return date_value.strftime("%d/%m/%Y")
+                elif isinstance(date_value, str):
+                    # Si c'est déjà une chaîne, essayer de la parser
+                    for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"]:
+                        try:
+                            dt = datetime.strptime(date_value, fmt)
+                            return dt.strftime("%d/%m/%Y")
+                        except ValueError:
+                            continue
+                    return date_value[:10]  # Fallback: prendre les 10 premiers caractères
+            except:
+                return str(date_value)[:10]
+            return str(date_value)[:10]
+
         # --- POSITIONS EN MILLIMÈTRES ---
         # A4 paysage: 297mm x 210mm
         
@@ -96,7 +117,10 @@ class CarteRosePrinter:
         draw_line(10, 135, f"ID: {self.data.get('id', 'N/A')}")
         
         # 7. Période
-        periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
+        # periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
+        date_debut = format_date(self.data.get('date_debut', ''))
+        date_fin = format_date(self.data.get('date_fin', ''))
+        periode = f"{date_debut} AU {date_fin}"
         draw_line(10, 145, periode)
         
         # 8. Catégorie
@@ -104,18 +128,26 @@ class CarteRosePrinter:
         draw_line(10, 155, usage_categorie)
         
         # --- DEUXIÈME COLONNE ---
-        draw_line(100, 85, periode)
-        draw_line(100, 95, self.data.get('owner', ''))
-        draw_line(100, 105, self.data.get('immatriculation', ''))
-        draw_line(100, 115, self.data.get('compagny', ''))
-        draw_line(100, 125, usage_categorie)
+        draw_line(80, 85, self.data.get('owner', ''))
+        draw_line(80, 95, periode)
+        draw_line(80, 105, self.data.get('immatriculation', ''))
+        draw_line(80, 115, marque_mod)
+        draw_line(80, 125, self.data.get('compagny', ''))
+        draw_line(80, 135, f"ID: {self.data.get('id', 'N/A')}")
+        draw_line(80, 145, usage_categorie)
         
         # --- TROISIÈME COLONNE ---
-        draw_line(200, 85, f"ID: {self.data.get('id', 'N/A')}")
-        draw_line(200, 95, periode)
-        draw_line(200, 105, marque_mod)
-        draw_line(200, 115, self.data.get('chassis', 'N/A'))
-        draw_line(200, 125, "AMS ASSURANCE, YAOUNDE")
+        draw_line(160, 85, self.data.get('owner', ''))
+        draw_line(160, 95, self.data.get('immatriculation', ''))
+        draw_line(160, 105, "AMS ASSURANCE, YAOUNDE")
+        draw_line(160, 135, usage_categorie)
+
+        # --- QUATRIEME COLONNE ---
+        draw_line(230, 85, f"ID: {self.data.get('id', 'N/A')}")
+        draw_line(230, 95, periode)
+        draw_line(230, 105, marque_mod)
+        draw_line(230, 115, self.data.get('chassis', 'N/A'))
+        draw_line(230, 125, "AMS ASSURANCE, YAOUNDE")
         
         # ✅ Ajouter un cadre de bordure
         painter.drawRect(

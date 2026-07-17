@@ -6,7 +6,8 @@ from PySide6.QtWidgets import (
     QMessageBox, QFrame, QComboBox, QRadioButton, QTabWidget,
     QScrollArea, QSplitter, QTextEdit, QCheckBox, QHeaderView,
     QWidget, QApplication, QLineEdit, QDateEdit, QGridLayout,
-    QGroupBox, QSizePolicy, QSpacerItem, QMenu, QInputDialog
+    QGroupBox, QSizePolicy, QSpacerItem, QMenu, QInputDialog,
+    QDialogButtonBox, QSlider
 )
 from PySide6.QtCore import Qt, Signal, QThread, QDate, QSettings
 from PySide6.QtGui import QFont, QColor, QPalette, QAction
@@ -180,7 +181,7 @@ class MassReductionDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Application de réduction en masse")
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(550, 500)
         self.setModal(True)
         self.setStyleSheet(STYLESHEET)
         
@@ -188,7 +189,7 @@ class MassReductionDialog(QDialog):
     
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(16)
+        layout.setSpacing(14)
         layout.setContentsMargins(20, 20, 20, 20)
         
         # En-tête
@@ -196,80 +197,189 @@ class MassReductionDialog(QDialog):
         header.setStyleSheet("font-size: 16px; font-weight: 700; color: #0f172a;")
         layout.addWidget(header)
         
-        desc = QLabel("Appliquez une réduction sur les garanties sélectionnées pour tous les véhicules")
+        desc = QLabel("Appliquez un pourcentage de réduction sur les garanties sélectionnées")
         desc.setStyleSheet("color: #64748b; font-size: 12px;")
         layout.addWidget(desc)
         
-        # Groupe des garanties
+        # === GARANTIES ===
         group = QGroupBox("Garanties concernées")
+        group.setStyleSheet("""
+            QGroupBox {
+                font-weight: 600;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                margin-top: 6px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 12px;
+                padding: 0 8px;
+                color: #1e293b;
+            }
+        """)
         group_layout = QVBoxLayout(group)
+        group_layout.setSpacing(8)
         
-        # Liste des garanties avec checkboxes
-        self.garantie_checkboxes = {}
-        garanties_list = [
-            ('rc', "RC/RTI"),
-            ('dr', "Défense et Recours"),
-            ('vol', "Vol/Vol partie"),
-            ('vb', "Vol Braquage"),
-            ('incendie', "Incendie"),
-            ('bris_glace', "Bris de Glaces"),
-            ('ar', "Assistance à la réparation"),
-            ('dta', "Dommages Tous Accidents"),
-            ('ipt', "IPT + Conducteur"),
-        ]
+        # Boutons d'action
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
         
-        checkbox_layout = QGridLayout()
-        for i, (key, label) in enumerate(garanties_list):
-            row = i // 3
-            col = (i % 3) * 2
-            
-            cb = QCheckBox(label)
-            cb.setChecked(True)  # Par défaut toutes sélectionnées
-            self.garantie_checkboxes[key] = cb
-            checkbox_layout.addWidget(cb, row, col)
-        
-        # Bouton Sélectionner/Désélectionner tout
         select_all_btn = QPushButton("Tout sélectionner")
         select_all_btn.setFlat(True)
-        select_all_btn.setStyleSheet("color: #2563eb; font-size: 11px;")
-        select_all_btn.clicked.connect(lambda: self.toggle_all_checkboxes(True))
+        select_all_btn.setStyleSheet("color: #2563eb; font-size: 11px; padding: 4px 8px;")
+        select_all_btn.clicked.connect(lambda: self.toggle_all(True))
+        btn_layout.addWidget(select_all_btn)
         
         deselect_all_btn = QPushButton("Tout désélectionner")
         deselect_all_btn.setFlat(True)
-        deselect_all_btn.setStyleSheet("color: #64748b; font-size: 11px;")
-        deselect_all_btn.clicked.connect(lambda: self.toggle_all_checkboxes(False))
-        
-        btn_layout = QHBoxLayout()
-        btn_layout.addWidget(select_all_btn)
+        deselect_all_btn.setStyleSheet("color: #64748b; font-size: 11px; padding: 4px 8px;")
+        deselect_all_btn.clicked.connect(lambda: self.toggle_all(False))
         btn_layout.addWidget(deselect_all_btn)
-        btn_layout.addStretch()
-        checkbox_layout.addLayout(btn_layout, len(garanties_list) // 3 + 1, 0, 1, 6)
+        group_layout.addLayout(btn_layout)
+        
+        # Liste des garanties
+        self.garantie_checkboxes = {}
+        garanties_list = [
+            ('rc', "RC/RTI", "🛡️"),
+            ('dr', "Défense et Recours", "⚖️"),
+            ('vol', "Vol/Vol partie", "🚗"),
+            ('vb', "Vol Braquage", "🔫"),
+            ('incendie', "Incendie", "🔥"),
+            ('bris_glace', "Bris de Glaces", "🪟"),
+            ('ar', "Assistance Réparation", "🔧"),
+            ('dta', "Dommages Tous Accidents", "💥"),
+            ('ipt', "IPT + Conducteur", "👥"),
+        ]
+        
+        checkbox_layout = QGridLayout()
+        checkbox_layout.setSpacing(6)
+        
+        for i, (key, label, icon) in enumerate(garanties_list):
+            row = i // 3
+            col = (i % 3) * 2
+            
+            cb = QCheckBox(f"{icon} {label}")
+            cb.setChecked(True)
+            cb.setStyleSheet("""
+                QCheckBox {
+                    font-size: 11px;
+                    font-weight: 500;
+                    padding: 4px 6px;
+                    spacing: 6px;
+                }
+                QCheckBox::indicator {
+                    width: 16px;
+                    height: 16px;
+                }
+            """)
+            cb.toggled.connect(self.update_summary)
+            self.garantie_checkboxes[key] = cb
+            checkbox_layout.addWidget(cb, row, col)
         
         group_layout.addLayout(checkbox_layout)
         layout.addWidget(group)
         
-        # Type de réduction
-        reduction_group = QGroupBox("Type de réduction")
+        # === PARAMÈTRES ===
+        reduction_group = QGroupBox("Paramètres de réduction")
+        reduction_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: 600;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                margin-top: 6px;
+                padding-top: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 12px;
+                padding: 0 8px;
+                color: #1e293b;
+            }
+        """)
         reduction_layout = QGridLayout(reduction_group)
+        reduction_layout.setSpacing(10)
+        reduction_layout.setContentsMargins(15, 15, 15, 15)
         
+        # Pourcentage
         reduction_layout.addWidget(QLabel("Pourcentage de réduction (%) :"), 0, 0)
         self.reduction_input = QLineEdit("10")
-        self.reduction_input.setPlaceholderText("Ex: 10")
+        self.reduction_input.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 8px 12px;
+                background: white;
+                font-size: 14px;
+                font-weight: 600;
+                min-width: 80px;
+            }
+            QLineEdit:focus {
+                border-color: #2563eb;
+            }
+        """)
+        self.reduction_input.textChanged.connect(self.update_summary)
         reduction_layout.addWidget(self.reduction_input, 0, 1)
         
-        # Mode d'application
-        reduction_layout.addWidget(QLabel("Mode :"), 1, 0)
-        self.mode_combo = QComboBox()
-        self.mode_combo.addItems([
-            "Réduire les montants (soustraire)",
-            "Appliquer un coefficient multiplicateur",
-            "Définir un montant fixe maximum"
-        ])
-        reduction_layout.addWidget(self.mode_combo, 1, 1)
+        # Curseur
+        self.reduction_slider = QSlider(Qt.Horizontal)
+        self.reduction_slider.setRange(0, 100)
+        self.reduction_slider.setValue(10)
+        self.reduction_slider.setTickInterval(10)
+        self.reduction_slider.setTickPosition(QSlider.TicksBelow)
+        self.reduction_slider.valueChanged.connect(self.on_slider_changed)
+        reduction_layout.addWidget(self.reduction_slider, 1, 0, 1, 2)
+        
+        # Aperçu
+        preview_frame = QFrame()
+        preview_frame.setStyleSheet("""
+            QFrame {
+                background: #f8fafc;
+                border-radius: 6px;
+                padding: 8px 12px;
+                margin-top: 4px;
+            }
+        """)
+        preview_layout = QHBoxLayout(preview_frame)
+        
+        self.preview_label = QLabel("💡 10% de réduction")
+        self.preview_label.setStyleSheet("color: #475569; font-size: 11px; font-weight: 500;")
+        preview_layout.addWidget(self.preview_label)
+        preview_layout.addStretch()
+        
+        self.preview_total = QLabel("0 FCFA économisés")
+        self.preview_total.setStyleSheet("color: #10b981; font-size: 11px; font-weight: 600;")
+        preview_layout.addWidget(self.preview_total)
+        
+        reduction_layout.addWidget(preview_frame, 2, 0, 1, 2)
         
         layout.addWidget(reduction_group)
         
-        # Actions
+        # === RÉSUMÉ ===
+        summary_frame = QFrame()
+        summary_frame.setStyleSheet("""
+            QFrame {
+                background: #eff6ff;
+                border: 1px solid #bfdbfe;
+                border-radius: 8px;
+                padding: 10px 14px;
+            }
+        """)
+        summary_layout = QHBoxLayout(summary_frame)
+        summary_layout.setSpacing(20)
+        
+        self.summary_text = QLabel("📋 9 garanties sélectionnées · 10% de réduction")
+        self.summary_text.setStyleSheet("color: #1e293b; font-size: 12px; font-weight: 500;")
+        summary_layout.addWidget(self.summary_text)
+        summary_layout.addStretch()
+        
+        self.summary_vehicles = QLabel("🚗 0 véhicules")
+        self.summary_vehicles.setStyleSheet("color: #2563eb; font-size: 12px; font-weight: 600;")
+        summary_layout.addWidget(self.summary_vehicles)
+        
+        layout.addWidget(summary_frame)
+        
+        # === ACTIONS ===
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         
@@ -286,28 +396,72 @@ class MassReductionDialog(QDialog):
         btn_layout.addWidget(cancel_btn)
         btn_layout.addWidget(apply_btn)
         layout.addLayout(btn_layout)
+        
+        self.update_summary()
     
-    def toggle_all_checkboxes(self, checked):
+    def on_slider_changed(self, value):
+        """Met à jour le champ de pourcentage depuis le curseur"""
+        self.reduction_input.setText(str(value))
+    
+    def toggle_all(self, checked):
         """Active ou désactive toutes les checkboxes"""
         for cb in self.garantie_checkboxes.values():
             cb.setChecked(checked)
+        self.update_summary()
+    
+    def update_summary(self):
+        """Met à jour le résumé"""
+        selected = [key for key, cb in self.garantie_checkboxes.items() if cb.isChecked()]
+        pct = self.get_reduction_percentage()
+        
+        # Mettre à jour le texte du résumé
+        self.summary_text.setText(
+            f"📋 {len(selected)} garantie{'s' if len(selected) > 1 else ''} sélectionnée{'s' if len(selected) > 1 else ''} · {pct:.1f}% de réduction"
+        )
+        
+        # Mettre à jour l'aperçu
+        self.preview_label.setText(f"💡 {pct:.1f}% de réduction")
+        
+        # Compter les véhicules impactés
+        if self.parent() and hasattr(self.parent(), 'vehicles_data'):
+            vehicles = self.parent().vehicles_data
+            impacted = 0
+            for v in vehicles:
+                garanties = v.get('garanties', {})
+                for key in selected:
+                    if garanties.get(key, 0) > 0:
+                        impacted += 1
+                        break
+            self.summary_vehicles.setText(f"🚗 {impacted} véhicule{'s' if impacted > 1 else ''}")
+            
+            # Calculer les économies totales
+            total_economies = 0
+            for v in vehicles:
+                garanties = v.get('garanties', {})
+                for key in selected:
+                    amount = garanties.get(key, 0)
+                    if amount > 0:
+                        total_economies += amount * (pct / 100)
+            self.preview_total.setText(f"{total_economies:,.0f}".replace(",", " ") + " FCFA économisés")
+        else:
+            self.summary_vehicles.setText("🚗 Véhicules chargés")
+            self.preview_total.setText("0 FCFA économisés")
     
     def get_selected_garanties(self):
         """Retourne la liste des garanties sélectionnées"""
         return [key for key, cb in self.garantie_checkboxes.items() if cb.isChecked()]
     
-    def get_reduction_value(self):
-        """Retourne la valeur de réduction"""
+    def get_reduction_percentage(self):
+        """Retourne le pourcentage de réduction"""
         try:
-            return float(self.reduction_input.text().replace(",", "."))
+            value = float(self.reduction_input.text().replace(",", "."))
+            if value < 0:
+                return 0.0
+            if value > 100:
+                return 100.0
+            return value
         except:
             return 0.0
-    
-    def get_mode(self):
-        """Retourne le mode d'application"""
-        return self.mode_combo.currentIndex()
-
-
 
 
 def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, current_user_id, debut, fin, jours, total_garanties, tva_amount, accessoires, asac, carte_rose, vignette):
@@ -319,6 +473,11 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
     type_value = (vehicle.get('type_vehicule') or 'TV10').strip() or 'TV10'
     usage_value = (vehicle.get('usage') or 'UV01').strip() or 'UV01'
     energie_value = (vehicle.get('energie') or 'SEE').strip() or 'SEE'
+
+    # ✅ Récupérer les valeurs de prime depuis le véhicule (déjà extraites du fichier)
+    prime_brute = vehicle.get('prime_brute', 0)
+    prime_nette = vehicle.get('prime_nette', 0)
+    reductions = vehicle.get('reductions', 0)
 
     guarantee_amounts = {
         'amt_rc': float(garanties.get('rc', 0) or 0),
@@ -343,6 +502,30 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'check_dta': guarantee_amounts['amt_dta'] > 0,
         'check_ipt': guarantee_amounts['amt_ipt'] > 0,
     }
+
+    # ✅ Récupérer les réductions individuelles
+    reductions_individuelles = {
+        'red_rc': float(garanties.get('red_rc', garanties.get('reduction_rc', 0)) or 0),
+        'red_dr': float(garanties.get('red_dr', garanties.get('reduction_dr', 0)) or 0),
+        'red_vol': float(garanties.get('red_vol', garanties.get('reduction_vol', 0)) or 0),
+        'red_vb': float(garanties.get('red_vb', garanties.get('reduction_vb', 0)) or 0),
+        'red_in': float(garanties.get('red_in', garanties.get('reduction_in', 0)) or 0),
+        'red_bris': float(garanties.get('red_bris', garanties.get('reduction_bris', 0)) or 0),
+        'red_ar': float(garanties.get('red_ar', garanties.get('reduction_ar', 0)) or 0),
+        'red_dta': float(garanties.get('red_dta', garanties.get('reduction_dta', 0)) or 0),
+        'red_ipt': float(garanties.get('red_ipt', garanties.get('reduction_ipt', 0)) or 0),
+    }
+
+    # ✅ Calcul de la TVA (sur la base de la prime nette)
+    # base_tva = prime_nette + accessoires + asac
+    # tva = base_tva * 0.1925
+    tva_rate = 0.1925
+    base_tva = prime_nette + accessoires + asac
+    tva_calculee = base_tva * tva_rate
+    
+    # ✅ Calcul du PTTC
+    # pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
+    pttc_calcule = prime_nette + accessoires + asac + tva_calculee + vignette + carte_rose
 
     return {
         'immatriculation': vehicle['immatriculation'],
@@ -370,16 +553,16 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'date_fin': fin,
         'date_mise_circulation': vehicle.get('date_mise_circulation', None),
         'nbr_jour': jours,
-        'prime_brute': total_garanties,
-        'reduction': 0,
-        'prime_nette': total_garanties,
-        'prime_emise': total_garanties,
+        'prime_brute': prime_brute,  # ✅ Prime brute du fichier
+        'reduction': reductions,      # ✅ Réductions du fichier
+        'prime_nette': prime_nette,   # ✅ Prime nette du fichier
+        'prime_emise': prime_nette,   # ✅ Prime émise = prime nette
         'accessoires': accessoires,
-        'tva': tva_amount,
+        'tva': tva_calculee,
         'fichier_asac': asac,
         'carte_rose': carte_rose,
         'vignette': vignette,
-        'pttc': total_garanties + accessoires + asac + tva_amount + vignette + carte_rose,
+        'pttc': pttc_calcule,
         'statut': 'ACTIF',
         'is_active': True,
         'owner_id': owner_id,
@@ -398,15 +581,7 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'zone': 'A',
         **guarantee_amounts,
         **guarantee_options,
-        'red_rc': 0,
-        'red_dr': 0,
-        'red_vol': 0,
-        'red_vb': 0,
-        'red_in': 0,
-        'red_bris': 0,
-        'red_ar': 0,
-        'red_dta': 0,
-        'red_ipt': 0,
+        **reductions_individuelles,
         'amt_val_red_rc': 0,
         'amt_val_red_dr': 0,
         'amt_val_red_vol': 0,
@@ -426,7 +601,6 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'amt_fleet_dta_val': 0,
         'amt_fleet_ipt_val': 0,
     }
-
 
 class VehicleGarantieDialog(QDialog):
     """Dialogue de personnalisation complète d'un véhicule"""
@@ -1628,7 +1802,7 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(self.existing_fleet_widget)
         
         return group
-    
+        
     def create_insurance_section(self):
         """Section des paramètres d'assurance (simplifiée)"""
         group = QGroupBox("📋 3. Paramètres du contrat")
@@ -1659,36 +1833,119 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(sep, 2, 0, 1, 2)
         
         # Titre des frais
-        frais_title = QLabel("💰 FRAIS SUPPLÉMENTAIRES (par véhicule)")
+        frais_title = QLabel("💰 FRAIS SUPPLÉMENTAIRES")
         frais_title.setStyleSheet("font-weight: 700; color: #475569; font-size: 12px;")
         layout.addWidget(frais_title, 3, 0, 1, 2)
         
+        # Mode de calcul
+        layout.addWidget(QLabel("Mode de calcul :"), 4, 0)
+        self.frais_mode_combo = QComboBox()
+        self.frais_mode_combo.addItems(["Par véhicule (unitaire)", "Global (réparti)"])
+        self.frais_mode_combo.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
+        self.frais_mode_combo.currentIndexChanged.connect(self.on_frais_mode_changed)
+        layout.addWidget(self.frais_mode_combo, 4, 1)
+        
+        # Info mode
+        self.frais_mode_info = QLabel("💡 Le montant sera appliqué à chaque véhicule sélectionné")
+        self.frais_mode_info.setStyleSheet("color: #64748b; font-size: 10px; font-style: italic;")
+        layout.addWidget(self.frais_mode_info, 5, 0, 1, 2)
+        
         # Accessoires
-        layout.addWidget(QLabel("Accessoires (FCFA) :"), 4, 0)
+        layout.addWidget(QLabel("Accessoires (FCFA) :"), 6, 0)
         self.global_accessoires = QLineEdit("0")
         self.global_accessoires.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
-        layout.addWidget(self.global_accessoires, 4, 1)
+        self.global_accessoires.textChanged.connect(self.on_frais_changed)
+        layout.addWidget(self.global_accessoires, 6, 1)
         
         # Fichier ASAC
-        layout.addWidget(QLabel("Fichier ASAC (FCFA) :"), 5, 0)
+        layout.addWidget(QLabel("Fichier ASAC (FCFA) :"), 7, 0)
         self.global_asac = QLineEdit("0")
         self.global_asac.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
-        layout.addWidget(self.global_asac, 5, 1)
+        self.global_asac.textChanged.connect(self.on_frais_changed)
+        layout.addWidget(self.global_asac, 7, 1)
         
         # Carte Rose
-        layout.addWidget(QLabel("Carte Rose (FCFA) :"), 6, 0)
+        layout.addWidget(QLabel("Carte Rose (FCFA) :"), 8, 0)
         self.global_carte_rose = QLineEdit("0")
         self.global_carte_rose.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
-        layout.addWidget(self.global_carte_rose, 6, 1)
+        self.global_carte_rose.textChanged.connect(self.on_frais_changed)
+        layout.addWidget(self.global_carte_rose, 8, 1)
         
         # Vignette
-        layout.addWidget(QLabel("Vignette (FCFA) :"), 7, 0)
+        layout.addWidget(QLabel("Vignette (FCFA) :"), 9, 0)
         self.global_vignette = QLineEdit("0")
         self.global_vignette.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
-        layout.addWidget(self.global_vignette, 7, 1)
+        self.global_vignette.textChanged.connect(self.on_frais_changed)
+        layout.addWidget(self.global_vignette, 9, 1)
+        
+        # Aperçu des frais
+        preview_frame = QFrame()
+        preview_frame.setStyleSheet("""
+            QFrame {
+                background: #f8fafc;
+                border-radius: 6px;
+                padding: 6px 10px;
+                margin-top: 4px;
+            }
+        """)
+        preview_layout = QHBoxLayout(preview_frame)
+        self.frais_preview = QLabel("💰 Total frais: 0 FCFA (0 véhicules)")
+        self.frais_preview.setStyleSheet("color: #475569; font-size: 11px; font-weight: 500;")
+        preview_layout.addWidget(self.frais_preview)
+        preview_layout.addStretch()
+        layout.addWidget(preview_frame, 10, 0, 1, 2)
         
         return group
-    
+
+    def on_frais_mode_changed(self):
+        """Met à jour l'info du mode de calcul"""
+        is_global = self.frais_mode_combo.currentIndex() == 1
+        if is_global:
+            self.frais_mode_info.setText("💡 Le montant sera réparti entre tous les véhicules sélectionnés")
+        else:
+            self.frais_mode_info.setText("💡 Le montant sera appliqué à chaque véhicule sélectionné")
+        self.on_frais_changed()
+
+    def on_frais_changed(self):
+        """Met à jour l'aperçu des frais"""
+        selected_count = 0
+        for row in range(self.vehicles_table.rowCount()):
+            item = self.vehicles_table.item(row, 0)
+            if item and item.checkState() == Qt.Checked:
+                selected_count += 1
+        
+        if selected_count == 0:
+            self.frais_preview.setText("💰 Total frais: 0 FCFA (0 véhicules sélectionnés)")
+            return
+        
+        try:
+            accessoires = float(self.global_accessoires.text().replace(" ", "").replace(",", "") or 0)
+            asac = float(self.global_asac.text().replace(" ", "").replace(",", "") or 0)
+            carte_rose = float(self.global_carte_rose.text().replace(" ", "").replace(",", "") or 0)
+            vignette = float(self.global_vignette.text().replace(" ", "").replace(",", "") or 0)
+            
+            total_frais = accessoires + asac + carte_rose + vignette
+            
+            is_global = self.frais_mode_combo.currentIndex() == 1
+            
+            if is_global:
+                # Mode global: le montant est réparti entre tous les véhicules
+                total_frais_global = total_frais
+                par_vehicule = total_frais / selected_count if selected_count > 0 else 0
+                self.frais_preview.setText(
+                    f"💰 Total frais: {total_frais_global:,.0f}".replace(",", " ") + 
+                    f" FCFA (réparti sur {selected_count} véhicules - {par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule)"
+                )
+            else:
+                # Mode unitaire: le montant est multiplié par le nombre de véhicules
+                total_frais_global = total_frais * selected_count
+                self.frais_preview.setText(
+                    f"💰 Total frais: {total_frais_global:,.0f}".replace(",", " ") + 
+                    f" FCFA ({total_frais:,.0f}".replace(",", " ") + f" FCFA × {selected_count} véhicules)"
+                )
+        except:
+            pass
+
     def create_right_panel(self):
         """Crée le panneau des résultats"""
         scroll = QScrollArea()
@@ -1732,7 +1989,7 @@ class FleetImportAdvancedDialog(QDialog):
         # Bouton de réduction en masse
         self.mass_reduction_btn = QPushButton("📉 Réduction en masse")
         self.mass_reduction_btn.setProperty("class", "BtnWarning")
-        self.mass_reduction_btn.setEnabled(False)
+        self.mass_reduction_btn.setEnabled(True)
         self.mass_reduction_btn.clicked.connect(self.apply_mass_reduction)
         status_layout.addWidget(self.mass_reduction_btn)
         
@@ -1762,152 +2019,158 @@ class FleetImportAdvancedDialog(QDialog):
         
         scroll.setWidget(content)
         return scroll
-    
-    def setup_vehicle_table(self):
-        """Configure le tableau avec les nouvelles colonnes"""
-        # Nouvelles entêtes
-        headers = [
-            "✓",  # 0
-            "Rang",  # 1
-            "Immatriculation",  # 2
-            "Marque et Type",  # 3
-            "Genre",  # 4
-            "Puissance en CV",  # 5
-            "Usage",  # 6
-            "Nombre de Places",  # 7
-            "Nombre de jours assurés",  # 8
-            "PMEC",  # 9
-            "Valeur Neuve",  # 10
-            "Valeur Venale",  # 11
-            "Capital Assistance à la réparation",  # 12
-            "RC/RTI",  # 13
-            "Défense et Recours",  # 14
-            "Vol/Vol partie",  # 15
-            "Vol Braquage",  # 16
-            "Incendie",  # 17
-            "Bris de Glaces",  # 18
-            "Assistance à la réparation",  # 19
-            "Dommages Tous Accidents",  # 20
-            "IPT + Conducteur",  # 21
-            "Prime brute",  # 22
-            "Réductions",  # 23
-            "Prime nette",  # 24
-            "Droit de Timbre Automobile",  # 25
-            "Actions"  # 26
-        ]
-        
-        self.vehicles_table = QTableWidget()
-        self.vehicles_table.setColumnCount(len(headers))
-        self.vehicles_table.setHorizontalHeaderLabels(headers)
-        
-        # Configuration des colonnes
-        column_widths = {
-            0: 30,   # ✓
-            1: 40,   # Rang
-            2: 100,  # Immatriculation
-            3: 120,  # Marque et Type
-            4: 70,   # Genre
-            5: 80,   # Puissance en CV
-            6: 80,   # Usage
-            7: 60,   # Nombre de Places
-            8: 80,   # Nombre de jours assurés
-            9: 70,   # PMEC
-            10: 90,  # Valeur Neuve
-            11: 90,  # Valeur Venale
-            12: 90,  # Capital Assistance
-            13: 80,  # RC/RTI
-            14: 80,  # DR
-            15: 80,  # Vol
-            16: 80,  # VB
-            17: 80,  # Incendie
-            18: 80,  # Bris
-            19: 80,  # AR
-            20: 80,  # DTA
-            21: 80,  # IPT
-            22: 80,  # Prime brute
-            23: 70,  # Réductions
-            24: 80,  # Prime nette
-            25: 80,  # Droit de Timbre
-            26: 120  # Actions
-        }
-        
-        for col, width in column_widths.items():
-            self.vehicles_table.setColumnWidth(col, width)
-        
-        self.vehicles_table.setAlternatingRowColors(True)
-        self.vehicles_table.setSelectionBehavior(QTableWidget.SelectRows)
-        self.vehicles_table.setMinimumHeight(350)
-        self.vehicles_table.verticalHeader().setDefaultSectionSize(40)
-        self.vehicles_table.verticalHeader().setMinimumSectionSize(35)
-        
-        # Connecter le signal de changement de sélection
-        self.vehicles_table.itemClicked.connect(self.on_table_item_clicked)
-    
+          
     def create_recap_section(self):
-        """Crée la section récapitulative"""
+        """Crée la section récapitulative avec des cartes élégantes"""
         recap_group = QGroupBox("📊 Récapitulatif")
-        recap_layout = QGridLayout(recap_group)
-        recap_layout.setSpacing(10)
-        recap_layout.setContentsMargins(15, 15, 15, 15)
+        recap_group.setStyleSheet("""
+            QGroupBox {
+                font-weight: 600;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding-top: 15px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 10px;
+                color: #1e293b;
+                font-size: 13px;
+            }
+        """)
         
-        # Cartes de récapitulatif
+        recap_layout = QGridLayout(recap_group)
+        recap_layout.setSpacing(8)
+        recap_layout.setContentsMargins(12, 12, 12, 12)
+        
         self.recap_cards = {}
         
+        # Configuration des cartes
         recap_items = [
-            ('total', "Total véhicules", "0", "🚗"),
-            ('selected', "Sélectionnés", "0", "✅"),
-            ('rc', "RC/RTI", "0 FCFA", "🛡️"),
-            ('dr', "DR", "0 FCFA", "⚖️"),
-            ('vol', "Vol", "0 FCFA", "🚗"),
-            ('vb', "Vol Braquage", "0 FCFA", "🔫"),
-            ('incendie', "Incendie", "0 FCFA", "🔥"),
-            ('bris_glace', "Bris de Glace", "0 FCFA", "🪟"),
-            ('ar', "AR", "0 FCFA", "🔧"),
-            ('dta', "DTA", "0 FCFA", "💥"),
-            ('ipt', "IPT", "0 FCFA", "👥"),
-            ('prime_brute', "Prime brute", "0 FCFA", "💰"),
-            ('prime_nette', "Prime nette", "0 FCFA", "💳"),
-            ('carte_rose', "Carte Rose", "0 FCFA", "📄"),
-            ('accessoires', "Accessoires", "0 FCFA", "🔧"),
-            ('asac', "Fichier ASAC", "0 FCFA", "📁"),
-            ('vignette', "Vignette", "0 FCFA", "🏷️"),
-            ('tva', "TVA", "0 FCFA", "📊"),
-            ('pttc', "PTTC Total", "0 FCFA", "💰"),
+            # Informations générales
+            {'key': 'total', 'label': 'Total', 'icon': '🚗', 'type': 'info'},
+            {'key': 'selected', 'label': 'Sélectionnés', 'icon': '✅', 'type': 'info'},
+            
+            # Garanties
+            {'key': 'rc', 'label': 'RC/RTI', 'icon': '🛡️', 'type': 'garantie'},
+            {'key': 'dr', 'label': 'DR', 'icon': '⚖️', 'type': 'garantie'},
+            {'key': 'vol', 'label': 'Vol', 'icon': '🚗', 'type': 'garantie'},
+            {'key': 'vb', 'label': 'VB', 'icon': '🔫', 'type': 'garantie'},
+            {'key': 'incendie', 'label': 'Incendie', 'icon': '🔥', 'type': 'garantie'},
+            {'key': 'bris_glace', 'label': 'Bris Glace', 'icon': '🪟', 'type': 'garantie'},
+            {'key': 'ar', 'label': 'AR', 'icon': '🔧', 'type': 'garantie'},
+            {'key': 'dta', 'label': 'DTA', 'icon': '💥', 'type': 'garantie'},
+            {'key': 'ipt', 'label': 'IPT', 'icon': '👥', 'type': 'garantie'},
+            
+            # Totaux
+            {'key': 'prime_brute', 'label': 'Prime brute', 'icon': '💰', 'type': 'total'},
+            {'key': 'reductions_total', 'label': 'Réductions', 'icon': '📉', 'type': 'total'},
+            {'key': 'prime_nette', 'label': 'Prime nette', 'icon': '💳', 'type': 'total'},
+            
+            # Frais
+            {'key': 'carte_rose', 'label': 'Carte Rose', 'icon': '📄', 'type': 'frais'},
+            {'key': 'accessoires', 'label': 'Accessoires', 'icon': '🔧', 'type': 'frais'},
+            {'key': 'asac', 'label': 'ASAC', 'icon': '📁', 'type': 'frais'},
+            {'key': 'vignette', 'label': 'Vignette', 'icon': '🏷️', 'type': 'frais'},
+            {'key': 'tva', 'label': 'TVA', 'icon': '📊', 'type': 'frais'},
+            {'key': 'pttc', 'label': 'PTTC Total', 'icon': '💰', 'type': 'frais'},
         ]
         
         row = 0
         col = 0
         max_cols = 4
         
-        for key, label, default_value, icon in recap_items:
-            card = QFrame()
-            card.setStyleSheet(f"""
-                QFrame {{
-                    background: {AppColors.GRAY_LIGHT};
-                    border-radius: 8px;
-                    padding: 6px;
-                }}
-            """)
-            card_layout = QVBoxLayout(card)
-            card_layout.setSpacing(2)
+        for item in recap_items:
+            key = item['key']
+            label = item['label']
+            icon = item['icon']
+            card_type = item['type']
             
+            # Carte avec style épuré
+            card = QFrame()
+            card.setStyleSheet("""
+                QFrame {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 8px 10px;
+                }
+            """)
+            
+            card_layout = QVBoxLayout(card)
+            card_layout.setSpacing(4)
+            card_layout.setContentsMargins(8, 6, 8, 6)
+            
+            # En-tête
             header_layout = QHBoxLayout()
+            header_layout.setSpacing(6)
+            
             icon_label = QLabel(icon)
-            icon_label.setStyleSheet("font-size: 12px;")
+            icon_label.setStyleSheet("font-size: 13px;")
+            
             label_widget = QLabel(label)
-            label_widget.setStyleSheet(f"color: {AppColors.GRAY}; font-size: 9px; font-weight: 500;")
+            label_widget.setStyleSheet("""
+                color: #64748b;
+                font-size: 10px;
+                font-weight: 600;
+            """)
+            
             header_layout.addWidget(icon_label)
             header_layout.addWidget(label_widget)
             header_layout.addStretch()
-            
-            value_widget = QLabel(default_value)
-            value_widget.setStyleSheet(f"color: {AppColors.DARK}; font-size: 14px; font-weight: 700;")
-            value_widget.setAlignment(Qt.AlignCenter)
-            
             card_layout.addLayout(header_layout)
-            card_layout.addWidget(value_widget)
             
-            self.recap_cards[key] = value_widget
+            if card_type == 'garantie':
+                # Valeur principale
+                value_widget = QLabel("0")
+                value_widget.setStyleSheet("""
+                    color: #0f172a;
+                    font-size: 16px;
+                    font-weight: 700;
+                    padding: 2px 0;
+                """)
+                value_widget.setAlignment(Qt.AlignCenter)
+                card_layout.addWidget(value_widget)
+                
+                # Ligne réduction
+                reduction_layout = QHBoxLayout()
+                reduction_layout.setSpacing(6)
+                
+                # Pourcentage
+                pct_widget = QLabel("0%")
+                pct_widget.setStyleSheet("color: #f59e0b; font-size: 11px; font-weight: 600;")
+                pct_widget.setAlignment(Qt.AlignCenter)
+                
+                # Montant déduit
+                deduit_widget = QLabel("0")
+                deduit_widget.setStyleSheet("color: #ef4444; font-size: 11px; font-weight: 600;")
+                deduit_widget.setAlignment(Qt.AlignCenter)
+                
+                reduction_layout.addWidget(pct_widget)
+                reduction_layout.addStretch()
+                reduction_layout.addWidget(deduit_widget)
+                card_layout.addLayout(reduction_layout)
+                
+                self.recap_cards[key] = value_widget
+                self.recap_cards[f'{key}_red'] = pct_widget
+                self.recap_cards[f'{key}_deduit'] = deduit_widget
+                
+            else:
+                # Carte simple
+                value_widget = QLabel("0")
+                color = "#10b981" if key == 'pttc' else "#0f172a"
+                value_widget.setStyleSheet(f"""
+                    color: {color};
+                    font-size: 17px;
+                    font-weight: 700;
+                    padding: 2px 0;
+                """)
+                value_widget.setAlignment(Qt.AlignCenter)
+                card_layout.addWidget(value_widget)
+                self.recap_cards[key] = value_widget
+            
             recap_layout.addWidget(card, row, col)
             
             col += 1
@@ -1916,7 +2179,110 @@ class FleetImportAdvancedDialog(QDialog):
                 row += 1
         
         return recap_group
-    
+
+    def update_summary(self):
+        """Met à jour le récapitulatif avec les réductions"""
+        total = len(self.vehicles_data)
+        selected = 0
+        
+        # Initialiser les totaux
+        garanties_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
+        selected_totals = {key: 0.0 for key in garanties_keys}
+        reductions_amount = {key: 0.0 for key in garanties_keys}
+        reduction_percentages = {key: [] for key in garanties_keys}
+        
+        # ✅ Totaux des primes (brute, nette, réductions)
+        total_prime_brute = 0
+        total_prime_nette = 0
+        total_reductions = 0
+        
+        # Totaux des frais
+        total_accessoires = 0
+        total_asac = 0
+        total_carte_rose = 0
+        total_vignette = 0
+        total_tva = 0
+        total_pttc = 0
+        
+        for row in range(self.vehicles_table.rowCount()):
+            item = self.vehicles_table.item(row, 0)
+            is_selected = item and item.checkState() == Qt.Checked
+            
+            if is_selected:
+                selected += 1
+            
+            vehicle = self.vehicles_data[row] if row < len(self.vehicles_data) else None
+            if vehicle and is_selected:
+                garanties = vehicle.get('garanties', {})
+                
+                # Calculer pour chaque garantie
+                for key in garanties_keys:
+                    amount = garanties.get(key, 0)
+                    selected_totals[key] += amount
+                    
+                    # Récupérer le pourcentage de réduction
+                    reduction_key = f'reduction_{key}'
+                    reduction_pct = garanties.get(reduction_key, 0)
+                    if isinstance(reduction_pct, str):
+                        try:
+                            reduction_pct = float(reduction_pct.replace('%', '').strip())
+                        except:
+                            reduction_pct = 0
+                    
+                    if reduction_pct > 0:
+                        reduction_percentages[key].append(reduction_pct)
+                        deduit = amount * (reduction_pct / 100)
+                        reductions_amount[key] += deduit
+                
+                # ✅ Additionner les primes brute et nette du véhicule
+                total_prime_brute += vehicle.get('prime_brute', 0)
+                total_prime_nette += vehicle.get('prime_nette', 0)
+                total_reductions += vehicle.get('reductions', 0)
+                
+                # Frais
+                total_accessoires += vehicle.get('accessoires', 0)
+                total_asac += vehicle.get('asac', 0)
+                total_carte_rose += vehicle.get('carte_rose', 0)
+                total_vignette += vehicle.get('vignette', 0)
+                total_tva += vehicle.get('tva', 0)
+                total_pttc += vehicle.get('pttc', 0)
+        
+        # Mettre à jour les cartes
+        self.recap_cards['total'].setText(str(total))
+        self.recap_cards['selected'].setText(str(selected))
+        
+        # Garanties avec leurs détails
+        for key in garanties_keys:
+            # Montant total
+            total_amount = selected_totals.get(key, 0)
+            self.recap_cards[key].setText(f"{total_amount:,.0f}".replace(",", " "))
+            
+            # Pourcentage de réduction (moyenne ou dernier appliqué)
+            if reduction_percentages.get(key):
+                avg_red = sum(reduction_percentages[key]) / len(reduction_percentages[key])
+                self.recap_cards[f'{key}_red'].setText(f"{avg_red:.1f}%")
+            else:
+                self.recap_cards[f'{key}_red'].setText("0%")
+            
+            # Montant total déduit
+            deduit = reductions_amount.get(key, 0)
+            self.recap_cards[f'{key}_deduit'].setText(f"{deduit:,.0f}".replace(",", " "))
+        
+        # ✅ Totaux des primes (brute, nette, réductions)
+        self.recap_cards['prime_brute'].setText(f"{total_prime_brute:,.0f}".replace(",", " "))
+        self.recap_cards['reductions_total'].setText(f"{total_reductions:,.0f}".replace(",", " "))
+        self.recap_cards['prime_nette'].setText(f"{total_prime_nette:,.0f}".replace(",", " "))
+        
+        # Frais
+        self.recap_cards['accessoires'].setText(f"{total_accessoires:,.0f}".replace(",", " "))
+        self.recap_cards['asac'].setText(f"{total_asac:,.0f}".replace(",", " "))
+        self.recap_cards['carte_rose'].setText(f"{total_carte_rose:,.0f}".replace(",", " "))
+        self.recap_cards['vignette'].setText(f"{total_vignette:,.0f}".replace(",", " "))
+        self.recap_cards['tva'].setText(f"{total_tva:,.0f}".replace(",", " "))
+        self.recap_cards['pttc'].setText(f"{total_pttc:,.0f}".replace(",", " "))
+        
+        self.update_selection_count()
+
     def create_footer(self):
         """Crée le pied de page"""
         footer = QFrame()
@@ -1975,463 +2341,198 @@ class FleetImportAdvancedDialog(QDialog):
             self.file_label.setText(os.path.basename(file_path))
             self.load_file()
 
-    # def load_file(self):
-    #     """Charge le fichier avec détection intelligente du tableau"""
-    #     try:
-    #         if self.file_path.endswith(('.xlsx', '.xls')):
-    #             df_raw = pd.read_excel(self.file_path, header=None)
-    #         else:
-    #             df_raw = pd.read_csv(self.file_path, encoding='utf-8', header=None)
-            
-    #         # Trouver la ligne où commence le tableau
-    #         header_row = -1
-            
-    #         for idx, row in df_raw.iterrows():
-    #             row_values = [str(v).strip() if pd.notna(v) else '' for v in row.values]
-    #             if 'Rang' in row_values:
-    #                 # Nouvelles colonnes attendues
-    #                 expected_headers = ['Rang', 'Immatriculation', 'Numero Chassi', 'Marque et Type', 
-    #                                 'Genre', 'Puissance en CV', 'Usage', 'Nombre de Places', 
-    #                                 'Nombre de jours assurés', 'PMEC', 'Valeur Neuve', 
-    #                                 'Valeur Venale', 'Capital Assistance à la réparation',
-    #                                 'RC/RTI', 'Défense et Recours', 'Vol/Vol partiel - Braquage', 
-    #                                 'Incendie', 'Bris de Glaces', 'Assistance à la réparation', 
-    #                                 'Dommages Tous Accidents', 'IPT + Conducteur', 
-    #                                 'Prime brute', 'Réductions', 'Prime nette', 'Droit de Timbre Automobile']
-    #                 match_count = sum(1 for h in expected_headers if h in row_values)
-    #                 if match_count >= 10:
-    #                     header_row = idx
-    #                     break
-            
-    #         if header_row == -1:
-    #             for idx, row in df_raw.iterrows():
-    #                 if 'Rang' in str(row.values):
-    #                     header_row = idx
-    #                     break
-                
-    #             if header_row == -1:
-    #                 self.file_info.setText("❌ Impossible de trouver le tableau")
-    #                 self.status_text.setText("Erreur: format de fichier non reconnu")
-    #                 return
-            
-    #         # Récupérer les en-têtes et les données
-    #         header_values = df_raw.iloc[header_row].values
-    #         data_values = df_raw.values[header_row+1:]
-            
-    #         # Trouver la dernière colonne non vide dans les en-têtes
-    #         max_cols = 0
-    #         for i, val in enumerate(header_values):
-    #             if pd.notna(val) and str(val).strip():
-    #                 max_cols = i + 1
-            
-    #         if max_cols == 0:
-    #             max_cols = len(header_values)
-            
-    #         # Tronquer les données pour correspondre au nombre d'en-têtes
-    #         header_values = header_values[:max_cols]
-    #         data_values = data_values[:, :max_cols]
-            
-    #         # Créer le DataFrame
-    #         df = pd.DataFrame(data_values, columns=range(max_cols))
-            
-    #         # Renommer les colonnes avec les en-têtes
-    #         column_names = []
-    #         for i, val in enumerate(header_values):
-    #             if pd.notna(val):
-    #                 name = str(val).strip()
-    #                 if name in column_names:
-    #                     name = f"{name}.{column_names.count(name)}"
-    #                 column_names.append(name)
-    #             else:
-    #                 column_names.append(f"Col_{i}")
-            
-    #         df.columns = column_names
-            
-    #         # ✅ MAPPING DES COLONNES AVEC LES NOUVEAUX NOMS
-    #         column_mapping = {}
-    #         for col in df.columns:
-    #             col_lower = col.lower().strip()
-                
-    #             # Identifiants
-    #             if 'immatriculation' in col_lower:
-    #                 column_mapping[col] = 'Immatriculation'
-    #             elif 'numéro chassi' in col_lower or 'numero chassi' in col_lower or 'chassi' in col_lower:
-    #                 column_mapping[col] = 'Chassis'
-    #             elif 'marque' in col_lower or 'type' in col_lower:
-    #                 column_mapping[col] = 'Marque et Type'
-    #             elif 'rang' in col_lower:
-    #                 column_mapping[col] = 'Rang'
-                
-    #             # Caractéristiques
-    #             elif 'genre' in col_lower:
-    #                 column_mapping[col] = 'Genre'
-    #             elif 'puissance' in col_lower:
-    #                 column_mapping[col] = 'Puissance en CV'
-    #             elif 'usage' in col_lower:
-    #                 column_mapping[col] = 'Usage'
-    #             elif 'place' in col_lower:
-    #                 column_mapping[col] = 'Nombre de Places'
-    #             elif 'jour' in col_lower:
-    #                 column_mapping[col] = 'Nombre de jours assurés'
-    #             elif 'pmec' in col_lower:
-    #                 column_mapping[col] = 'PMEC'
-                
-    #             # Valeurs financières
-    #             elif 'valeur neuf' in col_lower or 'valeur_neuf' in col_lower:
-    #                 column_mapping[col] = 'Valeur Neuve'
-    #             elif 'valeur venale' in col_lower or 'valeur_venale' in col_lower:
-    #                 column_mapping[col] = 'Valeur Venale'
-    #             elif 'capital' in col_lower and 'assistance' in col_lower:
-    #                 column_mapping[col] = 'Capital Assistance à la réparation'
-                
-    #             # Garanties
-    #             elif 'rc' in col_lower or 'rti' in col_lower:
-    #                 column_mapping[col] = 'RC/RTI'
-    #             elif 'défense' in col_lower or 'defense' in col_lower:
-    #                 column_mapping[col] = 'Défense et Recours'
-    #             elif 'vol/vol' in col_lower or 'vol partiel' in col_lower:
-    #                 column_mapping[col] = 'Vol/Vol partie'
-    #             elif 'vol braquage' in col_lower or 'braquage' in col_lower:
-    #                 column_mapping[col] = 'Vol Braquage'
-    #             elif 'incendie' in col_lower:
-    #                 column_mapping[col] = 'Incendie'
-    #             elif 'bris' in col_lower:
-    #                 column_mapping[col] = 'Bris de Glaces'
-    #             elif 'assistance' in col_lower and 'réparation' in col_lower:
-    #                 column_mapping[col] = 'Assistance à la réparation'
-    #             elif 'dommages' in col_lower or 'dta' in col_lower:
-    #                 column_mapping[col] = 'Dommages Tous Accidents'
-    #             elif 'ipt' in col_lower or 'individuelle' in col_lower:
-    #                 column_mapping[col] = 'IPT + Conducteur'
-                
-    #             # Primes
-    #             elif 'prime brute' in col_lower:
-    #                 column_mapping[col] = 'Prime brute'
-    #             elif 'réductions' in col_lower or 'reductions' in col_lower:
-    #                 column_mapping[col] = 'Réductions'
-    #             elif 'prime nette' in col_lower:
-    #                 column_mapping[col] = 'Prime nette'
-    #             elif 'timbre' in col_lower:
-    #                 column_mapping[col] = 'Droit de Timbre Automobile'
-            
-    #         # Appliquer le renommage
-    #         df.rename(columns=column_mapping, inplace=True)
-            
-    #         # ✅ VÉRIFIER QUE LES COLONNES OBLIGATOIRES EXISTENT
-    #         if 'Immatriculation' not in df.columns:
-    #             for col in df.columns:
-    #                 if 'immat' in col.lower():
-    #                     df.rename(columns={col: 'Immatriculation'}, inplace=True)
-    #                     break
-    #             else:
-    #                 self.file_info.setText("❌ Colonne Immatriculation non trouvée")
-    #                 self.status_text.setText("Erreur: colonne Immatriculation manquante")
-    #                 return
-            
-    #         # Si 'Chassis' n'existe pas, créer une colonne vide
-    #         if 'Chassis' not in df.columns:
-    #             df['Chassis'] = ''
-            
-    #         # ✅ TRAITER LA COLONNE IMMATRICULATION
-    #         df['Immatriculation'] = df['Immatriculation'].fillna('')
-    #         df['Immatriculation'] = df['Immatriculation'].astype(str)
-    #         df['Immatriculation'] = df['Immatriculation'].str.strip()
-            
-    #         # Filtrer les lignes vides
-    #         df = df[df['Immatriculation'] != '']
-    #         df = df[df['Immatriculation'] != 'nan']
-    #         df = df[df['Immatriculation'] != 'None']
-    #         df = df[df['Immatriculation'] != 'NaN']
-    #         df = df[df['Immatriculation'].notna()]
-            
-    #         # Filtrer les lignes qui commencent par '=' ou contiennent des formules
-    #         mask = ~df['Immatriculation'].str.startswith('=', na=False)
-    #         df = df[mask]
-            
-    #         # Filtrer les lignes de total
-    #         mask = ~df['Immatriculation'].str.contains('Prime|Total|Sous-total|Réductions|nette|CARBURANT', case=False, na=False)
-    #         df = df[mask]
-            
-    #         df = df.reset_index(drop=True)
-            
-    #         if df.empty:
-    #             self.file_info.setText("❌ Aucune donnée valide trouvée")
-    #             self.status_text.setText("Erreur: fichier vide ou mal formaté")
-    #             return
-            
-    #         # ✅ VÉRIFIER QUE 'Marque et Type' EXISTE
-    #         if 'Marque et Type' not in df.columns:
-    #             df['Marque et Type'] = ''
-            
-    #         # ✅ FONCTION POUR EXTRAIRE PUISSANCE ET ÉNERGIE
-    #         def extract_power_and_energy(value):
-    #             """
-    #             Extrait la puissance et le type d'énergie d'une chaîne comme '9D', '6E', '4H'
-    #             Retourne (puissance, energie)
-    #             D = Diesel
-    #             E = Essence
-    #             H = Hybride
-    #             """
-    #             if pd.isna(value) or not value:
-    #                 return (0, 'Essence')
-                
-    #             val_str = str(value).strip().upper()
-                
-    #             # Si c'est déjà un nombre pur
-    #             if val_str.isdigit():
-    #                 return (int(val_str), 'Essence')
-                
-    #             # Extraire le nombre et la lettre
-    #             import re
-    #             match = re.match(r'^(\d+)\s*([DEH]?)$', val_str)
-    #             if match:
-    #                 puissance = int(match.group(1))
-    #                 energie_letter = match.group(2)
-                    
-    #                 # Convertir la lettre en nom complet
-    #                 if energie_letter == 'D':
-    #                     energie = 'SED'
-    #                 elif energie_letter == 'E':
-    #                     energie = 'SEE'
-    #                 elif energie_letter == 'H':
-    #                     energie = 'Hybride'
-    #                 else:
-    #                     energie = 'SEE'
-                    
-    #                 return (puissance, energie)
-                
-    #             # Fallback: essayer d'extraire juste le nombre
-    #             numbers = re.findall(r'\d+', val_str)
-    #             if numbers:
-    #                 return (int(numbers[0]), 'SEE')
-                
-    #             return (0, 'SEE')
-    #         # ✅ TRAITER LA COLONNE PUISSANCE EN CV
-    #         if 'Puissance en CV' in df.columns:
-    #             # Appliquer l'extraction sur chaque ligne
-    #             power_data = df['Puissance en CV'].apply(extract_power_and_energy)
-    #             df['Puissance'] = power_data.apply(lambda x: x[0])
-    #             df['Energie'] = power_data.apply(lambda x: x[1])
-    #         else:
-    #             df['Puissance'] = 0
-    #             df['Energie'] = 'SEE'
-
-    #         # ✅ FONCTION POUR EXTRAIRE LA DATE DE PMEC
-    #         def extract_pmec_date(value):
-    #             """
-    #             Extrait la date de mise en circulation de la colonne PMEC
-    #             """
-    #             if pd.isna(value) or not value:
-    #                 return None
-                
-    #             # Si c'est déjà un datetime
-    #             if isinstance(value, (pd.Timestamp, datetime)):
-    #                 return value
-                
-    #             # Si c'est une chaîne
-    #             val_str = str(value).strip()
-                
-    #             # Essayer différents formats
-    #             formats = [
-    #                 '%Y-%m-%d %H:%M:%S',
-    #                 '%Y-%m-%d',
-    #                 '%d/%m/%Y',
-    #                 '%m/%d/%Y',
-    #                 '%d-%m-%Y',
-    #                 '%m-%d-%Y'
-    #             ]
-                
-    #             for fmt in formats:
-    #                 try:
-    #                     return datetime.strptime(val_str, fmt)
-    #                 except:
-    #                     continue
-                
-    #             # Si c'est un nombre Excel
-    #             try:
-    #                 num_val = float(val_str)
-    #                 # Les dates Excel commencent à partir de 1900-01-01
-    #                 if num_val > 10000:  # Les dates Excel sont > 10000
-    #                     from datetime import timedelta
-    #                     base = datetime(1899, 12, 30)
-    #                     return base + timedelta(days=num_val)
-    #             except:
-    #                 pass
-                
-    #             return None
-
-    #         # ✅ TRAITER LA COLONNE PMEC
-    #         if 'PMEC' in df.columns:
-    #             df['Date_Mise_Circulation'] = df['PMEC'].apply(extract_pmec_date)
-    #             # Garder la date au format string pour l'affichage
-    #             df['PMEC_Display'] = df['Date_Mise_Circulation'].apply(
-    #                 lambda x: x.strftime('%d/%m/%Y') if x else ''
-    #             )
-    #         else:
-    #             df['Date_Mise_Circulation'] = None
-    #             df['PMEC_Display'] = ''
-                
-    #         # Préparer les véhicules
-    #         self.vehicles_data = []
-            
-    #         def safe_float(val):
-    #             try:
-    #                 if pd.isna(val):
-    #                     return 0
-    #                 if isinstance(val, (int, float)):
-    #                     return float(val)
-    #                 # Nettoyer les chaînes avec des formules Excel
-    #                 val_str = str(val).strip()
-    #                 if val_str.startswith('='):
-    #                     return 0
-    #                 return float(val_str.replace(' ', '').replace(',', '')) if val_str else 0
-    #             except:
-    #                 return 0
-            
-    #         def safe_int(val):
-    #             try:
-    #                 if pd.isna(val):
-    #                     return 0
-    #                 return int(float(val))
-    #             except:
-    #                 return 0
-            
-    #         for idx, row in df.iterrows():
-    #             marque_type = str(row.get('Marque et Type', '')).strip()
-    #             marque_parts = marque_type.split(' ', 1)
-    #             marque = marque_parts[0] if marque_parts else ''
-    #             modele = marque_parts[1] if len(marque_parts) > 1 else ''
-                
-    #             # Récupérer le châssis
-    #             chassis = str(row.get('Chassis', '')).strip()
-                
-    #             # Récupérer la puissance et l'énergie
-    #             puissance = safe_float(row.get('Puissance', 0))
-    #             energie = row.get('Energie', 'SEE')
-                
-    #             vehicle = {
-    #                 'id': idx + 1,
-    #                 'rang': safe_int(row.get('Rang', idx + 1)),
-    #                 'immatriculation': str(row.get('Immatriculation', '')).strip().upper(),
-    #                 'chassis': chassis,
-    #                 'marque': marque,
-    #                 'modele': modele,
-    #                 'marque_type': marque_type,
-    #                 'genre': str(row.get('Genre', 'VP')).strip() if pd.notna(row.get('Genre')) else 'VP',
-    #                 'puissance': puissance,
-    #                 'energie': energie,
-    #                 'usage': str(row.get('Usage', '')).strip() if pd.notna(row.get('Usage')) else '',
-    #                 'places': safe_int(row.get('Nombre de Places', 5)),
-    #                 'nbr_jour': safe_int(row.get('Nombre de jours assurés', 365)),
-    #                 'pmec': row.get('PMEC_Display', ''),
-    #                 'valeur_neuf': safe_float(row.get('Valeur Neuve', 0)),
-    #                 'valeur_venale': safe_float(row.get('Valeur Venale', 0)),
-    #                 'capital_ar': safe_float(row.get('Capital Assistance à la réparation', 0)),
-    #                 'garanties': {
-    #                     'rc': safe_float(row.get('RC/RTI', 0)),
-    #                     'dr': safe_float(row.get('Défense et Recours', 0)),
-    #                     'vol': safe_float(row.get('Vol/Vol partie', 0)),
-    #                     'vb': safe_float(row.get('Vol Braquage', 0)),
-    #                     'incendie': safe_float(row.get('Incendie', 0)),
-    #                     'bris_glace': safe_float(row.get('Bris de Glaces', 0)),
-    #                     'ar': safe_float(row.get('Assistance à la réparation', 0)),
-    #                     'dta': safe_float(row.get('Dommages Tous Accidents', 0)),
-    #                     'ipt': safe_float(row.get('IPT + Conducteur', 0)),
-    #                 },
-    #                 'prime_brute': safe_float(row.get('Prime brute', 0)),
-    #                 'reductions': safe_float(row.get('Réductions', 0)),
-    #                 'prime_nette': safe_float(row.get('Prime nette', 0)),
-    #                 'droit_timbre': safe_float(row.get('Droit de Timbre Automobile', 0)),
-    #                 'accessoires': 0,
-    #                 'asac': 0,
-    #                 'carte_rose': 0,
-    #                 'vignette': 0,
-    #                 'tva': 0,
-    #                 'pttc': 0,
-    #                 'status': 'loaded',
-    #                 'from_fleet': False
-    #             }
-                
-    #             total = sum(vehicle['garanties'].values())
-    #             vehicle['garanties']['total'] = total
-                
-    #             if vehicle['immatriculation'] and vehicle['immatriculation'] not in ['NAN', 'NONE', '']:
-    #                 self.vehicles_data.append(vehicle)
-            
-    #         if not self.vehicles_data:
-    #             self.file_info.setText("❌ Aucun véhicule trouvé dans le fichier")
-    #             self.status_text.setText("Erreur: aucun véhicule valide")
-    #             return
-            
-    #         self.file_info.setText(f"✅ {len(self.vehicles_data)} véhicules trouvés")
-    #         self.status_text.setText(f"{len(self.vehicles_data)} véhicules chargés")
-    #         self.status_icon.setText("✅")
-    #         self.calc_btn.setEnabled(True)
-    #         self.display_vehicles()
-            
-    #     except Exception as e:
-    #         self.file_info.setText(f"❌ Erreur: {str(e)}")
-    #         self.status_text.setText(f"Erreur: {str(e)}")
-    #         self.status_icon.setText("❌")
-    #         traceback.print_exc()
+    # ============================================================================
+    # MÉTHODE LOAD_FILE AMÉLIORÉE
+    # ============================================================================
 
     def load_file(self):
-        """Charge le fichier avec détection intelligente du tableau"""
+        """
+        Charge un fichier Excel/CSV avec détection intelligente améliorée.
+        Version avec mapping manuel, prévisualisation, validation et gestion d'erreurs.
+        """
         try:
-            if self.file_path.endswith(('.xlsx', '.xls')):
-                # ✅ Lire le fichier avec openpyxl pour évaluer les formules
+            # 1. LECTURE DU FICHIER
+            df_raw = self._read_file_with_formulas(self.file_path)
+            if df_raw is None or df_raw.empty:
+                self.file_info.setText("❌ Fichier vide ou illisible")
+                self.status_text.setText("Erreur: fichier vide")
+                return
+            
+            # 2. DÉTECTION AMÉLIORÉE DE L'EN-TÊTE
+            header_row = self._detect_header_row(df_raw)
+            if header_row == -1:
+                self.file_info.setText("❌ En-tête non détecté")
+                self.status_text.setText("Erreur: format de fichier non reconnu")
+                return
+            
+            # 3. EXTRACTION DES DONNÉES
+            df = self._extract_data(df_raw, header_row)
+            if df is None or df.empty:
+                self.file_info.setText("❌ Aucune donnée valide")
+                self.status_text.setText("Erreur: aucune donnée trouvée")
+                return
+            
+            # 4. NETTOYAGE AMÉLIORÉ
+            df = self._clean_data(df)
+            if df is None or df.empty:
+                self.file_info.setText("❌ Données vides après nettoyage")
+                self.status_text.setText("Erreur: aucune donnée valide")
+                return
+            
+            # 5. MAPPING INTELLIGENT DES COLONNES
+            df, mapping_warnings = self._map_columns_advanced(df)
+            
+            # 6. AFFICHAGE DE LA PRÉVISUALISATION POUR CONFIRMATION
+            if not self._show_preview(df, mapping_warnings):
+                return  # L'utilisateur a annulé
+            
+            # 7. EXTRACTION ET CONVERSION DES DONNÉES
+            self.vehicles_data = self._extract_vehicles_data(df)
+            
+            if not self.vehicles_data:
+                self.file_info.setText("❌ Aucun véhicule trouvé")
+                self.status_text.setText("Erreur: aucun véhicule valide")
+                return
+            
+            # 8. VALIDATION DES DONNÉES
+            invalid_count = self._validate_vehicles_data()
+            if invalid_count > 0:
+                reply = QMessageBox.question(
+                    self,
+                    "⚠️ Données invalides",
+                    f"{invalid_count} véhicule(s) ont des données invalides.\n"
+                    "Voulez-vous continuer avec les données valides ?",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if reply == QMessageBox.No:
+                    return
+            
+            # 9. AFFICHAGE RÉSULTATS
+            self.file_info.setText(f"✅ {len(self.vehicles_data)} véhicules trouvés")
+            self.status_text.setText(f"{len(self.vehicles_data)} véhicules chargés")
+            self.status_icon.setText("✅")
+            self.calc_btn.setEnabled(True)
+            self.display_vehicles()
+            
+        except Exception as e:
+            self.file_info.setText(f"❌ Erreur: {str(e)[:100]}")
+            self.status_text.setText(f"Erreur: {str(e)}")
+            self.status_icon.setText("❌")
+            traceback.print_exc()
+
+    # ============================================================================
+    # 1. LECTURE AMÉLIORÉE DES FICHIERS
+    # ============================================================================
+
+    def _read_file_with_formulas(self, file_path):
+        """Lit le fichier avec gestion des formules Excel et des grands fichiers"""
+        try:
+            if file_path.endswith(('.xlsx', '.xls')):
                 import openpyxl
                 from openpyxl.utils import get_column_letter
                 
-                wb = openpyxl.load_workbook(self.file_path, data_only=True)
+                # Chargement avec gestion de la mémoire
+                wb = openpyxl.load_workbook(
+                    file_path, 
+                    data_only=True,
+                    read_only=True,  # Pour les gros fichiers
+                    keep_vba=False
+                )
                 ws = wb.active
                 
-                # Convertir en DataFrame en utilisant les valeurs calculées
+                # Lecture en mode itérateur pour économiser la mémoire
                 data = []
+                max_cols = 0
                 for row in ws.iter_rows(values_only=True):
-                    data.append(row)
+                    row_data = list(row)
+                    # Nettoyer les valeurs None
+                    row_data = [v if v is not None else '' for v in row_data]
+                    data.append(row_data)
+                    if len(row_data) > max_cols:
+                        max_cols = len(row_data)
                 
-                df_raw = pd.DataFrame(data)
                 wb.close()
-            else:
-                df_raw = pd.read_csv(self.file_path, encoding='utf-8', header=None)
-            
-            # Trouver la ligne où commence le tableau
-            header_row = -1
-            
-            for idx, row in df_raw.iterrows():
-                row_values = [str(v).strip() if pd.notna(v) else '' for v in row.values]
-                if 'Rang' in row_values:
-                    # Nouvelles colonnes attendues
-                    expected_headers = ['Rang', 'Immatriculation', 'Numero Chassi', 'Marque et Type', 
-                                    'Genre', 'Puissance en CV', 'Usage', 'Nombre de Places', 
-                                    'Nombre de jours assurés', 'PMEC', 'Valeur Neuve', 
-                                    'Valeur Venale', 'Capital Assistance à la réparation',
-                                    'RC/RTI', 'Défense et Recours', 'Vol/Vol partiel - Braquage', 
-                                    'Incendie', 'Bris de Glaces', 'Assistance à la réparation', 
-                                    'Dommages Tous Accidents', 'IPT + Conducteur', 
-                                    'Prime brute', 'Réductions', 'Prime nette', 'Droit de Timbre Automobile']
-                    match_count = sum(1 for h in expected_headers if h in row_values)
-                    if match_count >= 10:
-                        header_row = idx
-                        break
-            
-            if header_row == -1:
-                for idx, row in df_raw.iterrows():
-                    if 'Rang' in str(row.values):
-                        header_row = idx
-                        break
                 
-                if header_row == -1:
-                    self.file_info.setText("❌ Impossible de trouver le tableau")
-                    self.status_text.setText("Erreur: format de fichier non reconnu")
-                    return
+                # Normaliser les lignes pour qu'elles aient toutes le même nombre de colonnes
+                for i in range(len(data)):
+                    if len(data[i]) < max_cols:
+                        data[i].extend([''] * (max_cols - len(data[i])))
+                
+                return pd.DataFrame(data)
+            else:
+                # CSV avec détection d'encodage
+                encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
+                for encoding in encodings:
+                    try:
+                        return pd.read_csv(
+                            file_path, 
+                            encoding=encoding, 
+                            header=None,
+                            dtype=str,  # Garder tout en string pour éviter les problèmes de type
+                            engine='python',  # Plus flexible pour les fichiers mal formés
+                            on_bad_lines='skip'
+                        )
+                    except UnicodeDecodeError:
+                        continue
+                
+                raise ValueError("Aucun encodage valide trouvé pour le fichier CSV")
+                
+        except Exception as e:
+            print(f"Erreur lecture fichier: {e}")
+            return None
+
+    # ============================================================================
+    # 2. DÉTECTION AMÉLIORÉE DE L'EN-TÊTE
+    # ============================================================================
+
+    def _detect_header_row(self, df):
+        """Détecte la ligne d'en-tête avec des mots-clés multiples"""
+        # Mots-clés pour identifier l'en-tête
+        header_keywords = {
+            'immatriculation': ['immatriculation', 'immat', 'plaque', 'matricule', 'immatricule'],
+            'marque': ['marque', 'marque et type', 'type', 'modèle', 'model'],
+            'puissance': ['puissance', 'cv', 'chevaux', 'fiscale'],
+            'genre': ['genre', 'catégorie', 'categorie', 'type de véhicule'],
+            'places': ['places', 'place', 'nb places', 'nombre de places'],
+            'valeur': ['valeur', 'prix', 'montant', 'cout', 'coût'],
+            'rc': ['rc', 'rti', 'responsabilité', 'responsabilite']
+        }
+        
+        for idx, row in df.iterrows():
+            row_values = [str(v).strip().lower() for v in row.values if pd.notna(v)]
             
-            # Récupérer les en-têtes et les données
-            header_values = df_raw.iloc[header_row].values
-            data_values = df_raw.values[header_row+1:]
+            # Compter les correspondances
+            matches = 0
+            for keyword, variants in header_keywords.items():
+                for variant in variants:
+                    if any(variant in val for val in row_values):
+                        matches += 1
+                        break
             
-            # Trouver la dernière colonne non vide dans les en-têtes
+            # Si plus de 5 mots-clés sont trouvés, c'est probablement l'en-tête
+            if matches >= 5:
+                print(f"✅ En-tête détecté à la ligne {idx} avec {matches} correspondances")
+                return idx
+            
+            # Vérification spécifique pour "Rang" et "Immatriculation"
+            row_text = ' '.join(row_values)
+            if 'rang' in row_text and ('immatriculation' in row_text or 'plaque' in row_text):
+                print(f"✅ En-tête détecté à la ligne {idx} (Rang + Immatriculation)")
+                return idx
+        
+        return -1
+
+    # ============================================================================
+    # 3. EXTRACTION DES DONNÉES
+    # ============================================================================
+
+    def _extract_data(self, df, header_row):
+        """Extrait les données à partir de la ligne d'en-tête"""
+        try:
+            # Récupérer les en-têtes
+            header_values = df.iloc[header_row].values
+            
+            # Trouver la dernière colonne non vide
             max_cols = 0
             for i, val in enumerate(header_values):
                 if pd.notna(val) and str(val).strip():
@@ -2440,314 +2541,580 @@ class FleetImportAdvancedDialog(QDialog):
             if max_cols == 0:
                 max_cols = len(header_values)
             
-            # Tronquer les données pour correspondre au nombre d'en-têtes
-            header_values = header_values[:max_cols]
-            data_values = data_values[:, :max_cols]
-            
-            # Créer le DataFrame
-            df = pd.DataFrame(data_values, columns=range(max_cols))
-            
-            # Renommer les colonnes avec les en-têtes
+            # Créer les en-têtes normalisés
             column_names = []
-            for i, val in enumerate(header_values):
-                if pd.notna(val):
-                    name = str(val).strip()
+            for i in range(max_cols):
+                if i < len(header_values) and pd.notna(header_values[i]):
+                    name = str(header_values[i]).strip()
+                    # Éviter les doublons
                     if name in column_names:
-                        name = f"{name}.{column_names.count(name)}"
+                        name = f"{name}_{i}"
                     column_names.append(name)
                 else:
                     column_names.append(f"Col_{i}")
             
-            df.columns = column_names
+            # Extraire les données
+            data_values = df.values[header_row+1:, :max_cols]
             
-            # Mapping des colonnes
-            column_mapping = {}
+            # Créer le DataFrame
+            df_data = pd.DataFrame(data_values, columns=column_names)
+            
+            # Nettoyer les lignes totalement vides
+            df_data = df_data.dropna(how='all')
+            
+            return df_data
+            
+        except Exception as e:
+            print(f"Erreur extraction données: {e}")
+            return None
+
+    # ============================================================================
+    # 4. NETTOYAGE AMÉLIORÉ DES DONNÉES
+    # ============================================================================
+
+    def _clean_data(self, df):
+        """Nettoie les données avec préservation des informations"""
+        try:
+            # 1. Supprimer les lignes complètement vides
+            df = df.dropna(how='all')
+            
+            # 2. Identifier la colonne d'immatriculation
+            immat_col = None
             for col in df.columns:
-                col_lower = col.lower().strip()
-                
-                if 'immatriculation' in col_lower:
-                    column_mapping[col] = 'Immatriculation'
-                elif 'numéro chassi' in col_lower or 'numero chassi' in col_lower or 'chassi' in col_lower:
-                    column_mapping[col] = 'Chassis'
-                elif 'marque' in col_lower or 'type' in col_lower:
-                    column_mapping[col] = 'Marque et Type'
-                elif 'rang' in col_lower:
-                    column_mapping[col] = 'Rang'
-                elif 'genre' in col_lower:
-                    column_mapping[col] = 'Genre'
-                elif 'puissance' in col_lower:
-                    column_mapping[col] = 'Puissance en CV'
-                elif 'usage' in col_lower:
-                    column_mapping[col] = 'Usage'
-                elif 'place' in col_lower:
-                    column_mapping[col] = 'Nombre de Places'
-                elif 'jour' in col_lower:
-                    column_mapping[col] = 'Nombre de jours assurés'
-                elif 'pmec' in col_lower:
-                    column_mapping[col] = 'PMEC'
-                elif 'valeur neuf' in col_lower or 'valeur_neuf' in col_lower:
-                    column_mapping[col] = 'Valeur Neuve'
-                elif 'valeur venale' in col_lower or 'valeur_venale' in col_lower:
-                    column_mapping[col] = 'Valeur Venale'
-                elif 'capital' in col_lower and 'assistance' in col_lower:
-                    column_mapping[col] = 'Capital Assistance à la réparation'
-                elif 'rc' in col_lower or 'rti' in col_lower:
-                    column_mapping[col] = 'RC/RTI'
-                elif 'défense' in col_lower or 'defense' in col_lower:
-                    column_mapping[col] = 'Défense et Recours'
-                elif 'vol/vol' in col_lower or 'vol partiel' in col_lower:
-                    column_mapping[col] = 'Vol/Vol partie'
-                elif 'vol braquage' in col_lower or 'braquage' in col_lower:
-                    column_mapping[col] = 'Vol Braquage'
-                elif 'incendie' in col_lower:
-                    column_mapping[col] = 'Incendie'
-                elif 'bris' in col_lower:
-                    column_mapping[col] = 'Bris de Glaces'
-                elif 'assistance' in col_lower and 'réparation' in col_lower:
-                    column_mapping[col] = 'Assistance à la réparation'
-                elif 'dommages' in col_lower or 'dta' in col_lower:
-                    column_mapping[col] = 'Dommages Tous Accidents'
-                elif 'ipt' in col_lower or 'individuelle' in col_lower:
-                    column_mapping[col] = 'IPT + Conducteur'
-                elif 'prime brute' in col_lower:
-                    column_mapping[col] = 'Prime brute'
-                elif 'réductions' in col_lower or 'reductions' in col_lower:
-                    column_mapping[col] = 'Réductions'
-                elif 'prime nette' in col_lower:
-                    column_mapping[col] = 'Prime nette'
-                elif 'timbre' in col_lower:
-                    column_mapping[col] = 'Droit de Timbre Automobile'
+                col_lower = col.lower()
+                if any(k in col_lower for k in ['immatriculation', 'immat', 'plaque', 'matricule']):
+                    immat_col = col
+                    break
             
-            df.rename(columns=column_mapping, inplace=True)
-            
-            # Vérifier les colonnes obligatoires
-            if 'Immatriculation' not in df.columns:
+            if immat_col is None:
+                # Essayer de trouver une colonne avec des données qui ressemblent à des plaques
                 for col in df.columns:
-                    if 'immat' in col.lower():
-                        df.rename(columns={col: 'Immatriculation'}, inplace=True)
+                    sample = df[col].dropna().astype(str).head(10)
+                    if sample.str.contains(r'[A-Z0-9\-]', regex=True).any():
+                        immat_col = col
                         break
-                else:
-                    self.file_info.setText("❌ Colonne Immatriculation non trouvée")
-                    self.status_text.setText("Erreur: colonne Immatriculation manquante")
-                    return
             
-            if 'Chassis' not in df.columns:
-                df['Chassis'] = ''
-            
-            # Traiter la colonne Immatriculation
-            df['Immatriculation'] = df['Immatriculation'].fillna('')
-            df['Immatriculation'] = df['Immatriculation'].astype(str)
-            df['Immatriculation'] = df['Immatriculation'].str.strip()
-            
-            # Filtrer les lignes vides
-            df = df[df['Immatriculation'] != '']
-            df = df[df['Immatriculation'] != 'nan']
-            df = df[df['Immatriculation'] != 'None']
-            df = df[df['Immatriculation'] != 'NaN']
-            df = df[df['Immatriculation'].notna()]
-            
-            # Filtrer les lignes qui commencent par '='
-            mask = ~df['Immatriculation'].str.startswith('=', na=False)
-            df = df[mask]
-            
-            # Filtrer les lignes de total
-            mask = ~df['Immatriculation'].str.contains('Prime|Total|Sous-total|Réductions|nette|CARBURANT', case=False, na=False)
-            df = df[mask]
-            
-            df = df.reset_index(drop=True)
-            
-            if df.empty:
-                self.file_info.setText("❌ Aucune donnée valide trouvée")
-                self.status_text.setText("Erreur: fichier vide ou mal formaté")
-                return
-            
-            if 'Marque et Type' not in df.columns:
-                df['Marque et Type'] = ''
-            
-            # ✅ FONCTION POUR EXTRAIRE PUISSANCE ET ÉNERGIE
-            def extract_power_and_energy(value):
-                if pd.isna(value) or not value:
-                    return (0, 'SEE')
-                
-                val_str = str(value).strip().upper()
-                
-                if val_str.isdigit():
-                    return (int(val_str), 'SEE')
-                
-                import re
-                match = re.match(r'^(\d+)\s*([DEH]?)$', val_str)
-                if match:
-                    puissance = int(match.group(1))
-                    energie_letter = match.group(2)
-                    
-                    if energie_letter == 'D':
-                        energie = 'SED'
-                    elif energie_letter == 'E':
-                        energie = 'SEE'
-                    elif energie_letter == 'H':
-                        energie = 'Hybride'
-                    else:
-                        energie = 'SEE'
-                    
-                    return (puissance, energie)
-                
-                numbers = re.findall(r'\d+', val_str)
-                if numbers:
-                    return (int(numbers[0]), 'SEE')
-                
-                return (0, 'SEE')
-            
-            # Traiter la colonne Puissance en CV
-            if 'Puissance en CV' in df.columns:
-                power_data = df['Puissance en CV'].apply(extract_power_and_energy)
-                df['Puissance'] = power_data.apply(lambda x: x[0])
-                df['Energie'] = power_data.apply(lambda x: x[1])
-            else:
-                df['Puissance'] = 0
-                df['Energie'] = 'SEE'
-            
-            # ✅ FONCTION POUR EXTRAIRE LA DATE DE PMEC
-            def extract_pmec_date(value):
-                if pd.isna(value) or not value:
-                    return None
-                
-                if isinstance(value, (pd.Timestamp, datetime)):
-                    return value
-                
-                val_str = str(value).strip()
-                
-                formats = [
-                    '%Y-%m-%d %H:%M:%S',
-                    '%Y-%m-%d',
-                    '%d/%m/%Y',
-                    '%m/%d/%Y',
-                    '%d-%m-%Y',
-                    '%m-%d-%Y'
-                ]
-                
-                for fmt in formats:
-                    try:
-                        return datetime.strptime(val_str, fmt)
-                    except:
-                        continue
-                
-                try:
-                    num_val = float(val_str)
-                    if num_val > 10000:
-                        from datetime import timedelta
-                        base = datetime(1899, 12, 30)
-                        return base + timedelta(days=num_val)
-                except:
-                    pass
-                
+            if immat_col is None:
                 return None
             
-            # ✅ TRAITER LA COLONNE PMEC
-            if 'PMEC' in df.columns:
-                df['Date_Mise_Circulation'] = df['PMEC'].apply(extract_pmec_date)
-                df['PMEC_Display'] = df['Date_Mise_Circulation'].apply(
-                    lambda x: x.strftime('%d/%m/%Y') if x else ''
-                )
-            else:
-                df['Date_Mise_Circulation'] = None
-                df['PMEC_Display'] = ''
+            # 3. Nettoyer la colonne d'immatriculation
+            df[immat_col] = df[immat_col].astype(str).str.strip().str.upper()
             
-            # ✅ FONCTION POUR EXTRAIRE LES VALEURS (gère les formules Excel)
-            def safe_value(val):
-                """Extrait une valeur numérique même si c'est une formule Excel"""
-                try:
-                    if pd.isna(val):
-                        return 0
-                    # Si c'est déjà un nombre
-                    if isinstance(val, (int, float)):
-                        return float(val)
-                    # Si c'est une chaîne
-                    val_str = str(val).strip()
-                    if not val_str:
-                        return 0
-                    # Si c'est une formule Excel commençant par '='
-                    if val_str.startswith('='):
-                        # Essayer d'évaluer la formule
-                        try:
-                            # Remplacer les références de cellule par des valeurs si possible
-                            import re
-                            # Essayer de calculer la formule
-                            # Pour simplifier, on retourne 0 si on ne peut pas évaluer
-                            return 0
-                        except:
-                            return 0
-                    # Nettoyer la chaîne
-                    val_str = val_str.replace(' ', '').replace(',', '')
-                    return float(val_str) if val_str else 0
-                except:
-                    return 0
+            # 4. Filtrer les lignes sans immatriculation
+            df = df[df[immat_col] != '']
+            df = df[df[immat_col] != 'NAN']
+            df = df[df[immat_col] != 'NONE']
+            df = df[df[immat_col] != 'N/A']
+            df = df[df[immat_col] != 'NAN']
+            df = df[df[immat_col].notna()]
             
-            def safe_int(val):
-                try:
-                    if pd.isna(val):
-                        return 0
-                    return int(float(val))
-                except:
-                    return 0
+            # 5. Filtrer les lignes de total (avec plusieurs mots-clés)
+            total_keywords = ['prime', 'total', 'sous-total', 'réduction', 'nette', 'brute', 
+                            'carburant', 'kilométrage', 'km', 'essence', 'diesel']
+            mask = ~df[immat_col].str.contains('|'.join(total_keywords), case=False, na=False)
+            df = df[mask]
             
-            # ✅ PRÉPARER LES VÉHICULES
-            self.vehicles_data = []
+            # 6. Supprimer les colonnes inutiles (toutes les valeurs sont NaN ou vides)
+            df = df.dropna(axis=1, how='all')
             
-            for idx, row in df.iterrows():
-                marque_type = str(row.get('Marque et Type', '')).strip()
-                marque_parts = marque_type.split(' ', 1)
-                marque = marque_parts[0] if marque_parts else ''
-                modele = marque_parts[1] if len(marque_parts) > 1 else ''
+            # 7. Remplacer les NaN par des chaînes vides pour les colonnes string
+            for col in df.columns:
+                if df[col].dtype == 'object':
+                    df[col] = df[col].fillna('')
+            
+            return df
+            
+        except Exception as e:
+            print(f"Erreur nettoyage données: {e}")
+            return None
+
+    # ============================================================================
+    # 5. MAPPING AVANCÉ DES COLONNES
+    # ============================================================================
+
+    def _map_columns_advanced(self, df):
+        """Mappe les colonnes avec détection intelligente - Version avec les nouvelles colonnes"""
+        
+        # ✅ MAPPING MIS À JOUR AVEC LES NOUVELLES COLONNES
+        column_mapping_config = {
+            'Rang': ['rang', 'n°', 'numero', '#'],
+            'Immatriculation': ['immatriculation', 'immat', 'plaque', 'matricule', 'immatricule'],
+            'Numero Chassi': ['numéro chassi', 'numero chassi', 'chassis', 'châssis', 'vin'],
+            'Marque': ['marque', 'marque et type', 'marque_type', 'brand'],
+            'Modele': ['modele', 'modèle', 'model', 'type', 'version'],
+            'Genre': ['genre', 'catégorie', 'categorie', 'type véhicule'],
+            'Puissance en CV': ['puissance', 'cv', 'chevaux', 'fiscale', 'puissance fiscale'],
+            'Usage': ['usage', 'utilisation', 'type usage', 'destination'],
+            'Nombre de Places': ['places', 'place', 'nb places', 'nombre de places', 'capacité'],
+            'Nombre de jours assurés': ['jours', 'durée', 'période', 'période assurance', 'nbr jours'],
+            'PMEC': ['pmec', 'poids', 'charge', 'ptac', 'poids max'],
+            'Valeur Neuve': ['valeur neuf', 'valeur_neuf', 'prix neuf', 'achat'],
+            'Valeur Venale': ['valeur venale', 'valeur_venale', 'prix actuel', 'prix venal', 'venale'],
+            'Capital Assistance à la réparation': ['capital assistance', 'capital ar', 'assistance réparation', 'assistance reparation'],
+            'RC/RTI': ['rc', 'rti', 'responsabilité civile', 'responsabilite civile'],
+            'Défense et Recours': ['défense', 'defense', 'recours', 'defense recours'],
+            'Vol/Vol partiel - Braquage': ['vol/vol partiel - braquage', 'vol/vol partiel', 'vol braquage', 'vol', 'vb'],
+            'Incendie': ['incendie', 'feu'],
+            'Bris de Glaces': ['bris', 'brise', 'bris de glace', 'vitres', 'pare-brise'],
+            'Assistance à la réparation': ['assistance réparation', 'assistance reparation', 'ar', 'assistance'],
+            'Dommages Tous Accidents': ['dommages', 'dta', 'tous accidents', 'tous accid'],
+            'Individuelle Personnes Transportées (I.P.T) + Conducteur': ['individuelle personnes transportées', 'ipt', 'individuelle', 'conducteur', 'personnes transportées'],
+            'Prime brute': ['prime brute', 'prime_brute', 'brute'],
+            'Réductions': ['réductions', 'reductions', 'remise', 'réduction'],
+            'Prime nette': ['prime nette', 'prime_nette', 'nette'],
+            'Droit de Timbre Automobile': ['timbre', 'droit timbre', 'droit de timbre', 'vignette', 'attestation']
+        }
+        
+        mapping = {}
+        warnings = []
+        
+        # 1. Détection automatique
+        for target, keywords in column_mapping_config.items():
+            found = False
+            for col in df.columns:
+                col_lower = col.lower().strip()
+                for keyword in keywords:
+                    if keyword in col_lower:
+                        mapping[target] = col
+                        found = True
+                        break
+                if found:
+                    break
+            
+            if not found:
+                mapping[target] = None
+                warnings.append(f"❌ Colonne non trouvée: {target}")
+        
+        # ✅ VÉRIFICATION SPÉCIALE POUR "Assistance à la réparation"
+        if mapping.get('Assistance à la réparation') is None:
+            for col in df.columns:
+                col_lower = col.lower().strip()
+                if any(k in col_lower for k in ['assistance', 'ar', 'assistance reparation', 'assistance réparation']):
+                    mapping['Assistance à la réparation'] = col
+                    warnings.append(f"✅ Colonne 'Assistance à la réparation' trouvée sous: {col}")
+                    break
+        
+        # ✅ VÉRIFICATION SPÉCIALE POUR "Vol/Vol partiel - Braquage"
+        if mapping.get('Vol/Vol partiel - Braquage') is None:
+            for col in df.columns:
+                col_lower = col.lower().strip()
+                if any(k in col_lower for k in ['vol', 'braquage', 'vol partiel']):
+                    mapping['Vol/Vol partiel - Braquage'] = col
+                    warnings.append(f"✅ Colonne 'Vol/Vol partiel - Braquage' trouvée sous: {col}")
+                    break
+        
+        # 2. Vérification des colonnes obligatoires
+        required_cols = ['Immatriculation', 'Marque et Type']
+        missing_required = [c for c in required_cols if mapping.get(c) is None]
+        
+        if missing_required:
+            warnings.append(f"⚠️ Colonnes obligatoires manquantes: {', '.join(missing_required)}")
+            
+            # Demander à l'utilisateur de sélectionner manuellement
+            missing_cols = self._ask_for_missing_columns(df, missing_required)
+            for target, col in missing_cols.items():
+                if col:
+                    mapping[target] = col
+                    warnings.append(f"✅ Colonne '{target}' mappée manuellement sur '{col}'")
+        
+        # 3. Appliquer le renommage
+        rename_dict = {v: k for k, v in mapping.items() if v is not None}
+        df = df.rename(columns=rename_dict)
+        
+        return df, warnings
+
+    def _ask_for_missing_columns(self, df, missing_columns):
+        """Demande à l'utilisateur de mapper les colonnes manquantes"""
+        result = {}
+        
+        for col in missing_columns:
+            # Créer un petit dialogue de sélection
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"Mapper la colonne: {col}")
+            dialog.setModal(True)
+            dialog.setMinimumWidth(400)
+            
+            layout = QVBoxLayout(dialog)
+            layout.addWidget(QLabel(f"Sélectionnez la colonne correspondant à '{col}' :"))
+            
+            combo = QComboBox()
+            combo.addItem("-- Aucune --", None)
+            for c in df.columns:
+                combo.addItem(str(c), c)
+            
+            layout.addWidget(combo)
+            
+            # Boutons
+            buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            buttons.accepted.connect(dialog.accept)
+            buttons.rejected.connect(dialog.reject)
+            layout.addWidget(buttons)
+            
+            if dialog.exec() == QDialog.Accepted:
+                selected = combo.currentData()
+                if selected:
+                    result[col] = selected
+        
+        return result
+
+    # ============================================================================
+    # 6. PRÉVISUALISATION
+    # ============================================================================
+
+    def _show_preview(self, df, warnings):
+        """Affiche une prévisualisation et demande confirmation"""
+        
+        preview_dialog = QDialog(self)
+        preview_dialog.setWindowTitle("📋 Prévisualisation des données")
+        preview_dialog.setModal(True)
+        preview_dialog.setMinimumSize(900, 600)
+        
+        layout = QVBoxLayout(preview_dialog)
+        
+        # Avertissements
+        if warnings:
+            warning_frame = QFrame()
+            warning_frame.setStyleSheet("background-color: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 8px;")
+            warning_layout = QVBoxLayout(warning_frame)
+            for warn in warnings[:5]:
+                warning_layout.addWidget(QLabel(warn))
+            layout.addWidget(warning_frame)
+        
+        # Tableau de prévisualisation
+        preview_table = QTableWidget()
+        preview_table.setColumnCount(min(len(df.columns), 10))
+        
+        # En-têtes
+        headers = df.columns[:10].tolist()
+        preview_table.setHorizontalHeaderLabels(headers)
+        
+        # Données (5 premières lignes)
+        n_rows = min(5, len(df))
+        preview_table.setRowCount(n_rows)
+        for i in range(n_rows):
+            for j, col in enumerate(headers):
+                value = str(df.iloc[i][col]) if col in df.columns else ''
+                preview_table.setItem(i, j, QTableWidgetItem(value))
+        
+        preview_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        preview_table.setAlternatingRowColors(True)
+        layout.addWidget(QLabel(f"📊 {len(df)} lignes trouvées"))
+        layout.addWidget(preview_table)
+        
+        # Boutons
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        
+        cancel_btn = QPushButton("❌ Annuler")
+        cancel_btn.clicked.connect(preview_dialog.reject)
+        
+        confirm_btn = QPushButton("✅ Confirmer l'import")
+        confirm_btn.setStyleSheet("background-color: #10b981; color: white; font-weight: bold;")
+        confirm_btn.clicked.connect(preview_dialog.accept)
+        
+        btn_layout.addWidget(cancel_btn)
+        btn_layout.addWidget(confirm_btn)
+        layout.addLayout(btn_layout)
+        
+        return preview_dialog.exec() == QDialog.Accepted
+
+    # def _extract_vehicles_data(self, df):
+    #     """Extrait les données des véhicules - Version avec traitement des textes spéciaux"""
+    #     vehicles = []
+        
+    #     # ✅ Colonnes numériques avec les nouveaux noms
+    #     numeric_cols = [
+    #         'Puissance en CV', 'Nombre de Places', 'Nombre de jours assurés',
+    #         'Valeur Neuve', 'Valeur Venale', 'Capital Assistance à la réparation',
+    #         'RC/RTI', 'Défense et Recours', 'Vol/Vol partiel - Braquage',
+    #         'Incendie', 'Bris de Glaces', 'Assistance à la réparation',
+    #         'Dommages Tous Accidents', 'Individuelle Personnes Transportées (I.P.T) + Conducteur',
+    #         'Prime brute', 'Réductions', 'Prime nette', 'Droit de Timbre Automobile'
+    #     ]
+        
+    #     for idx, row in df.iterrows():
+    #         try:
+    #             # Extraire l'immatriculation
+    #             immat = self._safe_str(row.get('Immatriculation', ''))
+    #             if not immat:
+    #                 continue
                 
-                chassis = str(row.get('Chassis', '')).strip()
-                puissance = safe_value(row.get('Puissance', 0))
-                energie = row.get('Energie', 'SEE')
+    #             # ✅ Vérifier si c'est une ligne de total (exclure les lignes de récapitulatif)
+    #             if any(keyword in immat.upper() for keyword in ['PRIME', 'REDUCTIONS', 'TOTAL', 'SOUS-TOTAL']):
+    #                 print(f"⏭️ Ligne de total ignorée: {immat}")
+    #                 continue
                 
-                # ✅ Récupérer les garanties avec safe_value
-                rc_value = safe_value(row.get('RC/RTI', 0))
-                dr_value = safe_value(row.get('Défense et Recours', 0))
-                vol_value = safe_value(row.get('Vol/Vol partie', 0))
-                vb_value = safe_value(row.get('Vol Braquage', 0))
-                incendie_value = safe_value(row.get('Incendie', 0))
-                bris_value = safe_value(row.get('Bris de Glaces', 0))
-                ar_value = safe_value(row.get('Assistance à la réparation', 0))
-                dta_value = safe_value(row.get('Dommages Tous Accidents', 0))
-                ipt_value = safe_value(row.get('IPT + Conducteur', 0))
+    #             # ✅ Extraire la marque et le modèle (séparés)
+    #             marque = self._safe_str(row.get('Marque', ''))
+    #             modele = self._safe_str(row.get('Modele', ''))
+                
+    #             # Si la colonne Marque est vide mais que Marque et Type existe
+    #             if not marque:
+    #                 marque_type = self._safe_str(row.get('Marque et Type', ''))
+    #                 if marque_type:
+    #                     # ✅ Ne pas traiter les lignes de récapitulatif
+    #                     if not any(k in marque_type.upper() for k in ['PRIME', 'REDUCTIONS', 'TOTAL']):
+    #                         parts = marque_type.split(' ', 1)
+    #                         marque = parts[0] if parts else ''
+    #                         modele = parts[1] if len(parts) > 1 else ''
+                
+    #             # Extraire les valeurs numériques
+    #             values = {}
+    #             for col in numeric_cols:
+    #                 if col in row.index:
+    #                     val = row[col]
+    #                     if hasattr(val, 'iloc'):
+    #                         val = val.iloc[0] if len(val) > 0 else 0
+    #                     # ✅ Utiliser la nouvelle méthode safe_float qui gère "INCLUS"
+    #                     values[col] = self._safe_float(val)
+    #                 else:
+    #                     values[col] = 0
+                
+    #             # ✅ EXTRAIRE LA PUISSANCE ET L'ÉNERGIE DE LA COLONNE "Puissance en CV"
+    #             puissance_raw = row.get('Puissance en CV', '')
+    #             if hasattr(puissance_raw, 'iloc'):
+    #                 puissance_raw = puissance_raw.iloc[0] if len(puissance_raw) > 0 else ''
+                
+    #             puissance, energie = self._extract_power_and_energy(puissance_raw)
+                
+    #             # ✅ RÉCUPÉRATION CORRECTE DE "Assistance à la réparation"
+    #             ar_value = 0
+                
+    #             #1. Essayer de récupérer depuis la colonne "Assistance à la réparation"
+    #             if 'Assistance à la réparation' in row.index:
+    #                 val = row['Assistance à la réparation']
+    #                 if hasattr(val, 'iloc'):
+    #                     val = val.iloc[0] if len(val) > 0 else 0
+    #                 ar_value = self._safe_float(val)
+    #                 if ar_value > 0:
+    #                     print(f"✅ AR trouvée dans colonne 'Assistance à la réparation': {ar_value}")
+                
+    #             if 'Assistance à la réparation' in row.index:
+    #                 val = row['Prime brute']
+    #                 if hasattr(val, 'iloc'):
+    #                     val = val.iloc[0] if len(val) > 0 else 0
+    #                 pb_value = self._safe_float(val)
+    #                 if pb_value > 0:
+    #                     print(f"✅ PB trouvée dans colonne 'Prime brute': {pb_value}")
+
+    #             # Extraire les dates
+    #             pmec_val = row.get('PMEC')
+    #             if hasattr(pmec_val, 'iloc'):
+    #                 pmec_val = pmec_val.iloc[0] if len(pmec_val) > 0 else None
+    #             pmec_date = self._extract_date_smart(pmec_val)
+                
+    #             # Récupérer le rang
+    #             rang_val = row.get('Rang')
+    #             if hasattr(rang_val, 'iloc'):
+    #                 rang_val = rang_val.iloc[0] if len(rang_val) > 0 else idx + 1
+                
+    #             vehicle = {
+    #                 'id': idx + 1,
+    #                 'rang': self._safe_int(rang_val) or (idx + 1),
+    #                 'immatriculation': immat,
+    #                 'chassis': self._safe_str(row.get('Numero Chassi', '')),
+    #                 'marque': marque,
+    #                 'modele': modele,
+    #                 'marque_type': f"{marque} {modele}".strip(),
+    #                 'genre': self._safe_str(row.get('Genre', 'VP')),
+    #                 'puissance': puissance,
+    #                 'energie': energie,
+    #                 'usage': self._safe_str(row.get('Usage', '')),
+    #                 'places': int(values.get('Nombre de Places', 5)),
+    #                 'nbr_jour': int(values.get('Nombre de jours assurés', 365)),
+    #                 'pmec': pmec_date,
+    #                 'valeur_neuf': values.get('Valeur Neuve', 0),
+    #                 'valeur_venale': values.get('Valeur Venale', 0),
+    #                 'capital_ar': values.get('Capital Assistance à la réparation', 0),
+    #                 'garanties': {
+    #                     'rc': values.get('RC/RTI', 0),
+    #                     'dr': values.get('Défense et Recours', 0),
+    #                     'vol': values.get('Vol/Vol partiel - Braquage', 0),
+    #                     'vb': values.get('Vol/Vol partiel - Braquage', 0),
+    #                     'incendie': values.get('Incendie', 0),
+    #                     'bris_glace': values.get('Bris de Glaces', 0),
+    #                     'ar': ar_value,  # ✅ Utiliser la valeur corrigée
+    #                     'dta': values.get('Dommages Tous Accidents', 0),
+    #                     'ipt': values.get('Individuelle Personnes Transportées (I.P.T) + Conducteur', 0),
+    #                 },
+    #                 'prime_brute': row['Prime brute'],
+    #                 'reductions': values.get('Réductions', 0),
+    #                 'prime_nette': values.get('Prime nette', 0),
+    #                 'droit_timbre': values.get('Droit de Timbre Automobile', 0),
+    #                 'accessoires': 0,
+    #                 'asac': 0,
+    #                 'carte_rose': 0,
+    #                 'vignette': 0,
+    #                 'tva': 0,
+    #                 'pttc': 0,
+    #                 'status': 'loaded',
+    #                 'from_fleet': False,
+    #                 'categorie': self._safe_str(row.get('Genre', 'VP')),
+    #                 'annee': self._safe_year(pmec_val),
+    #             }
+                
+    #             # ✅ Calcul du total des garanties
+    #             garanties_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
+    #             total = sum(vehicle['garanties'].get(k, 0) for k in garanties_keys)
+    #             vehicle['garanties']['total'] = total
+                
+    #             # ✅ Journalisation pour le débogage
+    #             print(f"✅ {immat} - Marque: {marque}, Modèle: {modele}, AR: {ar_value} FCFA")
+                
+    #             vehicles.append(vehicle)
+                
+    #         except Exception as e:
+    #             print(f"Erreur extraction ligne {idx}: {e}")
+    #             import traceback
+    #             traceback.print_exc()
+    #             continue
+        
+    #     return vehicles
+
+    def _extract_vehicles_data(self, df):
+        """Extrait les données des véhicules - Version avec traitement des textes spéciaux"""
+        vehicles = []
+        
+        # ✅ Colonnes numériques avec les nouveaux noms
+        numeric_cols = [
+            'Puissance en CV', 'Nombre de Places', 'Nombre de jours assurés',
+            'Valeur Neuve', 'Valeur Venale', 'Capital Assistance à la réparation',
+            'RC/RTI', 'Défense et Recours', 'Vol/Vol partiel - Braquage',
+            'Incendie', 'Bris de Glaces', 'Assistance à la réparation',
+            'Dommages Tous Accidents', 'Individuelle Personnes Transportées (I.P.T) + Conducteur',
+            'Prime brute', 'Réductions', 'Prime nette', 'Droit de Timbre Automobile'
+        ]
+        
+        for idx, row in df.iterrows():
+            try:
+                # Extraire l'immatriculation
+                immat = self._safe_str(row.get('Immatriculation', ''))
+                if not immat:
+                    continue
+                
+                # ✅ Vérifier si c'est une ligne de total (exclure les lignes de récapitulatif)
+                if any(keyword in immat.upper() for keyword in ['PRIME', 'REDUCTIONS', 'TOTAL', 'SOUS-TOTAL']):
+                    print(f"⏭️ Ligne de total ignorée: {immat}")
+                    continue
+                
+                # ✅ Extraire la marque et le modèle (séparés)
+                marque = self._safe_str(row.get('Marque', ''))
+                modele = self._safe_str(row.get('Modele', ''))
+                
+                # Si la colonne Marque est vide mais que Marque et Type existe
+                if not marque:
+                    marque_type = self._safe_str(row.get('Marque et Type', ''))
+                    if marque_type:
+                        # ✅ Ne pas traiter les lignes de récapitulatif
+                        if not any(k in marque_type.upper() for k in ['PRIME', 'REDUCTIONS', 'TOTAL']):
+                            parts = marque_type.split(' ', 1)
+                            marque = parts[0] if parts else ''
+                            modele = parts[1] if len(parts) > 1 else ''
+                
+                # Extraire les valeurs numériques
+                values = {}
+                for col in numeric_cols:
+                    if col in row.index:
+                        val = row[col]
+                        if hasattr(val, 'iloc'):
+                            val = val.iloc[0] if len(val) > 0 else 0
+                        values[col] = self._safe_float(val)
+                    else:
+                        values[col] = 0
+                
+                # ✅ EXTRAIRE LA PUISSANCE ET L'ÉNERGIE DE LA COLONNE "Puissance en CV"
+                puissance_raw = row.get('Puissance en CV', '')
+                if hasattr(puissance_raw, 'iloc'):
+                    puissance_raw = puissance_raw.iloc[0] if len(puissance_raw) > 0 else ''
+                
+                puissance, energie = self._extract_power_and_energy(puissance_raw)
+                
+                # ✅ RÉCUPÉRATION CORRECTE DE "Assistance à la réparation"
+                ar_value = 0
+                
+                # 1. Essayer de récupérer depuis la colonne "Assistance à la réparation"
+                if 'Assistance à la réparation' in row.index:
+                    val = row['Assistance à la réparation']
+                    if hasattr(val, 'iloc'):
+                        val = val.iloc[0] if len(val) > 0 else 0
+                    ar_value = self._safe_float(val)
+                    if ar_value > 0:
+                        print(f"✅ AR trouvée dans colonne 'Assistance à la réparation': {ar_value}")
+
+                # Extraire les dates
+                pmec_val = row.get('PMEC')
+                if hasattr(pmec_val, 'iloc'):
+                    pmec_val = pmec_val.iloc[0] if len(pmec_val) > 0 else None
+                pmec_date = self._extract_date_smart(pmec_val)
+                
+                # Récupérer le rang
+                rang_val = row.get('Rang')
+                if hasattr(rang_val, 'iloc'):
+                    rang_val = rang_val.iloc[0] if len(rang_val) > 0 else idx + 1
+                
+                # ✅ Récupérer les garanties
+                garanties = {
+                    'rc': values.get('RC/RTI', 0),
+                    'dr': values.get('Défense et Recours', 0),
+                    'vol': values.get('Vol/Vol partiel - Braquage', 0),
+                    'vb': values.get('Vol/Vol partiel - Braquage', 0),
+                    'incendie': values.get('Incendie', 0),
+                    'bris_glace': values.get('Bris de Glaces', 0),
+                    'ar': ar_value,
+                    'dta': values.get('Dommages Tous Accidents', 0),
+                    'ipt': values.get('Individuelle Personnes Transportées (I.P.T) + Conducteur', 0),
+                }
+                
+                # ✅ Calcul du total des garanties (brut)
+                garanties_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
+                total_brut = sum(garanties.get(k, 0) for k in garanties_keys)
+                garanties['total'] = total_brut
+                
+                # ✅ Récupérer les valeurs de prime depuis le fichier
+                prime_brute_from_file = values.get('Prime brute', 0)
+                prime_nette_from_file = values.get('Prime nette', 0)
+                reductions_from_file = values.get('Réductions', 0)
+                
+                # ✅ Si les valeurs du fichier sont valides, les utiliser, sinon utiliser les calculs
+                # Si prime_brute_from_file > 0, c'est qu'elle vient du fichier
+                if prime_brute_from_file > 0:
+                    prime_brute = prime_brute_from_file
+                else:
+                    prime_brute = total_brut
+                
+                if prime_nette_from_file > 0:
+                    prime_nette = prime_nette_from_file
+                else:
+                    prime_nette = total_brut
+                
+                if reductions_from_file > 0:
+                    reductions = reductions_from_file
+                else:
+                    reductions = 0
                 
                 vehicle = {
                     'id': idx + 1,
-                    'rang': safe_int(row.get('Rang', idx + 1)),
-                    'immatriculation': str(row.get('Immatriculation', '')).strip().upper(),
-                    'chassis': chassis,
+                    'rang': self._safe_int(rang_val) or (idx + 1),
+                    'immatriculation': immat,
+                    'chassis': self._safe_str(row.get('Numero Chassi', '')),
                     'marque': marque,
                     'modele': modele,
-                    'marque_type': marque_type,
-                    'genre': str(row.get('Genre', 'VP')).strip() if pd.notna(row.get('Genre')) else 'VP',
+                    'marque_type': f"{marque} {modele}".strip(),
+                    'genre': self._safe_str(row.get('Genre', 'VP')),
                     'puissance': puissance,
                     'energie': energie,
-                    'usage': str(row.get('Usage', '')).strip() if pd.notna(row.get('Usage')) else '',
-                    'places': safe_int(row.get('Nombre de Places', 5)),
-                    'nbr_jour': safe_int(row.get('Nombre de jours assurés', 365)),
-                    'pmec': row.get('PMEC_Display', ''),
-                    'date_mise_circulation': row.get('Date_Mise_Circulation', None),
-                    'valeur_neuf': safe_value(row.get('Valeur Neuve', 0)),
-                    'valeur_venale': safe_value(row.get('Valeur Venale', 0)),
-                    'capital_ar': safe_value(row.get('Capital Assistance à la réparation', 0)),
-                    'garanties': {
-                        'rc': rc_value,
-                        'dr': dr_value,
-                        'vol': vol_value,
-                        'vb': vb_value,
-                        'incendie': incendie_value,
-                        'bris_glace': bris_value,
-                        'ar': ar_value,
-                        'dta': dta_value,
-                        'ipt': ipt_value,
-                    },
-                    'prime_brute': safe_value(row.get('Prime brute', 0)),
-                    'reductions': safe_value(row.get('Réductions', 0)),
-                    'prime_nette': safe_value(row.get('Prime nette', 0)),
-                    'droit_timbre': safe_value(row.get('Droit de Timbre Automobile', 0)),
+                    'usage': self._safe_str(row.get('Usage', '')),
+                    'places': int(values.get('Nombre de Places', 5)),
+                    'nbr_jour': int(values.get('Nombre de jours assurés', 365)),
+                    'pmec': pmec_date,
+                    'valeur_neuf': values.get('Valeur Neuve', 0),
+                    'valeur_venale': values.get('Valeur Venale', 0),
+                    'capital_ar': values.get('Capital Assistance à la réparation', 0),
+                    'garanties': garanties,
+                    'prime_brute': prime_brute,
+                    'reductions': reductions,
+                    'prime_nette': prime_nette,
+                    'droit_timbre': values.get('Droit de Timbre Automobile', 0),
                     'accessoires': 0,
                     'asac': 0,
                     'carte_rose': 0,
@@ -2755,64 +3122,316 @@ class FleetImportAdvancedDialog(QDialog):
                     'tva': 0,
                     'pttc': 0,
                     'status': 'loaded',
-                    'from_fleet': False
+                    'from_fleet': False,
+                    'categorie': self._safe_str(row.get('Genre', 'VP')),
+                    'annee': self._safe_year(pmec_val),
                 }
                 
-                total = sum(vehicle['garanties'].values())
-                vehicle['garanties']['total'] = total
+                # ✅ Journalisation pour le débogage
+                print(f"✅ {immat} - Marque: {marque}, Modèle: {modele}, AR: {ar_value} FCFA")
+                print(f"   Prime brute: {prime_brute}, Prime nette: {prime_nette}, Réductions: {reductions}")
                 
-                if vehicle['immatriculation'] and vehicle['immatriculation'] not in ['NAN', 'NONE', '']:
-                    self.vehicles_data.append(vehicle)
+                vehicles.append(vehicle)
+                
+            except Exception as e:
+                print(f"Erreur extraction ligne {idx}: {e}")
+                import traceback
+                traceback.print_exc()
+                continue
+        
+        return vehicles
+
+    # ============================================================================
+    # 8. VALIDATION DES DONNÉES
+    # ============================================================================
+
+    def _validate_vehicles_data(self):
+        """Valide les données des véhicules"""
+        invalid_count = 0
+        
+        for vehicle in self.vehicles_data:
+            errors = []
             
-            if not self.vehicles_data:
-                self.file_info.setText("❌ Aucun véhicule trouvé dans le fichier")
-                self.status_text.setText("Erreur: aucun véhicule valide")
-                return
+            # Vérifier l'immatriculation
+            immat = vehicle.get('immatriculation', '')
+            if not immat or len(immat) < 3:
+                errors.append("Immatriculation invalide")
             
-            self.file_info.setText(f"✅ {len(self.vehicles_data)} véhicules trouvés")
-            self.status_text.setText(f"{len(self.vehicles_data)} véhicules chargés")
-            self.status_icon.setText("✅")
-            self.calc_btn.setEnabled(True)
-            self.display_vehicles()
+            # Vérifier les valeurs numériques
+            if vehicle.get('valeur_neuf', 0) < 0:
+                errors.append("Valeur à neuf négative")
+            if vehicle.get('valeur_venale', 0) < 0:
+                errors.append("Valeur vénale négative")
+            if vehicle.get('puissance', 0) < 0:
+                errors.append("Puissance négative")
+            if vehicle.get('places', 0) <= 0:
+                errors.append("Nombre de places invalide")
             
+            # Vérifier les garanties
+            garanties = vehicle.get('garanties', {})
+            for key, value in garanties.items():
+                if key != 'total' and value < 0:
+                    errors.append(f"Garantie {key} négative")
+            
+            if errors:
+                vehicle['validation_errors'] = errors
+                vehicle['valid'] = False
+                invalid_count += 1
+            else:
+                vehicle['valid'] = True
+        
+        # Afficher les erreurs de validation
+        if invalid_count > 0:
+            error_msg = f"⚠️ {invalid_count} véhicule(s) ont des erreurs:\n\n"
+            for v in self.vehicles_data:
+                if not v.get('valid', True):
+                    errors = v.get('validation_errors', [])
+                    error_msg += f"• {v.get('immatriculation', 'N/A')}: {', '.join(errors)}\n"
+                    if len(error_msg) > 1000:
+                        error_msg += "...\n"
+                        break
+            
+            QMessageBox.warning(self, "⚠️ Erreurs de validation", error_msg)
+        
+        return invalid_count
+
+    # ============================================================================
+    # 9. FONCTIONS UTILITAIRES
+    # ============================================================================
+
+    def _safe_str(self, value):
+        """Convertit en chaîne de caractères de manière sécurisée"""
+        if pd.isna(value) or value is None:
+            return ''
+        return str(value).strip()
+
+    # def _safe_float(self, value):
+    #     """Convertit en float de manière sécurisée avec gestion des séparateurs"""
+    #     try:
+    #         if pd.isna(value) or value is None:
+    #             return 0.0
+    #         if isinstance(value, (int, float)):
+    #             return float(value)
+            
+    #         # Nettoyer la chaîne
+    #         value_str = str(value).strip()
+            
+    #         # Gérer les séparateurs
+    #         # 1. Supprimer les espaces
+    #         value_str = value_str.replace(' ', '')
+            
+    #         # 2. Gérer les virgules comme séparateur décimal
+    #         if ',' in value_str and '.' not in value_str:
+    #             value_str = value_str.replace(',', '.')
+    #         # 3. Gérer les points comme séparateur de milliers
+    #         elif '.' in value_str and value_str.count('.') > 1:
+    #             value_str = value_str.replace('.', '')
+    #         # 4. Gérer les virgules comme séparateur de milliers
+    #         elif ',' in value_str and '.' in value_str:
+    #             value_str = value_str.replace(',', '')
+            
+    #         # Supprimer les caractères non numériques sauf le point
+    #         import re
+    #         value_str = re.sub(r'[^\d.]+', '', value_str)
+            
+    #         return float(value_str) if value_str else 0.0
+    #     except Exception as e:
+    #         print(f"Erreur conversion float '{value}': {e}")
+    #         return 0.0
+
+    def _safe_float(self, value):
+        """Convertit en float de manière sécurisée avec gestion des séparateurs et des textes"""
+        try:
+            # ✅ Si c'est une Series, prendre la première valeur
+            if hasattr(value, 'iloc'):
+                value = value.iloc[0] if len(value) > 0 else 0
+            
+            if pd.isna(value) or value is None:
+                return 0.0
+            
+            # ✅ Si c'est déjà un nombre
+            if isinstance(value, (int, float)):
+                return float(value)
+            
+            # ✅ Si c'est une chaîne
+            value_str = str(value).strip()
+            if not value_str:
+                return 0.0
+            
+            # ✅ Vérifier si c'est un texte spécial comme "INCLUS" ou "EXCLU"
+            value_upper = value_str.upper()
+            if value_upper in ['INCLUS', 'EXCLU', 'N/A', 'NON', 'OUI']:
+                return 0.0
+            
+            # ✅ Supprimer les espaces insécables et autres caractères spéciaux
+            value_str = value_str.replace('\xa0', ' ').replace(' ', ' ')
+            
+            # Nettoyer la chaîne
+            # Gérer les séparateurs
+            # 1. Supprimer les espaces
+            value_str = value_str.replace(' ', '')
+            
+            # 2. Gérer les virgules comme séparateur décimal
+            if ',' in value_str and '.' not in value_str:
+                value_str = value_str.replace(',', '.')
+            # 3. Gérer les points comme séparateur de milliers
+            elif '.' in value_str and value_str.count('.') > 1:
+                value_str = value_str.replace('.', '')
+            # 4. Gérer les virgules comme séparateur de milliers
+            elif ',' in value_str and '.' in value_str:
+                value_str = value_str.replace(',', '')
+            
+            # Supprimer les caractères non numériques sauf le point
+            import re
+            value_str = re.sub(r'[^\d.]+', '', value_str)
+            
+            return float(value_str) if value_str else 0.0
         except Exception as e:
-            self.file_info.setText(f"❌ Erreur: {str(e)}")
-            self.status_text.setText(f"Erreur: {str(e)}")
-            self.status_icon.setText("❌")
-            traceback.print_exc()
+            print(f"Erreur conversion float '{value}': {e}")
+            return 0.0
+
+    def _safe_int(self, value):
+        """Convertit en entier de manière sécurisée"""
+        try:
+            if pd.isna(value) or value is None:
+                return 0
+            if isinstance(value, (int, float)):
+                return int(value)
+            if isinstance(value, str):
+                # Nettoyer la chaîne
+                value_str = value.strip()
+                if not value_str:
+                    return 0
+                # Supprimer les espaces et les caractères non numériques
+                import re
+                value_str = re.sub(r'[^\d]', '', value_str)
+                return int(value_str) if value_str else 0
+            return int(value)
+        except Exception as e:
+            print(f"Erreur conversion int '{value}': {e}")
+            return 0
+
+    def _extract_date_smart(self, value):
+        """Extrait une date de manière intelligente"""
+        if pd.isna(value) or not value:
+            return None
+        
+        if isinstance(value, (pd.Timestamp, datetime)):
+            return value
+        
+        value_str = str(value).strip()
+        
+        # Essayer différents formats
+        formats = [
+            '%Y-%m-%d %H:%M:%S',
+            '%Y-%m-%d',
+            '%d/%m/%Y',
+            '%m/%d/%Y',
+            '%d-%m-%Y',
+            '%m-%d-%Y',
+            '%d.%m.%Y',
+            '%Y.%m.%d',
+            '%d/%m/%y',
+            '%d-%m-%y',
+            '%d %b %Y',  # 01 Jan 2024
+            '%d %B %Y',  # 01 Janvier 2024
+        ]
+        
+        for fmt in formats:
+            try:
+                return datetime.strptime(value_str, fmt)
+            except ValueError:
+                continue
+        
+        # Essayer les dates Excel
+        try:
+            num_val = float(value_str)
+            if num_val > 1 and num_val < 50000:
+                from datetime import timedelta
+                base = datetime(1899, 12, 30)
+                return base + timedelta(days=num_val)
+        except:
+            pass
+        
+        return None
+
+    def _extract_energy(self, value):
+        """Extrait le type d'énergie à partir de la valeur de puissance"""
+        if pd.isna(value) or not value:
+            return 'SEE'  # Essence par défaut
+        
+        value_str = str(value).strip().upper()
+        
+        # Détection des lettres d'énergie
+        energy_map = {
+            'D': 'SED',  # Diesel
+            'E': 'SEE',  # Essence
+            'H': 'HYBRIDE',  # Hybride
+            'G': 'GAZ',  # Gaz
+            'EL': 'ELECTRIQUE'  # Électrique
+        }
+        
+        import re
+        match = re.search(r'([DEHGL]+)', value_str)
+        if match:
+            energy_code = match.group(1)
+            return energy_map.get(energy_code, 'SEE')
+        
+        return 'SEE'
+
+    def _safe_year(self, value):
+        """Extrait l'année à partir d'une date ou d'une chaîne"""
+        try:
+            if pd.isna(value) or not value:
+                return None
+            
+            # Si c'est une date
+            if isinstance(value, (pd.Timestamp, datetime)):
+                return value.year
+            
+            # Si c'est une chaîne
+            value_str = str(value).strip()
+            import re
+            match = re.search(r'\b(19|20)\d{2}\b', value_str)
+            if match:
+                return int(match.group(0))
+            
+            return None
+        except:
+            return None
 
     def setup_vehicle_table(self):
         """Configure le tableau avec les nouvelles colonnes"""
-        # Nouvelles entêtes avec la colonne Énergie
         headers = [
             "✓",  # 0
             "Rang",  # 1
             "Immatriculation",  # 2
-            "Marque et Type",  # 3
-            "Genre",  # 4
-            "Puissance en CV",  # 5
-            "Énergie",  # 6  ← NOUVEAU
-            "Usage",  # 7
-            "Nombre de Places",  # 8
-            "Nombre de jours assurés",  # 9
-            "PMEC",  # 10
-            "Valeur Neuve",  # 11
-            "Valeur Venale",  # 12
-            "Capital Assistance à la réparation",  # 13
-            "RC/RTI",  # 14
-            "Défense et Recours",  # 15
-            "Vol/Vol partie",  # 16
-            "Vol Braquage",  # 17
-            "Incendie",  # 18
-            "Bris de Glaces",  # 19
-            "Assistance à la réparation",  # 20
-            "Dommages Tous Accidents",  # 21
-            "IPT + Conducteur",  # 22
-            "Prime brute",  # 23
-            "Réductions",  # 24
-            "Prime nette",  # 25
-            "Droit de Timbre Automobile",  # 26
-            "Actions"  # 27
+            "Numero Chassi",  # 3
+            "Marque",  # 4
+            "Modèle",  # 5
+            "Genre",  # 6
+            "Puissance en CV",  # 7
+            "Énergie",  # 8
+            "Usage",  # 9
+            "Nombre de Places",  # 10
+            "Nombre de jours assurés",  # 11
+            "PMEC",  # 12
+            "Valeur Neuve",  # 13
+            "Valeur Venale",  # 14
+            "Capital Assistance à la réparation",  # 15
+            "RC/RTI",  # 16
+            "Défense et Recours",  # 17
+            "Vol/Vol partiel - Braquage",  # 18
+            "Incendie",  # 19
+            "Bris de Glaces",  # 20
+            "Assistance à la réparation",  # 21
+            "Dommages Tous Accidents",  # 22
+            "Individuelle Personnes Transportées (I.P.T) + Conducteur",  # 23
+            "Prime brute",  # 24
+            "Réductions",  # 25
+            "Prime nette",  # 26
+            "Droit de Timbre Automobile",  # 27
+            "Actions"  # 28 
         ]
         
         self.vehicles_table = QTableWidget()
@@ -2824,31 +3443,32 @@ class FleetImportAdvancedDialog(QDialog):
             0: 30,   # ✓
             1: 40,   # Rang
             2: 100,  # Immatriculation
-            3: 120,  # Marque et Type
-            4: 70,   # Genre
-            5: 80,   # Puissance en CV
-            6: 80,   # Énergie  ← NOUVEAU
-            7: 80,   # Usage
-            8: 60,   # Nombre de Places
-            9: 80,   # Nombre de jours assurés
-            10: 70,  # PMEC
-            11: 90,  # Valeur Neuve
-            12: 90,  # Valeur Venale
-            13: 90,  # Capital Assistance
-            14: 80,  # RC/RTI
-            15: 80,  # DR
-            16: 80,  # Vol
-            17: 80,  # VB
-            18: 80,  # Incendie
-            19: 80,  # Bris
-            20: 80,  # AR
-            21: 80,  # DTA
-            22: 80,  # IPT
-            23: 80,  # Prime brute
-            24: 70,  # Réductions
-            25: 80,  # Prime nette
-            26: 80,  # Droit de Timbre
-            27: 120  # Actions
+            3: 100,  # Numero Chassi
+            4: 120,  # Marque
+            5: 120,  #Modèle
+            6: 70,   # Genre
+            7: 80,   # Puissance en CV
+            8: 80,   # Énergie
+            9: 80,   # Usage
+            10: 60,  # Nombre de Places
+            11: 80,   # Nombre de jours assurés
+            12: 70,  # PMEC
+            13: 90,  # Valeur Neuve
+            14: 90,  # Valeur Venale
+            15: 90,  # Capital Assistance
+            16: 80,  # RC/RTI
+            17: 80,  # DR
+            18: 80,  # Vol/Vol partiel - Braquage
+            19: 80,  # Incendie
+            20: 80,  # Bris
+            21: 80,  # AR
+            22: 80,  # DTA
+            23: 80,  # IPT
+            24: 80,  # Prime brute
+            25: 70,  # Réductions
+            26: 80,  # Prime nette
+            27: 80,  # Droit de Timbre
+            28: 120  # Actions
         }
         
         for col, width in column_widths.items():
@@ -2860,9 +3480,6 @@ class FleetImportAdvancedDialog(QDialog):
         self.vehicles_table.verticalHeader().setDefaultSectionSize(40)
         self.vehicles_table.verticalHeader().setMinimumSectionSize(35)
         
-        # Connecter le signal de changement de sélection
-        self.vehicles_table.itemClicked.connect(self.on_table_item_clicked)
-
     def display_vehicles(self):
         """Affiche les véhicules dans le tableau avec les nouvelles colonnes"""
         self.vehicles_table.setRowCount(len(self.vehicles_data))
@@ -2885,12 +3502,12 @@ class FleetImportAdvancedDialog(QDialog):
                 self.edit_vehicle_dates,
                 self.on_modify_vehicle
             )
-            self.vehicles_table.setCellWidget(row, 27, actions_widget)
+            self.vehicles_table.setCellWidget(row, 28, actions_widget)
         
         self.adjust_row_heights()
         self.update_selection_count()
         self.update_summary()
-
+    
     def apply_mass_reduction(self):
         """Applique une réduction en masse sur les garanties sélectionnées"""
         if not self.vehicles_data:
@@ -2918,22 +3535,23 @@ class FleetImportAdvancedDialog(QDialog):
             QMessageBox.warning(self, "Erreur", "Veuillez sélectionner au moins une garantie")
             return
         
-        reduction_value = dialog.get_reduction_value()
-        mode = dialog.get_mode()
-        
-        if reduction_value <= 0 and mode != 2:
-            QMessageBox.warning(self, "Erreur", "La réduction doit être supérieure à 0")
+        reduction_percent = dialog.get_reduction_percentage()
+        if reduction_percent <= 0:
+            QMessageBox.warning(self, "Erreur", "Le pourcentage de réduction doit être supérieur à 0")
             return
         
-        # Appliquer la réduction
+        # ✅ Appliquer la réduction (UNIQUEMENT en pourcentage)
         applied_count = 0
+        modifications = []
+        
         for row in selected_rows:
             vehicle = self.vehicles_data[row]
             if 'garanties' not in vehicle:
                 continue
             
             garanties = vehicle['garanties']
-            modifications = {}
+            vehicle_modifications = {}
+            vehicle_modified = False
             
             for key in selected_garanties:
                 if key not in garanties:
@@ -2941,64 +3559,80 @@ class FleetImportAdvancedDialog(QDialog):
                 
                 current_value = garanties.get(key, 0)
                 
-                if mode == 0:  # Réduire les montants (soustraire)
-                    new_value = max(0, current_value - reduction_value)
-                elif mode == 1:  # Coefficient multiplicateur
-                    new_value = current_value * (1 - reduction_value / 100)
-                else:  # Montant fixe maximum
-                    new_value = min(current_value, reduction_value)
+                # ✅ Appliquer le pourcentage de réduction
+                reduction_factor = 1 - (reduction_percent / 100)
+                new_value = round(current_value * reduction_factor, 2)
                 
-                modifications[key] = new_value
+                # Arrondir à l'entier le plus proche pour les montants en FCFA
+                new_value = round(new_value)
+                
+                if new_value != current_value:
+                    vehicle_modifications[key] = new_value
+                    vehicle_modified = True
             
-            # Appliquer les modifications
-            total_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
-            for key, new_value in modifications.items():
-                garanties[key] = new_value
-            
-            # Recalculer le total
-            garanties['total'] = sum(garanties.get(k, 0) for k in total_keys)
-            
-            # Mettre à jour les colonnes du tableau
-            garanties_cols = {
-                'rc': 13, 'dr': 14, 'vol': 15, 'vb': 16,
-                'incendie': 17, 'bris_glace': 18, 'ar': 19,
-                'dta': 20, 'ipt': 21
-            }
-            
-            for key, col in garanties_cols.items():
-                amount = garanties.get(key, 0)
-                item = self.vehicles_table.item(row, col)
-                if item:
-                    item.setText(f"{amount:,.0f}".replace(",", " "))
-            
-            # Mettre à jour les primes
-            prime_brute = garanties.get('total', 0)
-            pb_item = self.vehicles_table.item(row, 22)
-            if pb_item:
-                pb_item.setText(f"{prime_brute:,.0f}".replace(",", " "))
-            
-            pn_item = self.vehicles_table.item(row, 24)
-            if pn_item:
-                pn_item.setText(f"{prime_brute:,.0f}".replace(",", " "))
-            
-            # Mettre à jour les réductions
-            reductions_item = self.vehicles_table.item(row, 23)
-            if reductions_item:
-                reductions_item.setText(f"{reduction_value:.0f}")
-            
-            applied_count += 1
+            if vehicle_modified:
+                # Appliquer les modifications
+                for key, new_value in vehicle_modifications.items():
+                    garanties[key] = new_value
+                
+                # Recalculer le total
+                total_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
+                garanties['total'] = sum(garanties.get(k, 0) for k in total_keys)
+                
+                # Mettre à jour les colonnes du tableau
+                garanties_cols = {
+                    'rc': 16, 'dr': 17, 'vol': 18, 'vb': 18,
+                    'incendie': 19, 'bris_glace': 20, 'ar': 21,
+                    'dta': 22, 'ipt': 23
+                }
+                
+                for key, col in garanties_cols.items():
+                    if key in vehicle_modifications:
+                        amount = garanties.get(key, 0)
+                        item = self.vehicles_table.item(row, col)
+                        if item:
+                            item.setText(f"{amount:,.0f}".replace(",", " "))
+                
+                # Mettre à jour la prime brute
+                prime_brute = garanties.get('total', 0)
+                pb_item = self.vehicles_table.item(row, 24)
+                if pb_item:
+                    pb_item.setText(f"{prime_brute:,.0f}".replace(",", " "))
+                
+                # Mettre à jour la prime nette
+                pn_item = self.vehicles_table.item(row, 26)
+                if pn_item:
+                    pn_item.setText(f"{prime_brute:,.0f}".replace(",", " "))
+                
+                # Mettre à jour les réductions
+                reductions_item = self.vehicles_table.item(row, 25)
+                if reductions_item:
+                    reductions_item.setText(f"{reduction_percent:.0f}%")
+                
+                applied_count += 1
+                modifications.append(vehicle['immatriculation'])
         
         # Mettre à jour les récapitulatifs
         self.update_summary()
         
-        QMessageBox.information(
-            self, 
-            "Succès", 
-            f"✅ Réduction appliquée à {applied_count} véhicule(s)\n"
-            f"Garanties concernées: {len(selected_garanties)}\n"
-            f"Valeur: {reduction_value}"
-        )
-    
+        if applied_count > 0:
+            mod_list = "\n".join(modifications[:5]) + ("\n..." if len(modifications) > 5 else "")
+            QMessageBox.information(
+                self, 
+                "✅ Succès", 
+                f"Réduction appliquée à {applied_count} véhicule(s)\n\n"
+                f"Garanties concernées: {len(selected_garanties)}\n"
+                f"Réduction: {reduction_percent:.1f}%\n\n"
+                f"Véhicules modifiés:\n{mod_list}"
+            )
+        else:
+            QMessageBox.information(
+                self, 
+                "ℹ️ Information", 
+                "Aucune modification n'a été appliquée.\n"
+                "Les garanties sélectionnées étaient peut-être déjà à 0."
+            )
+
     def start_calculation(self):
         """Démarre le calcul des garanties"""
         if not self.vehicles_data:
@@ -3093,106 +3727,6 @@ class FleetImportAdvancedDialog(QDialog):
             self.update_summary()
             self.mass_reduction_btn.setEnabled(True)
     
-    def update_summary(self):
-        """Met à jour le récapitulatif"""
-        total = len(self.vehicles_data)
-        selected = 0
-        
-        # Initialiser les totaux
-        garanties_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
-        totals = {key: 0.0 for key in garanties_keys}
-        selected_totals = {key: 0.0 for key in garanties_keys}
-        
-        total_prime_brute = 0
-        total_prime_nette = 0
-        total_timbre = 0
-        
-        # ✅ Totaux des frais
-        total_accessoires = 0
-        total_asac = 0
-        total_carte_rose = 0
-        total_vignette = 0
-        total_tva = 0
-        total_pttc = 0
-        
-        selected_accessoires = 0
-        selected_asac = 0
-        selected_carte_rose = 0
-        selected_vignette = 0
-        selected_tva = 0
-        selected_pttc = 0
-        
-        for row in range(self.vehicles_table.rowCount()):
-            item = self.vehicles_table.item(row, 0)
-            is_selected = item and item.checkState() == Qt.Checked
-            
-            if is_selected:
-                selected += 1
-            
-            vehicle = self.vehicles_data[row] if row < len(self.vehicles_data) else None
-            if vehicle:
-                # Garanties
-                if 'garanties' in vehicle:
-                    garanties = vehicle['garanties']
-                    for key in garanties_keys:
-                        amount = garanties.get(key, 0)
-                        totals[key] += amount
-                        if is_selected:
-                            selected_totals[key] += amount
-                    
-                    if is_selected:
-                        total_prime_brute += garanties.get('total', 0)
-                        total_prime_nette += vehicle.get('prime_nette', garanties.get('total', 0))
-                        total_timbre += vehicle.get('droit_timbre', 0)
-                
-                # ✅ Frais
-                accessoires = vehicle.get('accessoires', 0)
-                asac = vehicle.get('asac', 0)
-                carte_rose = vehicle.get('carte_rose', 0)
-                vignette = vehicle.get('vignette', 0)
-                tva = vehicle.get('tva', 0)
-                pttc = vehicle.get('pttc', 0)
-                
-                total_accessoires += accessoires
-                total_asac += asac
-                total_carte_rose += carte_rose
-                total_vignette += vignette
-                total_tva += tva
-                total_pttc += pttc
-                
-                if is_selected:
-                    selected_accessoires += accessoires
-                    selected_asac += asac
-                    selected_carte_rose += carte_rose
-                    selected_vignette += vignette
-                    selected_tva += tva
-                    selected_pttc += pttc
-        
-        # Mettre à jour les cartes des garanties
-        self.recap_cards['total'].setText(str(total))
-        self.recap_cards['selected'].setText(str(selected))
-        self.recap_cards['rc'].setText(f"{selected_totals['rc']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['dr'].setText(f"{selected_totals['dr']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['vol'].setText(f"{selected_totals['vol']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['vb'].setText(f"{selected_totals['vb']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['incendie'].setText(f"{selected_totals['incendie']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['bris_glace'].setText(f"{selected_totals['bris_glace']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['ar'].setText(f"{selected_totals['ar']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['dta'].setText(f"{selected_totals['dta']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['ipt'].setText(f"{selected_totals['ipt']:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['prime_brute'].setText(f"{total_prime_brute:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['prime_nette'].setText(f"{total_prime_nette:,.0f}".replace(",", " ") + " FCFA")
-        
-        # ✅ Mettre à jour les cartes des frais
-        self.recap_cards['accessoires'].setText(f"{selected_accessoires:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['asac'].setText(f"{selected_asac:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['carte_rose'].setText(f"{selected_carte_rose:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['vignette'].setText(f"{selected_vignette:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['tva'].setText(f"{selected_tva:,.0f}".replace(",", " ") + " FCFA")
-        self.recap_cards['pttc'].setText(f"{selected_pttc:,.0f}".replace(",", " ") + " FCFA")
-        
-        self.update_selection_count()
-
     def download_template(self):
         """Télécharge le modèle Excel avec les nouvelles colonnes"""
         template_path, _ = QFileDialog.getSaveFileName(
@@ -3327,6 +3861,58 @@ class FleetImportAdvancedDialog(QDialog):
         for row in range(self.vehicles_table.rowCount()):
             self.vehicles_table.setRowHeight(row, 40)
     
+    def _extract_power_and_energy(self, value):
+        """
+        Extrait la puissance et le type d'énergie d'une chaîne comme '9D', '6E', '4H'
+        Retourne (puissance, energie)
+        D = Diesel (SED)
+        E = Essence (SEE)
+        H = Hybride
+        """
+        try:
+            # ✅ Si c'est une Series, prendre la première valeur
+            if hasattr(value, 'iloc'):
+                value = value.iloc[0] if len(value) > 0 else ''
+            
+            if pd.isna(value) or not value:
+                return (0, 'SEE')  # Essence par défaut
+            
+            val_str = str(value).strip().upper()
+            
+            # Si c'est déjà un nombre pur
+            if val_str.isdigit():
+                return (int(val_str), 'SEE')
+            
+            # Extraire le nombre et la lettre
+            import re
+            match = re.match(r'^(\d+)\s*([DEH]?)$', val_str)
+            if match:
+                puissance = int(match.group(1))
+                energie_letter = match.group(2)
+                
+                # Convertir la lettre en nom complet
+                if energie_letter == 'D':
+                    energie = 'SED'  # Diesel
+                elif energie_letter == 'E':
+                    energie = 'SEE'  # Essence
+                elif energie_letter == 'H':
+                    energie = 'HYBRIDE'  # Hybride
+                else:
+                    energie = 'SEE'  # Essence par défaut
+                
+                return (puissance, energie)
+            
+            # Fallback: essayer d'extraire juste le nombre
+            numbers = re.findall(r'\d+', val_str)
+            if numbers:
+                return (int(numbers[0]), 'SEE')
+            
+            return (0, 'SEE')
+            
+        except Exception as e:
+            print(f"Erreur extraction puissance/énergie: {e}")
+            return (0, 'SEE')
+
     # Méthodes de gestion des flottes existantes (simplifiées)
     def on_mode_changed(self):
         """Change le mode d'importation"""
@@ -3556,9 +4142,9 @@ class FleetImportAdvancedDialog(QDialog):
                 return
         
         self.start_calculation()
-    
+       
     def apply_global_frais_to_selected(self):
-        """Applique les frais aux véhicules sélectionnés"""
+        """Applique les frais aux véhicules sélectionnés avec gestion du mode global/unitaire"""
         selected_rows = []
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
@@ -3575,19 +4161,61 @@ class FleetImportAdvancedDialog(QDialog):
             carte_rose = float(self.global_carte_rose.text().replace(" ", "").replace(",", "") or 0)
             vignette = float(self.global_vignette.text().replace(" ", "").replace(",", "") or 0)
             
+            is_global = self.frais_mode_combo.currentIndex() == 1
+            count = len(selected_rows)
+            
+            if is_global and count > 0:
+                # Mode global: répartir les frais entre tous les véhicules
+                accessoires_par_vehicule = accessoires / count
+                asac_par_vehicule = asac / count
+                carte_rose_par_vehicule = carte_rose / count
+                vignette_par_vehicule = vignette / count
+            else:
+                # Mode unitaire: chaque véhicule paie le montant entier
+                accessoires_par_vehicule = accessoires
+                asac_par_vehicule = asac
+                carte_rose_par_vehicule = carte_rose
+                vignette_par_vehicule = vignette
+            
             for row in selected_rows:
                 vehicle = self.vehicles_data[row]
-                vehicle['accessoires'] = accessoires
-                vehicle['asac'] = asac
-                vehicle['carte_rose'] = carte_rose
-                vehicle['vignette'] = vignette
+                vehicle['accessoires'] = accessoires_par_vehicule
+                vehicle['asac'] = asac_par_vehicule
+                vehicle['carte_rose'] = carte_rose_par_vehicule
+                vehicle['vignette'] = vignette_par_vehicule
+                
+                # Recalculer la TVA et le PTTC pour chaque véhicule
+                garanties = vehicle.get('garanties', {})
+                total_garanties = garanties.get('total', 0)
+                print(total_garanties)
+                tva_rate = 0.1925
+                tva = (total_garanties + accessoires_par_vehicule + asac_par_vehicule) * tva_rate
+                vehicle['tva'] = tva
+                vehicle['pttc'] = total_garanties + accessoires_par_vehicule + asac_par_vehicule + tva + vignette_par_vehicule + carte_rose_par_vehicule
             
             self.update_summary()
-            QMessageBox.information(self, "Succès", f"Frais appliqués à {len(selected_rows)} véhicule(s)")
+            self.update_vehicles_table()
+            
+            mode_text = "répartis" if is_global else "appliqués individuellement"
+            QMessageBox.information(
+                self, 
+                "Succès", 
+                f"Frais {mode_text} à {len(selected_rows)} véhicule(s)\n\n"
+                f"Accessoires: {accessoires_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule\n"
+                f"ASAC: {asac_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule\n"
+                f"Carte Rose: {carte_rose_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule\n"
+                f"Vignette: {vignette_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule"
+            )
             
         except ValueError as e:
             QMessageBox.warning(self, "Erreur", f"Valeur invalide: {str(e)}")
-    
+
+    def update_vehicles_table(self):
+        """Met à jour l'affichage du tableau des véhicules"""
+        for row, vehicle in enumerate(self.vehicles_data):
+            self.update_vehicle_row(row, vehicle)
+        self.update_summary()
+
     def edit_vehicle_garanties(self, vehicle_id):
         """Modifie les garanties d'un véhicule"""
         row = self.find_row_by_vehicle_id(vehicle_id)
@@ -3615,7 +4243,7 @@ class FleetImportAdvancedDialog(QDialog):
             vehicle['garanties']['total'] = sum(vehicle['garanties'].get(k, 0) for k in total_keys)
             
             # Mettre à jour les informations du véhicule
-            for key in ['immatriculation', 'chassis', 'marque', 'modele', 'categorie', 'annee', 'energie', 'puissance', 'places', 'valeur_neuf', 'valeur_venale']:
+            for key in ['immatriculation', 'Numero Chassis', 'marque', 'modele', 'categorie', 'annee', 'energie', 'puissance', 'places', 'valeur_neuf', 'valeur_venale']:
                 if key in new_data:
                     vehicle[key] = new_data[key]
             
@@ -3698,7 +4326,7 @@ class FleetImportAdvancedDialog(QDialog):
             vehicle['garanties']['total'] = sum(vehicle['garanties'].get(k, 0) for k in total_keys)
             
             # Mettre à jour les informations
-            for key in ['immatriculation', 'chassis', 'marque', 'modele', 'categorie', 'annee', 'energie', 'puissance', 'places', 'valeur_neuf', 'valeur_venale']:
+            for key in ['immatriculation', 'Numero Chassis', 'marque', 'modele', 'categorie', 'annee', 'energie', 'puissance', 'places', 'valeur_neuf', 'valeur_venale']:
                 if key in new_data:
                     vehicle[key] = new_data[key]
             
@@ -3718,136 +4346,79 @@ class FleetImportAdvancedDialog(QDialog):
                 return i
         return -1
     
-    # def update_vehicle_row(self, row, vehicle):
-    #     """Met à jour l'affichage d'une ligne du tableau"""
-    #     if row >= self.vehicles_table.rowCount():
-    #         return
-        
-    #     # Mettre à jour les colonnes de base
-    #     self.vehicles_table.setItem(row, 1, QTableWidgetItem(str(vehicle.get('rang', row + 1))))
-    #     self.vehicles_table.setItem(row, 2, QTableWidgetItem(vehicle.get('immatriculation', '')))
-    #     self.vehicles_table.setItem(row, 3, QTableWidgetItem(vehicle.get('marque_type', vehicle.get('marque', ''))))
-    #     self.vehicles_table.setItem(row, 4, QTableWidgetItem(vehicle.get('genre', 'VP')))
-        
-    #     puissance_item = QTableWidgetItem(str(vehicle.get('puissance', 0)))
-    #     puissance_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 5, puissance_item)
-        
-    #     self.vehicles_table.setItem(row, 6, QTableWidgetItem(vehicle.get('usage', '')))
-        
-    #     places_item = QTableWidgetItem(str(vehicle.get('places', 5)))
-    #     places_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 7, places_item)
-        
-    #     jours_item = QTableWidgetItem(str(vehicle.get('nbr_jour', 365)))
-    #     jours_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 8, jours_item)
-        
-    #     # Valeurs
-    #     pmec_item = QTableWidgetItem(f"{vehicle.get('pmec', 0):,.0f}".replace(",", " "))
-    #     pmec_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 9, pmec_item)
-        
-    #     vn_item = QTableWidgetItem(f"{vehicle.get('valeur_neuf', 0):,.0f}".replace(",", " "))
-    #     vn_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 10, vn_item)
-        
-    #     vv_item = QTableWidgetItem(f"{vehicle.get('valeur_venale', 0):,.0f}".replace(",", " "))
-    #     vv_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 11, vv_item)
-        
-    #     capital_item = QTableWidgetItem(f"{vehicle.get('capital_ar', 0):,.0f}".replace(",", " "))
-    #     capital_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 12, capital_item)
-        
-    #     # Garanties
-    #     garanties = vehicle.get('garanties', {})
-    #     garanties_cols = {
-    #         'rc': 13, 'dr': 14, 'vol': 15, 'vb': 16,
-    #         'incendie': 17, 'bris_glace': 18, 'ar': 19,
-    #         'dta': 20, 'ipt': 21
-    #     }
-        
-    #     for key, col in garanties_cols.items():
-    #         amount = garanties.get(key, 0)
-    #         item = QTableWidgetItem(f"{amount:,.0f}".replace(",", " "))
-    #         item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #         self.vehicles_table.setItem(row, col, item)
-        
-    #     # Primes
-    #     prime_brute = garanties.get('total', 0)
-    #     pb_item = QTableWidgetItem(f"{prime_brute:,.0f}".replace(",", " "))
-    #     pb_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 22, pb_item)
-        
-    #     reductions_item = QTableWidgetItem(str(vehicle.get('reductions', 0)))
-    #     reductions_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 23, reductions_item)
-        
-    #     prime_nette = vehicle.get('prime_nette', prime_brute)
-    #     pn_item = QTableWidgetItem(f"{prime_nette:,.0f}".replace(",", " "))
-    #     pn_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 24, pn_item)
-        
-    #     timbre_item = QTableWidgetItem(f"{vehicle.get('droit_timbre', 0):,.0f}".replace(",", " "))
-    #     timbre_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-    #     self.vehicles_table.setItem(row, 25, timbre_item)
-
     def update_vehicle_row(self, row, vehicle):
-        """Met à jour l'affichage d'une ligne du tableau"""
+        """Met à jour l'affichage d'une ligne du tableau - Version avec Marque/Modèle séparés"""
         if row >= self.vehicles_table.rowCount():
             return
         
-        # Mettre à jour les colonnes de base
+        # Mettre à jour les colonnes
         self.vehicles_table.setItem(row, 1, QTableWidgetItem(str(vehicle.get('rang', row + 1))))
         self.vehicles_table.setItem(row, 2, QTableWidgetItem(vehicle.get('immatriculation', '')))
-        self.vehicles_table.setItem(row, 3, QTableWidgetItem(vehicle.get('marque_type', vehicle.get('marque', ''))))
-        self.vehicles_table.setItem(row, 4, QTableWidgetItem(vehicle.get('genre', 'VP')))
+        self.vehicles_table.setItem(row, 3, QTableWidgetItem(vehicle.get('chassis', '')))
+        
+        # Marque et Modèle séparés
+        self.vehicles_table.setItem(row, 4, QTableWidgetItem(vehicle.get('marque', '')))
+        self.vehicles_table.setItem(row, 5, QTableWidgetItem(vehicle.get('modele', '')))
+        
+        self.vehicles_table.setItem(row, 6, QTableWidgetItem(vehicle.get('genre', 'VP')))
         
         puissance_item = QTableWidgetItem(str(vehicle.get('puissance', 0)))
         puissance_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 5, puissance_item)
+        self.vehicles_table.setItem(row, 7, puissance_item)
         
-        # ✅ AJOUT DE LA COLONNE ÉNERGIE
-        energie = vehicle.get('energie', 'Essence')
-        energie_item = QTableWidgetItem(energie)
+        energie = vehicle.get('energie', 'SEE')
+        energie_labels = {
+            'SEE': 'Essence',
+            'SED': 'Diesel',
+            'HYBRIDE': 'Hybride',
+            'GAZ': 'Gaz',
+            'ELECTRIQUE': 'Électrique'
+        }
+        energie_label = energie_labels.get(energie, energie)
+        energie_item = QTableWidgetItem(energie_label)
         energie_item.setTextAlignment(Qt.AlignCenter)
-        self.vehicles_table.setItem(row, 6, energie_item)
+        self.vehicles_table.setItem(row, 8, energie_item)
         
-        self.vehicles_table.setItem(row, 7, QTableWidgetItem(vehicle.get('usage', '')))
+        self.vehicles_table.setItem(row, 9, QTableWidgetItem(vehicle.get('usage', '')))
         
         places_item = QTableWidgetItem(str(vehicle.get('places', 5)))
         places_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 8, places_item)
+        self.vehicles_table.setItem(row, 10, places_item)
         
         jours_item = QTableWidgetItem(str(vehicle.get('nbr_jour', 365)))
         jours_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 9, jours_item)
+        self.vehicles_table.setItem(row, 11, jours_item)
         
         # Valeurs
         pmec_value = vehicle.get('pmec', '')
         pmec_item = QTableWidgetItem(str(pmec_value) if pmec_value else '')
         pmec_item.setTextAlignment(Qt.AlignCenter)
-        self.vehicles_table.setItem(row, 10, pmec_item)
+        self.vehicles_table.setItem(row, 12, pmec_item)
         
         vn_item = QTableWidgetItem(f"{vehicle.get('valeur_neuf', 0):,.0f}".replace(",", " "))
         vn_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 11, vn_item)
+        self.vehicles_table.setItem(row, 13, vn_item)
         
         vv_item = QTableWidgetItem(f"{vehicle.get('valeur_venale', 0):,.0f}".replace(",", " "))
         vv_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 12, vv_item)
+        self.vehicles_table.setItem(row, 14, vv_item)
         
         capital_item = QTableWidgetItem(f"{vehicle.get('capital_ar', 0):,.0f}".replace(",", " "))
         capital_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 13, capital_item)
+        self.vehicles_table.setItem(row, 15, capital_item)
         
-        # Garanties
+        # Garanties avec les nouvelles positions
         garanties = vehicle.get('garanties', {})
         garanties_cols = {
-            'rc': 14, 'dr': 15, 'vol': 16, 'vb': 17,
-            'incendie': 18, 'bris_glace': 19, 'ar': 20,
-            'dta': 21, 'ipt': 22
+            'rc': 16,
+            'dr': 17,
+            'vol': 18,
+            'vb': 18,  # Même colonne que Vol/Vol partiel
+            'incendie': 19,
+            'bris_glace': 20,
+            'ar': 21,
+            'dta': 22,
+            'ipt': 23
         }
         
         for key, col in garanties_cols.items():
@@ -3856,24 +4427,52 @@ class FleetImportAdvancedDialog(QDialog):
             item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.vehicles_table.setItem(row, col, item)
         
-        # Primes
-        prime_brute = garanties.get('total', 0)
+        # ✅ CORRECTION : Récupérer Prime brute en toute sécurité
+        prime_brute = 0
+        
+        # Essayer différentes clés possibles
+        if 'Prime brute' in vehicle:
+            prime_brute = vehicle.get('Prime brute', 0)
+        elif 'Prime_brute' in vehicle:
+            prime_brute = vehicle.get('Prime_brute', 0)
+        elif 'prime_brute' in vehicle:
+            prime_brute = vehicle.get('prime_brute', 0)
+        elif 'garanties' in vehicle and 'total' in vehicle['garanties']:
+            prime_brute = vehicle['garanties'].get('total', 0)
+        
+        # Si prime_brute est une chaîne, la nettoyer et la convertir
+        if isinstance(prime_brute, str):
+            try:
+                # Supprimer les espaces insécables et les séparateurs de milliers
+                import re
+                cleaned = re.sub(r'[^\d.,]', '', prime_brute)
+                cleaned = cleaned.replace(',', '.').replace(' ', '')
+                prime_brute = float(cleaned) if cleaned else 0
+            except (ValueError, TypeError):
+                prime_brute = 0
+        
+        # S'assurer que prime_brute est un nombre
+        try:
+            prime_brute = float(prime_brute) if prime_brute else 0
+        except (ValueError, TypeError):
+            prime_brute = 0
+        
         pb_item = QTableWidgetItem(f"{prime_brute:,.0f}".replace(",", " "))
         pb_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 23, pb_item)
+        self.vehicles_table.setItem(row, 24, pb_item)
         
         reductions_item = QTableWidgetItem(str(vehicle.get('reductions', 0)))
         reductions_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 24, reductions_item)
+        self.vehicles_table.setItem(row, 25, reductions_item)
         
         prime_nette = vehicle.get('prime_nette', prime_brute)
         pn_item = QTableWidgetItem(f"{prime_nette:,.0f}".replace(",", " "))
         pn_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 25, pn_item)
+        self.vehicles_table.setItem(row, 26, pn_item)
         
         timbre_item = QTableWidgetItem(f"{vehicle.get('droit_timbre', 0):,.0f}".replace(",", " "))
         timbre_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.vehicles_table.setItem(row, 26, timbre_item)
+        self.vehicles_table.setItem(row, 27, timbre_item)
 
     def import_fleet(self):
         """Importe la flotte dans la base de données"""
@@ -3884,6 +4483,7 @@ class FleetImportAdvancedDialog(QDialog):
             if item and item.checkState() == Qt.Checked:
                 if row < len(self.vehicles_data):
                     selected.append(self.vehicles_data[row])
+                    # self.apply_global_frais_to_selected()
         
         if not selected:
             QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
@@ -4008,6 +4608,7 @@ class FleetImportAdvancedDialog(QDialog):
                         vignette=vignette,
                     )
                     
+                    print(vehicle_data)
                     # ✅ APPEL AU CONTROLLER
                     result = self.controller.vehicles.create_vehicle(vehicle_data, current_user_id)
                     

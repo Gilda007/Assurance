@@ -27,6 +27,27 @@ class AttestationPrinter:
         # Facteur d'échelle (à ajuster selon la précision de votre imprimante)
         scale = 40 
 
+        def format_date(date_value):
+            """Formate une date en JJ/MM/AAAA"""
+            if not date_value:
+                return ""
+            try:
+                from datetime import datetime
+                if isinstance(date_value, datetime):
+                    return date_value.strftime("%d/%m/%Y")
+                elif isinstance(date_value, str):
+                    # Si c'est déjà une chaîne, essayer de la parser
+                    for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"]:
+                        try:
+                            dt = datetime.strptime(date_value, fmt)
+                            return dt.strftime("%d/%m/%Y")
+                        except ValueError:
+                            continue
+                    return date_value[:10]  # Fallback: prendre les 10 premiers caractères
+            except:
+                return str(date_value)[:10]
+            return str(date_value)[:10]
+        
         def draw_line(xmm, ymm, text):
             if text and text != "None":
                 painter.drawText(int(xmm * scale), int(ymm * scale), str(text).upper())
@@ -40,7 +61,9 @@ class AttestationPrinter:
         # 2. BP YDé (Adresse)
         draw_line(10, 95, f"ID: {self.data.get('id', 'N/A')}")
 
-        periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
+        date_debut = format_date(self.data.get('date_debut', ''))
+        date_fin = format_date(self.data.get('date_fin', ''))
+        periode = f"{date_debut} AU {date_fin}"
         draw_line(10, 105, periode)
         
         # 4. Marque et Modèle
@@ -100,26 +123,26 @@ class AttestationPrinter:
         
         # Ligne 1 : Date de création et Propriétaire
         info_ower = f"{self.data.get('owner', '')} {self.data.get('phone', '')}"
-        draw_text_mm(200, 85, info_ower)
+        draw_text_mm(180, 85, info_ower)
 
         # Ligne 2 : Adresse / Ville
-        draw_text_mm(200, 95, f"{self.data.get('id', 'N/A')}")
+        draw_text_mm(180, 95, f"{self.data.get('id', 'N/A')}")
 
         # Ligne 3 : Numéro de police ou Code
-        draw_text_mm(200, 105, periode)
+        draw_text_mm(180, 105, periode)
 
         # Ligne 4 : Période de validité
         
-        draw_text_mm(200, 115, marque_mod)
+        draw_text_mm(180, 115, marque_mod)
 
         # Ligne 5 : Marque et Modèle
-        draw_text_mm(200, 125, f"{self.data.get('immatriculation', 'N/A')}")
+        draw_text_mm(180, 125, f"{self.data.get('immatriculation', 'N/A')}")
 
-        draw_text_mm(200, 135, f"{self.data.get('libele_tarif', '')}")
+        draw_text_mm(180, 135, f"{self.data.get('libele_tarif', '')}")
 
         # Ligne 7 : Catégorie
-        draw_text_mm(200, 145, f"CAT {self.data.get('categorie', '')}")
+        draw_text_mm(180, 145, f"CAT {self.data.get('categorie', '')}")
 
-        draw_text_mm(200, 155, marque_mod)
+        draw_text_mm(180, 155, marque_mod)
 
-        draw_text_mm(200, 165, f"{self.data.get('immatriculation', 'N/A')}")
+        draw_text_mm(180, 165, f"{self.data.get('immatriculation', 'N/A')}")
