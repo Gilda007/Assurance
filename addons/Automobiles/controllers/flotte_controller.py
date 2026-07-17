@@ -985,19 +985,695 @@ class FleetController:
 
     # ==================== GÉNÉRATION PDF ====================
     
+    # def generate_fleet_pdf(self, fleet_id, output_path):
+    #     """
+    #     Génère un rapport PDF professionnel pour une flotte - Format A3 paysage
+    #     Utilise la nouvelle architecture avec VehicleFleetGuarantee
+    #     """
+    #     try:
+    #         # from datetime import datetime
+    #         from reportlab.lib.pagesizes import A3, landscape
+    #         from reportlab.platypus import PageBreak
+            
+    #         from reportlab.lib.enums import TA_JUSTIFY
+    #         from reportlab.graphics.shapes import Drawing
+    #         from reportlab.graphics.charts.barcharts import VerticalBarChart
+    #         # import os
+            
+    #         # Récupération des données
+    #         fleet = self.get_fleet_full_details(fleet_id)
+    #         if not fleet:
+    #             return False, "Flotte introuvable en base de données."
+            
+    #         fleet_contract = self.get_fleet_contract(fleet_id)
+            
+    #         # Configuration du document - FORMAT A3 PAYSAGE
+    #         doc = SimpleDocTemplate(
+    #             output_path, 
+    #             pagesize=landscape(A3), 
+    #             rightMargin=2*cm, 
+    #             leftMargin=2*cm, 
+    #             topMargin=2.2*cm, 
+    #             bottomMargin=2*cm,
+    #             title=f"Rapport_Flotte_{fleet.code_flotte}",
+    #             author="AMS Assurance"
+    #         )
+    #         elements = []
+    #         styles = getSampleStyleSheet()
+            
+    #         # ==================== PALETTE DE COULEURS ====================
+    #         colors_dict = {
+    #             'primary': colors.HexColor('#1a365d'),
+    #             'secondary': colors.HexColor('#2d3748'),
+    #             'accent': colors.HexColor('#3182ce'),
+    #             'accent_light': colors.HexColor('#ebf8ff'),
+    #             'success': colors.HexColor('#276749'),
+    #             'danger': colors.HexColor('#9b2c2c'),
+    #             'warning': colors.HexColor('#dd6b20'),
+    #             'light': colors.HexColor('#f7fafc'),
+    #             'light_gray': colors.HexColor('#edf2f7'),
+    #             'border': colors.HexColor('#e2e8f0'),
+    #             'text': colors.HexColor('#2d3748'),
+    #             'text_light': colors.HexColor('#718096'),
+    #             'white': colors.white,
+    #             'black': colors.black,
+    #             'gold': colors.HexColor('#d69e2e'),
+    #         }
+            
+    #         # ==================== STYLES TYPOGRAPHIQUES ====================
+    #         styles.add(ParagraphStyle(
+    #             name='TitleStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica-Bold',
+    #             fontSize=26,
+    #             textColor=colors_dict['primary'],
+    #             alignment=TA_CENTER,
+    #             spaceAfter=8,
+    #             leading=30
+    #         ))
+            
+    #         styles.add(ParagraphStyle(
+    #             name='SubtitleStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica',
+    #             fontSize=12,
+    #             textColor=colors_dict['text_light'],
+    #             alignment=TA_CENTER,
+    #             spaceAfter=25,
+    #             leading=15
+    #         ))
+            
+    #         styles.add(ParagraphStyle(
+    #             name='SectionHeaderStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica-Bold',
+    #             fontSize=14,
+    #             textColor=colors_dict['primary'],
+    #             spaceAfter=12,
+    #             spaceBefore=20,
+    #             leading=17,
+    #             borderPadding=5
+    #         ))
+            
+    #         styles.add(ParagraphStyle(
+    #             name='InfoLabelStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica-Bold',
+    #             fontSize=9,
+    #             textColor=colors_dict['secondary'],
+    #             leading=12
+    #         ))
+            
+    #         styles.add(ParagraphStyle(
+    #             name='InfoValueStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica',
+    #             fontSize=9,
+    #             textColor=colors_dict['text'],
+    #             leading=12
+    #         ))
+            
+    #         styles.add(ParagraphStyle(
+    #             name='TableHeaderStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica-Bold',
+    #             fontSize=9,
+    #             textColor=colors_dict['white'],
+    #             alignment=TA_CENTER,
+    #             leading=11
+    #         ))
+            
+    #         styles.add(ParagraphStyle(
+    #             name='TableCellStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica',
+    #             fontSize=8,
+    #             textColor=colors_dict['text'],
+    #             leading=10
+    #         ))
+            
+    #         styles.add(ParagraphStyle(
+    #             name='FooterStyle',
+    #             parent=styles['Normal'],
+    #             fontName='Helvetica',
+    #             fontSize=8,
+    #             textColor=colors_dict['text_light'],
+    #             alignment=TA_CENTER,
+    #             leading=10
+    #         ))
+            
+    #         # ==================== 1. EN-TÊTE ====================
+    #         logo_path = "addons/Automobiles/static/logo.png"
+            
+    #         # En-tête avec fond dégradé
+    #         header_bg = Table([['']], colWidths=[42*cm], rowHeights=[0.3*cm])
+    #         header_bg.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['primary'])]))
+    #         elements.append(header_bg)
+    #         elements.append(Spacer(1, 0.2*cm))
+            
+    #         # Logo et infos
+    #         if os.path.exists(logo_path):
+    #             try:
+    #                 logo = Image(logo_path, width=2.5*cm, height=2.5*cm)
+    #             except:
+    #                 logo = None
+    #         else:
+    #             logo = None
+            
+    #         if logo:
+    #             header_data = [
+    #                 [logo, 
+    #                 Paragraph("<b><font color='#1a365d'>AMS ASSURANCE</font></b><br/><font size=9 color='#4a5568'>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
+    #                 Paragraph(f"<b><font color='#1a365d'>Document</font></b><br/><font size=9 color='#4a5568'>Rapport de flotte</font>", styles['InfoValueStyle']),
+    #                 Paragraph(f"<b><font color='#1a365d'>Date</font></b><br/><font size=9 color='#4a5568'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</font>", styles['InfoValueStyle'])]
+    #             ]
+    #             header_table = Table(header_data, colWidths=[3*cm, 12*cm, 6*cm, 6*cm])
+    #         else:
+    #             header_data = [
+    #                 [Paragraph("<b><font color='#1a365d'>AMS ASSURANCE</font></b><br/><font size=9 color='#4a5568'>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
+    #                 Paragraph(f"<b><font color='#1a365d'>Document</font></b><br/><font size=9 color='#4a5568'>Rapport de flotte</font>", styles['InfoValueStyle']),
+    #                 Paragraph(f"<b><font color='#1a365d'>Date</font></b><br/><font size=9 color='#4a5568'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</font>", styles['InfoValueStyle'])]
+    #             ]
+    #             header_table = Table(header_data, colWidths=[15*cm, 8*cm, 8*cm])
+            
+    #         header_table.setStyle(TableStyle([
+    #             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+    #             ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+    #             ('ALIGN', (-2, 0), (-1, 0), 'RIGHT'),
+    #             ('TOPPADDING', (0, 0), (-1, -1), 8),
+    #             ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+    #         ]))
+    #         elements.append(header_table)
+    #         elements.append(Spacer(1, 0.3*cm))
+            
+    #         # Séparateur
+    #         sep_line = Table([['']], colWidths=[42*cm], rowHeights=[0.04*cm])
+    #         sep_line.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['accent'])]))
+    #         elements.append(sep_line)
+    #         elements.append(Spacer(1, 0.5*cm))
+            
+    #         # ==================== 2. TITRE PRINCIPAL ====================
+    #         elements.append(Paragraph(f"RAPPORT DE FLOTTE", styles['TitleStyle']))
+    #         elements.append(Paragraph(f"{fleet.nom_flotte.upper()} - {fleet.code_flotte}", styles['SubtitleStyle']))
+    #         elements.append(Spacer(1, 0.3*cm))
+            
+    #         # ==================== 3. CARTE D'IDENTITÉ DE LA FLOTTE ====================
+    #         elements.append(Paragraph("INFORMATIONS GÉNÉRALES", styles['SectionHeaderStyle']))
+            
+    #         # Grille d'informations - 3 colonnes pour A3
+    #         fleet_info_data = [
+    #             ["Nom de la flotte", fleet.nom_flotte or 'N/A', "Code flotte", fleet.code_flotte or 'N/A', "Statut", fleet.statut or 'Actif'],
+    #             ["Type de gestion", fleet.type_gestion or 'N/A', "Remise commerciale", f"{fleet.remise_flotte or 0}%", "Véhicules", str(len(fleet.vehicles) if fleet.vehicles else 0)],
+    #             ["Date début", fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A', "Date fin", fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A', "Période", f"{fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A'} - {fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A'}"],
+    #             ["Assureur", fleet.compagnie.nom if fleet.compagnie else 'N/A', "", "", "", ""],
+    #         ]
+            
+    #         fleet_info_table = Table(fleet_info_data, colWidths=[4*cm, 7*cm, 4*cm, 7*cm, 4*cm, 7*cm])
+    #         fleet_info_table.setStyle(TableStyle([
+    #             ('BACKGROUND', (0, 0), (0, -1), colors_dict['light']),
+    #             ('BACKGROUND', (2, 0), (2, -1), colors_dict['light']),
+    #             ('BACKGROUND', (4, 0), (4, -1), colors_dict['light']),
+    #             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #             ('TOPPADDING', (0, 0), (-1, -1), 6),
+    #             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+    #             ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    #             ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    #             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+    #             ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+    #             ('FONTNAME', (4, 0), (4, -1), 'Helvetica-Bold'),
+    #             ('FONTSIZE', (0, 0), (-1, -1), 9),
+    #             ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #             ('BOX', (0, 0), (-1, -1), 0.5, colors_dict['primary']),
+    #         ]))
+    #         elements.append(fleet_info_table)
+    #         elements.append(Spacer(1, 0.5*cm))
+            
+    #         # ==================== 4. PROPRIÉTAIRE ET CONTRAT (DEUX COLONNES) ====================
+    #         # Créer deux colonnes côte à côte
+    #         left_data = []
+    #         right_data = []
+            
+    #         # Colonne gauche - Propriétaire
+    #         owner = fleet.owner
+    #         if owner:
+    #             owner_info = [
+    #                 ["Propriétaire", f"{owner.nom or ''} {owner.prenom or ''}".strip() or 'N/A'],
+    #                 ["Nature", owner.nature or 'N/A'],
+    #                 ["Téléphone", owner.telephone or 'N/A'],
+    #                 ["Email", owner.email or 'N/A'],
+    #                 ["Adresse", owner.adresse or 'N/A'],
+    #                 ["Code client", owner.code_client or 'N/A'],
+    #             ]
+    #         else:
+    #             owner_info = [["Propriétaire", "Non renseigné"]]
+            
+    #         owner_table = Table(owner_info, colWidths=[5*cm, 12*cm])
+    #         owner_table.setStyle(TableStyle([
+    #             ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
+    #             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+    #             ('FONTSIZE', (0, 0), (-1, -1), 9),
+    #             ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #             ('TOPPADDING', (0, 0), (-1, -1), 5),
+    #             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    #             ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    #             ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    #         ]))
+    #         left_data.append(Paragraph("PROPRIÉTAIRE", styles['SectionHeaderStyle']))
+    #         left_data.append(owner_table)
+            
+    #         # Colonne droite - Contrat
+    #         if fleet_contract:
+    #             montant_total = float(fleet_contract.prime_totale_ttc or 0)
+    #             montant_paye = float(fleet_contract.montant_paye or 0)
+    #             solde = montant_total - montant_paye
+                
+    #             contract_info = [
+    #                 ["Numéro de police", fleet_contract.numero_police or 'N/A'],
+    #                 ["Statut", fleet_contract.statut.value if hasattr(fleet_contract.statut, 'value') else str(fleet_contract.statut)],
+    #                 ["Prime totale", f"{montant_total:,.0f} FCFA".replace(",", " ")],
+    #                 ["Montant payé", f"{montant_paye:,.0f} FCFA".replace(",", " ")],
+    #                 ["Solde restant", f"{solde:,.0f} FCFA".replace(",", " ")],
+    #                 ["Statut paiement", fleet_contract.statut_paiement or 'NON_PAYE'],
+    #             ]
+    #         else:
+    #             contract_info = [["Contrat", "Aucun contrat généré"]]
+            
+    #         contract_table = Table(contract_info, colWidths=[5*cm, 12*cm])
+    #         contract_table.setStyle(TableStyle([
+    #             ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
+    #             ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+    #             ('FONTSIZE', (0, 0), (-1, -1), 9),
+    #             ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #             ('TOPPADDING', (0, 0), (-1, -1), 5),
+    #             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    #             ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    #             ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    #         ]))
+    #         right_data.append(Paragraph("CONTRAT", styles['SectionHeaderStyle']))
+    #         right_data.append(contract_table)
+            
+    #         # Assembler les deux colonnes
+    #         two_cols = Table([[left_data, right_data]], colWidths=[20*cm, 20*cm])
+    #         two_cols.setStyle(TableStyle([
+    #             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    #             ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    #         ]))
+    #         elements.append(two_cols)
+    #         elements.append(Spacer(1, 0.5*cm))
+            
+    #         # ==================== 5. LISTE DES VÉHICULES ====================
+    #         elements.append(Paragraph("VÉHICULES DE LA FLOTTE", styles['SectionHeaderStyle']))
+            
+    #         vehicle_list_data = [["N°", "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Puissance", "Places", "Statut"]]
+            
+    #         if fleet.vehicles:
+    #             for idx, vehicle in enumerate(fleet.vehicles, 1):
+    #                 vehicle_list_data.append([
+    #                     str(idx),
+    #                     vehicle.immatriculation or 'N/A',
+    #                     vehicle.marque or 'N/A',
+    #                     vehicle.modele or 'N/A',
+    #                     str(vehicle.annee) if vehicle.annee else 'N/A',
+    #                     vehicle.energie or 'N/A',
+    #                     str(vehicle.puissance_fiscale or 'N/A'),
+    #                     str(vehicle.places or 'N/A'),
+    #                     vehicle.statut or 'En circulation',
+    #                 ])
+            
+    #         vehicle_list_table = Table(vehicle_list_data, colWidths=[0.7*cm, 3.5*cm, 4*cm, 4.5*cm, 2*cm, 2.5*cm, 2.5*cm, 2*cm, 3.5*cm])
+    #         vehicle_list_table.setStyle(TableStyle([
+    #             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    #             ('FONTSIZE', (0, 0), (-1, 0), 9),
+    #             ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+    #             ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+    #             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+    #             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #             ('FONTSIZE', (0, 1), (-1, -1), 8),
+    #             ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+    #             ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #             ('TOPPADDING', (0, 0), (-1, -1), 5),
+    #             ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    #             ('LEFTPADDING', (0, 0), (-1, -1), 4),
+    #             ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+    #         ]))
+    #         elements.append(vehicle_list_table)
+    #         elements.append(Spacer(1, 0.6*cm))
+            
+    #         # ==================== 6. TABLEAU DES GARANTIES (CORRIGÉ) ====================
+    #         elements.append(Paragraph("GARANTIES PAR VÉHICULE (VALEURS FLOTTE)", styles['SectionHeaderStyle']))
+            
+    #         # En-têtes
+    #         garanties_headers = [
+    #             "N°", "Immatriculation",
+    #             "RC", "DR", "Vol", "VB",
+    #             "Incendie", "Bris", "AR", "DTA", "IPT",
+    #             "TOTAL"
+    #         ]
+            
+    #         garanties_data = [garanties_headers]
+            
+    #         def fmt(val):
+    #             return f"{val:,.0f}".replace(",", " ") if val > 0 else "-"
+            
+    #         totals = {
+    #             'rc': 0, 'dr': 0, 'vol': 0, 'vb': 0,
+    #             'in': 0, 'bris': 0, 'ar': 0, 'dta': 0, 'ipt': 0,
+    #             'total': 0
+    #         }
+            
+    #         from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            
+    #         if fleet.vehicles:
+    #             for idx, vehicle in enumerate(fleet.vehicles, 1):
+    #                 # ✅ Récupérer les garanties flotte depuis VehicleFleetGuarantee
+    #                 fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+    #                     VehicleFleetGuarantee.vehicle_id == vehicle.id
+    #                 ).first()
+                    
+    #                 if fleet_guarantee:
+    #                     rc = float(fleet_guarantee.rc or 0)
+    #                     dr = float(fleet_guarantee.dr or 0)
+    #                     vol = float(fleet_guarantee.vol or 0)
+    #                     vb = float(fleet_guarantee.vb or 0)
+    #                     in_garantie = float(fleet_guarantee.in_garantie or 0)
+    #                     bris = float(fleet_guarantee.bris or 0)
+    #                     ar = float(fleet_guarantee.ar or 0)
+    #                     dta = float(fleet_guarantee.dta or 0)
+    #                     ipt = float(fleet_guarantee.ipt or 0)
+    #                 else:
+    #                     # Fallback: utiliser les garanties brutes du véhicule
+    #                     g = getattr(vehicle, 'guarantees', None)
+    #                     if g:
+    #                         rc = float(g.rc or 0)
+    #                         dr = float(g.dr or 0)
+    #                         vol = float(g.vol or 0)
+    #                         vb = float(g.vb or 0)
+    #                         in_garantie = float(g.in_garantie or 0)
+    #                         bris = float(g.bris or 0)
+    #                         ar = float(g.ar or 0)
+    #                         dta = float(g.dta or 0)
+    #                         ipt = float(g.ipt or 0)
+    #                     else:
+    #                         rc = dr = vol = vb = in_garantie = bris = ar = dta = ipt = 0
+                    
+    #                 total_vehicule = rc + dr + vol + vb + in_garantie + bris + ar + dta + ipt
+                    
+    #                 garanties_data.append([
+    #                     str(idx),
+    #                     vehicle.immatriculation or 'N/A',
+    #                     fmt(rc),
+    #                     fmt(dr),
+    #                     fmt(vol),
+    #                     fmt(vb),
+    #                     fmt(in_garantie),
+    #                     fmt(bris),
+    #                     fmt(ar),
+    #                     fmt(dta),
+    #                     fmt(ipt),
+    #                     fmt(total_vehicule),
+    #                 ])
+                    
+    #                 totals['rc'] += rc
+    #                 totals['dr'] += dr
+    #                 totals['vol'] += vol
+    #                 totals['vb'] += vb
+    #                 totals['in'] += in_garantie
+    #                 totals['bris'] += bris
+    #                 totals['ar'] += ar
+    #                 totals['dta'] += dta
+    #                 totals['ipt'] += ipt
+    #                 totals['total'] += total_vehicule
+            
+    #         # Ligne de total
+    #         garanties_data.append([
+    #             "", "TOTAL", 
+    #             fmt(totals['rc']),
+    #             fmt(totals['dr']),
+    #             fmt(totals['vol']),
+    #             fmt(totals['vb']),
+    #             fmt(totals['in']),
+    #             fmt(totals['bris']),
+    #             fmt(totals['ar']),
+    #             fmt(totals['dta']),
+    #             fmt(totals['ipt']),
+    #             fmt(totals['total']),
+    #         ])
+            
+    #         col_widths = [
+    #             0.6*cm, 3*cm,
+    #             2*cm, 2*cm, 2*cm, 2*cm,
+    #             2*cm, 2*cm, 2*cm, 2*cm, 2*cm,
+    #             2.5*cm
+    #         ]
+            
+    #         garanties_table = Table(garanties_data, colWidths=col_widths, repeatRows=1)
+    #         garanties_table.setStyle(TableStyle([
+    #             # En-tête
+    #             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    #             ('FONTSIZE', (0, 0), (-1, 0), 8.5),
+    #             ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+    #             ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+    #             ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                
+    #             # Alignement
+    #             ('ALIGN', (0, 1), (1, -2), 'LEFT'),
+    #             ('ALIGN', (2, 1), (-1, -2), 'RIGHT'),
+    #             ('ALIGN', (0, -1), (1, -1), 'CENTER'),
+    #             ('ALIGN', (2, -1), (-1, -1), 'RIGHT'),
+                
+    #             ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #             ('FONTSIZE', (0, 1), (-1, -2), 7.5),
+    #             ('FONTSIZE', (0, -1), (-1, -1), 8.5),
+                
+    #             # Alternance des couleurs
+    #             ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors_dict['white'], colors_dict['light']]),
+                
+    #             # Ligne de total
+    #             ('BACKGROUND', (0, -1), (-1, -1), colors_dict['light_gray']),
+    #             ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+    #             ('TEXTCOLOR', (0, -1), (-1, -1), colors_dict['primary']),
+                
+    #             # Bordures
+    #             ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #             ('BOX', (0, 0), (-1, -1), 0.5, colors_dict['primary']),
+                
+    #             # Padding
+    #             ('TOPPADDING', (0, 0), (-1, -1), 4),
+    #             ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+    #             ('LEFTPADDING', (0, 0), (-1, -1), 3),
+    #             ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+    #         ]))
+    #         elements.append(garanties_table)
+    #         elements.append(Spacer(1, 0.6*cm))
+            
+    #         # ==================== 7. GRAPHIQUES ET STATISTIQUES ====================
+    #         elements.append(PageBreak())
+    #         elements.append(Paragraph("ANALYSE STATISTIQUE", styles['SectionHeaderStyle']))
+            
+    #         # Graphique en barres - Répartition des garanties
+    #         if totals['total'] > 0:
+    #             # Données pour le graphique
+    #             chart_data = [
+    #                 [totals['rc'], totals['dr'], totals['vol'], totals['vb'], 
+    #                 totals['in'], totals['bris'], totals['ar'], totals['dta'], totals['ipt']]
+    #             ]
+                
+    #             # Créer le graphique à barres
+    #             drawing = Drawing(400, 200)
+    #             bc = VerticalBarChart()
+    #             bc.x = 50
+    #             bc.y = 50
+    #             bc.width = 300
+    #             bc.height = 120
+    #             bc.data = chart_data
+    #             bc.strokeColor = colors.black
+    #             bc.valueAxis.valueMin = 0
+    #             bc.valueAxis.valueMax = max(chart_data[0]) * 1.2 if max(chart_data[0]) > 0 else 1000
+    #             bc.categoryAxis.categoryNames = ['RC', 'DR', 'Vol', 'VB', 'Inc', 'Bris', 'AR', 'DTA', 'IPT']
+    #             bc.categoryAxis.labels.boxAnchor = 'ne'
+    #             bc.categoryAxis.labels.dx = 8
+    #             bc.categoryAxis.labels.dy = -2
+    #             bc.categoryAxis.labels.angle = 45
+    #             bc.categoryAxis.labels.fontSize = 8
+    #             bc.bars[0].fillColor = colors_dict['accent']
+    #             bc.bars[0].strokeColor = colors_dict['primary']
+    #             drawing.add(bc)
+                
+    #             # Ajouter le graphique et les statistiques côte à côte
+    #             stats_data = [
+    #                 ["Indicateur", "Valeur"],
+    #                 ["Nombre de véhicules", str(len(fleet.vehicles) if fleet.vehicles else 0)],
+    #                 ["Total des garanties", fmt(totals['total'])],
+    #                 ["Prime moyenne", fmt(totals['total'] / len(fleet.vehicles) if fleet.vehicles else 0)],
+    #                 ["Couverture moyenne", f"{self._calculate_fleet_coverage_rate(fleet):.0f}%"],
+    #                 ["Garantie la plus élevée", max([
+    #                     ('RC', totals['rc']), ('DR', totals['dr']), ('Vol', totals['vol']),
+    #                     ('VB', totals['vb']), ('Incendie', totals['in']), ('Bris', totals['bris']),
+    #                     ('AR', totals['ar']), ('DTA', totals['dta']), ('IPT', totals['ipt'])
+    #                 ], key=lambda x: x[1])[0]],
+    #             ]
+                
+    #             stats_table = Table(stats_data, colWidths=[8*cm, 8*cm])
+    #             stats_table.setStyle(TableStyle([
+    #                 ('BACKGROUND', (0, 0), (-1, 0), colors_dict['accent_light']),
+    #                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    #                 ('FONTSIZE', (0, 0), (-1, 0), 9),
+    #                 ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #                 ('TOPPADDING', (0, 0), (-1, -1), 5),
+    #                 ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    #                 ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    #                 ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    #             ]))
+                
+    #             graph_and_stats = Table([[drawing, stats_table]], colWidths=[18*cm, 18*cm])
+    #             graph_and_stats.setStyle(TableStyle([
+    #                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    #                 ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+    #                 ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+    #             ]))
+    #             elements.append(graph_and_stats)
+    #             elements.append(Spacer(1, 0.5*cm))
+            
+    #         # ==================== 8. RÉPARTITION PAR CATÉGORIE ====================
+    #         elements.append(Paragraph("RÉPARTITION PAR CATÉGORIE", styles['SectionHeaderStyle']))
+            
+    #         # Compter les véhicules par catégorie
+    #         categorie_counts = {}
+    #         if fleet.vehicles:
+    #             for vehicle in fleet.vehicles:
+    #                 cat = vehicle.categorie or 'Non défini'
+    #                 categorie_counts[cat] = categorie_counts.get(cat, 0) + 1
+            
+    #         if categorie_counts:
+    #             categorie_data = [["Catégorie", "Nombre", "Pourcentage"]]
+    #             total_vehicles = len(fleet.vehicles)
+    #             for cat, count in sorted(categorie_counts.items(), key=lambda x: x[1], reverse=True):
+    #                 pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+    #                 categorie_data.append([cat, str(count), f"{pct:.1f}%"])
+                
+    #             categorie_table = Table(categorie_data, colWidths=[10*cm, 8*cm, 8*cm])
+    #             categorie_table.setStyle(TableStyle([
+    #                 ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+    #                 ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+    #                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    #                 ('FONTSIZE', (0, 0), (-1, 0), 9),
+    #                 ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #                 ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+    #                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+    #                 ('TOPPADDING', (0, 0), (-1, -1), 5),
+    #                 ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    #                 ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    #                 ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    #             ]))
+    #             elements.append(categorie_table)
+    #             elements.append(Spacer(1, 0.5*cm))
+            
+    #         # ==================== 9. RÉPARTITION PAR ÉNERGIE ====================
+    #         elements.append(Paragraph("RÉPARTITION PAR ÉNERGIE", styles['SectionHeaderStyle']))
+            
+    #         energie_counts = {}
+    #         if fleet.vehicles:
+    #             for vehicle in fleet.vehicles:
+    #                 energie = vehicle.energie or 'Non défini'
+    #                 energie_counts[energie] = energie_counts.get(energie, 0) + 1
+            
+    #         if energie_counts:
+    #             energie_data = [["Énergie", "Nombre", "Pourcentage"]]
+    #             total_vehicles = len(fleet.vehicles)
+    #             for energie, count in sorted(energie_counts.items(), key=lambda x: x[1], reverse=True):
+    #                 pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+    #                 energie_data.append([energie, str(count), f"{pct:.1f}%"])
+                
+    #             energie_table = Table(energie_data, colWidths=[10*cm, 8*cm, 8*cm])
+    #             energie_table.setStyle(TableStyle([
+    #                 ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+    #                 ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+    #                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+    #                 ('FONTSIZE', (0, 0), (-1, 0), 9),
+    #                 ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+    #                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    #                 ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+    #                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+    #                 ('TOPPADDING', (0, 0), (-1, -1), 5),
+    #                 ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    #                 ('LEFTPADDING', (0, 0), (-1, -1), 8),
+    #                 ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+    #             ]))
+    #             elements.append(energie_table)
+    #             elements.append(Spacer(1, 0.5*cm))
+            
+    #         # ==================== 10. OBSERVATIONS ====================
+    #         if fleet.observations:
+    #             elements.append(Spacer(1, 0.3*cm))
+    #             elements.append(Paragraph("OBSERVATIONS", styles['SectionHeaderStyle']))
+    #             obs_style = ParagraphStyle(
+    #                 'ObservationStyle',
+    #                 parent=styles['Normal'],
+    #                 fontName='Helvetica',
+    #                 fontSize=10,
+    #                 textColor=colors_dict['text'],
+    #                 alignment=TA_JUSTIFY,
+    #                 leading=14,
+    #                 leftIndent=20,
+    #                 rightIndent=20
+    #             )
+    #             obs_text = Paragraph(fleet.observations, obs_style)
+    #             elements.append(obs_text)
+            
+    #         # ==================== 11. PIED DE PAGE ====================
+    #         elements.append(Spacer(1, 1.5*cm))
+            
+    #         footer_line = Table([['']], colWidths=[42*cm], rowHeights=[0.04*cm])
+    #         footer_line.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['border'])]))
+    #         elements.append(footer_line)
+    #         elements.append(Spacer(1, 0.2*cm))
+            
+    #         footer_data = [
+    #             ["AMS Assurance - Rapport généré automatiquement", f"Page 1/1", f"Fait à Douala, le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"],
+    #         ]
+    #         footer_table = Table(footer_data, colWidths=[15*cm, 12*cm, 15*cm])
+    #         footer_table.setStyle(TableStyle([
+    #             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    #             ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+    #             ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+    #             ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+    #             ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+    #             ('TEXTCOLOR', (0, 0), (-1, -1), colors_dict['text_light']),
+    #         ]))
+    #         elements.append(footer_table)
+            
+    #         # Génération du PDF
+    #         doc.build(elements)
+            
+    #         return True, f"PDF généré avec succès : {output_path}"
+            
+    #     except Exception as e:
+    #         import traceback
+    #         error_details = traceback.format_exc()
+    #         print(f"❌ Erreur critique lors de la génération PDF : {e}\nDetails:\n{error_details}")
+    #         return False, f"Erreur technique : {str(e)}"
+
     def generate_fleet_pdf(self, fleet_id, output_path):
         """
-        Génère un rapport PDF professionnel pour une flotte
+        Génère un rapport PDF professionnel pour une flotte - Format A3 paysage
+        Avec tableau des échéances, graphiques détaillés et analyses avancées
         """
         try:
-            from datetime import datetime
-            from reportlab.lib.pagesizes import A4, landscape
-            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image, KeepTogether
-            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.lib import colors
-            from reportlab.lib.units import cm, mm
-            from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT, TA_JUSTIFY
+            from reportlab.lib.pagesizes import A3, landscape
+            from reportlab.platypus import PageBreak, KeepTogether
+            from reportlab.lib.enums import TA_JUSTIFY
+            from reportlab.graphics.shapes import Drawing
+            from reportlab.graphics.charts.barcharts import VerticalBarChart
+            from reportlab.graphics.charts.piecharts import Pie
+            from reportlab.graphics.charts.legends import Legend
+            from reportlab.graphics.widgets.markers import makeMarker
             import os
+            from datetime import datetime, timedelta
             
             # Récupération des données
             fleet = self.get_fleet_full_details(fleet_id)
@@ -1006,83 +1682,99 @@ class FleetController:
             
             fleet_contract = self.get_fleet_contract(fleet_id)
             
-            # Configuration du document - Marges plus élégantes
+            # Configuration du document - FORMAT A3 PAYSAGE
             doc = SimpleDocTemplate(
                 output_path, 
-                pagesize=landscape(A4), 
-                rightMargin=1.8*cm, 
-                leftMargin=1.8*cm, 
-                topMargin=2*cm, 
-                bottomMargin=1.8*cm,
+                pagesize=landscape(A3), 
+                rightMargin=2*cm, 
+                leftMargin=2*cm, 
+                topMargin=2.2*cm, 
+                bottomMargin=2*cm,
                 title=f"Rapport_Flotte_{fleet.code_flotte}",
                 author="AMS Assurance"
             )
             elements = []
             styles = getSampleStyleSheet()
             
-            # ==================== PALETTE DE COULEURS PROFESSIONNELLE ====================
-            # Palette sobre et élégante (bleu marine, gris, touches de bleu clair)
+            # ==================== PALETTE DE COULEURS ====================
             colors_dict = {
-                'primary': colors.HexColor('#1a365d'),      # Bleu marine profond
-                'secondary': colors.HexColor('#2d3748'),    # Gris anthracite
-                'accent': colors.HexColor('#3182ce'),       # Bleu professionnel
-                'accent_light': colors.HexColor('#ebf8ff'), # Bleu très clair
-                'success': colors.HexColor('#276749'),      # Vert foncé
-                'danger': colors.HexColor('#9b2c2c'),       # Bordeaux
-                'warning': colors.HexColor('#dd6b20'),      # Orange doux
-                'light': colors.HexColor('#f7fafc'),        # Gris très clair
-                'light_gray': colors.HexColor('#edf2f7'),   # Gris clair
-                'border': colors.HexColor('#e2e8f0'),       # Gris bordure
-                'text': colors.HexColor('#2d3748'),         # Texte principal
-                'text_light': colors.HexColor('#718096'),   # Texte secondaire
+                'primary': colors.HexColor('#1a365d'),
+                'secondary': colors.HexColor('#2d3748'),
+                'accent': colors.HexColor('#3182ce'),
+                'accent_light': colors.HexColor('#ebf8ff'),
+                'success': colors.HexColor('#276749'),
+                'danger': colors.HexColor('#9b2c2c'),
+                'warning': colors.HexColor('#dd6b20'),
+                'light': colors.HexColor('#f7fafc'),
+                'light_gray': colors.HexColor('#edf2f7'),
+                'border': colors.HexColor('#e2e8f0'),
+                'text': colors.HexColor('#2d3748'),
+                'text_light': colors.HexColor('#718096'),
                 'white': colors.white,
                 'black': colors.black,
+                'gold': colors.HexColor('#d69e2e'),
+                'purple': colors.HexColor('#805ad5'),
+                'pink': colors.HexColor('#ed64a6'),
+                'teal': colors.HexColor('#38b2ac'),
             }
+            
+            # Palette de couleurs pour les graphiques
+            chart_colors = [
+                colors_dict['accent'],
+                colors_dict['success'],
+                colors_dict['warning'],
+                colors_dict['danger'],
+                colors_dict['purple'],
+                colors_dict['pink'],
+                colors_dict['teal'],
+                colors_dict['gold'],
+                colors_dict['primary'],
+            ]
             
             # ==================== STYLES TYPOGRAPHIQUES ====================
             styles.add(ParagraphStyle(
                 name='TitleStyle',
                 parent=styles['Normal'],
                 fontName='Helvetica-Bold',
-                fontSize=24,
+                fontSize=26,
                 textColor=colors_dict['primary'],
                 alignment=TA_CENTER,
                 spaceAfter=8,
-                leading=28
+                leading=30
             ))
             
             styles.add(ParagraphStyle(
                 name='SubtitleStyle',
                 parent=styles['Normal'],
                 fontName='Helvetica',
-                fontSize=11,
+                fontSize=12,
                 textColor=colors_dict['text_light'],
                 alignment=TA_CENTER,
                 spaceAfter=25,
-                leading=14
+                leading=15
             ))
             
             styles.add(ParagraphStyle(
                 name='SectionHeaderStyle',
                 parent=styles['Normal'],
                 fontName='Helvetica-Bold',
-                fontSize=13,
+                fontSize=14,
                 textColor=colors_dict['primary'],
-                spaceAfter=10,
+                spaceAfter=12,
                 spaceBefore=20,
-                leading=16,
+                leading=17,
                 borderPadding=5
             ))
             
             styles.add(ParagraphStyle(
-                name='SectionHeaderWithLine',
+                name='SubSectionHeaderStyle',
                 parent=styles['Normal'],
                 fontName='Helvetica-Bold',
-                fontSize=13,
-                textColor=colors_dict['primary'],
-                spaceAfter=12,
-                spaceBefore=20,
-                leading=16
+                fontSize=12,
+                textColor=colors_dict['secondary'],
+                spaceAfter=8,
+                spaceBefore=12,
+                leading=14
             ))
             
             styles.add(ParagraphStyle(
@@ -1107,7 +1799,7 @@ class FleetController:
                 name='TableHeaderStyle',
                 parent=styles['Normal'],
                 fontName='Helvetica-Bold',
-                fontSize=8.5,
+                fontSize=9,
                 textColor=colors_dict['white'],
                 alignment=TA_CENTER,
                 leading=11
@@ -1123,15 +1815,6 @@ class FleetController:
             ))
             
             styles.add(ParagraphStyle(
-                name='TableCellBoldStyle',
-                parent=styles['Normal'],
-                fontName='Helvetica-Bold',
-                fontSize=8,
-                textColor=colors_dict['secondary'],
-                leading=10
-            ))
-            
-            styles.add(ParagraphStyle(
                 name='FooterStyle',
                 parent=styles['Normal'],
                 fontName='Helvetica',
@@ -1141,18 +1824,37 @@ class FleetController:
                 leading=10
             ))
             
-            # ==================== 1. EN-TÊTE ÉLÉGANT ====================
+            styles.add(ParagraphStyle(
+                name='DangerStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=9,
+                textColor=colors_dict['danger'],
+                alignment=TA_CENTER,
+                leading=11
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='SuccessStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=9,
+                textColor=colors_dict['success'],
+                alignment=TA_CENTER,
+                leading=11
+            ))
+            
+            # ==================== 1. EN-TÊTE ====================
             logo_path = "addons/Automobiles/static/logo.png"
             
-            # En-tête avec fond gris très clair
-            header_bg = Table([['']], colWidths=[37*cm], rowHeights=[0.2*cm])
-            header_bg.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['light'])]))
+            header_bg = Table([['']], colWidths=[42*cm], rowHeights=[0.3*cm])
+            header_bg.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['primary'])]))
             elements.append(header_bg)
+            elements.append(Spacer(1, 0.2*cm))
             
-            # Logo et infos
             if os.path.exists(logo_path):
                 try:
-                    logo = Image(logo_path, width=2.2*cm, height=2.2*cm)
+                    logo = Image(logo_path, width=2.5*cm, height=2.5*cm)
                 except:
                     logo = None
             else:
@@ -1161,18 +1863,18 @@ class FleetController:
             if logo:
                 header_data = [
                     [logo, 
-                    Paragraph("<b>AMS ASSURANCE</b><br/><font size=8>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
-                    Paragraph(f"<b>Document</b><br/>Rapport de flotte", styles['InfoValueStyle']),
-                    Paragraph(f"<b>Date</b><br/>{datetime.now().strftime('%d/%m/%Y')}", styles['InfoValueStyle'])]
+                    Paragraph("<b><font color='#1a365d'>AMS ASSURANCE</font></b><br/><font size=9 color='#4a5568'>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Document</font></b><br/><font size=9 color='#4a5568'>Rapport de flotte</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Date</font></b><br/><font size=9 color='#4a5568'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</font>", styles['InfoValueStyle'])]
                 ]
-                header_table = Table(header_data, colWidths=[2.5*cm, 8*cm, 5*cm, 5*cm])
+                header_table = Table(header_data, colWidths=[3*cm, 12*cm, 6*cm, 6*cm])
             else:
                 header_data = [
-                    [Paragraph("<b>AMS ASSURANCE</b><br/><font size=8>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
-                    Paragraph(f"<b>Document</b><br/>Rapport de flotte", styles['InfoValueStyle']),
-                    Paragraph(f"<b>Date</b><br/>{datetime.now().strftime('%d/%m/%Y')}", styles['InfoValueStyle'])]
+                    [Paragraph("<b><font color='#1a365d'>AMS ASSURANCE</font></b><br/><font size=9 color='#4a5568'>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Document</font></b><br/><font size=9 color='#4a5568'>Rapport de flotte</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Date</font></b><br/><font size=9 color='#4a5568'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</font>", styles['InfoValueStyle'])]
                 ]
-                header_table = Table(header_data, colWidths=[10*cm, 6*cm, 6*cm])
+                header_table = Table(header_data, colWidths=[15*cm, 8*cm, 8*cm])
             
             header_table.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
@@ -1183,10 +1885,9 @@ class FleetController:
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
             ]))
             elements.append(header_table)
-            elements.append(Spacer(1, 0.2*cm))
+            elements.append(Spacer(1, 0.3*cm))
             
-            # Séparateur fin
-            sep_line = Table([['']], colWidths=[37*cm], rowHeights=[0.03*cm])
+            sep_line = Table([['']], colWidths=[42*cm], rowHeights=[0.04*cm])
             sep_line.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['accent'])]))
             elements.append(sep_line)
             elements.append(Spacer(1, 0.5*cm))
@@ -1196,27 +1897,21 @@ class FleetController:
             elements.append(Paragraph(f"{fleet.nom_flotte.upper()} - {fleet.code_flotte}", styles['SubtitleStyle']))
             elements.append(Spacer(1, 0.3*cm))
             
-            # ==================== 3. CARTE D'IDENTITÉ DE LA FLOTTE ====================
-            # Utilisation d'un tableau avec fond coloré pour la carte
-            card_bg = Table([['']], colWidths=[37*cm], rowHeights=[0.3*cm])
-            card_bg.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['accent_light'])]))
-            elements.append(card_bg)
-            
+            # ==================== 3. INFORMATIONS GÉNÉRALES ====================
             elements.append(Paragraph("INFORMATIONS GÉNÉRALES", styles['SectionHeaderStyle']))
             
-            # Grille d'informations - 2 colonnes
             fleet_info_data = [
-                ["Nom de la flotte", fleet.nom_flotte or 'N/A', "Code flotte", fleet.code_flotte or 'N/A'],
-                ["Statut", fleet.statut or 'Actif', "Type de gestion", fleet.type_gestion or 'N/A'],
-                ["Remise commerciale", f"{fleet.remise_flotte or 0}%", "Véhicules", str(len(fleet.vehicles) if fleet.vehicles else 0)],
-                ["Date début", fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A', "Date fin", fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A'],
-                ["Assureur", fleet.compagnie.nom if fleet.compagnie else 'N/A', "Période", f"{fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A'} - {fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A'}"],
+                ["Nom de la flotte", fleet.nom_flotte or 'N/A', "Code flotte", fleet.code_flotte or 'N/A', "Statut", fleet.statut or 'Actif'],
+                ["Type de gestion", fleet.type_gestion or 'N/A', "Remise commerciale", f"{fleet.remise_flotte or 0}%", "Véhicules", str(len(fleet.vehicles) if fleet.vehicles else 0)],
+                ["Date début", fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A', "Date fin", fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A', "Période", f"{fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A'} - {fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A'}"],
+                ["Assureur", fleet.compagnie.nom if fleet.compagnie else 'N/A', "", "", "", ""],
             ]
             
-            fleet_info_table = Table(fleet_info_data, colWidths=[5*cm, 8*cm, 5*cm, 8*cm])
+            fleet_info_table = Table(fleet_info_data, colWidths=[4*cm, 7*cm, 4*cm, 7*cm, 4*cm, 7*cm])
             fleet_info_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (0, -1), colors_dict['light']),
                 ('BACKGROUND', (2, 0), (2, -1), colors_dict['light']),
+                ('BACKGROUND', (4, 0), (4, -1), colors_dict['light']),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('TOPPADDING', (0, 0), (-1, -1), 6),
                 ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
@@ -1224,102 +1919,89 @@ class FleetController:
                 ('RIGHTPADDING', (0, 0), (-1, -1), 8),
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
                 ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (4, 0), (4, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('BOX', (0, 0), (-1, -1), 0.5, colors_dict['primary']),
             ]))
             elements.append(fleet_info_table)
             elements.append(Spacer(1, 0.5*cm))
             
-            # ==================== 4. PROPRIÉTAIRE ====================
-            elements.append(Paragraph("PROPRIÉTAIRE", styles['SectionHeaderStyle']))
+            # ==================== 4. PROPRIÉTAIRE ET CONTRAT ====================
+            left_data = []
+            right_data = []
             
             owner = fleet.owner
             if owner:
-                owner_info_data = [
-                    ["Nom complet", f"{owner.nom or ''} {owner.prenom or ''}".strip() or 'N/A', "Nature", owner.nature or 'N/A'],
-                    ["Téléphone", owner.telephone or 'N/A', "Email", owner.email or 'N/A'],
-                    ["Adresse", owner.adresse or 'N/A', "Code client", owner.code_client or 'N/A'],
-                    ["Chargé clientèle", owner.charge_clientele or 'N/A', "Catégorie", owner.cat_socio_prof or 'N/A'],
+                owner_info = [
+                    ["Propriétaire", f"{owner.nom or ''} {owner.prenom or ''}".strip() or 'N/A'],
+                    ["Nature", owner.nature or 'N/A'],
+                    ["Téléphone", owner.telephone or 'N/A'],
+                    ["Email", owner.email or 'N/A'],
+                    ["Adresse", owner.adresse or 'N/A'],
+                    ["Code client", owner.code_client or 'N/A'],
                 ]
             else:
-                owner_info_data = [["Propriétaire", "Non renseigné", "", ""]]
+                owner_info = [["Propriétaire", "Non renseigné"]]
             
-            owner_info_table = Table(owner_info_data, colWidths=[5*cm, 8*cm, 5*cm, 8*cm])
-            owner_info_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, -1), colors_dict['light']),
-                ('BACKGROUND', (2, 0), (2, -1), colors_dict['light']),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            owner_table = Table(owner_info, colWidths=[5*cm, 12*cm])
+            owner_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
                 ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, -1), 9),
                 ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
             ]))
-            elements.append(owner_info_table)
-            elements.append(Spacer(1, 0.5*cm))
-            
-            # ==================== 5. CONTRAT ====================
-            elements.append(Paragraph("CONTRAT", styles['SectionHeaderStyle']))
+            left_data.append(Paragraph("PROPRIÉTAIRE", styles['SectionHeaderStyle']))
+            left_data.append(owner_table)
             
             if fleet_contract:
                 montant_total = float(fleet_contract.prime_totale_ttc or 0)
                 montant_paye = float(fleet_contract.montant_paye or 0)
                 solde = montant_total - montant_paye
-                pourcentage = int((montant_paye / montant_total) * 100) if montant_total > 0 else 0
                 
-                contract_info_data = [
-                    ["Numéro de police", fleet_contract.numero_police or 'N/A', "Statut", fleet_contract.statut.value if hasattr(fleet_contract.statut, 'value') else str(fleet_contract.statut)],
-                    ["Prime totale", f"{montant_total:,.0f} FCFA".replace(",", " "), "Montant payé", f"{montant_paye:,.0f} FCFA".replace(",", " ")],
-                    ["Solde restant", f"{solde:,.0f} FCFA".replace(",", " "), "Statut paiement", fleet_contract.statut_paiement or 'NON_PAYE'],
+                contract_info = [
+                    ["Numéro de police", fleet_contract.numero_police or 'N/A'],
+                    ["Statut", fleet_contract.statut.value if hasattr(fleet_contract.statut, 'value') else str(fleet_contract.statut)],
+                    ["Prime totale", f"{montant_total:,.0f} FCFA".replace(",", " ")],
+                    ["Montant payé", f"{montant_paye:,.0f} FCFA".replace(",", " ")],
+                    ["Solde restant", f"{solde:,.0f} FCFA".replace(",", " ")],
+                    ["Statut paiement", fleet_contract.statut_paiement or 'NON_PAYE'],
                 ]
-                
-                contract_table = Table(contract_info_data, colWidths=[5*cm, 8*cm, 5*cm, 8*cm])
-                contract_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (0, -1), colors_dict['light']),
-                    ('BACKGROUND', (2, 0), (2, -1), colors_dict['light']),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('TOPPADDING', (0, 0), (-1, -1), 6),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                    ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 9),
-                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
-                ]))
-                elements.append(contract_table)
-                
-                # Barre de progression élégante
-                if montant_total > 0:
-                    progress_width = 30 * cm
-                    filled_width = progress_width * (pourcentage / 100)
-                    
-                    progress_bg = Table([['']], colWidths=[progress_width], rowHeights=[0.4*cm])
-                    progress_bg.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['light_gray'])]))
-                    
-                    progress_fill = Table([['']], colWidths=[filled_width], rowHeights=[0.4*cm])
-                    progress_fill.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['accent'])]))
-                    
-                    progress_data = [
-                        [Paragraph(f"{pourcentage}% payé", styles['InfoLabelStyle']), ""],
-                        [progress_bg, ""],
-                    ]
-                    progress_table = Table(progress_data, colWidths=[progress_width, 0])
-                    elements.append(Spacer(1, 0.2*cm))
-                    elements.append(progress_table)
             else:
-                no_contract = Paragraph("Aucun contrat n'a encore été généré pour cette flotte.", styles['InfoValueStyle'])
-                elements.append(no_contract)
+                contract_info = [["Contrat", "Aucun contrat généré"]]
             
+            contract_table = Table(contract_info, colWidths=[5*cm, 12*cm])
+            contract_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            right_data.append(Paragraph("CONTRAT", styles['SectionHeaderStyle']))
+            right_data.append(contract_table)
+            
+            two_cols = Table([[left_data, right_data]], colWidths=[20*cm, 20*cm])
+            two_cols.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ]))
+            elements.append(two_cols)
             elements.append(Spacer(1, 0.5*cm))
             
-            # ==================== 6. LISTE DES VÉHICULES ====================
-            elements.append(Paragraph("VÉHICULES", styles['SectionHeaderStyle']))
+            # ==================== 5. LISTE DES VÉHICULES ====================
+            elements.append(Paragraph("VÉHICULES DE LA FLOTTE", styles['SectionHeaderStyle']))
             
-            vehicle_list_data = [["N°", "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Statut"]]
+            vehicle_list_data = [["N°", "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Puissance", "Places", "Statut"]]
             
             if fleet.vehicles:
                 for idx, vehicle in enumerate(fleet.vehicles, 1):
@@ -1330,10 +2012,12 @@ class FleetController:
                         vehicle.modele or 'N/A',
                         str(vehicle.annee) if vehicle.annee else 'N/A',
                         vehicle.energie or 'N/A',
+                        str(vehicle.puissance_fiscale or 'N/A'),
+                        str(vehicle.places or 'N/A'),
                         vehicle.statut or 'En circulation',
                     ])
             
-            vehicle_list_table = Table(vehicle_list_data, colWidths=[0.8*cm, 3.5*cm, 3.5*cm, 4*cm, 2.2*cm, 2.8*cm, 3.5*cm])
+            vehicle_list_table = Table(vehicle_list_data, colWidths=[0.7*cm, 3.5*cm, 4*cm, 4.5*cm, 2*cm, 2.5*cm, 2.5*cm, 2*cm, 3.5*cm])
             vehicle_list_table.setStyle(TableStyle([
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                 ('FONTSIZE', (0, 0), (-1, 0), 9),
@@ -1344,18 +2028,17 @@ class FleetController:
                 ('FONTSIZE', (0, 1), (-1, -1), 8),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
                 ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('LEFTPADDING', (0, 0), (-1, -1), 5),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 5),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
             ]))
             elements.append(vehicle_list_table)
             elements.append(Spacer(1, 0.6*cm))
             
-            # ==================== 7. TABLEAU DES GARANTIES ====================
+            # ==================== 6. TABLEAU DES GARANTIES ====================
             elements.append(Paragraph("GARANTIES PAR VÉHICULE", styles['SectionHeaderStyle']))
             
-            # En-têtes professionnels
             garanties_headers = [
                 "N°", "Immatriculation",
                 "RC", "DR", "Vol", "VB",
@@ -1374,39 +2057,69 @@ class FleetController:
                 'total': 0
             }
             
+            from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            
             if fleet.vehicles:
                 for idx, vehicle in enumerate(fleet.vehicles, 1):
-                    pttc = vehicle.total_fleet_amount
+                    fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                        VehicleFleetGuarantee.vehicle_id == vehicle.id
+                    ).first()
+                    
+                    if fleet_guarantee:
+                        rc = float(fleet_guarantee.rc or 0)
+                        dr = float(fleet_guarantee.dr or 0)
+                        vol = float(fleet_guarantee.vol or 0)
+                        vb = float(fleet_guarantee.vb or 0)
+                        in_garantie = float(fleet_guarantee.in_garantie or 0)
+                        bris = float(fleet_guarantee.bris or 0)
+                        ar = float(fleet_guarantee.ar or 0)
+                        dta = float(fleet_guarantee.dta or 0)
+                        ipt = float(fleet_guarantee.ipt or 0)
+                    else:
+                        g = getattr(vehicle, 'guarantees', None)
+                        if g:
+                            rc = float(g.rc or 0)
+                            dr = float(g.dr or 0)
+                            vol = float(g.vol or 0)
+                            vb = float(g.vb or 0)
+                            in_garantie = float(g.in_garantie or 0)
+                            bris = float(g.bris or 0)
+                            ar = float(g.ar or 0)
+                            dta = float(g.dta or 0)
+                            ipt = float(g.ipt or 0)
+                        else:
+                            rc = dr = vol = vb = in_garantie = bris = ar = dta = ipt = 0
+                    
+                    total_vehicule = rc + dr + vol + vb + in_garantie + bris + ar + dta + ipt
                     
                     garanties_data.append([
                         str(idx),
                         vehicle.immatriculation or 'N/A',
-                        fmt(vehicle.amt_fleet_rc_val or 0),
-                        fmt(vehicle.amt_fleet_dr_val or 0),
-                        fmt(vehicle.amt_fleet_vol_val or 0),
-                        fmt(vehicle.amt_fleet_vb_val or 0),
-                        fmt(vehicle.amt_fleet_in_val or 0),
-                        fmt(vehicle.amt_fleet_bris_val or 0),
-                        fmt(vehicle.amt_fleet_ar_val or 0),
-                        fmt(vehicle.amt_fleet_dta_val or 0),
-                        fmt(vehicle.amt_fleet_ipt_val or 0),
-                        fmt(pttc),
+                        fmt(rc),
+                        fmt(dr),
+                        fmt(vol),
+                        fmt(vb),
+                        fmt(in_garantie),
+                        fmt(bris),
+                        fmt(ar),
+                        fmt(dta),
+                        fmt(ipt),
+                        fmt(total_vehicule),
                     ])
                     
-                    totals['rc'] += vehicle.amt_fleet_rc_val or 0
-                    totals['dr'] += vehicle.amt_fleet_dr_val or 0
-                    totals['vol'] += vehicle.amt_fleet_vol_val or 0
-                    totals['vb'] += vehicle.amt_fleet_vb_val or 0
-                    totals['in'] += vehicle.amt_fleet_in_val or 0
-                    totals['bris'] += vehicle.amt_fleet_bris_val or 0
-                    totals['ar'] += vehicle.amt_fleet_ar_val or 0
-                    totals['dta'] += vehicle.amt_fleet_dta_val or 0
-                    totals['ipt'] += vehicle.amt_fleet_ipt_val or 0
-                    totals['total'] += pttc
+                    totals['rc'] += rc
+                    totals['dr'] += dr
+                    totals['vol'] += vol
+                    totals['vb'] += vb
+                    totals['in'] += in_garantie
+                    totals['bris'] += bris
+                    totals['ar'] += ar
+                    totals['dta'] += dta
+                    totals['ipt'] += ipt
+                    totals['total'] += total_vehicule
             
-            # Ligne de total
             garanties_data.append([
-                "", "", 
+                "", "TOTAL", 
                 fmt(totals['rc']),
                 fmt(totals['dr']),
                 fmt(totals['vol']),
@@ -1420,131 +2133,385 @@ class FleetController:
             ])
             
             col_widths = [
-                0.7*cm, 3.2*cm,
-                2.2*cm, 2.2*cm, 2.2*cm, 2.2*cm,
-                2.2*cm, 2.2*cm, 2.2*cm, 2.2*cm, 2.2*cm,
+                0.6*cm, 3*cm,
+                2*cm, 2*cm, 2*cm, 2*cm,
+                2*cm, 2*cm, 2*cm, 2*cm, 2*cm,
                 2.5*cm
             ]
             
             garanties_table = Table(garanties_data, colWidths=col_widths, repeatRows=1)
             garanties_table.setStyle(TableStyle([
-                # En-tête
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('FONTSIZE', (0, 0), (-1, 0), 8.5),
                 ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                
-                # Alignement
                 ('ALIGN', (0, 1), (1, -2), 'LEFT'),
                 ('ALIGN', (2, 1), (-1, -2), 'RIGHT'),
                 ('ALIGN', (0, -1), (1, -1), 'CENTER'),
                 ('ALIGN', (2, -1), (-1, -1), 'RIGHT'),
-                
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                 ('FONTSIZE', (0, 1), (-1, -2), 7.5),
-                ('FONTSIZE', (0, -1), (-1, -1), 8),
-                
-                # Alternance des couleurs
+                ('FONTSIZE', (0, -1), (-1, -1), 8.5),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors_dict['white'], colors_dict['light']]),
-                
-                # Ligne de total
                 ('BACKGROUND', (0, -1), (-1, -1), colors_dict['light_gray']),
                 ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
                 ('TEXTCOLOR', (0, -1), (-1, -1), colors_dict['primary']),
-                ('SPAN', (0, -1), (1, -1)),
-                
-                # Bordures
                 ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
                 ('BOX', (0, 0), (-1, -1), 0.5, colors_dict['primary']),
-                
-                # Padding
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('LEFTPADDING', (0, 0), (-1, -1), 4),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
             ]))
             elements.append(garanties_table)
             elements.append(Spacer(1, 0.6*cm))
             
-            # ==================== 8. RÉSUMÉ STATISTIQUE ====================
-            elements.append(Paragraph("SYNTHÈSE", styles['SectionHeaderStyle']))
+            # ==================== 7. NOUVEAU: TABLEAU DES ÉCHÉANCES ====================
+            elements.append(PageBreak())
+            elements.append(Paragraph("ÉCHÉANCIER DE PAIEMENT", styles['SectionHeaderStyle']))
             
-            nb_vehicules = len(fleet.vehicles) if fleet.vehicles else 0
-            prime_moyenne = (totals['total'] / nb_vehicules) if nb_vehicules > 0 else 0
+            if fleet_contract and montant_total > 0:
+                # Calculer les échéances
+                solde = montant_total - montant_paye
+                nombre_echeances = 12  # 12 mensualités
+                
+                # Déterminer le nombre d'échéances en fonction du montant
+                if solde > 10000000:
+                    nombre_echeances = 24  # 24 mois pour les gros montants
+                elif solde > 5000000:
+                    nombre_echeances = 18
+                elif solde > 1000000:
+                    nombre_echeances = 12
+                else:
+                    nombre_echeances = 6
+                
+                echeance_mensuelle = solde / nombre_echeances if nombre_echeances > 0 else 0
+                
+                # Générer les échéances
+                echeances_data = [["N°", "Date d'échéance", "Montant", "Statut", "Observations"]]
+                
+                date_debut = fleet.date_debut or datetime.now().date()
+                if isinstance(date_debut, datetime):
+                    date_debut = date_debut.date()
+                
+                for i in range(1, nombre_echeances + 1):
+                    date_echeance = date_debut + timedelta(days=30 * i)
+                    statut = "À payer" if i <= 6 else "Programmé"
+                    if i == 1:
+                        statut = "En attente"
+                    elif i <= 3:
+                        statut = "À venir"
+                    
+                    echeances_data.append([
+                        str(i),
+                        date_echeance.strftime('%d/%m/%Y'),
+                        f"{echeance_mensuelle:,.0f} FCFA".replace(",", " "),
+                        statut,
+                        f"Échéance {i}/{nombre_echeances}"
+                    ])
+                
+                echeances_table = Table(echeances_data, colWidths=[2*cm, 4*cm, 6*cm, 4*cm, 8*cm])
+                echeances_table.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                elements.append(echeances_table)
+                
+                # Résumé des échéances
+                echeance_summary = [
+                    ["Nombre total d'échéances", f"{nombre_echeances}"],
+                    ["Montant par échéance", f"{echeance_mensuelle:,.0f} FCFA".replace(",", " ")],
+                    ["Solde total à payer", f"{solde:,.0f} FCFA".replace(",", " ")],
+                    ["Prochaine échéance", (date_debut + timedelta(days=30)).strftime('%d/%m/%Y')],
+                ]
+                
+                summary_table = Table(echeance_summary, colWidths=[10*cm, 15*cm])
+                summary_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
+                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(Spacer(1, 0.3*cm))
+                elements.append(Paragraph("RÉSUMÉ DES ÉCHÉANCES", styles['SubSectionHeaderStyle']))
+                elements.append(summary_table)
+            else:
+                no_contract = Paragraph("Aucun contrat trouvé pour générer l'échéancier.", styles['InfoValueStyle'])
+                elements.append(no_contract)
             
-            # Deux colonnes pour le résumé
-            summary_left = [
-                ["Indicateur", "Valeur"],
-                ["Nombre de véhicules", f"{nb_vehicules}"],
-                ["Total des garanties", fmt(totals['total'])],
-            ]
+            elements.append(Spacer(1, 0.5*cm))
             
-            summary_right = [
-                ["Indicateur", "Valeur"],
-                ["Prime moyenne", fmt(prime_moyenne)],
-                ["Couverture moyenne", f"{self._calculate_fleet_coverage_rate(fleet):.0f}%"],
-            ]
+            # ==================== 8. GRAPHIQUE: RÉPARTITION DES GARANTIES ====================
+            elements.append(PageBreak())
+            elements.append(Paragraph("ANALYSE STATISTIQUE", styles['SectionHeaderStyle']))
             
-            summary_left_table = Table(summary_left, colWidths=[8*cm, 8*cm])
-            summary_left_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors_dict['accent_light']),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 9),
-                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-            ]))
-            
-            summary_right_table = Table(summary_right, colWidths=[8*cm, 8*cm])
-            summary_right_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors_dict['accent_light']),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 9),
-                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('LEFTPADDING', (0, 0), (-1, -1), 8),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
-            ]))
-            
-            summary_row = Table([[summary_left_table, summary_right_table]], colWidths=[18*cm, 18*cm])
-            summary_row.setStyle(TableStyle([
-                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ]))
-            elements.append(summary_row)
-            
-            # ==================== 9. OBSERVATIONS ====================
-            if fleet.observations:
+            if totals['total'] > 0:
+                # Graphique en barres - Répartition des garanties
+                chart_data = [
+                    [totals['rc'], totals['dr'], totals['vol'], totals['vb'], 
+                    totals['in'], totals['bris'], totals['ar'], totals['dta'], totals['ipt']]
+                ]
+                
+                drawing = Drawing(400, 200)
+                bc = VerticalBarChart()
+                bc.x = 50
+                bc.y = 50
+                bc.width = 300
+                bc.height = 120
+                bc.data = chart_data
+                bc.strokeColor = colors.black
+                bc.valueAxis.valueMin = 0
+                bc.valueAxis.valueMax = max(chart_data[0]) * 1.2 if max(chart_data[0]) > 0 else 1000
+                bc.categoryAxis.categoryNames = ['RC', 'DR', 'Vol', 'VB', 'Inc', 'Bris', 'AR', 'DTA', 'IPT']
+                bc.categoryAxis.labels.boxAnchor = 'ne'
+                bc.categoryAxis.labels.dx = 8
+                bc.categoryAxis.labels.dy = -2
+                bc.categoryAxis.labels.angle = 45
+                bc.categoryAxis.labels.fontSize = 8
+                bc.bars[0].fillColor = colors_dict['accent']
+                bc.bars[0].strokeColor = colors_dict['primary']
+                drawing.add(bc)
+                
+                # Statistiques
+                stats_data = [
+                    ["Indicateur", "Valeur"],
+                    ["Nombre de véhicules", str(len(fleet.vehicles) if fleet.vehicles else 0)],
+                    ["Total des garanties", fmt(totals['total'])],
+                    ["Prime moyenne", fmt(totals['total'] / len(fleet.vehicles) if fleet.vehicles else 0)],
+                    ["Couverture moyenne", f"{self._calculate_fleet_coverage_rate(fleet):.0f}%"],
+                    ["Garantie la plus élevée", max([
+                        ('RC', totals['rc']), ('DR', totals['dr']), ('Vol', totals['vol']),
+                        ('VB', totals['vb']), ('Incendie', totals['in']), ('Bris', totals['bris']),
+                        ('AR', totals['ar']), ('DTA', totals['dta']), ('IPT', totals['ipt'])
+                    ], key=lambda x: x[1])[0]],
+                ]
+                
+                stats_table = Table(stats_data, colWidths=[8*cm, 8*cm])
+                stats_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['accent_light']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                
+                graph_and_stats = Table([[drawing, stats_table]], colWidths=[18*cm, 18*cm])
+                graph_and_stats.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                    ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ]))
+                elements.append(graph_and_stats)
                 elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 9. NOUVEAU: GRAPHIQUE PAR VÉHICULE ====================
+            elements.append(Paragraph("COMPARAISON PAR VÉHICULE", styles['SectionHeaderStyle']))
+            
+            if fleet.vehicles and len(fleet.vehicles) > 0:
+                # Créer un graphique comparant le total des garanties par véhicule
+                vehicle_names = []
+                vehicle_totals = []
+                
+                for vehicle in fleet.vehicles[:15]:  # Limiter à 15 véhicules pour lisibilité
+                    vehicle_names.append(vehicle.immatriculation or f"V{vehicle.id}")
+                    fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                        VehicleFleetGuarantee.vehicle_id == vehicle.id
+                    ).first()
+                    if fleet_guarantee:
+                        total = (fleet_guarantee.rc or 0) + (fleet_guarantee.dr or 0) + \
+                                (fleet_guarantee.vol or 0) + (fleet_guarantee.vb or 0) + \
+                                (fleet_guarantee.in_garantie or 0) + (fleet_guarantee.bris or 0) + \
+                                (fleet_guarantee.ar or 0) + (fleet_guarantee.dta or 0) + \
+                                (fleet_guarantee.ipt or 0)
+                    else:
+                        total = 0
+                    vehicle_totals.append(total)
+                
+                if vehicle_totals:
+                    # Graphique à barres horizontales
+                    drawing2 = Drawing(600, max(200, len(vehicle_totals) * 15))
+                    bc2 = VerticalBarChart()
+                    bc2.x = 80
+                    bc2.y = 50
+                    bc2.width = 450
+                    bc2.height = max(100, len(vehicle_totals) * 12)
+                    bc2.data = [vehicle_totals]
+                    bc2.strokeColor = colors.black
+                    bc2.valueAxis.valueMin = 0
+                    bc2.valueAxis.valueMax = max(vehicle_totals) * 1.2 if max(vehicle_totals) > 0 else 1000
+                    bc2.categoryAxis.categoryNames = vehicle_names
+                    bc2.categoryAxis.labels.boxAnchor = 'ne'
+                    bc2.categoryAxis.labels.dx = 8
+                    bc2.categoryAxis.labels.dy = -2
+                    bc2.categoryAxis.labels.angle = 45
+                    bc2.categoryAxis.labels.fontSize = 7
+                    bc2.bars[0].fillColor = colors_dict['success']
+                    bc2.bars[0].strokeColor = colors_dict['primary']
+                    drawing2.add(bc2)
+                    
+                    elements.append(Paragraph("Total des garanties par véhicule", styles['SubSectionHeaderStyle']))
+                    elements.append(drawing2)
+                    elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 10. RÉPARTITION PAR CATÉGORIE ====================
+            elements.append(Paragraph("RÉPARTITION PAR CATÉGORIE", styles['SectionHeaderStyle']))
+            
+            categorie_counts = {}
+            if fleet.vehicles:
+                for vehicle in fleet.vehicles:
+                    cat = vehicle.categorie or 'Non défini'
+                    categorie_counts[cat] = categorie_counts.get(cat, 0) + 1
+            
+            if categorie_counts:
+                categorie_data = [["Catégorie", "Nombre", "Pourcentage"]]
+                total_vehicles = len(fleet.vehicles)
+                for cat, count in sorted(categorie_counts.items(), key=lambda x: x[1], reverse=True):
+                    pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+                    categorie_data.append([cat, str(count), f"{pct:.1f}%"])
+                
+                categorie_table = Table(categorie_data, colWidths=[10*cm, 8*cm, 8*cm])
+                categorie_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(categorie_table)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 11. RÉPARTITION PAR ÉNERGIE ====================
+            elements.append(Paragraph("RÉPARTITION PAR ÉNERGIE", styles['SectionHeaderStyle']))
+            
+            energie_counts = {}
+            if fleet.vehicles:
+                for vehicle in fleet.vehicles:
+                    energie = vehicle.energie or 'Non défini'
+                    energie_counts[energie] = energie_counts.get(energie, 0) + 1
+            
+            if energie_counts:
+                energie_data = [["Énergie", "Nombre", "Pourcentage"]]
+                total_vehicles = len(fleet.vehicles)
+                for energie, count in sorted(energie_counts.items(), key=lambda x: x[1], reverse=True):
+                    pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+                    energie_data.append([energie, str(count), f"{pct:.1f}%"])
+                
+                energie_table = Table(energie_data, colWidths=[10*cm, 8*cm, 8*cm])
+                energie_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(energie_table)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 12. NOUVEAU: RÉPARTITION PAR ANNÉE ====================
+            elements.append(Paragraph("RÉPARTITION PAR ANNÉE", styles['SectionHeaderStyle']))
+            
+            annee_counts = {}
+            if fleet.vehicles:
+                for vehicle in fleet.vehicles:
+                    annee = str(vehicle.annee) if vehicle.annee else 'Non défini'
+                    annee_counts[annee] = annee_counts.get(annee, 0) + 1
+            
+            if annee_counts:
+                annee_data = [["Année", "Nombre", "Pourcentage"]]
+                total_vehicles = len(fleet.vehicles)
+                for annee, count in sorted(annee_counts.items(), key=lambda x: x[1], reverse=True):
+                    pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+                    annee_data.append([annee, str(count), f"{pct:.1f}%"])
+                
+                annee_table = Table(annee_data, colWidths=[10*cm, 8*cm, 8*cm])
+                annee_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(annee_table)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 13. OBSERVATIONS ====================
+            if fleet.observations:
+                elements.append(Spacer(1, 0.3*cm))
                 elements.append(Paragraph("OBSERVATIONS", styles['SectionHeaderStyle']))
-                obs_text = Paragraph(fleet.observations, styles['InfoValueStyle'])
+                obs_style = ParagraphStyle(
+                    'ObservationStyle',
+                    parent=styles['Normal'],
+                    fontName='Helvetica',
+                    fontSize=10,
+                    textColor=colors_dict['text'],
+                    alignment=TA_JUSTIFY,
+                    leading=14,
+                    leftIndent=20,
+                    rightIndent=20
+                )
+                obs_text = Paragraph(fleet.observations, obs_style)
                 elements.append(obs_text)
             
-            # ==================== 10. PIED DE PAGE ====================
+            # ==================== 14. PIED DE PAGE ====================
             elements.append(Spacer(1, 1.5*cm))
             
-            # Ligne fine
-            footer_line = Table([['']], colWidths=[37*cm], rowHeights=[0.03*cm])
+            footer_line = Table([['']], colWidths=[42*cm], rowHeights=[0.04*cm])
             footer_line.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['border'])]))
             elements.append(footer_line)
             elements.append(Spacer(1, 0.2*cm))
             
             footer_data = [
-                ["AMS Assurance - Rapport généré automatiquement", f"Page 1/1", f"Fait à Douala, le {datetime.now().strftime('%d/%m/%Y')}"],
+                ["AMS Assurance - Rapport généré automatiquement", f"Page 1/1", f"Fait à Douala, le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"],
             ]
-            footer_table = Table(footer_data, colWidths=[15*cm, 10*cm, 12*cm])
+            footer_table = Table(footer_data, colWidths=[15*cm, 12*cm, 15*cm])
             footer_table.setStyle(TableStyle([
                 ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),
                 ('ALIGN', (1, 0), (1, 0), 'CENTER'),
                 ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
-                ('FONTSIZE', (0, 0), (-1, -1), 7),
+                ('FONTSIZE', (0, 0), (-1, -1), 7.5),
                 ('TEXTCOLOR', (0, 0), (-1, -1), colors_dict['text_light']),
             ]))
             elements.append(footer_table)

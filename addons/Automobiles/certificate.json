@@ -3,8 +3,8 @@
   "module_name": "Gestion d'Assurance Automobile",
   "module_version": "1.1.3",
   "certified_by": "Fearless Cybertech",
-  "certified_date": "2026-07-17T10:55:26.797638",
-  "certificate_id": "37749C5670D0E2A5",
+  "certified_date": "2026-07-17T12:39:08.490602",
+  "certificate_id": "A80E02F84FAA2D21",
   "checksums": {
     "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "api/__init__.py": "8fa21cade95db9f34e40ce23e797513bf1673af52d78f99a599e1a1cdcfb85a2",
@@ -50,7 +50,7 @@
     "controllers/contacts_controller.py": "585c8eed8feae50a8678c98a6383903b1fdb0e1492013e81cc6aea57e14865a7",
     "controllers/contract_controller.py": "57d8ea34ba1d5373febae9357f2f8c6392e7c03bb3f389b7f907b0c2fe7d2634",
     "controllers/expertise_controller.py": "11555006cd110397de33b10c952f426e506a60c1350ed214b545e0150ddf0669",
-    "controllers/flotte_controller.py": "cbe5ef1a13f6f6957fbdf18eda99c75a9d5f0cd102e5bb9530679f0abf203912",
+    "controllers/flotte_controller.py": "4ed6505db5256bd2eefacd2536c0bd348b36a5df5964d2f4a99242e2229c1e34",
     "controllers/garage_controller.py": "13ee2e108ef97d8d2df5303e67a2528c47ff8084c328ebfdb673fe80ef075e04",
     "controllers/paiement_controller.py": "75d62422f1fc03fb84d1b2abfe910d67b75517dcec803c24609025bb52562fa9",
     "controllers/reports_controller.py": "e9c5343c59a03410f3421ae0049e0719b32a45c6020cf94a0d785d9cb9c314da",
@@ -142,7 +142,7 @@
     "views/vignette_printer.py": "b5a1019f96871921d05d238db5df090485e7250e1720bec4678d68a51c035c64",
     "views/widgets/modern_card.py": "649193cebf797982eb91f1c13c2ffbf826dc7727a6dbd2adcd0caed93fb0b9ea"
   },
-  "signature": "425c071a19bb7447593d7bb1b91388117d8326fe696ed953bb9d9ce3314c25a0",
+  "signature": "1f62b0b4b235fcc4af1895db15434410d0b029c497ae30ba33f74e3e00180870",
   "public_key": "b84fbbd462bbe1a04e0fa0374cf0d3bfd1c9961c050a25301a0f8c2653c3ae28",
   "certificate_chain": [],
   "metadata": {}
