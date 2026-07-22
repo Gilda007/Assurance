@@ -15,9 +15,8 @@ class CarteRosePrinter:
     def print(self, parent_widget):
         """Imprime la Carte Rose en paysage sur tous les systèmes"""
         printer = QPrinter(QPrinter.HighResolution)
+        printer.setPageOrientation(QPageLayout.Orientation.Landscape)
         
-        # Configuration robuste pour forcer le paysage sur tous les OS
-        self._configure_printer(printer)
         
         dialog = QPrintDialog(printer, parent_widget)
         if dialog.exec_() == QPrintDialog.Accepted:
@@ -26,28 +25,6 @@ class CarteRosePrinter:
                 # ✅ Passer printer en paramètre
                 self.draw_content(painter, printer)
                 painter.end()
-
-    def _configure_printer(self, printer):
-        """Configure le format A4 en paysage de manière fiable"""
-        # ✅ Définir explicitement la taille A4 en millimètres
-        a4_size = QSizeF(297, 210)  # A4 paysage: 297mm x 210mm
-        
-        # ✅ Créer un QPageSize avec des dimensions exactes
-        page_size = QPageSize(a4_size, QPageSize.Millimeter, "A4 Landscape")
-        
-        # ✅ Créer un layout avec le format A4 en paysage
-        page_layout = QPageLayout()
-        page_layout.setPageSize(page_size)
-        page_layout.setOrientation(QPageLayout.Landscape)
-        page_layout.setMargins(QMarginsF(10, 10, 10, 10))  # Marges en mm
-        
-        # Appliquer le layout
-        printer.setPageLayout(page_layout)
-        
-        # ✅ Forcer avec les propriétés directes
-        printer.setPageOrientation(QPageLayout.Landscape)
-        printer.setResolution(300)
-        printer.setFullPage(False)
 
     def draw_content(self, painter, printer):
         """Dessine le contenu de la Carte Rose"""
@@ -157,110 +134,110 @@ class CarteRosePrinter:
             int(200 * scale)
         )
 
-    def export_to_pdf(self, file_path):
-        """Exporte la Carte Rose en PDF (format A4 paysage garanti)"""
-        printer = QPrinter(QPrinter.HighResolution)
+    # def export_to_pdf(self, file_path):
+    #     """Exporte la Carte Rose en PDF (format A4 paysage garanti)"""
+    #     printer = QPrinter(QPrinter.HighResolution)
         
-        # Configuration pour PDF en paysage
-        self._configure_printer(printer)
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName(file_path)
+    #     # Configuration pour PDF en paysage
+    #     self._configure_printer(printer)
+    #     printer.setOutputFormat(QPrinter.PdfFormat)
+    #     printer.setOutputFileName(file_path)
         
-        painter = QPainter(printer)
-        if painter.isActive():
-            self.draw_content(painter, printer)
-            painter.end()
-            return True
-        return False
+    #     painter = QPainter(printer)
+    #     if painter.isActive():
+    #         self.draw_content(painter, printer)
+    #         painter.end()
+    #         return True
+    #     return False
 
-    def preview(self, parent_widget):
-        """Affiche un aperçu avant impression"""
-        from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
+    # def preview(self, parent_widget):
+    #     """Affiche un aperçu avant impression"""
+    #     from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
         
-        # Créer une image de prévisualisation
-        preview_dialog = QDialog(parent_widget)
-        preview_dialog.setWindowTitle("Aperçu Carte Rose")
-        preview_dialog.setMinimumSize(800, 600)
+    #     # Créer une image de prévisualisation
+    #     preview_dialog = QDialog(parent_widget)
+    #     preview_dialog.setWindowTitle("Aperçu Carte Rose")
+    #     preview_dialog.setMinimumSize(800, 600)
         
-        layout = QVBoxLayout(preview_dialog)
+    #     layout = QVBoxLayout(preview_dialog)
         
-        # Créer un QPrinter virtuel pour l'aperçu
-        printer = QPrinter(QPrinter.HighResolution)
-        self._configure_printer(printer)
-        printer.setOutputFormat(QPrinter.PdfFormat)
+    #     # Créer un QPrinter virtuel pour l'aperçu
+    #     printer = QPrinter(QPrinter.HighResolution)
+    #     self._configure_printer(printer)
+    #     printer.setOutputFormat(QPrinter.PdfFormat)
         
-        # Dessiner sur le printer
-        painter = QPainter(printer)
-        if painter.isActive():
-            self.draw_content(painter, printer)
-            painter.end()
+    #     # Dessiner sur le printer
+    #     painter = QPainter(printer)
+    #     if painter.isActive():
+    #         self.draw_content(painter, printer)
+    #         painter.end()
         
-        # Afficher un message d'aperçu
-        label = QLabel("📄 Aperçu de la Carte Rose (format A4 paysage)\n\n")
-        label.setStyleSheet("font-size: 14px; padding: 20px;")
-        label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(label)
+    #     # Afficher un message d'aperçu
+    #     label = QLabel("📄 Aperçu de la Carte Rose (format A4 paysage)\n\n")
+    #     label.setStyleSheet("font-size: 14px; padding: 20px;")
+    #     label.setAlignment(Qt.AlignCenter)
+    #     layout.addWidget(label)
         
-        # Bouton d'impression
-        btn_imprimer = QPushButton("🖨️ Imprimer")
-        btn_imprimer.clicked.connect(lambda: self.print(preview_dialog))
-        layout.addWidget(btn_imprimer)
+    #     # Bouton d'impression
+    #     btn_imprimer = QPushButton("🖨️ Imprimer")
+    #     btn_imprimer.clicked.connect(lambda: self.print(preview_dialog))
+    #     layout.addWidget(btn_imprimer)
         
-        # Bouton d'export PDF
-        from PySide6.QtWidgets import QFileDialog
-        btn_pdf = QPushButton("📄 Exporter en PDF")
-        btn_pdf.clicked.connect(lambda: self._export_pdf_from_dialog(preview_dialog))
-        layout.addWidget(btn_pdf)
+    #     # Bouton d'export PDF
+    #     from PySide6.QtWidgets import QFileDialog
+    #     btn_pdf = QPushButton("📄 Exporter en PDF")
+    #     btn_pdf.clicked.connect(lambda: self._export_pdf_from_dialog(preview_dialog))
+    #     layout.addWidget(btn_pdf)
         
-        # Bouton fermer
-        btn_fermer = QPushButton("Fermer")
-        btn_fermer.clicked.connect(preview_dialog.accept)
-        layout.addWidget(btn_fermer)
+    #     # Bouton fermer
+    #     btn_fermer = QPushButton("Fermer")
+    #     btn_fermer.clicked.connect(preview_dialog.accept)
+    #     layout.addWidget(btn_fermer)
         
-        preview_dialog.exec_()
+    #     preview_dialog.exec_()
 
-    def _export_pdf_from_dialog(self, parent):
-        """Exporte en PDF depuis le dialogue d'aperçu"""
-        from PySide6.QtWidgets import QFileDialog
+    # def _export_pdf_from_dialog(self, parent):
+    #     """Exporte en PDF depuis le dialogue d'aperçu"""
+    #     from PySide6.QtWidgets import QFileDialog
         
-        file_path, _ = QFileDialog.getSaveFileName(
-            parent,
-            "Enregistrer le PDF",
-            f"carte_rose_{self.data.get('immatriculation', 'vehicle')}.pdf",
-            "PDF (*.pdf)"
-        )
+    #     file_path, _ = QFileDialog.getSaveFileName(
+    #         parent,
+    #         "Enregistrer le PDF",
+    #         f"carte_rose_{self.data.get('immatriculation', 'vehicle')}.pdf",
+    #         "PDF (*.pdf)"
+    #     )
         
-        if file_path:
-            if self.export_to_pdf(file_path):
-                QMessageBox.information(parent, "Succès", f"PDF exporté avec succès : {file_path}")
-            else:
-                QMessageBox.warning(parent, "Erreur", "Erreur lors de l'export PDF")
+    #     if file_path:
+    #         if self.export_to_pdf(file_path):
+    #             QMessageBox.information(parent, "Succès", f"PDF exporté avec succès : {file_path}")
+    #         else:
+    #             QMessageBox.warning(parent, "Erreur", "Erreur lors de l'export PDF")
 
-    def get_pdf_bytes(self):
-        """Génère le PDF en mémoire (bytes) pour utilisation sans fichier"""
-        from PySide6.QtCore import QBuffer
+    # def get_pdf_bytes(self):
+    #     """Génère le PDF en mémoire (bytes) pour utilisation sans fichier"""
+    #     from PySide6.QtCore import QBuffer
         
-        # Créer un buffer mémoire
-        buffer = QBuffer()
-        buffer.open(QBuffer.ReadWrite)
+    #     # Créer un buffer mémoire
+    #     buffer = QBuffer()
+    #     buffer.open(QBuffer.ReadWrite)
         
-        # Créer le printer avec le buffer
-        printer = QPrinter(QPrinter.HighResolution)
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputDevice(buffer)
+    #     # Créer le printer avec le buffer
+    #     printer = QPrinter(QPrinter.HighResolution)
+    #     printer.setOutputFormat(QPrinter.PdfFormat)
+    #     printer.setOutputDevice(buffer)
         
-        # Configurer le format A4 paysage
-        self._configure_printer(printer)
+    #     # Configurer le format A4 paysage
+    #     self._configure_printer(printer)
         
-        # Dessiner le contenu
-        painter = QPainter(printer)
-        if painter.isActive():
-            self.draw_content(painter, printer)
-            painter.end()
+    #     # Dessiner le contenu
+    #     painter = QPainter(printer)
+    #     if painter.isActive():
+    #         self.draw_content(painter, printer)
+    #         painter.end()
         
-        # Récupérer les données
-        buffer.seek(0)
-        data = buffer.data()
-        buffer.close()
+    #     # Récupérer les données
+    #     buffer.seek(0)
+    #     data = buffer.data()
+    #     buffer.close()
         
-        return data
+    #     return data

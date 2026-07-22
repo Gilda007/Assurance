@@ -192,6 +192,7 @@ class BatchPrintThread(QThread):
             # Utiliser une session dédiée pour chaque impression
             from core.database import SessionLocal
             session = SessionLocal()
+            print(f"voici les informations liées à ce véhicule: {vehicle_data}")
             
             try:
                 from addons.Automobiles.controllers.automobile_controller import VehicleController

@@ -318,7 +318,7 @@ class TariffCalculator:
         if production.starts_at and production.ends_at:
             days = (production.ends_at - production.starts_at).days
             if days < 365:
-                prorata = days / 365.0
+                prorata = (days / 365.0) + 1
         
         final_amount = int(base_amount * prorata)
         

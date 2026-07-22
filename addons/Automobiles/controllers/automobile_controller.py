@@ -836,23 +836,34 @@ class VehicleController:
             return None
 
 
+
     def get_rc_premium_from_matrix(self, cie_id, zone_saisie, categorie, energie, cv_saisi, avec_remorque=False, code_tarif=None):
         """
         Calcule la prime RC et la vignette Cameroun avec la nouvelle structure de table.
+        Prend en compte le type d'énergie (Essence/Diesel) pour la sélection des tranches.
         """
         try:
             from addons.Automobiles.models.tarif_models import AutomobileTarif
-            from addons.Automobiles.models.automobile_tranche import AutomobileTranche
             import re
 
             # --- 1. NORMALISATION ---
             zone_match = re.search(r'[A-C]', str(zone_saisie).upper())
             clean_zone = zone_match.group(0) if zone_match else str(zone_saisie).strip()
             
-            clean_energie = str(energie).lower().strip()
+            # ✅ Normaliser l'énergie - Détection améliorée avec mots-clés
+            clean_energie = str(energie).lower().strip() if energie else ''
             
-            # Extraire uniquement les chiffres pour la catégorie (ex: "Cat 01" -> "01")
-            # Mais la table utilise 'categorie' comme VARCHAR, donc on conserve la valeur telle quelle
+            # ✅ Détection par mots-clés
+            energy_lower = clean_energie.lower()
+            is_diesel = any(keyword in energy_lower for keyword in ['diesel', 'sed', 'gazole', 'gasoil'])
+            is_essence = any(keyword in energy_lower for keyword in ['essence', 'see', 'petrol', 'super', 'ess', 'sp'])
+            
+            # Si l'énergie n'est pas reconnue, utiliser Essence par défaut
+            if not is_diesel and not is_essence:
+                print(f"⚠️ Énergie non reconnue: '{energie}', utilisation Essence par défaut")
+                is_essence = True
+            
+            # Extraire uniquement les chiffres pour la catégorie
             clean_cat = str(categorie).strip() if categorie else None
 
             # --- 2. RECHERCHE SQL ---
@@ -865,7 +876,6 @@ class VehicleController:
             if code_tarif and str(code_tarif).strip():
                 query = query.filter(AutomobileTarif.tarif_code == str(code_tarif).strip())
             else:
-                # Sinon filtrer par catégorie
                 if clean_cat:
                     query = query.filter(AutomobileTarif.categorie == clean_cat)
 
@@ -875,41 +885,67 @@ class VehicleController:
                 print(f"⚠️ Aucun tarif pour Cie:{cie_id}, Zone:{clean_zone}, Code:{code_tarif}, Cat:{clean_cat}")
                 return {"rc": 0.0, "vignette": 0.0, "libelle": "", "categorie": clean_cat}
 
-            # --- 3. DÉTERMINER LA TRANCHE DE PUISSANCE ---
+            # --- 3. DÉTERMINER LA TRANCHE DE PUISSANCE SELON L'ÉNERGIE ---
             cv_val = int(cv_saisi or 0)
             
-            # Définir les tranches manuellement (adapté à votre table)
-            # Les colonnes prime1 à prime10 correspondent aux tranches
-            if cv_val <= 2:
-                tranche_index = 1
-            elif cv_val <= 4:
-                tranche_index = 2
-            elif cv_val <= 6:
-                tranche_index = 3
-            elif cv_val <= 8:
-                tranche_index = 4
-            elif cv_val <= 10:
-                tranche_index = 5
-            elif cv_val <= 12:
-                tranche_index = 6
-            elif cv_val <= 14:
-                tranche_index = 7
-            elif cv_val <= 16:
-                tranche_index = 8
-            elif cv_val <= 18:
-                tranche_index = 9
+            # ✅ Tranches pour ESSENCE
+            if is_essence:
+                if cv_val <= 2:
+                    tranche_index = 1
+                elif cv_val <= 6:
+                    tranche_index = 2
+                elif cv_val <= 10:
+                    tranche_index = 3
+                elif cv_val <= 14:
+                    tranche_index = 4
+                elif cv_val <= 23:
+                    tranche_index = 5
+                elif cv_val > 23:
+                    tranche_index = 6
+                else:
+                    tranche_index = 1
+            # ✅ Tranches pour DIESEL
+            elif is_diesel:
+                if cv_val <= 2:
+                    tranche_index = 1
+                elif cv_val <= 4:
+                    tranche_index = 2
+                elif cv_val <= 7:
+                    tranche_index = 3
+                elif cv_val <= 10:
+                    tranche_index = 4
+                elif cv_val <= 16:
+                    tranche_index = 5
+                elif cv_val > 16:
+                    tranche_index = 6
+                else:
+                    tranche_index = 1
             else:
-                tranche_index = 10
+                # Fallback: Essence par défaut
+                print(f"⚠️ Énergie non reconnue: {energie}, utilisation des tranches Essence")
+                if cv_val <= 2:
+                    tranche_index = 1
+                elif cv_val <= 6:
+                    tranche_index = 2
+                elif cv_val <= 10:
+                    tranche_index = 3
+                elif cv_val <= 14:
+                    tranche_index = 4
+                elif cv_val <= 23:
+                    tranche_index = 5
+                elif cv_val > 23:
+                    tranche_index = 6
+                else:
+                    tranche_index = 1
+
+            print(f"🔍 Énergie: '{energie}' → {'Diesel' if is_diesel else 'Essence'}, CV: {cv_val}, Tranche: {tranche_index}")
 
             # --- 4. SÉLECTIONNER LA BONNE COLONNE ---
             if avec_remorque:
-                # Utiliser les colonnes remorq1 à remorq10
                 col_name = f"remorq{tranche_index}"
             else:
-                # Utiliser les colonnes prime1 à prime10
                 col_name = f"prime{tranche_index}"
 
-            # Récupérer la valeur
             prime_rc = float(getattr(tarif, col_name, 0.0))
 
             # --- 5. CALCUL VIGNETTE CAMEROUN ---
@@ -929,7 +965,10 @@ class VehicleController:
                 "libelle": getattr(tarif, 'lib_tarif', ''),
                 "categorie": getattr(tarif, 'categorie', clean_cat),
                 "tranche": tranche_index,
-                "tarif_code": getattr(tarif, 'tarif_code', '')
+                "tarif_code": getattr(tarif, 'tarif_code', ''),
+                "energie": energie,
+                "is_diesel": is_diesel,
+                "cv": cv_val
             }
 
         except Exception as e:
@@ -937,7 +976,6 @@ class VehicleController:
             import traceback
             traceback.print_exc()
             return {"rc": 0.0, "vignette": 0.0, "libelle": "", "categorie": ""}
-
 
     def get_rc_premium_from_matrix_persistent(self, cie_id: int, zone_saisie: str, 
                                             categorie: str, energie: str, 
@@ -1245,6 +1283,7 @@ class VehicleController:
                     print(f"Impossible de créer le dossier d'export : {e}")
             
             # 5. Initialisation de l'imprimeur
+            print(f"voici les informations sur le véhicule: {vehicle_data}")
             printer_tool = DevisPrinter(vehicle_data, export_dir=export_dir)
             
             # 6. Lancement de l'impression

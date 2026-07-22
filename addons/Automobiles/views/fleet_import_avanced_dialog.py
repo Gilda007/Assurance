@@ -1263,7 +1263,7 @@ class CalculationThread(QThread):
         
         # Calcul du prorata
         jours = self.params.get('duree_jours', 365)
-        prorata = jours / 365.0
+        prorata = (jours / 365.0) + 1
         
         # ✅ 1. CALCUL DE LA RC (Responsabilité Civile)
         # Appel à la méthode du contrôleur pour obtenir la prime RC
@@ -1766,7 +1766,9 @@ class FleetImportAdvancedDialog(QDialog):
         # Mode
         mode_layout = QHBoxLayout()
         self.mode_new = QRadioButton("✨ Créer une nouvelle flotte")
+        self.mode_new.setStyleSheet("color: #0f172a; font-weight: bold;")
         self.mode_existing = QRadioButton("📦 Ajouter à une flotte existante")
+        self.mode_existing.setStyleSheet("color: #0f172a; font-weight: bold;")
         self.mode_new.setChecked(True)
         self.mode_new.toggled.connect(self.on_mode_changed)
         
@@ -1780,14 +1782,16 @@ class FleetImportAdvancedDialog(QDialog):
         new_layout = QGridLayout(self.new_fleet_widget)
         new_layout.setSpacing(8)
         
-        new_layout.addWidget(QLabel("Nom :"), 0, 0)
+        new_layout.addWidget(QLabel("Nom :").setStyleSheet("color: #0f172a;"), 0, 0)
         self.fleet_name = QLineEdit()
         self.fleet_name.setPlaceholderText("Ex: Flotte Logistique 2024")
+        self.fleet_name.setStyleSheet("color: #0f172a;")
         new_layout.addWidget(self.fleet_name, 0, 1)
         
-        new_layout.addWidget(QLabel("Code :"), 1, 0)
+        new_layout.addWidget(QLabel("Code :").setStyleSheet("color: #0f172a;"), 1, 0)
         self.fleet_code = QLineEdit()
         self.fleet_code.setPlaceholderText("Ex: FL-2024-001")
+        self.fleet_code.setStyleSheet("color: #0f172a;")
         new_layout.addWidget(self.fleet_code, 1, 1)
         
         layout.addWidget(self.new_fleet_widget)
@@ -1796,8 +1800,9 @@ class FleetImportAdvancedDialog(QDialog):
         self.existing_fleet_widget = QWidget()
         self.existing_fleet_widget.setVisible(False)
         existing_layout = QHBoxLayout(self.existing_fleet_widget)
-        existing_layout.addWidget(QLabel("Sélectionner :"))
+        existing_layout.addWidget(QLabel("Sélectionner :").setStyleSheet("color: #0f172a;"))
         self.existing_fleet_combo = QComboBox()
+        self.existing_fleet_combo.setStyleSheet("color: #0f172a;")
         existing_layout.addWidget(self.existing_fleet_combo, 1)
         layout.addWidget(self.existing_fleet_widget)
         
@@ -1811,19 +1816,21 @@ class FleetImportAdvancedDialog(QDialog):
         layout.setContentsMargins(15, 20, 15, 15)
         
         # Date début
-        layout.addWidget(QLabel("📅 Date début :"), 0, 0)
+        layout.addWidget(QLabel("📅 Date début :").setStyleSheet("color: #0f172a;"), 0, 0)
         self.date_debut = QDateEdit()
         self.date_debut.setDate(QDate.currentDate())
         self.date_debut.setCalendarPopup(True)
         self.date_debut.setDisplayFormat("dd/MM/yyyy")
+        self.date_debut.setStyleSheet("color: #0f172a;")
         layout.addWidget(self.date_debut, 0, 1)
         
         # Date fin
-        layout.addWidget(QLabel("📅 Date fin :"), 1, 0)
+        layout.addWidget(QLabel("📅 Date fin :").setStyleSheet("color: #0f172a;"), 1, 0)
         self.date_fin = QDateEdit()
         self.date_fin.setDate(QDate.currentDate().addYears(1))
         self.date_fin.setCalendarPopup(True)
         self.date_fin.setDisplayFormat("dd/MM/yyyy")
+        self.date_fin.setStyleSheet("color: #0f172a;")
         layout.addWidget(self.date_fin, 1, 1)
         
         # Séparateur
@@ -1838,7 +1845,7 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(frais_title, 3, 0, 1, 2)
         
         # Mode de calcul
-        layout.addWidget(QLabel("Mode de calcul :"), 4, 0)
+        layout.addWidget(QLabel("Mode de calcul :").setStyleSheet("color: #0f172a;"), 4, 0)
         self.frais_mode_combo = QComboBox()
         self.frais_mode_combo.addItems(["Par véhicule (unitaire)", "Global (réparti)"])
         self.frais_mode_combo.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
@@ -1851,28 +1858,28 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(self.frais_mode_info, 5, 0, 1, 2)
         
         # Accessoires
-        layout.addWidget(QLabel("Accessoires (FCFA) :"), 6, 0)
+        layout.addWidget(QLabel("Accessoires (FCFA) :").setStyleSheet("color: #0f172a;"), 6, 0)
         self.global_accessoires = QLineEdit("0")
-        self.global_accessoires.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
+        self.global_accessoires.setStyleSheet("border: 1px solid #0f172a; border-radius: 8px; padding: 6px 10px;")
         self.global_accessoires.textChanged.connect(self.on_frais_changed)
         layout.addWidget(self.global_accessoires, 6, 1)
         
         # Fichier ASAC
-        layout.addWidget(QLabel("Fichier ASAC (FCFA) :"), 7, 0)
+        layout.addWidget(QLabel("Fichier ASAC (FCFA) :").setStyleSheet("color: #0f172a;"), 7, 0)
         self.global_asac = QLineEdit("0")
         self.global_asac.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
         self.global_asac.textChanged.connect(self.on_frais_changed)
         layout.addWidget(self.global_asac, 7, 1)
         
         # Carte Rose
-        layout.addWidget(QLabel("Carte Rose (FCFA) :"), 8, 0)
+        layout.addWidget(QLabel("Carte Rose (FCFA) :").setStyleSheet("color: #0f172a;"), 8, 0)
         self.global_carte_rose = QLineEdit("0")
-        self.global_carte_rose.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
+        self.global_carte_rose.setStyleSheet("border: 1px solid #0f172a; border-radius: 8px; padding: 6px 10px;")
         self.global_carte_rose.textChanged.connect(self.on_frais_changed)
         layout.addWidget(self.global_carte_rose, 8, 1)
         
         # Vignette
-        layout.addWidget(QLabel("Vignette (FCFA) :"), 9, 0)
+        layout.addWidget(QLabel("Vignette (FCFA) :").setStyleSheet("color: #0f172a;"), 9, 0)
         self.global_vignette = QLineEdit("0")
         self.global_vignette.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
         self.global_vignette.textChanged.connect(self.on_frais_changed)
@@ -1889,7 +1896,7 @@ class FleetImportAdvancedDialog(QDialog):
             }
         """)
         preview_layout = QHBoxLayout(preview_frame)
-        self.frais_preview = QLabel("💰 Total frais: 0 FCFA (0 véhicules)")
+        self.frais_preview = QLabel("💰 Total frais: 0 FCFA (0 véhicules)").setStyleSheet("color: #0f172a;")
         self.frais_preview.setStyleSheet("color: #475569; font-size: 11px; font-weight: 500;")
         preview_layout.addWidget(self.frais_preview)
         preview_layout.addStretch()

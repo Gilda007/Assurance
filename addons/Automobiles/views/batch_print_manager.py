@@ -261,6 +261,7 @@ class BatchPrintManager(QObject):
     
     def _print_document(self, vehicle_data, doc_type):
         """Imprime un document - exécuté dans le thread principal"""
+        print(f"voici les informations liées au vehicule: {vehicle_data}")
         try:
             if doc_type == 'vignette':
                 self.controller.vehicles.print_vignette(vehicle_data, self.parent)

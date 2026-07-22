@@ -525,7 +525,8 @@ class VehicleForm(QDialog):
         try:
             d_debut = self.date_debut.date().toPython()
             d_fin = self.date_fin.date().toPython()
-            nbr_jr = max(0, (d_fin - d_debut).days)
+            nbr_jr = (max(0, (d_fin - d_debut).days)) + 1
+            
             self.nbr_jour.setText(str(nbr_jr))
             return nbr_jr / 365.0 if nbr_jr > 0 else 1
         except Exception:
