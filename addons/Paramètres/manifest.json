@@ -1,6 +1,6 @@
 {
     "name": "Gestion des Utilisateurs & S\u00e9curit\u00e9",
-    "version": "1.1.0",
+    "version": "0.0.1",
     "author": "Fearless",
     "category": "Configuration / Syst\u00e8me",
     "description": "C\u0153ur du syst\u00e8me de s\u00e9curit\u00e9. G\u00e8re les comptes employ\u00e9s, l'authentification, les r\u00f4les (RBAC) et la journalisation des connexions avec tra\u00e7abilit\u00e9 IP.",

@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
   "module_name": "Gestion d'Assurance Automobile",
-  "module_version": "1.1.3",
+  "module_version": "0.0.1",
   "certified_by": "Fearless Cybertech",
-  "certified_date": "2026-07-22T11:24:42.729730",
-  "certificate_id": "6E2B91BB88CB4D4C",
+  "certified_date": "2026-07-23T12:29:03.846562",
+  "certificate_id": "77392B762E2B14B9",
   "checksums": {
     "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "api/__init__.py": "8fa21cade95db9f34e40ce23e797513bf1673af52d78f99a599e1a1cdcfb85a2",
@@ -55,8 +55,9 @@
     "controllers/paiement_controller.py": "75d62422f1fc03fb84d1b2abfe910d67b75517dcec803c24609025bb52562fa9",
     "controllers/reports_controller.py": "e9c5343c59a03410f3421ae0049e0719b32a45c6020cf94a0d785d9cb9c314da",
     "controllers/sinistre_controller.py": "5b609359825996b49640ce8e445f64eb9b3c2cc106270254101f9719e552a969",
+    "fleet_import_avanced_dialog.py": "c28e51630f17bf8e1bafa40b0c5f40e168f537455a003c90e6773f79c6fc144b",
     "main_ui.py": "2306050f7cce3b81f03881fcdfa0d453e4cc5eb26cc21ef0717bf94a5a67b533",
-    "manifest.json": "0c754fd2fce496e03b9e519cc259d8d38557656fe6baefa6b6db6aedd2cc7c86",
+    "manifest.json": "1af6d0fdc16155a6d3543b9813c4e9a542fe3c2f24eaa63778f9c1e69ba5460f",
     "models/__init__.py": "ca397a9d0ba8fe9f6859adfbac9d55f47ba554c76852fe7661681dd8d8f932fc",
     "models/automobile_models.py": "96298e2206bb3cedcd8d8f0316f66aae17f0cd2aac16fa53a001b8ea26a57166",
     "models/automobile_tranche.py": "bc360a91b726d77a59c28710a3d4ba270c9fed8cd50315b31e905683baadd3b2",
@@ -115,7 +116,7 @@
     "views/expertise/expertise_form_view.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "views/expertise/expertise_list_view.py": "27fcc761058e7848245659934f2f08770632d75fc66c10be9be4f50377e02078",
     "views/fleet_batch_print_manager.py": "8541e0300844efc4151f65cfa09f0bcf94fac2238fecbb7bbee0a45eb003766c",
-    "views/fleet_import_avanced_dialog.py": "6d64d1ec388feec2eff56be41d7b71f77a94343ef7773e80e510934b889596c6",
+    "views/fleet_import_avanced_dialog.py": "afd16a497803b0e31f75f81770d6c9f5bcbd60373615f9b22ec577fa32c8cd62",
     "views/fleet_import_dialog.py": "4c51b12c4d30e60de24428f7f595cd447e01a14cd65b7c26575ec5f4d9595e8b",
     "views/fleet_vehicles_manager.py": "a390082d36dfd8dc5b4085f0241f4b31c1e94bef260c3c0bb036ee79f7f6d2b3",
     "views/flotte_detail_view.py": "7494c62d60e8c930be34dd7baf863d0a922fee78ab9fb92398aabc88a0dd2506",
@@ -144,7 +145,7 @@
     "views/vignette_printer.py": "b5a1019f96871921d05d238db5df090485e7250e1720bec4678d68a51c035c64",
     "views/widgets/modern_card.py": "649193cebf797982eb91f1c13c2ffbf826dc7727a6dbd2adcd0caed93fb0b9ea"
   },
-  "signature": "072f33ec0497251bc3bc313e2dff5d956baad59abc192944a5c40b75235d0064",
+  "signature": "3238154117209bb8b1d7a392525970eaaf341f95aab7e450853ce9dc82074aa7",
   "public_key": "b84fbbd462bbe1a04e0fa0374cf0d3bfd1c9961c050a25301a0f8c2653c3ae28",
   "certificate_chain": [],
   "metadata": {}

@@ -42,6 +42,7 @@ from update_client import UpdateClient
 from update_widget import UpdateWidget
 from core.widgets.global_loader import get_global_loader
 from core.local_db import cache
+from module_detector import ModuleDetector
 # import addons.Automobiles.models as models
 
 
@@ -1734,12 +1735,28 @@ class MainWindow(QMainWindow):
         self.heartbeat_timer.start(10000)  # Heartbeat toutes les 10 secondes au lieu de 5
         
         # Envoyer un premier heartbeat immédiatement
+        self.module_detector = ModuleDetector()
+        installed = self.module_detector.get_installed_modules()
+        print(f"📦 {len(installed)} module(s) installé(s) détecté(s)")
+        for mod_id, info in installed.items():
+            print(f"   - {mod_id} v{info['version']}")
         self.update_heartbeat()
 
     def update_heartbeat(self):
         """Met à jour le heartbeat du watchdog"""
         if hasattr(self, 'watchdog'):
             self.watchdog.heartbeat()
+
+    def manual_update_check(self):
+        """Vérification manuelle des mises à jour"""
+        # Afficher d'abord les modules installés
+        installed = self.module_detector.get_installed_modules()
+        installed_list = "\n".join([f"  • {info['name']} v{info['version']}" for info in installed.values()])
+        
+        if installed:
+            self.statusBar().showMessage(f"📦 {len(installed)} module(s) installé(s) - Vérification des mises à jour...", 3000)
+        
+        self.update_manager.check_updates_manual()
 
     def on_application_frozen(self):
         """Appelé quand l'application est gelée"""
@@ -2249,11 +2266,269 @@ class MainWindow(QMainWindow):
         """Lance la vérification"""
         self.module_checker.check()
     
+    # def show_update_dialog(self, modules):
+    #     """Affiche le dialogue des modules disponibles"""
+    #     print(f"📦 {len(modules)} module(s) disponible(s)")
+    #     dialog = UpdateWidget(modules, self)
+    #     dialog.exec()
+
+    def _filter_installed_modules(self, modules):
+        """
+        Filtre la liste des modules pour ne garder que ceux qui sont installés
+        et qui ont une version plus récente.
+        """
+        if not modules:
+            return []
+        
+        # Si modules est un dictionnaire, le convertir en liste
+        if isinstance(modules, dict):
+            modules = list(modules.values())
+        
+        if not isinstance(modules, list):
+            return []
+        
+        filtered = []
+        for module in modules:
+            module_id = module.get('id')
+            if not module_id:
+                continue
+            
+            # Vérifier si le module est installé
+            installed_version = self.module_detector.get_module_version(module_id)
+            
+            if installed_version is None:
+                # Module non installé - ignorer
+                print(f"⏭️ Module ignoré (non installé) : {module_id}")
+                continue
+            
+            # Récupérer la version du serveur
+            server_version = module.get('version', '0.0.0')
+            
+            # Comparer les versions
+            if self._is_newer_version(server_version, installed_version):
+                # Ajouter la version actuelle pour l'affichage
+                module['current_version'] = installed_version
+                filtered.append(module)
+                print(f"📌 Mise à jour : {module_id} ({installed_version} → {server_version})")
+            else:
+                print(f"✅ Module déjà à jour : {module_id} ({installed_version})")
+        
+        return filtered
+
+    # def show_update_dialog(self, modules):
+    #     """
+    #     Affiche le dialogue des modules disponibles.
+    #     Filtre pour ne montrer que les modules installés.
+    #     """
+    #     print(f"📦 {len(modules)} module(s) disponible(s) sur le serveur")
+        
+    #     # Si modules est un dictionnaire, le convertir en liste
+    #     if isinstance(modules, dict):
+    #         modules = list(modules.values())
+        
+    #     if not modules:
+    #         QMessageBox.information(self, "Mise à jour", "Aucun module disponible sur le serveur.")
+    #         return
+        
+    #     # ✅ Récupérer la liste des modules installés
+    #     installed_modules = self.module_detector.get_installed_modules()
+    #     installed_ids = set(installed_modules.keys())
+    #     print(f"📦 Modules installés détectés : {', '.join(installed_ids)}")
+        
+    #     # ✅ Filtrer : ne garder que les modules présents sur le serveur ET installés localement
+    #     filtered_modules = []
+        
+    #     for module in modules:
+    #         module_id = module.get('id')
+    #         if not module_id:
+    #             continue
+            
+    #         print(f"🔍 Vérification du module serveur : {module_id}")
+            
+    #         # Vérifier si le module est installé
+    #         if module_id in installed_ids:
+    #             installed_version = installed_modules[module_id]['version']
+    #             server_version = module.get('version', '0.0.0')
+                
+    #             # Ajouter la version actuelle
+    #             module['current_version'] = installed_version
+    #             module['is_installed'] = True
+                
+    #             # Vérifier si une mise à jour est disponible
+    #             if self._is_newer_version(server_version, installed_version):
+    #                 filtered_modules.append(module)
+    #                 print(f"   📌 Mise à jour disponible : {module_id} ({installed_version} → {server_version})")
+    #             else:
+    #                 print(f"   ✅ Module déjà à jour : {module_id} ({installed_version})")
+    #         else:
+    #             print(f"   ⏭️ Module non installé : {module_id}")
+        
+    #     if not filtered_modules:
+    #         # ✅ Afficher un message plus précis
+    #         QMessageBox.information(
+    #             self, 
+    #             "Mise à jour", 
+    #             "✅ Tous vos modules sont à jour.\n\n"
+    #             f"📦 {len(modules)} module(s) disponible(s) sur le serveur.\n"
+    #             f"📦 {len(installed_ids)} module(s) installé(s) sur votre poste.\n\n"
+    #             f"Aucun module installé ne nécessite de mise à jour."
+    #         )
+    #         return
+        
+    #     print(f"   ✅ {len(filtered_modules)} module(s) à mettre à jour")
+        
+    #     # Convertir en dictionnaire pour UpdateWidget
+    #     modules_dict = {}
+    #     for module in filtered_modules:
+    #         module_id = module.get('id')
+    #         modules_dict[module_id] = module
+        
+    #     dialog = UpdateWidget(modules_dict, self)
+    #     dialog.exec()
+    
     def show_update_dialog(self, modules):
-        """Affiche le dialogue des modules disponibles"""
-        print(f"📦 {len(modules)} module(s) disponible(s)")
-        dialog = UpdateWidget(modules, self)
+        """
+        Affiche le dialogue des modules disponibles.
+        """
+        print(f"📦 {len(modules)} module(s) disponible(s) sur le serveur")
+        
+        # Si modules est un dictionnaire, le convertir en liste
+        if isinstance(modules, dict):
+            modules = list(modules.values())
+        
+        if not modules:
+            QMessageBox.information(self, "Mise à jour", "Aucun module disponible sur le serveur.")
+            return
+        
+        # Récupérer la liste des modules installés
+        installed_modules = self.module_detector.get_installed_modules()
+        installed_ids = set(installed_modules.keys())
+        print(f"📦 Modules installés détectés : {', '.join(installed_ids)}")
+        
+        # Filtrer : ne garder que les modules présents sur le serveur ET installés localement
+        filtered_modules = []
+        
+        for module in modules:
+            # ✅ Vérifier que module est bien un dictionnaire
+            if not isinstance(module, dict):
+                print(f"⚠️ Module ignoré (pas un dict) : {module}")
+                continue
+            
+            module_id = module.get('id')
+            if not module_id:
+                print(f"⚠️ Module sans identifiant : {module}")
+                continue
+            
+            print(f"🔍 Vérification du module serveur : {module_id}")
+            
+            # Vérifier si le module est installé
+            if module_id in installed_ids:
+                installed_version = installed_modules[module_id]['version']
+                server_version = module.get('version', '0.0.0')
+                
+                # Ajouter la version actuelle
+                module['current_version'] = installed_version
+                module['is_installed'] = True
+                
+                # Vérifier si une mise à jour est disponible
+                if self._is_newer_version(server_version, installed_version):
+                    filtered_modules.append(module)
+                    print(f"   📌 Mise à jour disponible : {module_id} ({installed_version} → {server_version})")
+                else:
+                    print(f"   ✅ Module déjà à jour : {module_id} ({installed_version})")
+            else:
+                print(f"   ⏭️ Module non installé : {module_id}")
+        
+        if not filtered_modules:
+            QMessageBox.information(
+                self, 
+                "Mise à jour", 
+                "✅ Tous vos modules sont à jour.\n\n"
+                f"📦 {len(modules)} module(s) disponible(s) sur le serveur.\n"
+                f"📦 {len(installed_ids)} module(s) installé(s) sur votre poste.\n\n"
+                f"Aucun module installé ne nécessite de mise à jour."
+            )
+            return
+        
+        print(f"   ✅ {len(filtered_modules)} module(s) à mettre à jour")
+        
+        # ✅ CONSTRUIRE LE DICTIONNAIRE CORRECTEMENT
+        # Chaque valeur doit être un dictionnaire avec les informations du module
+        modules_dict = {}
+        for module in filtered_modules:
+            module_id = module.get('id')
+            if module_id:
+                modules_dict[module_id] = module
+        
+        # ✅ Vérifier que le dictionnaire est bien formé avant de l'envoyer
+        print(f"📦 Modules à mettre à jour : {list(modules_dict.keys())}")
+        
+        dialog = UpdateWidget(modules_dict, self)
         dialog.exec()
+
+    def _is_newer_version(self, server_version, local_version):
+        """Compare deux versions sémantiques"""
+        try:
+            server_parts = [int(x) for x in str(server_version).split('.')]
+            local_parts = [int(x) for x in str(local_version).split('.')]
+            
+            while len(server_parts) < 3:
+                server_parts.append(0)
+            while len(local_parts) < 3:
+                local_parts.append(0)
+            
+            return server_parts > local_parts
+        except (ValueError, AttributeError):
+            return server_version != local_version
+    
+    # def show_update_dialog(self, modules):
+    #     """
+    #     Affiche le dialogue des modules disponibles.
+    #     Filtre pour ne montrer que les modules installés.
+    #     """
+    #     print(f"📦 {len(modules)} module(s) disponible(s) sur le serveur")
+        
+    #     # ✅ APPLIQUER LE FILTRE : ne garder que les modules installés
+    #     filtered_modules = self._filter_installed_modules(modules)
+        
+    #     if not filtered_modules:
+    #         QMessageBox.information(
+    #             self, 
+    #             "Mise à jour", 
+    #             "✅ Aucun module installé ne nécessite de mise à jour.\n\n"
+    #             f"📦 {len(modules)} module(s) disponible(s) sur le serveur, "
+    #             "mais aucun n'est installé sur votre poste."
+    #         )
+    #         return
+        
+    #     print(f"   ✅ {len(filtered_modules)} module(s) installé(s) avec mise à jour disponible")
+        
+    #     # Normaliser le format pour UpdateWidget
+    #     if isinstance(filtered_modules, list):
+    #         # Si c'est une liste, la convertir en dictionnaire pour UpdateWidget
+    #         modules_dict = {}
+    #         for module in filtered_modules:
+    #             module_id = module.get('id', module.get('name'))
+    #             modules_dict[module_id] = module
+    #         filtered_modules = modules_dict
+        
+    #     dialog = UpdateWidget(filtered_modules, self)
+    #     dialog.exec()
+
+    # def _is_newer_version(self, server_version, local_version):
+    #     """Compare deux versions sémantiques"""
+    #     try:
+    #         server_parts = [int(x) for x in str(server_version).split('.')]
+    #         local_parts = [int(x) for x in str(local_version).split('.')]
+            
+    #         while len(server_parts) < 3:
+    #             server_parts.append(0)
+    #         while len(local_parts) < 3:
+    #             local_parts.append(0)
+            
+    #         return server_parts > local_parts
+    #     except (ValueError, AttributeError):
+    #         return server_version != local_version
 
 class AppController:
     """Contrôleur principal"""

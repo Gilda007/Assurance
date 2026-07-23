@@ -205,6 +205,19 @@ class ModuleCard(QFrame):
         #    date_label.setStyleSheet("font-size: 11px; color: #94a3b8;")
         #    meta_layout.addWidget(date_label)
             pass
+
+        version_label = QLabel(
+            f"v{self.module.get('current_version', '0.0.0')} → "
+            f"v{self.module.get('version', '1.0.0')}"
+        )
+        version_label.setStyleSheet("""
+            font-size: 11px;
+            font-weight: 600;
+            color: #6366f1;
+            background: #eef2ff;
+            padding: 2px 8px;
+            border-radius: 12px;
+        """)
         
         meta_layout.addStretch()
         info_layout.addLayout(meta_layout)
@@ -258,7 +271,7 @@ class UpdateWidget(QDialog):
     
     def __init__(self, modules, parent=None):
         super().__init__(parent)
-        self.modules = modules
+        self.modules = self._normalize_modules(modules)
         self.client = UpdateClient()
         self.threads = []
         self.module_cards = []
@@ -292,6 +305,84 @@ class UpdateWidget(QDialog):
         
         self.setup_ui()
         self.load_modules()
+
+    def _normalize_modules(self, modules):
+        """
+        Normalise le format des modules en une liste de dictionnaires.
+        Accepte tous les formats : dict, list, list de strings, etc.
+        """
+        if modules is None:
+            return []
+        
+        # Cas 1 : C'est déjà une liste de dictionnaires
+        if isinstance(modules, list):
+            normalized = []
+            for item in modules:
+                if isinstance(item, dict):
+                    # S'assurer que les clés nécessaires sont présentes
+                    if 'current_version' not in item:
+                        item['current_version'] = item.get('version', '0.0.0')
+                    normalized.append(item)
+                elif isinstance(item, str):
+                    # Cas 2 : C'est une liste de strings
+                    normalized.append({
+                        'id': item,
+                        'name': item,
+                        'version': '1.0.0',
+                        'current_version': '0.0.0',
+                        'size_mb': 0,
+                        'filename': f"{item}.zip"
+                    })
+                else:
+                    print(f"⚠️ Type inattendu dans la liste : {type(item)}")
+            return normalized
+        
+        # Cas 3 : C'est un dictionnaire {id: info}
+        if isinstance(modules, dict):
+            normalized = []
+            for key, value in modules.items():
+                if isinstance(value, dict):
+                    # S'assurer que l'ID est présent
+                    if 'id' not in value:
+                        value['id'] = key
+                    if 'current_version' not in value:
+                        value['current_version'] = value.get('version', '0.0.0')
+                    normalized.append(value)
+                elif isinstance(value, str):
+                    # Cas 4 : Dictionnaire {id: "nom"}
+                    normalized.append({
+                        'id': key,
+                        'name': value,
+                        'version': '1.0.0',
+                        'current_version': '0.0.0',
+                        'size_mb': 0,
+                        'filename': f"{key}.zip"
+                    })
+                else:
+                    # Cas 5 : Dictionnaire avec des valeurs inattendues
+                    normalized.append({
+                        'id': key,
+                        'name': str(key),
+                        'version': '1.0.0',
+                        'current_version': '0.0.0',
+                        'size_mb': 0,
+                        'filename': f"{key}.zip"
+                    })
+            return normalized
+        
+        # Cas 6 : Autre type (string simple, etc.)
+        print(f"⚠️ Type de modules inattendu : {type(modules)}")
+        if isinstance(modules, str):
+            return [{
+                'id': modules,
+                'name': modules,
+                'version': '1.0.0',
+                'current_version': '0.0.0',
+                'size_mb': 0,
+                'filename': f"{modules}.zip"
+            }]
+        
+        return []
     
     def setup_ui(self):
         """Configure l'interface principale - Design sobre et professionnel"""
@@ -600,13 +691,46 @@ class UpdateWidget(QDialog):
         
         self.download_btn.setEnabled(False)
     
+    # def load_modules(self):
+    #     """Charge la liste des modules disponibles"""
+    #     for module in self.modules:
+    #         card = ModuleCard(module)
+    #         card.selection_changed.connect(self.on_selection_changed)
+    #         self.modules_layout.addWidget(card)
+    #         self.module_cards.append(card)
+        
+    #     self.modules_layout.addStretch()
+    #     self.update_button_state()
+
     def load_modules(self):
         """Charge la liste des modules disponibles"""
-        for module in self.modules:
-            card = ModuleCard(module)
-            card.selection_changed.connect(self.on_selection_changed)
-            self.modules_layout.addWidget(card)
-            self.module_cards.append(card)
+        
+        # ✅ Vérifier le type de self.modules
+        if isinstance(self.modules, list):
+            # C'est une liste de modules
+            for module in self.modules:
+                # S'assurer que current_version est présent
+                if 'current_version' not in module:
+                    module['current_version'] = module.get('version', '0.0.0')
+                card = ModuleCard(module)
+                card.selection_changed.connect(self.on_selection_changed)
+                self.modules_layout.addWidget(card)
+                self.module_cards.append(card)
+        
+        elif isinstance(self.modules, dict):
+            # C'est un dictionnaire {id: info}
+            for module_id, module_info in self.modules.items():
+                if 'current_version' not in module_info:
+                    module_info['current_version'] = module_info.get('version', '0.0.0')
+                card = ModuleCard(module_info)
+                card.selection_changed.connect(self.on_selection_changed)
+                self.modules_layout.addWidget(card)
+                self.module_cards.append(card)
+        
+        else:
+            # Type inattendu
+            print(f"⚠️ Type de modules inattendu: {type(self.modules)}")
+            return
         
         self.modules_layout.addStretch()
         self.update_button_state()
@@ -619,40 +743,6 @@ class UpdateWidget(QDialog):
         """Met à jour l'état du bouton de téléchargement"""
         has_selection = any(card.is_checked() for card in self.module_cards)
         self.download_btn.setEnabled(has_selection)
-    
-    # def download_selected(self):
-    #     """Lance le processus de téléchargement/installation des modules cochés"""
-    #     self.selected_modules = []
-    #     for card, checkbox, module in self.module_cards:
-    #         if checkbox.isChecked():
-    #             self.selected_modules.append((card, module))
-                
-    #     if not self.selected_modules:
-    #         QMessageBox.warning(self, "Attention", "Veuillez sélectionner au moins un module.")
-    #         return
-            
-    #     # --- NOUVEAU : SELECTION DU DOSSIER CIBLE ---
-    #     from PySide6.QtWidgets import QFileDialog
-    #     dir_path = QFileDialog.getExistingDirectory(
-    #         self, 
-    #         "Sélectionner le dossier dans lequel faire l'installation de la sélection",
-    #         "", 
-    #         QFileDialog.ShowDirsOnly | QFileDialog.DontResolveSymlinks
-    #     )
-        
-    #     if not dir_path:
-    #         return  # L'utilisateur a annulé l'explorateur, on arrête proprement sans crash
-            
-    #     self.install_paths = dir_path  # On applique le dossier choisi à l'installation
-    #     # --------------------------------------------
-        
-    #     # Préparation de l'UI pour la progression
-    #     self.current_index = 0
-    #     self.progress_bar.setValue(0)
-    #     self.progress_bar.setVisible(True)
-    #     self.cancel_btn.setEnabled(False)
-        
-    #     self.install_next()
 
     def download_selected(self):
         """Lance le processus de téléchargement/installation des modules cochés"""

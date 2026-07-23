@@ -1,17 +1,17 @@
 {
   "version": "1.0.0",
   "module_name": "Gestion des Utilisateurs & S\u00e9curit\u00e9",
-  "module_version": "1.1.0",
+  "module_version": "0.0.1",
   "certified_by": "Fearless Cybertech",
-  "certified_date": "2026-07-13T10:20:00.248115",
-  "certificate_id": "E0087F2A89AA136E",
+  "certified_date": "2026-07-23T12:28:59.594048",
+  "certificate_id": "BEF65558F75272F3",
   "checksums": {
     "controllers/controller.py": "d177d8a7425ddd8f3f74eb43d4464a706a44f6d1ffd67ff6703de6a8bd78e2fb",
     "controllers/login_controller.py": "e67fe90060538d1bfb5bc99a2828a11063ced59382fd6f4c3fe74ec473cf64a8",
     "controllers/module_controller.py": "2ab74aea94ffbe4df697ba5b48787b45ea046d9173a776a306b69ed29e979db6",
     "controllers/setup_controller.py": "3f1e76931f1b63c8ff430ba07f3adb35828fb33dd825d1c23070c2b5e9255e3d",
     "main_ui.py": "d6a9992e901cdf8fd1f7fb91756eaae07834ba65f4f2f484b81e3011f027047e",
-    "manifest.json": "5e813f8a27dd4b8b73c32e5f8607793a20a5f2be1c59c5e68e9ee7d07c7a8a11",
+    "manifest.json": "062c61c5344e257d17c281f3b7d7e66c6512d9cbe1e8c3be83d74f9662f788c4",
     "models/models.py": "b0693d43cf2a084725dce63cbbf9f698e912569e90ee641421b726190309b391",
     "reports/audit_exporter.py": "6433e47782101db80dec15d0e92cfa65e998352d04f8dc8b0fdab854777ece67",
     "security/access_control.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -36,7 +36,7 @@
     "views/user_list_view.py": "f003473f4658145714617c8f73f9bbe815f517d3393960c40fccf998e5674076",
     "views/views.py": "2cac857cb10559f4d0f5e79522faa45787da1cd7bb28504591bee51b907b4a38"
   },
-  "signature": "e1066c9dbdd4714ce6211420612518d9a18ee101197c54c84c37f2db1414ca2e",
+  "signature": "c6f6cd4ec59cafe6ef54bf7e37337cc1ccc6e6ba3678d137c8546662d07c8535",
   "public_key": "b84fbbd462bbe1a04e0fa0374cf0d3bfd1c9961c050a25301a0f8c2653c3ae28",
   "certificate_chain": [],
   "metadata": {}
