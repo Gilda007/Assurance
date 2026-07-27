@@ -1,10 +1,11 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "module_name": "Gestion d'Assurance Automobile",
   "module_version": "0.0.1",
   "certified_by": "Fearless Cybertech",
-  "certified_date": "2026-07-23T12:29:03.846562",
-  "certificate_id": "77392B762E2B14B9",
+  "certified_date": "2026-07-24T10:46:19.062261",
+  "expiry_date": "2026-08-23T10:46:19.127659",
+  "certificate_id": "20BFAD1A9A05A625",
   "checksums": {
     "__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "api/__init__.py": "8fa21cade95db9f34e40ce23e797513bf1673af52d78f99a599e1a1cdcfb85a2",
@@ -145,8 +146,11 @@
     "views/vignette_printer.py": "b5a1019f96871921d05d238db5df090485e7250e1720bec4678d68a51c035c64",
     "views/widgets/modern_card.py": "649193cebf797982eb91f1c13c2ffbf826dc7727a6dbd2adcd0caed93fb0b9ea"
   },
-  "signature": "3238154117209bb8b1d7a392525970eaaf341f95aab7e450853ce9dc82074aa7",
+  "signature": "08d577f93453de926fb4a6654b6f6b3efe563371da10ee2f04b8b319afed4aca",
   "public_key": "b84fbbd462bbe1a04e0fa0374cf0d3bfd1c9961c050a25301a0f8c2653c3ae28",
+  "signature_algorithm": "HMAC-SHA256",
   "certificate_chain": [],
-  "metadata": {}
+  "metadata": {},
+  "validity_days": 30,
+  "machine_id": "5D951CB4860A142F"
 }

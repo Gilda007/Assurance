@@ -1,10 +1,11 @@
 {
-  "version": "1.0.0",
+  "version": "2.0.0",
   "module_name": "Gestion des Utilisateurs & S\u00e9curit\u00e9",
   "module_version": "0.0.1",
   "certified_by": "Fearless Cybertech",
-  "certified_date": "2026-07-23T12:28:59.594048",
-  "certificate_id": "BEF65558F75272F3",
+  "certified_date": "2026-07-23T14:54:20.473944",
+  "expiry_date": "2026-08-22T14:54:20.492742",
+  "certificate_id": "D19E622FC83EE39E",
   "checksums": {
     "controllers/controller.py": "d177d8a7425ddd8f3f74eb43d4464a706a44f6d1ffd67ff6703de6a8bd78e2fb",
     "controllers/login_controller.py": "e67fe90060538d1bfb5bc99a2828a11063ced59382fd6f4c3fe74ec473cf64a8",
@@ -36,8 +37,11 @@
     "views/user_list_view.py": "f003473f4658145714617c8f73f9bbe815f517d3393960c40fccf998e5674076",
     "views/views.py": "2cac857cb10559f4d0f5e79522faa45787da1cd7bb28504591bee51b907b4a38"
   },
-  "signature": "c6f6cd4ec59cafe6ef54bf7e37337cc1ccc6e6ba3678d137c8546662d07c8535",
+  "signature": "8ce5945336d71d4e83bf8a63f4ccd8d97bc99a767db1d60806b13d133c3c46dd",
   "public_key": "b84fbbd462bbe1a04e0fa0374cf0d3bfd1c9961c050a25301a0f8c2653c3ae28",
+  "signature_algorithm": "HMAC-SHA256",
   "certificate_chain": [],
-  "metadata": {}
+  "metadata": {},
+  "validity_days": 30,
+  "machine_id": "582B00D85FAC6C30"
 }

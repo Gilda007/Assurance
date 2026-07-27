@@ -1,0 +1,7 @@
+{
+  "key_name": "lometa_master",
+  "public_key": "1a97ce5bcbdaf35075fcd7c2832a52f377997abcee443ef92eb7a3730cf86b36",
+  "type": "shared_public_key",
+  "created_at": "2026-07-23T14:45:24.513294",
+  "instructions": "Placez ce fichier dans ~/.lometa/certificates/ sur chaque machine"
+}

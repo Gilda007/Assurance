@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, 
                                QGraphicsDropShadowEffect, QGridLayout, QTableWidget, 
                                QTableWidgetItem, QHeaderView, QLineEdit, QProgressBar,
                                QStatusBar, QMenu, QMessageBox, QComboBox, QScrollArea,
-                               QSplitter)
+                               QSplitter, QGraphicsOpacityEffect)
 from PySide6.QtCore import Q_ARG, QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QEvent, QMetaObject, QThread
 from PySide6.QtGui import QFont, QColor, QKeySequence, QShortcut, QPainter
 from core.database import SessionLocal, engine, Base, init_db
@@ -160,6 +160,259 @@ def safe_slot(func):
     return wrapper
 
 # main.py - Ajoutez cette classe après les imports
+
+# main.py - Ajouter après les imports
+
+class CertificateToast(QFrame):
+    """Notification toast moderne pour les certificats"""
+    
+    def __init__(self, statuses, parent=None):
+        super().__init__(parent)
+        self.statuses = statuses
+        self.setup_ui()
+        self.setup_animation()
+    
+    def setup_ui(self):
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        # Compter les statuts
+        self.valid_count = sum(1 for s in self.statuses if s.get('status') == 'valid')
+        self.expiring_count = sum(1 for s in self.statuses if s.get('status') == 'expiring')
+        self.expired_count = sum(1 for s in self.statuses if s.get('status') == 'expired')
+        self.no_cert_count = sum(1 for s in self.statuses if s.get('status') == 'no_certificate')
+        
+        # Couleur principale
+        if self.expired_count > 0:
+            self.main_color = "#ef4444"  # Rouge
+            self.icon = "❌"
+        elif self.expiring_count > 0:
+            self.main_color = "#f59e0b"  # Orange
+            self.icon = "⚠️"
+        elif self.no_cert_count > 0:
+            self.main_color = "#f59e0b"  # Orange
+            self.icon = "⚠️"
+        else:
+            self.main_color = "#10b981"  # Vert
+            self.icon = "✅"
+        
+        # Widget principal
+        self.container = QFrame()
+        self.container.setObjectName("ToastContainer")
+        self.container.setStyleSheet(f"""
+            QFrame#ToastContainer {{
+                background: #1e293b;
+                border-radius: 16px;
+                border: 1px solid rgba(255,255,255,0.1);
+            }}
+        """)
+        
+        # Ombre
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(30)
+        shadow.setColor(QColor(0, 0, 0, 150))
+        shadow.setOffset(0, 8)
+        self.container.setGraphicsEffect(shadow)
+        
+        layout = QVBoxLayout(self.container)
+        layout.setContentsMargins(20, 16, 20, 16)
+        layout.setSpacing(12)
+        
+        # ========== EN-TÊTE ==========
+        header_layout = QHBoxLayout()
+        header_layout.setSpacing(12)
+        
+        # Icône
+        icon_label = QLabel(self.icon)
+        icon_label.setStyleSheet(f"font-size: 24px; background: transparent;")
+        header_layout.addWidget(icon_label)
+        
+        # Titre
+        if self.expired_count > 0:
+            title = f"⚠️ {self.expired_count} certificat(s) expiré(s)"
+        elif self.expiring_count > 0:
+            title = f"🔔 {self.expiring_count} certificat(s) vont expirer"
+        elif self.no_cert_count > 0:
+            title = f"⚠️ {self.no_cert_count} module(s) sans certificat"
+        else:
+            title = "✅ Tous les certificats sont valides"
+        
+        title_label = QLabel(title)
+        title_label.setStyleSheet("""
+            color: white;
+            font-size: 15px;
+            font-weight: 700;
+            background: transparent;
+        """)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        
+        # Bouton fermer
+        close_btn = QPushButton("✕")
+        close_btn.setFixedSize(28, 28)
+        close_btn.setCursor(Qt.PointingHandCursor)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background: rgba(255,255,255,0.1);
+                border: none;
+                border-radius: 14px;
+                color: #94a3b8;
+                font-size: 13px;
+            }
+            QPushButton:hover {
+                background: rgba(255,255,255,0.2);
+                color: white;
+            }
+        """)
+        close_btn.clicked.connect(self.close_animation)
+        header_layout.addWidget(close_btn)
+        
+        layout.addLayout(header_layout)
+        
+        # ========== DÉTAILS ==========
+        details_layout = QVBoxLayout()
+        details_layout.setSpacing(6)
+        
+        # Résumé
+        summary_parts = []
+        if self.valid_count > 0:
+            summary_parts.append(f"✅ {self.valid_count} valide(s)")
+        if self.expiring_count > 0:
+            summary_parts.append(f"⚠️ {self.expiring_count} bientôt expiré(s)")
+        if self.expired_count > 0:
+            summary_parts.append(f"❌ {self.expired_count} expiré(s)")
+        if self.no_cert_count > 0:
+            summary_parts.append(f"📭 {self.no_cert_count} sans certificat")
+        
+        summary_label = QLabel(" · ".join(summary_parts))
+        summary_label.setStyleSheet("""
+            color: #94a3b8;
+            font-size: 12px;
+            background: transparent;
+        """)
+        details_layout.addWidget(summary_label)
+        
+        # Détails des modules expirants/expirés
+        if self.expiring_count > 0 or self.expired_count > 0:
+            detail_text = ""
+            for status in self.statuses:
+                if status.get('status') in ['expiring', 'expired']:
+                    name = status.get('module_name', 'Inconnu')
+                    days = status.get('remaining_days', 0)
+                    expiry = status.get('expiry_date', 'Date inconnue')
+                    if status.get('status') == 'expired':
+                        detail_text += f"   ❌ {name} (expiré le {expiry})\n"
+                    else:
+                        detail_text += f"   ⚠️ {name} (expire dans {days} jours)\n"
+            
+            if detail_text:
+                detail_label = QLabel(detail_text)
+                detail_label.setStyleSheet("""
+                    color: #cbd5e1;
+                    font-size: 12px;
+                    background: transparent;
+                    padding: 6px 10px;
+                    border-radius: 8px;
+                    background: rgba(255,255,255,0.05);
+                """)
+                details_layout.addWidget(detail_label)
+        
+        layout.addLayout(details_layout)
+        
+        # ========== BOUTON ACTION ==========
+        if self.expired_count > 0 or self.expiring_count > 0:
+            action_btn = QPushButton("🔄 Contacter l'administrateur")
+            action_btn.setCursor(Qt.PointingHandCursor)
+            action_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: {self.main_color};
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    padding: 8px 16px;
+                    font-weight: 600;
+                    font-size: 12px;
+                }}
+                QPushButton:hover {{
+                    background: {self.main_color}dd;
+                }}
+            """)
+            action_btn.clicked.connect(self.on_action_clicked)
+            layout.addWidget(action_btn)
+        
+        # Layout principal
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(self.container)
+        
+        # Ajuster la taille
+        self.setFixedSize(self.container.sizeHint())
+    
+    def setup_animation(self):
+        """Configure l'animation d'entrée/sortie"""
+        # Animation d'opacité
+        self.opacity_effect = QGraphicsOpacityEffect()
+        self.setGraphicsEffect(self.opacity_effect)
+        
+        # Animation d'entrée
+        self.enter_animation = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.enter_animation.setDuration(400)
+        self.enter_animation.setStartValue(0)
+        self.enter_animation.setEndValue(1)
+        self.enter_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        
+        # Animation de sortie
+        self.exit_animation = QPropertyAnimation(self.opacity_effect, b"opacity")
+        self.exit_animation.setDuration(300)
+        self.exit_animation.setStartValue(1)
+        self.exit_animation.setEndValue(0)
+        self.exit_animation.setEasingCurve(QEasingCurve.Type.InCubic)
+        self.exit_animation.finished.connect(self.deleteLater)
+    
+    def show_toast(self):
+        """Affiche la notification avec animation"""
+        # Positionner en bas à droite
+        parent = self.parent()
+        if parent:
+            self.move(
+                parent.width() - self.width() - 30,
+                parent.height() - self.height() - 30
+            )
+        
+        self.show()
+        self.raise_()
+        self.enter_animation.start()
+        
+        # Auto-disparition après 10 secondes (sauf si expiré)
+        if self.expired_count == 0:
+            QTimer.singleShot(10000, self.close_animation)
+    
+    def close_animation(self):
+        """Ferme la notification avec animation"""
+        self.exit_animation.start()
+    
+    def on_action_clicked(self):
+        """Gère le clic sur le bouton d'action"""
+        from PySide6.QtWidgets import QMessageBox
+        
+        # Ouvrir une boîte de dialogue avec les détails
+        details = "\n".join([
+            f"• {s.get('module_name')}: {s.get('status')} - {s.get('message', '')}"
+            for s in self.statuses
+            if s.get('status') in ['expiring', 'expired', 'error']
+        ])
+        
+        QMessageBox.information(
+            self,
+            "📋 Détails des certificats",
+            f"Statut des certificats :\n\n{details}\n\n"
+            f"📅 Total : {len(self.statuses)} module(s)\n"
+            f"✅ Valides : {self.valid_count}\n"
+            f"⚠️ Bientôt expirés : {self.expiring_count}\n"
+            f"❌ Expirés : {self.expired_count}\n\n"
+            f"Veuillez contacter l'administrateur pour renouveler les certificats."
+        )
+        self.close_animation()
 
 class Watchdog(QThread):
     """Thread de surveillance pour redémarrer l'application en cas de plantage"""
@@ -1702,12 +1955,16 @@ class MainWindow(QMainWindow):
         self.loader = get_global_loader()
         self.loader.setParent(self)
         self.init_modules()
+        QTimer.singleShot(1000, self.show_certificate_status_in_statusbar)
         cache_stats = cache.get_stats()
         print(f"📊 Cache local: {cache_stats.get('total_entries', 0)} entrées, {cache_stats.get('db_size_mb', 0)} MB")
         self.setup_shortcuts()
         self.check_environment()
         self.session_token = self._get_user_session_token()
         print(f"🔑 Token de session récupéré: {self.session_token is not None}")
+
+        QTimer.singleShot(500, lambda: self._display_certificate_notification(self.loader.last_certificate_status))
+        QTimer.singleShot(1000, self.update_notification_badge)
         
         # NOUVEAU : Passer le token au ModuleChecker
         self.module_checker = ModuleChecker(session_token=self.session_token)
@@ -1954,6 +2211,44 @@ class MainWindow(QMainWindow):
         """)
         self.notif_btn.clicked.connect(self.show_notifications)
         header_layout.addWidget(self.notif_btn)
+
+        # ✅ Bouton notifications avec badge
+        self.certificate_btn = QPushButton("🔔")
+        self.certificate_btn.setFixedSize(40, 40)
+        self.certificate_btn.setCursor(Qt.PointingHandCursor)
+        self.certificate_btn.setToolTip("Notifications des certificats")
+        self.certificate_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                font-size: 20px;
+                border-radius: 12px;
+                position: relative;
+            }
+            QPushButton:hover {
+                background: rgba(0,0,0,0.05);
+            }
+        """)
+        self.certificate_btn.clicked.connect(self.show_certificate_notifications)
+        header_layout.addWidget(self.certificate_btn)
+
+        self.notif_badge = QLabel()
+        self.notif_badge.setFixedSize(20, 20)
+        self.notif_badge.setAlignment(Qt.AlignCenter)
+        self.notif_badge.setStyleSheet("""
+            QLabel {
+                background: #ef4444;
+                color: white;
+                border-radius: 10px;
+                font-size: 10px;
+                font-weight: 700;
+            }
+        """)
+        self.notif_badge.hide()
+        
+        # Positionner le badge sur le bouton
+        self.notif_badge.setParent(self.notif_btn)
+        self.notif_badge.move(22, -2)
         
         # Bouton aide
         self.help_btn = QPushButton("❓")
@@ -2028,6 +2323,187 @@ class MainWindow(QMainWindow):
     def update_clock(self):
         self.clock_label.setText(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
     
+    # def show_certificate_notifications(self):
+    #     """Affiche le menu déroulant des notifications"""
+    #     if not hasattr(self, '_last_certificate_statuses') or not self._last_certificate_statuses:
+    #         QMessageBox.information(
+    #             self,
+    #             "🔔 Notifications",
+    #             "✅ Tous les certificats sont valides.\n\nAucune notification à afficher."
+    #         )
+    #         return
+        
+    #     # Créer un menu personnalisé
+    #     menu = QMenu(self)
+    #     menu.setStyleSheet("""
+    #         QMenu {
+    #             background: #1e293b;
+    #             border: 1px solid rgba(255,255,255,0.1);
+    #             border-radius: 16px;
+    #             padding: 8px;
+    #             min-width: 350px;
+    #         }
+    #         QMenu::item {
+    #             padding: 8px 16px;
+    #             border-radius: 8px;
+    #             color: #e2e8f0;
+    #         }
+    #         QMenu::item:selected {
+    #             background: rgba(255,255,255,0.08);
+    #         }
+    #         QMenu::separator {
+    #             height: 1px;
+    #             background: rgba(255,255,255,0.1);
+    #             margin: 4px 8px;
+    #         }
+    #     """)
+        
+    #     # Ajouter les éléments
+    #     statuses = self._last_certificate_statuses
+        
+    #     # En-tête
+    #     header_action = menu.addAction("📋 STATUT DES CERTIFICATS")
+    #     header_action.setEnabled(False)
+    #     font = QFont()
+    #     font.setBold(True)
+    #     font.setPointSize(10)
+    #     header_action.setFont(font)
+        
+    #     menu.addSeparator()
+        
+    #     # Liste des statuts
+    #     for status in statuses:
+    #         name = status.get('module_name', 'Inconnu')
+    #         status_type = status.get('status', 'unknown')
+            
+    #         if status_type == 'valid':
+    #             icon = "✅"
+    #             color = "#10b981"
+    #             detail = f"Valide"
+    #         elif status_type == 'expiring':
+    #             icon = "⚠️"
+    #             color = "#f59e0b"
+    #             days = status.get('remaining_days', 0)
+    #             detail = f"Expire dans {days} jours"
+    #         elif status_type == 'expired':
+    #             icon = "❌"
+    #             color = "#ef4444"
+    #             expiry = status.get('expiry_date', 'Date inconnue')
+    #             detail = f"Expiré le {expiry}"
+    #         else:
+    #             icon = "📭"
+    #             color = "#64748b"
+    #             detail = status.get('message', 'Sans certificat')
+            
+    #         action_text = f"{icon} {name}  —  {detail}"
+    #         action = menu.addAction(action_text)
+    #         action.setEnabled(False)
+    #         action.setStyleSheet(f"color: {color}; padding: 4px 8px;")
+        
+    #     menu.addSeparator()
+        
+    #     # Bouton "Tout voir"
+    #     view_all = menu.addAction("🔍 Voir tous les détails")
+    #     view_all.triggered.connect(self.show_certificate_details_dialog)
+        
+    #     # Afficher le menu
+    #     menu.exec(self.notif_btn.mapToGlobal(self.notif_btn.rect().bottomLeft()))
+
+    def show_certificate_notifications(self):
+        """Affiche le menu déroulant des notifications"""
+        if not hasattr(self, '_last_certificate_statuses') or not self._last_certificate_statuses:
+            QMessageBox.information(
+                self,
+                "🔔 Notifications",
+                "✅ Tous les certificats sont valides.\n\nAucune notification à afficher."
+            )
+            return
+        
+        # Créer un menu personnalisé
+        menu = QMenu(self)
+        menu.setStyleSheet("""
+            QMenu {
+                background: #1e293b;
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 16px;
+                padding: 8px;
+                min-width: 380px;
+                max-width: 450px;
+            }
+            QMenu::item {
+                padding: 8px 16px;
+                border-radius: 8px;
+                color: #e2e8f0;
+            }
+            QMenu::item:selected {
+                background: rgba(255,255,255,0.08);
+            }
+            QMenu::separator {
+                height: 1px;
+                background: rgba(255,255,255,0.1);
+                margin: 4px 8px;
+            }
+        """)
+        
+        statuses = self._last_certificate_statuses
+        
+        # En-tête
+        header_action = menu.addAction("📋 STATUT DES CERTIFICATS")
+        header_action.setEnabled(False)
+        font = QFont()
+        font.setBold(True)
+        font.setPointSize(10)
+        header_action.setFont(font)
+        
+        menu.addSeparator()
+        
+        # Liste des statuts
+        for status in statuses:
+            name = status.get('module_name', 'Inconnu')
+            status_type = status.get('status', 'unknown')
+            
+            if status_type == 'valid':
+                icon = "✅"
+                detail = "Valide"
+                days = status.get('remaining_days', 0)
+                if days > 0:
+                    detail = f"Valide ({days} jours)"
+            elif status_type == 'expiring':
+                icon = "⚠️"
+                days = status.get('remaining_days', 0)
+                detail = f"Expire dans {days} jours"
+            elif status_type == 'expired':
+                icon = "❌"
+                expiry = status.get('expiry_date', 'Date inconnue')
+                detail = f"Expiré le {expiry}"
+            else:
+                icon = "📭"
+                detail = status.get('message', 'Sans certificat')
+            
+            # ✅ Utiliser du HTML dans le texte pour la couleur
+            action = menu.addAction(f'{icon} <b>{name}</b> — <span style="color:{self._get_color_for_status(status_type)};">{detail}</span>')
+            action.setEnabled(False)
+        
+        menu.addSeparator()
+        
+        # Bouton "Tout voir"
+        view_all = menu.addAction("🔍 Voir tous les détails")
+        view_all.triggered.connect(self.show_certificate_details_dialog)
+        
+        # Afficher le menu
+        menu.exec(self.certificate_btn.mapToGlobal(self.certificate_btn.rect().bottomLeft()))
+
+    def _get_color_for_status(self, status_type):
+        """Retourne la couleur correspondant au statut"""
+        colors = {
+            'valid': '#10b981',      # Vert
+            'expiring': '#f59e0b',   # Orange
+            'expired': '#ef4444',    # Rouge
+            'no_certificate': '#64748b',  # Gris
+            'error': '#ef4444',      # Rouge
+        }
+        return colors.get(status_type, '#94a3b8')
+
     def setup_shortcuts(self):
         QShortcut(QKeySequence("Ctrl+F"), self, self.focus_search)
         QShortcut(QKeySequence("F5"), self, self.refresh)
@@ -2060,6 +2536,59 @@ class MainWindow(QMainWindow):
         about_action = help_menu.addAction("&À propos")
         about_action.triggered.connect(self.show_about)
 
+    def show_certificate_details_dialog(self):
+        """Affiche une boîte de dialogue détaillée des certificats"""
+        if not hasattr(self, '_last_certificate_statuses'):
+            return
+        
+        statuses = self._last_certificate_statuses
+        
+        # Compter
+        valid = sum(1 for s in statuses if s.get('status') == 'valid')
+        expiring = sum(1 for s in statuses if s.get('status') == 'expiring')
+        expired = sum(1 for s in statuses if s.get('status') == 'expired')
+        no_cert = sum(1 for s in statuses if s.get('status') == 'no_certificate')
+        
+        # Construire le message
+        details = []
+        for status in statuses:
+            name = status.get('module_name', 'Inconnu')
+            status_type = status.get('status', 'unknown')
+            
+            if status_type == 'valid':
+                icon = "✅"
+                days = status.get('remaining_days', 0)
+                detail = f"Valide (reste {days} jours)"
+            elif status_type == 'expiring':
+                icon = "⚠️"
+                days = status.get('remaining_days', 0)
+                detail = f"Expire dans {days} jours"
+            elif status_type == 'expired':
+                icon = "❌"
+                expiry = status.get('expiry_date', 'Date inconnue')
+                detail = f"Expiré le {expiry}"
+            else:
+                icon = "📭"
+                detail = status.get('message', 'Sans certificat')
+            
+            details.append(f"{icon} {name} : {detail}")
+        
+        msg = (
+            f"📋 RÉSUMÉ DES CERTIFICATS\n\n"
+            f"✅ Valides : {valid}\n"
+            f"⚠️ Bientôt expirés : {expiring}\n"
+            f"❌ Expirés : {expired}\n"
+            f"📭 Sans certificat : {no_cert}\n\n"
+            f"{'─' * 40}\n\n"
+            + "\n".join(details)
+        )
+        
+        QMessageBox.information(
+            self,
+            "🔐 Certificats LOMETA",
+            msg
+        )
+
     def check_updates_startup(self):
         """Vérifie les mises à jour au démarrage"""
         # Optionnel: vérifier silencieusement
@@ -2082,6 +2611,47 @@ class MainWindow(QMainWindow):
                          "Mon Application v1.0.0\n\n"
                          "Application de gestion modulaire\n"
                          "© 2024 Votre Société")
+
+    def update_notification_badge(self):
+        """Met à jour le badge du bouton de notification"""
+        if not hasattr(self, '_last_certificate_statuses'):
+            self.notif_badge.hide()
+            return
+        
+        statuses = self._last_certificate_statuses
+        
+        # Compter les notifications critiques
+        expired = sum(1 for s in statuses if s.get('status') == 'expired')
+        expiring = sum(1 for s in statuses if s.get('status') == 'expiring')
+        
+        total_alerts = expired + expiring
+        
+        if total_alerts > 0:
+            self.notif_badge.setText(str(total_alerts) if total_alerts < 10 else "9+")
+            self.notif_badge.show()
+            # Changer la couleur si expiré
+            if expired > 0:
+                self.notif_badge.setStyleSheet("""
+                    QLabel {
+                        background: #ef4444;
+                        color: white;
+                        border-radius: 10px;
+                        font-size: 10px;
+                        font-weight: 700;
+                    }
+                """)
+            else:
+                self.notif_badge.setStyleSheet("""
+                    QLabel {
+                        background: #f59e0b;
+                        color: white;
+                        border-radius: 10px;
+                        font-size: 10px;
+                        font-weight: 700;
+                    }
+                """)
+        else:
+            self.notif_badge.hide()
 
     def toggle_fullscreen(self):
         if self.isFullScreen():
@@ -2107,6 +2677,46 @@ class MainWindow(QMainWindow):
         self.db_session = SessionLocal()
         self.loader = AddonLoader()
         self.addons = self.loader.load_all(self)
+        if hasattr(self.loader, 'last_certificate_status'):
+            statuses = self.loader.last_certificate_status
+            if statuses:
+                # ✅ Utiliser QTimer pour afficher après le démarrage complet
+                QTimer.singleShot(500, lambda: self._display_certificate_notification(statuses))
+
+    def show_certificate_status_in_statusbar(self):
+        """
+        Affiche un résumé des certificats dans la barre d'état.
+        """
+        if not hasattr(self.loader, 'last_certificate_status'):
+            return
+        
+        statuses = self.loader.last_certificate_status
+        
+        valid = sum(1 for s in statuses if s.get('status') == 'valid')
+        expiring = sum(1 for s in statuses if s.get('status') == 'expiring')
+        expired = sum(1 for s in statuses if s.get('status') == 'expired')
+        no_cert = sum(1 for s in statuses if s.get('status') == 'no_certificate')
+        
+        if expired > 0:
+            self.statusBar().showMessage(
+                f"❌ {expired} certificat(s) expiré(s) - Contactez l'administrateur",
+                15000
+            )
+        elif expiring > 0:
+            self.statusBar().showMessage(
+                f"⚠️ {expiring} certificat(s) vont expirer - Renouvelez avant expiration",
+                15000
+            )
+        elif no_cert > 0:
+            self.statusBar().showMessage(
+                f"⚠️ {no_cert} module(s) sans certificat",
+                10000
+            )
+        else:
+            self.statusBar().showMessage(
+                f"✅ {valid} module(s) chargé(s) - Certificats valides",
+                5000
+            )
     
     def add_menu_button(self, label, icon_char, widget):
         """Ajoute un bouton de menu (pour la compatibilité avec les addons) - IDENTIQUE À old.py"""
@@ -2386,6 +2996,127 @@ class MainWindow(QMainWindow):
     #     dialog = UpdateWidget(modules_dict, self)
     #     dialog.exec()
     
+    def _show_certificate_status(self, modules):
+        """
+        Affiche le statut des certificats pour chaque module chargé.
+        """
+        if not modules:
+            return
+        
+        # Récupérer les informations de validité depuis le loader
+        if hasattr(self.loader, 'last_certificate_status'):
+            statuses = self.loader.last_certificate_status
+            if statuses:
+                self._display_certificate_notification(statuses)
+                return
+        
+        # Alternative : analyser les modules directement
+        statuses = []
+        for module in modules:
+            if hasattr(module, 'certificate_info'):
+                statuses.append(module.certificate_info)
+        
+        if statuses:
+            self._display_certificate_notification(statuses)
+
+    # def _display_certificate_notification(self, statuses):
+    #     """
+    #     Affiche une notification sur les certificats.
+    #     """
+    #     # Compter les statuts
+    #     valid_count = 0
+    #     expiring_count = 0
+    #     expired_count = 0
+    #     no_cert_count = 0
+        
+    #     for status in statuses:
+    #         if status.get('status') == 'valid':
+    #             valid_count += 1
+    #         elif status.get('status') == 'expiring':
+    #             expiring_count += 1
+    #         elif status.get('status') == 'expired':
+    #             expired_count += 1
+    #         else:
+    #             no_cert_count += 1
+        
+    #     # Construire le message
+    #     messages = []
+        
+    #     if valid_count > 0:
+    #         messages.append(f"✅ {valid_count} certificat(s) valide(s)")
+        
+    #     if expiring_count > 0:
+    #         # Détail des modules qui expirent bientôt
+    #         expiring_details = []
+    #         for status in statuses:
+    #             if status.get('status') == 'expiring':
+    #                 days = status.get('remaining_days', 0)
+    #                 name = status.get('module_name', 'Inconnu')
+    #                 expiring_details.append(f"   • {name} (expire dans {days} jours)")
+            
+    #         expiring_msg = f"⚠️ {expiring_count} certificat(s) vont expirer bientôt :\n" + "\n".join(expiring_details)
+    #         messages.append(expiring_msg)
+        
+    #     if expired_count > 0:
+    #         expired_details = []
+    #         for status in statuses:
+    #             if status.get('status') == 'expired':
+    #                 expiry = status.get('expiry_date', 'Date inconnue')
+    #                 name = status.get('module_name', 'Inconnu')
+    #                 expired_details.append(f"   • {name} (expiré le {expiry})")
+            
+    #         expired_msg = f"❌ {expired_count} certificat(s) expiré(s) :\n" + "\n".join(expired_details)
+    #         messages.append(expired_msg)
+        
+    #     if no_cert_count > 0:
+    #         messages.append(f"⚠️ {no_cert_count} module(s) sans certificat")
+        
+    #     # Afficher la notification
+    #     if expired_count > 0:
+    #         # Critique : les modules ne seront pas chargés
+    #         QMessageBox.warning(
+    #             self,
+    #             "⚠️ Certificats expirés",
+    #             "Des modules n'ont pas pu être chargés car leurs certificats sont expirés.\n\n"
+    #             + "\n".join(messages)
+    #         )
+    #     elif expiring_count > 0:
+    #         # Avertissement : les modules expirent bientôt
+    #         QMessageBox.information(
+    #             self,
+    #             "🔔 Certificats bientôt expirés",
+    #             "Certains certificats vont expirer prochainement.\n\n"
+    #             + "\n".join(messages)
+    #             + "\n\nVeuillez contacter votre administrateur pour renouveler les certificats."
+    #         )
+    #     else:
+    #         # Tout est bon
+    #         self.statusBar().showMessage(
+    #             f"✅ {valid_count} module(s) chargé(s) - Certificats valides",
+    #             5000
+    #         )
+
+    def _display_certificate_notification(self, statuses):
+        """
+        Affiche une notification moderne et animée des certificats.
+        """
+        if not statuses:
+            return
+        
+        # ✅ Vérifier si la notification existe déjà
+        if hasattr(self, '_certificate_toast') and self._certificate_toast is not None:
+            try:
+                self._certificate_toast.close_animation()
+            except:
+                pass
+        
+        # ✅ Créer et afficher la notification
+        self._certificate_toast = CertificateToast(statuses, self)
+        self._certificate_toast.show_toast()
+        
+        # ✅ Sauvegarder les statuts pour le bouton de notification
+        self._last_certificate_statuses = statuses
+
     def show_update_dialog(self, modules):
         """
         Affiche le dialogue des modules disponibles.

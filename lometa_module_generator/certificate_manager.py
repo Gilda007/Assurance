@@ -15,6 +15,7 @@ from typing import Dict, Any, Optional, List, Tuple
 import sys
 import os
 import re
+import platform
 
 # ============================================================================
 # COLORS
@@ -58,7 +59,8 @@ def print_warning(text):
 class ModuleCertificate:
     """Certificat de module avec signature."""
     
-    VERSION = "1.0.0"
+    VERSION = "2.0.0"
+    DEFAULT_VALIDITY_DAYS = 365  # 1 an de validité par défaut
     
     def __init__(self):
         self.data = {
@@ -67,12 +69,15 @@ class ModuleCertificate:
             "module_version": "",
             "certified_by": "",
             "certified_date": "",
+            "expiry_date": "",  # ✅ Date d'expiration
             "certificate_id": "",
             "checksums": {},
             "signature": "",
             "public_key": "",
+            "signature_algorithm": "HMAC-SHA256",
             "certificate_chain": [],
-            "metadata": {}
+            "metadata": {},
+            "validity_days": self.DEFAULT_VALIDITY_DAYS
         }
     
     def generate_certificate_id(self, module_name: str) -> str:
@@ -189,6 +194,37 @@ class ModuleCertificate:
         except Exception:
             return False
 
+    def set_validity(self, days: int = DEFAULT_VALIDITY_DAYS):
+        """Définit la durée de validité en jours."""
+        from datetime import datetime, timedelta
+        self.data["validity_days"] = days
+        self.data["expiry_date"] = (datetime.now() + timedelta(days=days)).isoformat()
+    
+    def is_expired(self) -> bool:
+        """Vérifie si le certificat est expiré."""
+        expiry_date = self.data.get("expiry_date")
+        if not expiry_date:
+            return False
+        try:
+            from datetime import datetime
+            expiry = datetime.fromisoformat(expiry_date)
+            return datetime.now() > expiry
+        except:
+            return True
+    
+    def get_remaining_days(self) -> int:
+        """Retourne le nombre de jours restants avant expiration."""
+        expiry_date = self.data.get("expiry_date")
+        if not expiry_date:
+            return 0
+        try:
+            from datetime import datetime
+            expiry = datetime.fromisoformat(expiry_date)
+            delta = expiry - datetime.now()
+            return max(0, delta.days)
+        except:
+            return 0
+
 
 # ============================================================================
 # CERTIFICATE MANAGER
@@ -197,13 +233,28 @@ class ModuleCertificate:
 class CertificateManager:
     """Gestionnaire de certificats pour les modules."""
     
-    def __init__(self, config_dir: Optional[Path] = None):
-        self.config_dir = config_dir or Path.home() / ".lometa" / "certificates"
+    def __init__(self, config_dir: Optional[Path] = None, use_shared_keys: bool = True):
+        self.config_dir = config_dir or self._get_default_config_dir()
         self.config_dir.mkdir(parents=True, exist_ok=True)
+        
+        # ✅ Gestionnaire de clés partagées (optionnel)
+        self.use_shared_keys = use_shared_keys
+        self.shared_key_manager = None
+        if use_shared_keys:
+            try:
+                self.shared_key_manager = SharedKeyManager(self.config_dir)
+            except Exception as e:
+                print(f"⚠️ Erreur initialisation SharedKeyManager: {e}")
+                self.shared_key_manager = None
+        
+        # Fichiers locaux (fallback)
         self.key_file = self.config_dir / "private_key.pem"
         self.public_key_file = self.config_dir / "public_key.pem"
         self.certificates_dir = self.config_dir / "issued"
         self.certificates_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Machine ID pour traçabilité
+        self.machine_id = self._get_machine_id()
         
     def get_or_create_keypair(self) -> Tuple[str, str]:
         """Récupère ou crée une paire de clés."""
@@ -228,9 +279,67 @@ class CertificateManager:
             print_success(f"Clé publique générée: {self.public_key_file}")
         
         return private_key, public_key
+
+    def _get_default_config_dir(self) -> Path:
+        """Détermine le dossier de configuration."""
+        # En mode compilé, utiliser le dossier de l'application
+        if getattr(sys, 'frozen', False):
+            base_dir = Path(sys.executable).parent
+            return base_dir / "certificates"
+        
+        # Mode développement
+        if os.path.exists("certificates"):
+            return Path("certificates")
+        
+        # Fallback
+        return Path.home() / ".lometa" / "certificates"
     
-    # def certify_module(self, module_dir: Path, certifier_name: str, 
-    #                    metadata: Dict = None) -> Optional[ModuleCertificate]:
+    def get_certification_key(self) -> Tuple[str, str]:
+        """
+        Récupère la clé de certification.
+        Priorité: clé partagée > clé locale.
+        """
+        # Essayer d'abord les clés partagées
+        if self.shared_key_manager:
+            public_key = self.shared_key_manager.get_shared_public_key()
+            private_key = self.shared_key_manager.get_or_create_shared_key().get("private_key")
+            
+            if public_key and private_key:
+                return private_key, public_key
+        
+        # Fallback: clés locales
+        if self.key_file.exists() and self.public_key_file.exists():
+            private_key = self.key_file.read_text(encoding='utf-8').strip()
+            public_key = self.public_key_file.read_text(encoding='utf-8').strip()
+            return private_key, public_key
+        
+        # Générer de nouvelles clés
+        import secrets
+        private_key = secrets.token_hex(32)
+        public_key = hashlib.sha256(private_key.encode()).hexdigest()
+        
+        self.key_file.write_text(private_key, encoding='utf-8')
+        self.public_key_file.write_text(public_key, encoding='utf-8')
+        
+        return private_key, public_key
+
+    # ✅ AJOUTER CETTE MÉTHODE
+    def _get_machine_id(self) -> str:
+        """Récupère un ID unique de la machine."""
+        import uuid
+        import platform
+        
+        identifiers = [
+            platform.node(),
+            platform.machine(),
+            platform.processor(),
+            str(uuid.getnode())
+        ]
+        combined = "".join(identifiers)
+        return hashlib.sha256(combined.encode()).hexdigest()[:16].upper()
+ 
+    # def certify_module(self, module_dir: Path, certifier_name: str, validity_days: int = 365,
+    #                metadata: Dict = None) -> Optional[ModuleCertificate]:
     #     """Certifie un module en générant un certificat signé."""
     #     module_dir = Path(module_dir)
     #     if not module_dir.exists() or not module_dir.is_dir():
@@ -253,6 +362,17 @@ class CertificateManager:
         
     #     # Obtenir la paire de clés
     #     private_key, public_key = self.get_or_create_keypair()
+
+    #      # ✅ VÉRIFIER LA VALIDITÉ TEMPORELLE
+    #     if cert.is_expired():
+    #         expiry = cert.data.get("expiry_date", "Inconnue")
+    #         return False, f"❌ Certificat EXPIRÉ (date: {expiry})"
+
+    #     remaining = cert.get_remaining_days()
+    #     if remaining < 30:
+    #         print_warning(f"⚠️ Certificat expire dans {remaining} jours")
+    #     else:
+    #         print_success(f"✅ Certificat valide ({remaining} jours restants)")
         
     #     # Créer le certificat
     #     cert = ModuleCertificate()
@@ -262,7 +382,11 @@ class CertificateManager:
     #     cert.data["certified_date"] = datetime.now().isoformat()
     #     cert.data["certificate_id"] = cert.generate_certificate_id(module_name)
     #     cert.data["public_key"] = public_key
-    #     cert.data["checksums"] = cert.compute_directory_checksums(module_dir)
+    #     # ✅ Exclure certificate.json des checksums
+    #     cert.data["checksums"] = cert.compute_directory_checksums(
+    #         module_dir, 
+    #         exclude=['.pyc', '__pycache__', '.git', '.DS_Store', 'certificate.json']
+    #     )
     #     cert.data["metadata"] = metadata or {}
         
     #     # Signer le certificat
@@ -279,12 +403,13 @@ class CertificateManager:
     #     print_success(f"Module {module_name} v{module_version} certifié!")
     #     print_success(f"Certificat: {cert_file}")
     #     print_success(f"ID: {cert.data['certificate_id']}")
+    #     print_success(f"Signature: {cert.data['signature'][:16]}...")
         
     #     return cert
-    
+
     def certify_module(self, module_dir: Path, certifier_name: str, 
-                   metadata: Dict = None) -> Optional[ModuleCertificate]:
-        """Certifie un module en générant un certificat signé."""
+                   validity_days: int = 365, metadata: Dict = None) -> Optional[ModuleCertificate]:
+        """Certifie un module en générant un certificat signé avec durée de validité."""
         module_dir = Path(module_dir)
         if not module_dir.exists() or not module_dir.is_dir():
             print_error(f"Le dossier du module n'existe pas: {module_dir}")
@@ -315,12 +440,15 @@ class CertificateManager:
         cert.data["certified_date"] = datetime.now().isoformat()
         cert.data["certificate_id"] = cert.generate_certificate_id(module_name)
         cert.data["public_key"] = public_key
-        # ✅ Exclure certificate.json des checksums
+        cert.data["machine_id"] = self.machine_id
         cert.data["checksums"] = cert.compute_directory_checksums(
             module_dir, 
             exclude=['.pyc', '__pycache__', '.git', '.DS_Store', 'certificate.json']
         )
         cert.data["metadata"] = metadata or {}
+        
+        # ✅ Définir la durée de validité
+        cert.set_validity(validity_days)
         
         # Signer le certificat
         cert.data["signature"] = cert.sign(private_key)
@@ -336,88 +464,12 @@ class CertificateManager:
         print_success(f"Module {module_name} v{module_version} certifié!")
         print_success(f"Certificat: {cert_file}")
         print_success(f"ID: {cert.data['certificate_id']}")
+        print_success(f"Valide jusqu'au: {cert.data['expiry_date']}")
+        print_success(f"Validité: {validity_days} jours")
+        print_success(f"Machine ID: {self.machine_id}")
         print_success(f"Signature: {cert.data['signature'][:16]}...")
         
         return cert
-
-    # def verify_module(self, module_dir: Path) -> Tuple[bool, str]:
-    #     """Vérifie l'intégrité d'un module certifié."""
-    #     module_dir = Path(module_dir)
-    #     cert_file = module_dir / "certificate.json"
-        
-    #     if not cert_file.exists():
-    #         return False, "❌ Certificate.json non trouvé. Le module n'est pas certifié."
-        
-    #     # Charger le certificat
-    #     cert = ModuleCertificate()
-    #     if not cert.load(cert_file):
-    #         return False, "❌ Certificat invalide ou corrompu."
-        
-    #     print_info(f"Vérification du certificat: {cert.data.get('certificate_id', 'N/A')}")
-        
-    #     # ✅ Vérifier la signature - si échec, essayer de recharger avec la clé publique
-    #     if not cert.verify_signature():
-    #         # ✅ Tenter de récupérer la clé publique depuis le certificat lui-même
-    #         public_key = cert.data.get("public_key", "")
-    #         if public_key:
-    #             # Recalculer avec la clé publique du certificat
-    #             data_to_verify = {
-    #                 "module_name": cert.data["module_name"],
-    #                 "module_version": cert.data["module_version"],
-    #                 "certified_by": cert.data["certified_by"],
-    #                 "certified_date": cert.data["certified_date"],
-    #                 "certificate_id": cert.data["certificate_id"],
-    #                 "checksums": cert.data["checksums"]
-    #             }
-    #             data_str = json.dumps(data_to_verify, sort_keys=True)
-                
-    #             expected = hmac.new(
-    #                 public_key.encode(),
-    #                 data_str.encode(),
-    #                 hashlib.sha256
-    #             ).hexdigest()
-                
-    #             if hmac.compare_digest(cert.data["signature"], expected):
-    #                 print_success("✅ Signature valide (vérifiée avec la clé publique du certificat)")
-    #             else:
-    #                 # ✅ Pour les certificats auto-signés ou de développement
-    #                 if cert.data.get("signature") == cert.data.get("public_key"):
-    #                     print_warning("Certificat auto-signé (mode développement)")
-    #                 else:
-    #                     return False, f"❌ Signature invalide. Attendu: {expected[:16]}..., Reçu: {cert.data['signature'][:16]}..."
-    #         else:
-    #             return False, "❌ Aucune clé publique trouvée dans le certificat."
-        
-    #     # ✅ Vérifier l'intégrité des fichiers
-    #     expected = cert.data.get("checksums", {})
-    #     if not expected:
-    #         return False, "❌ Aucun checksum dans le certificat."
-        
-    #     print_info("Vérification de l'intégrité des fichiers...")
-    #     errors = []
-        
-    #     for file_path, expected_hash in expected.items():
-    #         full_path = module_dir / file_path
-    #         if not full_path.exists():
-    #             errors.append(f"Fichier manquant: {file_path}")
-    #             continue
-            
-    #         actual_hash = cert.compute_checksum(full_path)
-    #         if actual_hash != expected_hash:
-    #             errors.append(f"Fichier modifié: {file_path}")
-        
-    #     # Vérifier les fichiers ajoutés
-    #     for file_path in module_dir.rglob('*'):
-    #         if file_path.is_file():
-    #             rel_path = str(file_path.relative_to(module_dir))
-    #             if rel_path not in expected and rel_path != 'certificate.json':
-    #                 if not any(x in rel_path for x in ['.pyc', '__pycache__', '.DS_Store']):
-    #                     errors.append(f"Fichier ajouté: {rel_path}")
-        
-    #     if errors:
-    #         return False, f"❌ Intégrité compromise:\n- " + "\n- ".join(errors[:10])
-        
-    #     return True, f"✅ Module certifié LOMETA par {cert.data.get('certified_by', 'Inconnu')} (ID: {cert.data.get('certificate_id', 'N/A')})"
 
     def verify_module(self, module_dir: Path) -> Tuple[bool, str]:
         """Vérifie l'intégrité d'un module certifié."""
@@ -559,27 +611,302 @@ class CertificateManager:
         return certificate_id in content
 
 
+
+# certificate_manager.py - SharedKeyManager
+# certificate_manager.py - Ajouter cette classe si elle n'existe pas
+
+class SharedKeyManager:
+    """
+    Gestionnaire de clés partagées pour la vérification inter-machine.
+    Les clés sont stockées dans un fichier central et distribuées aux machines.
+    """
+    
+    def __init__(self, config_dir: Optional[Path] = None):
+        self.config_dir = config_dir or Path.home() / ".lometa" / "certificates"
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        self.shared_keys_file = self.config_dir / "shared_keys.json"
+    
+    def list_keys(self) -> Dict:
+        """Liste toutes les clés partagées."""
+        if self.shared_keys_file.exists():
+            try:
+                return json.loads(self.shared_keys_file.read_text(encoding='utf-8'))
+            except:
+                pass
+        return {}
+    
+    def get_or_create_shared_key(self, key_name: str = "lometa_master") -> Dict[str, str]:
+        """Récupère ou crée une clé partagée."""
+        import secrets
+        
+        if self.shared_keys_file.exists():
+            try:
+                data = json.loads(self.shared_keys_file.read_text(encoding='utf-8'))
+                if key_name in data:
+                    return data[key_name]
+            except:
+                pass
+        
+        # Créer une nouvelle clé
+        private_key = secrets.token_hex(32)
+        public_key = hashlib.sha256(private_key.encode()).hexdigest()
+        
+        key_data = {
+            "private_key": private_key,
+            "public_key": public_key,
+            "created_at": datetime.now().isoformat(),
+            "created_by": platform.node() if hasattr(platform, 'node') else "unknown"
+        }
+        
+        # Sauvegarder
+        data = {}
+        if self.shared_keys_file.exists():
+            try:
+                data = json.loads(self.shared_keys_file.read_text(encoding='utf-8'))
+            except:
+                pass
+        
+        data[key_name] = key_data
+        self.shared_keys_file.write_text(json.dumps(data, indent=2), encoding='utf-8')
+        
+        return key_data
+    
+    def get_shared_public_key(self, key_name: str = "lometa_master") -> Optional[str]:
+        """Récupère la clé publique partagée."""
+        keys = self.list_keys()
+        if key_name in keys:
+            return keys[key_name].get("public_key")
+        return None
+    
+    def export_shared_key(self, output_file: Path, key_name: str = "lometa_master") -> bool:
+        """Exporte la clé publique partagée pour distribution."""
+        public_key = self.get_shared_public_key(key_name)
+        if public_key:
+            export_data = {
+                "key_name": key_name,
+                "public_key": public_key,
+                "type": "shared_public_key",
+                "created_at": datetime.now().isoformat(),
+                "instructions": "Placez ce fichier dans ~/.lometa/certificates/ sur chaque machine"
+            }
+            output_file.write_text(json.dumps(export_data, indent=2), encoding='utf-8')
+            print(f"✅ Clé publique exportée vers {output_file}")
+            return True
+        return False
+    
+    def import_shared_key(self, input_file: Path) -> bool:
+        """Importe une clé publique partagée depuis un fichier."""
+        try:
+            data = json.loads(input_file.read_text(encoding='utf-8'))
+            key_name = data.get("key_name", "lometa_master")
+            public_key = data.get("public_key")
+            
+            if not public_key:
+                print("❌ Clé publique non trouvée dans le fichier")
+                return False
+            
+            # Sauvegarder la clé publique partagée
+            shared_data = {}
+            if self.shared_keys_file.exists():
+                try:
+                    shared_data = json.loads(self.shared_keys_file.read_text(encoding='utf-8'))
+                except:
+                    pass
+            
+            if key_name in shared_data:
+                shared_data[key_name]["public_key"] = public_key
+                shared_data[key_name]["imported_at"] = datetime.now().isoformat()
+            else:
+                shared_data[key_name] = {
+                    "public_key": public_key,
+                    "imported_at": datetime.now().isoformat(),
+                    "type": "imported"
+                }
+            
+            self.shared_keys_file.write_text(json.dumps(shared_data, indent=2), encoding='utf-8')
+            print(f"✅ Clé publique {key_name} importée avec succès")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'importation: {e}")
+            return False
+
+
+# class SharedKeyManager:
+#     """
+#     Gestionnaire de clés partagées pour la vérification inter-machine.
+#     Les clés sont stockées dans un fichier central et distribuées aux machines.
+#     """
+    
+#     def __init__(self, config_dir: Optional[Path] = None):
+#         self.config_dir = config_dir or Path.home() / ".lometa" / "certificates"
+#         self.config_dir.mkdir(parents=True, exist_ok=True)
+#         self.shared_keys_file = self.config_dir / "shared_keys.json"
+    
+#     def get_or_create_shared_key(self, key_name: str = "lometa_master") -> Dict[str, str]:
+#         """Récupère ou crée une clé partagée."""
+#         if self.shared_keys_file.exists():
+#             try:
+#                 data = json.loads(self.shared_keys_file.read_text(encoding='utf-8'))
+#                 if key_name in data:
+#                     return data[key_name]
+#             except:
+#                 pass
+        
+#         # Créer une nouvelle clé
+#         import secrets
+#         private_key = secrets.token_hex(32)
+#         public_key = hashlib.sha256(private_key.encode()).hexdigest()
+        
+#         key_data = {
+#             "private_key": private_key,
+#             "public_key": public_key,
+#             "created_at": datetime.now().isoformat(),
+#             "created_by": platform.node()
+#         }
+        
+#         # Sauvegarder
+#         data = {}
+#         if self.shared_keys_file.exists():
+#             try:
+#                 data = json.loads(self.shared_keys_file.read_text(encoding='utf-8'))
+#             except:
+#                 pass
+        
+#         data[key_name] = key_data
+#         self.shared_keys_file.write_text(json.dumps(data, indent=2), encoding='utf-8')
+        
+#         return key_data
+    
+#     def get_shared_public_key(self, key_name: str = "lometa_master") -> Optional[str]:
+#         """Récupère la clé publique partagée."""
+#         if self.shared_keys_file.exists():
+#             try:
+#                 data = json.loads(self.shared_keys_file.read_text(encoding='utf-8'))
+#                 if key_name in data:
+#                     return data[key_name].get("public_key")
+#             except:
+#                 pass
+#         return None
+
 # ============================================================================
 # COMMAND-LINE INTERFACE
 # ============================================================================
 
+# def main():
+#     """Point d'entrée principal."""
+#     print_header("🔐 LOMETA - Certificate Manager v1.0")
+    
+#     import argparse
+#     parser = argparse.ArgumentParser(description="Gestionnaire de certificats LOMETA")
+#     parser.add_argument("command", choices=["certify", "verify", "list", "revoke", "setup"],
+#                        help="Commande à exécuter")
+#     parser.add_argument("--module", "-m", help="Chemin du dossier du module")
+#     parser.add_argument("--certifier", "-c", help="Nom du certifieur", default="LOMETA Authority")
+#     parser.add_argument("--id", "-i", help="ID du certificat pour révocation")
+#     parser.add_argument("--reason", "-r", help="Raison de la révocation", default="Revoked")
+#     parser.add_argument("--metadata", "-d", help="Métadonnées JSON", default="{}")
+    
+#     args = parser.parse_args()
+    
+#     manager = CertificateManager()
+    
+#     if args.command == "setup":
+#         print_info("Configuration du gestionnaire de certificats...")
+#         private, public = manager.get_or_create_keypair()
+#         print_success(f"Clé privée: {manager.key_file}")
+#         print_success(f"Clé publique: {manager.public_key_file}")
+#         print_info(f"ID de la clé: {public[:16]}...")
+        
+#     elif args.command == "certify":
+#         if not args.module:
+#             print_error("Veuillez spécifier le chemin du module avec --module")
+#             return
+        
+#         module_dir = Path(args.module)
+#         if not module_dir.exists():
+#             print_error(f"Module introuvable: {module_dir}")
+#             return
+        
+#         try:
+#             metadata = json.loads(args.metadata)
+#         except:
+#             metadata = {}
+        
+#         cert = manager.certify_module(module_dir, args.certifier, metadata)
+#         if cert:
+#             print("\n📋 Détails du certificat:")
+#             print(f"   Nom: {cert.data['module_name']}")
+#             print(f"   Version: {cert.data['module_version']}")
+#             print(f"   ID: {cert.data['certificate_id']}")
+#             print(f"   Date: {cert.data['certified_date']}")
+#             print(f"   Fichiers: {len(cert.data['checksums'])}")
+#             print(f"\n📁 Certificat: {module_dir / 'certificate.json'}")
+    
+#     elif args.command == "verify":
+#         if not args.module:
+#             print_error("Veuillez spécifier le chemin du module avec --module")
+#             return
+        
+#         module_dir = Path(args.module)
+#         if not module_dir.exists():
+#             print_error(f"Module introuvable: {module_dir}")
+#             return
+        
+#         success, message = manager.verify_module(module_dir)
+#         if success:
+#             print_success(message)
+#         else:
+#             print_error(message)
+    
+#     elif args.command == "list":
+#         certificates = manager.list_certificates()
+#         if not certificates:
+#             print_info("Aucun certificat trouvé.")
+#         else:
+#             print_header(f"📋 Certificats émis ({len(certificates)})")
+#             for cert in certificates:
+#                 status = "✅" if not manager.is_revoked(cert['certificate_id']) else "❌"
+#                 print(f"   {status} {cert['module_name']} v{cert['module_version']}")
+#                 print(f"      ID: {cert['certificate_id']}")
+#                 print(f"      Certifié par: {cert['certified_by']}")
+#                 print(f"      Date: {cert['certified_date'][:19]}")
+#                 print()
+    
+#     elif args.command == "revoke":
+#         if not args.id:
+#             print_error("Veuillez spécifier l'ID du certificat avec --id")
+#             return
+        
+#         manager.revoke_certificate(args.id, args.reason)
+    
+#     else:
+#         parser.print_help()
+
+
 def main():
     """Point d'entrée principal."""
-    print_header("🔐 LOMETA - Certificate Manager v1.0")
+    print_header("🔐 LOMETA - Certificate Manager v2.0")
     
     import argparse
     parser = argparse.ArgumentParser(description="Gestionnaire de certificats LOMETA")
-    parser.add_argument("command", choices=["certify", "verify", "list", "revoke", "setup"],
+    parser.add_argument("command", 
+                       choices=["certify", "verify", "list", "revoke", "setup", 
+                               "export-key", "import-key", "key-status"],
                        help="Commande à exécuter")
     parser.add_argument("--module", "-m", help="Chemin du dossier du module")
     parser.add_argument("--certifier", "-c", help="Nom du certifieur", default="LOMETA Authority")
     parser.add_argument("--id", "-i", help="ID du certificat pour révocation")
     parser.add_argument("--reason", "-r", help="Raison de la révocation", default="Revoked")
     parser.add_argument("--metadata", "-d", help="Métadonnées JSON", default="{}")
+    parser.add_argument("--validity", "-v", help="Durée de validité en jours", type=int, default=365)
+    parser.add_argument("--key-file", "-k", help="Fichier de clé publique à exporter/importer")
+    parser.add_argument("--key-name", "-n", help="Nom de la clé", default="lometa_master")
     
     args = parser.parse_args()
     
-    manager = CertificateManager()
+    # ✅ Utiliser use_shared_keys=True pour activer les clés partagées
+    manager = CertificateManager(use_shared_keys=True)
     
     if args.command == "setup":
         print_info("Configuration du gestionnaire de certificats...")
@@ -587,7 +914,71 @@ def main():
         print_success(f"Clé privée: {manager.key_file}")
         print_success(f"Clé publique: {manager.public_key_file}")
         print_info(f"ID de la clé: {public[:16]}...")
+        print_info(f"Machine ID: {manager.machine_id}")
         
+        # Créer la clé partagée
+        if manager.shared_key_manager:
+            shared_key = manager.shared_key_manager.get_or_create_shared_key(args.key_name)
+            print_success(f"Clé partagée '{args.key_name}' créée")
+        
+        print_info("\n📋 Pour partager les clés entre machines:")
+        print_info("   1. Exportez la clé: python certificate_manager.py export-key")
+        print_info("   2. Copiez le fichier sur l'autre machine")
+        print_info("   3. Importez-la: python certificate_manager.py import-key --key-file public_key.json")
+    
+    elif args.command == "export-key":
+        if not args.key_file:
+            args.key_file = f"public_key_{args.key_name}.json"
+        
+        if manager.shared_key_manager:
+            success = manager.shared_key_manager.export_shared_key(Path(args.key_file), args.key_name)
+            if success:
+                print_info(f"\n📁 Fichier exporté: {args.key_file}")
+                print_info("   Copiez ce fichier sur toutes les machines qui doivent vérifier les certificats.")
+        else:
+            print_error("Gestionnaire de clés partagées non disponible")
+    
+    elif args.command == "import-key":
+        if not args.key_file:
+            print_error("Veuillez spécifier le fichier de clé avec --key-file")
+            return
+        
+        if manager.shared_key_manager:
+            manager.shared_key_manager.import_shared_key(Path(args.key_file))
+        else:
+            print_error("Gestionnaire de clés partagées non disponible")
+    
+    elif args.command == "key-status":
+        print_info("📊 Statut des clés:")
+        
+        # Clé publique locale
+        if manager.public_key_file.exists():
+            pub = manager.public_key_file.read_text(encoding='utf-8').strip()
+            print(f"   ✅ Clé publique locale: {pub[:16]}...")
+        else:
+            print("   ❌ Aucune clé publique locale")
+        
+        # Clé privée locale
+        if manager.key_file.exists():
+            priv = manager.key_file.read_text(encoding='utf-8').strip()
+            print(f"   ✅ Clé privée locale: {priv[:16]}...")
+        else:
+            print("   ❌ Aucune clé privée locale")
+        
+        # Clés partagées
+        if manager.shared_key_manager:
+            keys = manager.shared_key_manager.list_keys()
+            if keys:
+                print(f"\n   🔑 Clés partagées ({len(keys)}):")
+                for name, key_data in keys.items():
+                    pub = key_data.get("public_key", "N/A")[:16]
+                    created = key_data.get("created_at", "Inconnue")[:19]
+                    print(f"      - {name}: {pub}... (créé: {created})")
+            else:
+                print("   ⚠️ Aucune clé partagée trouvée")
+        
+        print(f"\n   Machine ID: {manager.machine_id}")
+    
     elif args.command == "certify":
         if not args.module:
             print_error("Veuillez spécifier le chemin du module avec --module")
@@ -603,13 +994,16 @@ def main():
         except:
             metadata = {}
         
-        cert = manager.certify_module(module_dir, args.certifier, metadata)
+        cert = manager.certify_module(module_dir, args.certifier, args.validity, metadata)
         if cert:
             print("\n📋 Détails du certificat:")
             print(f"   Nom: {cert.data['module_name']}")
             print(f"   Version: {cert.data['module_version']}")
             print(f"   ID: {cert.data['certificate_id']}")
             print(f"   Date: {cert.data['certified_date']}")
+            print(f"   Expiration: {cert.data['expiry_date']}")
+            print(f"   Validité: {args.validity} jours")
+            print(f"   Machine: {cert.data.get('machine_id', 'N/A')}")
             print(f"   Fichiers: {len(cert.data['checksums'])}")
             print(f"\n📁 Certificat: {module_dir / 'certificate.json'}")
     
@@ -636,11 +1030,24 @@ def main():
         else:
             print_header(f"📋 Certificats émis ({len(certificates)})")
             for cert in certificates:
-                status = "✅" if not manager.is_revoked(cert['certificate_id']) else "❌"
-                print(f"   {status} {cert['module_name']} v{cert['module_version']}")
+                # Vérifier si expiré
+                is_expired = False
+                if 'expiry_date' in cert and cert['expiry_date']:
+                    try:
+                        from datetime import datetime
+                        expiry = datetime.fromisoformat(cert['expiry_date'])
+                        is_expired = expiry < datetime.now()
+                    except:
+                        pass
+                
+                status_icon = "❌" if is_expired else "✅"
+                revoked = " 🚫" if manager.is_revoked(cert['certificate_id']) else ""
+                print(f"   {status_icon} {cert['module_name']} v{cert['module_version']}{revoked}")
                 print(f"      ID: {cert['certificate_id']}")
                 print(f"      Certifié par: {cert['certified_by']}")
                 print(f"      Date: {cert['certified_date'][:19]}")
+                if cert.get('expiry_date'):
+                    print(f"      Expiration: {cert['expiry_date'][:19]}")
                 print()
     
     elif args.command == "revoke":
