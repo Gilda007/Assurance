@@ -1,0 +1,343 @@
+./build_secure.sh
+
+╔════════════════════════════════════════════════════════════════╗
+║            COMPILATION SÉCURISÉE LOMETA (CYTHON)              ║
+╚════════════════════════════════════════════════════════════════╝
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ÉTAPE 1: VÉRIFICATION DE L'ENVIRONNEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ Python3 trouvé: Python 3.13.14
+✅ Cython installé
+✅ PyInstaller installé
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ÉTAPE 2: CRÉATION DES FICHIERS setup.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ℹ️ Traitement du module: Automobiles
+✅ setup.py créé pour Automobiles
+ℹ️ Traitement du module: Paramètres
+✅ setup.py créé pour Paramètres
+ℹ️ Traitement du module: static
+✅ setup.py créé pour static
+ℹ️ Traitement du module: test
+✅ setup.py créé pour test
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ÉTAPE 3: COMPILATION CYTHON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ℹ️ Compilation de Automobiles...
+Compiling ./setup.py because it changed.
+Compiling ./addons/Automobiles/fleet_import_avanced_dialog.py because it changed.
+Compiling ./addons/Automobiles/main_ui.py because it changed.
+Compiling ./addons/Automobiles/api/crud.py because it changed.
+Compiling ./addons/Automobiles/api/models.py because it changed.
+Compiling ./addons/Automobiles/api/init_stock.py because it changed.
+Compiling ./addons/Automobiles/api/config.py because it changed.
+Compiling ./addons/Automobiles/api/models_db.py because it changed.
+Compiling ./addons/Automobiles/api/database.py because it changed.
+Compiling ./addons/Automobiles/api/schemas.py because it changed.
+Compiling ./addons/Automobiles/api/main.py because it changed.
+Compiling ./addons/Automobiles/api/init_users.py because it changed.
+Compiling ./addons/Automobiles/api/lometa_client.py because it changed.
+Compiling ./addons/Automobiles/api/asac_client.py because it changed.
+Compiling ./addons/Automobiles/api/routers/productions.py because it changed.
+Compiling ./addons/Automobiles/api/routers/auth.py because it changed.
+Compiling ./addons/Automobiles/api/services/business_rules.py because it changed.
+Compiling ./addons/Automobiles/api/services/validation.py because it changed.
+Compiling ./addons/Automobiles/api/services/certificate.py because it changed.
+Compiling ./addons/Automobiles/api/services/permissions.py because it changed.
+Compiling ./addons/Automobiles/api/services/tariff.py because it changed.
+Compiling ./addons/Automobiles/api/config/settings.py because it changed.
+Compiling ./addons/Automobiles/api/utils/security.py because it changed.
+Compiling ./addons/Automobiles/api/utils/asac_validator.py because it changed.
+Compiling ./addons/Automobiles/security/access_control.py because it changed.
+Compiling ./addons/Automobiles/models/expertise_models.py because it changed.
+Compiling ./addons/Automobiles/models/automobile_tranche.py because it changed.
+Compiling ./addons/Automobiles/models/sinistre_models.py because it changed.
+Compiling ./addons/Automobiles/models/vehicle_valuation.py because it changed.
+Compiling ./addons/Automobiles/models/contact_models.py because it changed.
+Compiling ./addons/Automobiles/models/contract_models.py because it changed.
+Compiling ./addons/Automobiles/models/tarif_models.py because it changed.
+Compiling ./addons/Automobiles/models/compagnies_models.py because it changed.
+Compiling ./addons/Automobiles/models/migrate_contracts.py because it changed.
+Compiling ./addons/Automobiles/models/vehicle_guarantee.py because it changed.
+Compiling ./addons/Automobiles/models/vehicle_technical.py because it changed.
+Compiling ./addons/Automobiles/models/vehicle_identification.py because it changed.
+Compiling ./addons/Automobiles/models/driver_models.py because it changed.
+Compiling ./addons/Automobiles/models/vehicle_options.py because it changed.
+Compiling ./addons/Automobiles/models/automobile_models.py because it changed.
+Compiling ./addons/Automobiles/models/flottes_models.py because it changed.
+Compiling ./addons/Automobiles/models/paiement_models.py because it changed.
+Compiling ./addons/Automobiles/models/vehicle_tariff.py because it changed.
+Compiling ./addons/Automobiles/models/vehicle_classification.py because it changed.
+Compiling ./addons/Automobiles/models/garage_models.py because it changed.
+Compiling ./addons/Automobiles/scripts/fix_relations.py because it changed.
+Compiling ./addons/Automobiles/views/flotte_detail_view.py because it changed.
+Compiling ./addons/Automobiles/views/garantie_selection_dialog.py because it changed.
+Compiling ./addons/Automobiles/views/animations.py because it changed.
+Compiling ./addons/Automobiles/views/devis_printer.py because it changed.
+Compiling ./addons/Automobiles/views/asac_manager_best_version.py because it changed.
+Compiling ./addons/Automobiles/views/batch_print_thread.py because it changed.
+Compiling ./addons/Automobiles/views/quittance_print.py because it changed.
+Compiling ./addons/Automobiles/views/fleet_batch_print_manager.py because it changed.
+Compiling ./addons/Automobiles/views/asac_export_view.py because it changed.
+Compiling ./addons/Automobiles/views/fleet_import_dialog.py because it changed.
+Compiling ./addons/Automobiles/views/style.py because it changed.
+Compiling ./addons/Automobiles/views/fleet_import_avanced_dialog.py because it changed.
+Compiling ./addons/Automobiles/views/reports_view.py because it changed.
+Compiling ./addons/Automobiles/views/carte_rose_printer.py because it changed.
+Compiling ./addons/Automobiles/views/tarif_view.py because it changed.
+Compiling ./addons/Automobiles/views/asac_import_view.py because it changed.
+Compiling ./addons/Automobiles/views/asac_manager.py because it changed.
+Compiling ./addons/Automobiles/views/police_number_selector.py because it changed.
+Compiling ./addons/Automobiles/views/attestation_print.py because it changed.
+Compiling ./addons/Automobiles/views/compagnies_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/tarif_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/contact_card_view.py because it changed.
+Compiling ./addons/Automobiles/views/contract_view.py because it changed.
+Compiling ./addons/Automobiles/views/vignette_printer.py because it changed.
+Compiling ./addons/Automobiles/views/fleet_vehicles_manager.py because it changed.
+Compiling ./addons/Automobiles/views/flotte_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/automobile_view.py because it changed.
+Compiling ./addons/Automobiles/views/audit_auto_view.py because it changed.
+Compiling ./addons/Automobiles/views/automobile_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/settings_view.py because it changed.
+Compiling ./addons/Automobiles/views/old.py because it changed.
+Compiling ./addons/Automobiles/views/contacts_view.py because it changed.
+Compiling ./addons/Automobiles/views/contact_detail_view.py because it changed.
+Compiling ./addons/Automobiles/views/batch_print_manager.py because it changed.
+Compiling ./addons/Automobiles/views/view.py because it changed.
+Compiling ./addons/Automobiles/views/dashboard_view.py because it changed.
+Compiling ./addons/Automobiles/views/compagnies_view.py because it changed.
+Compiling ./addons/Automobiles/views/async_loader.py because it changed.
+Compiling ./addons/Automobiles/views/contact_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/flottes_view.py because it changed.
+Compiling ./addons/Automobiles/views/vehicle_detail_view.py because it changed.
+Compiling ./addons/Automobiles/views/batch_print_dialog.py because it changed.
+Compiling ./addons/Automobiles/views/test.py because it changed.
+Compiling ./addons/Automobiles/views/widgets/modern_card.py because it changed.
+Compiling ./addons/Automobiles/views/expertise/expertise_list_view.py because it changed.
+Compiling ./addons/Automobiles/views/expertise/expertise_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/garages/garage_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/garages/garage_list_view.py because it changed.
+Compiling ./addons/Automobiles/views/sinistre/sinistre_detail_view.py because it changed.
+Compiling ./addons/Automobiles/views/sinistre/sinistre_card.py because it changed.
+Compiling ./addons/Automobiles/views/sinistre/sinistre_form_view.py because it changed.
+Compiling ./addons/Automobiles/views/sinistre/sinistre_list_view.py because it changed.
+Compiling ./addons/Automobiles/controllers/automobile_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/contract_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/compagnies_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/api_asac_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/contacts_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/sinistre_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/expertise_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/garage_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/flotte_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/automobile_tarif_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/reports_controller.py because it changed.
+Compiling ./addons/Automobiles/controllers/paiement_controller.py because it changed.
+Compiling ./addons/Automobiles/reports/pdf_generator.py because it changed.
+Compiling ./addons/Automobiles/utils/db_utils.py because it changed.
+
+Error compiling Cython file:
+------------------------------------------------------------
+...
+    # 1. Préparation du logo
+    # Remplacez 'logo_ams.png' par le chemin réel de l'image sur votre machine
+    logo_path = "addons/Automobiles/static/logo.png"
+    try:
+        # Ajustez la largeur (width) et la hauteur (height) selon vos besoins
+        logo = Image(logo_path, width=25*mm, height=20*mm)
+               ^
+------------------------------------------------------------
+addons/Automobiles/views/test.py:9:15: undeclared name not builtin: Image
+
+Error compiling Cython file:
+------------------------------------------------------------
+...
+    header_data = [
+        [f"N° Police: {self.data.get('numero_police', 'N/A')}", logo],
+        ["Assureur agréé", f"{status_indicator} Statut: {status_text}"],
+    ]
+
+    header_table = Table(header_data, colWidths=[90*mm, 70*mm])
+                   ^
+------------------------------------------------------------
+addons/Automobiles/views/test.py:24:19: undeclared name not builtin: Table
+
+Error compiling Cython file:
+------------------------------------------------------------
+...
+        [f"N° Police: {self.data.get('numero_police', 'N/A')}", logo],
+        ["Assureur agréé", f"{status_indicator} Statut: {status_text}"],
+    ]
+
+    header_table = Table(header_data, colWidths=[90*mm, 70*mm])
+    header_table.setStyle(TableStyle([
+                          ^
+------------------------------------------------------------
+addons/Automobiles/views/test.py:25:26: undeclared name not builtin: TableStyle
+Traceback (most recent call last):
+  File "/home/fearless/Documents/Assurance/.venv/lib/python3.13/site-packages/Cython/Build/Dependencies.py",line 1305, in cythonize_one_helper
+    return cythonize_one(*m)
+  File "/home/fearless/Documents/Assurance/.venv/lib/python3.13/site-packages/Cython/Build/Dependencies.py",line 1297, in cythonize_one
+    raise CompileError(None, pyx_file)
+Cython.Compiler.Errors.CompileError: ./addons/Automobiles/views/test.py
+[  2/112] Cythonizing ./addons/Automobiles/api/config.py
+[  3/112] Cythonizing ./addons/Automobiles/api/config/settings.py
+[  4/112] Cythonizing ./addons/Automobiles/api/crud.py
+[  6/112] Cythonizing ./addons/Automobiles/api/init_stock.py
+[  9/112] Cythonizing ./addons/Automobiles/api/main.py
+[ 10/112] Cythonizing ./addons/Automobiles/api/models.py
+[ 12/112] Cythonizing ./addons/Automobiles/api/routers/auth.py
+[ 13/112] Cythonizing ./addons/Automobiles/api/routers/productions.py
+[ 15/112] Cythonizing ./addons/Automobiles/api/services/business_rules.py
+[ 16/112] Cythonizing ./addons/Automobiles/api/services/certificate.py
+[ 17/112] Cythonizing ./addons/Automobiles/api/services/permissions.py
+[ 19/112] Cythonizing ./addons/Automobiles/api/services/validation.py
+[ 24/112] Cythonizing ./addons/Automobiles/controllers/automobile_tarif_controller.py
+[ 25/112] Cythonizing ./addons/Automobiles/controllers/compagnies_controller.py
+[ 26/112] Cythonizing ./addons/Automobiles/controllers/contacts_controller.py
+[ 27/112] Cythonizing ./addons/Automobiles/controllers/contract_controller.py
+[ 30/112] Cythonizing ./addons/Automobiles/controllers/garage_controller.py
+[ 31/112] Cythonizing ./addons/Automobiles/controllers/paiement_controller.py
+[ 32/112] Cythonizing ./addons/Automobiles/controllers/reports_controller.py
+[ 33/112] Cythonizing ./addons/Automobiles/controllers/sinistre_controller.py
+[ 35/112] Cythonizing ./addons/Automobiles/main_ui.py
+[ 36/112] Cythonizing ./addons/Automobiles/models/automobile_models.py
+[ 37/112] Cythonizing ./addons/Automobiles/models/automobile_tranche.py
+[ 38/112] Cythonizing ./addons/Automobiles/models/compagnies_models.py
+[ 39/112] Cythonizing ./addons/Automobiles/models/contact_models.py
+[ 40/112] Cythonizing ./addons/Automobiles/models/contract_models.py
+[ 41/112] Cythonizing ./addons/Automobiles/models/driver_models.py
+[ 42/112] Cythonizing ./addons/Automobiles/models/expertise_models.py
+[ 43/112] Cythonizing ./addons/Automobiles/models/flottes_models.py
+[ 44/112] Cythonizing ./addons/Automobiles/models/garage_models.py
+[ 45/112] Cythonizing ./addons/Automobiles/models/migrate_contracts.py
+[ 46/112] Cythonizing ./addons/Automobiles/models/paiement_models.py
+[ 47/112] Cythonizing ./addons/Automobiles/models/sinistre_models.py
+[ 48/112] Cythonizing ./addons/Automobiles/models/tarif_models.py
+[ 49/112] Cythonizing ./addons/Automobiles/models/vehicle_classification.py
+[ 50/112] Cythonizing ./addons/Automobiles/models/vehicle_guarantee.py
+[ 51/112] Cythonizing ./addons/Automobiles/models/vehicle_identification.py
+[ 52/112] Cythonizing ./addons/Automobiles/models/vehicle_options.py
+[ 53/112] Cythonizing ./addons/Automobiles/models/vehicle_tariff.py
+[ 54/112] Cythonizing ./addons/Automobiles/models/vehicle_technical.py
+[ 56/112] Cythonizing ./addons/Automobiles/reports/pdf_generator.py
+[ 58/112] Cythonizing ./addons/Automobiles/security/access_control.py
+[ 61/112] Cythonizing ./addons/Automobiles/views/asac_export_view.py
+[ 63/112] Cythonizing ./addons/Automobiles/views/asac_manager.py
+[ 69/112] Cythonizing ./addons/Automobiles/views/automobile_view.py
+[ 70/112] Cythonizing ./addons/Automobiles/views/batch_print_dialog.py
+[ 71/112] Cythonizing ./addons/Automobiles/views/batch_print_manager.py
+[ 72/112] Cythonizing ./addons/Automobiles/views/batch_print_thread.py
+[ 73/112] Cythonizing ./addons/Automobiles/views/carte_rose_printer.py
+[ 74/112] Cythonizing ./addons/Automobiles/views/compagnies_form_view.py
+[ 75/112] Cythonizing ./addons/Automobiles/views/compagnies_view.py
+[ 78/112] Cythonizing ./addons/Automobiles/views/contact_form_view.py
+[ 79/112] Cythonizing ./addons/Automobiles/views/contacts_view.py
+[ 81/112] Cythonizing ./addons/Automobiles/views/dashboard_view.py
+[ 83/112] Cythonizing ./addons/Automobiles/views/expertise/expertise_form_view.py
+[ 84/112] Cythonizing ./addons/Automobiles/views/expertise/expertise_list_view.py
+[ 87/112] Cythonizing ./addons/Automobiles/views/fleet_import_dialog.py
+[ 88/112] Cythonizing ./addons/Automobiles/views/fleet_vehicles_manager.py
+[ 89/112] Cythonizing ./addons/Automobiles/views/flotte_detail_view.py
+[ 90/112] Cythonizing ./addons/Automobiles/views/flotte_form_view.py
+[ 96/112] Cythonizing ./addons/Automobiles/views/police_number_selector.py
+[ 97/112] Cythonizing ./addons/Automobiles/views/quittance_print.py
+[ 98/112] Cythonizing ./addons/Automobiles/views/reports_view.py
+[ 99/112] Cythonizing ./addons/Automobiles/views/settings_view.py
+[103/112] Cythonizing ./addons/Automobiles/views/sinistre/sinistre_list_view.py
+[104/112] Cythonizing ./addons/Automobiles/views/style.py
+[106/112] Cythonizing ./addons/Automobiles/views/tarif_view.py
+[107/112] Cythonizing ./addons/Automobiles/views/test.py
+[109/112] Cythonizing ./addons/Automobiles/views/view.py
+[110/112] Cythonizing ./addons/Automobiles/views/vignette_printer.py
+[111/112] Cythonizing ./addons/Automobiles/views/widgets/modern_card.py
+[112/112] Cythonizing ./setup.py
+[  1/112] Cythonizing ./addons/Automobiles/api/asac_client.py
+[  5/112] Cythonizing ./addons/Automobiles/api/database.py
+[  7/112] Cythonizing ./addons/Automobiles/api/init_users.py
+[  8/112] Cythonizing ./addons/Automobiles/api/lometa_client.py
+[ 11/112] Cythonizing ./addons/Automobiles/api/models_db.py
+[ 14/112] Cythonizing ./addons/Automobiles/api/schemas.py
+[ 18/112] Cythonizing ./addons/Automobiles/api/services/tariff.py
+[ 20/112] Cythonizing ./addons/Automobiles/api/utils/asac_validator.py
+[ 21/112] Cythonizing ./addons/Automobiles/api/utils/security.py
+[ 22/112] Cythonizing ./addons/Automobiles/controllers/api_asac_controller.py
+[ 23/112] Cythonizing ./addons/Automobiles/controllers/automobile_controller.py
+[ 28/112] Cythonizing ./addons/Automobiles/controllers/expertise_controller.py
+[ 29/112] Cythonizing ./addons/Automobiles/controllers/flotte_controller.py
+[ 34/112] Cythonizing ./addons/Automobiles/fleet_import_avanced_dialog.py
+[ 55/112] Cythonizing ./addons/Automobiles/models/vehicle_valuation.py
+[ 57/112] Cythonizing ./addons/Automobiles/scripts/fix_relations.py
+[ 59/112] Cythonizing ./addons/Automobiles/utils/db_utils.py
+[ 60/112] Cythonizing ./addons/Automobiles/views/animations.py
+[ 62/112] Cythonizing ./addons/Automobiles/views/asac_import_view.py
+[ 64/112] Cythonizing ./addons/Automobiles/views/asac_manager_best_version.py
+[ 65/112] Cythonizing ./addons/Automobiles/views/async_loader.py
+[ 66/112] Cythonizing ./addons/Automobiles/views/attestation_print.py
+[ 67/112] Cythonizing ./addons/Automobiles/views/audit_auto_view.py
+[ 68/112] Cythonizing ./addons/Automobiles/views/automobile_form_view.py
+[ 76/112] Cythonizing ./addons/Automobiles/views/contact_card_view.py
+[ 77/112] Cythonizing ./addons/Automobiles/views/contact_detail_view.py
+[ 80/112] Cythonizing ./addons/Automobiles/views/contract_view.py
+[ 82/112] Cythonizing ./addons/Automobiles/views/devis_printer.py
+[ 85/112] Cythonizing ./addons/Automobiles/views/fleet_batch_print_manager.py
+[ 86/112] Cythonizing ./addons/Automobiles/views/fleet_import_avanced_dialog.py
+[ 91/112] Cythonizing ./addons/Automobiles/views/flottes_view.py
+[ 92/112] Cythonizing ./addons/Automobiles/views/garages/garage_form_view.py
+[ 93/112] Cythonizing ./addons/Automobiles/views/garages/garage_list_view.py
+[ 94/112] Cythonizing ./addons/Automobiles/views/garantie_selection_dialog.py
+[ 95/112] Cythonizing ./addons/Automobiles/views/old.py
+[100/112] Cythonizing ./addons/Automobiles/views/sinistre/sinistre_card.py
+[101/112] Cythonizing ./addons/Automobiles/views/sinistre/sinistre_detail_view.py
+[102/112] Cythonizing ./addons/Automobiles/views/sinistre/sinistre_form_view.py
+[105/112] Cythonizing ./addons/Automobiles/views/tarif_form_view.py
+[108/112] Cythonizing ./addons/Automobiles/views/vehicle_detail_view.py
+concurrent.futures.process._RemoteTraceback: 
+"""
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/concurrent/futures/process.py", line 254, in _process_worker
+    r = call_item.fn(*call_item.args, **call_item.kwargs)
+  File "/usr/lib/python3.13/concurrent/futures/process.py", line 203, in _process_chunk
+    return [fn(*args) for args in chunk]
+            ~~^^^^^^^
+  File "/home/fearless/Documents/Assurance/.venv/lib/python3.13/site-packages/Cython/Build/Dependencies.py",line 1305, in cythonize_one_helper
+    return cythonize_one(*m)
+  File "/home/fearless/Documents/Assurance/.venv/lib/python3.13/site-packages/Cython/Build/Dependencies.py",line 1297, in cythonize_one
+    raise CompileError(None, pyx_file)
+Cython.Compiler.Errors.CompileError: ./addons/Automobiles/views/test.py
+"""
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/fearless/Documents/Assurance/build_temp/cython_modules/Automobiles/setup.py", line 48, in <module>
+    ext_modules=cythonize(
+        extensions,
+    ...<9 lines>...
+        nthreads=2  # ✅ Réduire pour éviter les problèmes
+    )
+  File "/home/fearless/Documents/Assurance/.venv/lib/python3.13/site-packages/Cython/Build/Dependencies.py",line 1146, in cythonize
+    list(proc_pool.map(cythonize_one_helper, to_compile, chunksize=1))
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.13/concurrent/futures/process.py", line 617, in _chain_from_iterable_of_lists
+    for element in iterable:
+                   ^^^^^^^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 625, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 318, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 460, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib/python3.13/concurrent/futures/_base.py", line 402, in __get_result
+    raise self._exception
+Cython.Compiler.Errors.CompileError: ./addons/Automobiles/views/test.py
+find: ‘build_temp/cython_modules/Automobiles/’: Aucun fichier ou dossier de ce nom
+./build_secure.sh: ligne 225: print_warning: commande introuvable

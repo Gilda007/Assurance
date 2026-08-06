@@ -15,134 +15,233 @@ class AttestationPrinter:
         if dialog.exec_() == QPrintDialog.Accepted:
             painter = QPainter(printer)
             if painter.isActive():
-                self.draw_content(painter)
+                self.draw_content(painter, printer)
                 painter.end()
 
-    def draw_content(self, painter):
-        # Police type "Machine à écrire" pour l'administration
-        font = QFont("Courier New", 11)
-        painter.setFont(font)
-        painter.setPen(Qt.black)
+    # def draw_content(self, painter):
+    #     # Police type "Machine à écrire" pour l'administration
+    #     font = QFont("Courier New", 11)
+    #     painter.setFont(font)
+    #     painter.setPen(Qt.black)
 
-        # Facteur d'échelle (à ajuster selon la précision de votre imprimante)
-        scale = 40 
+    #     # Facteur d'échelle (à ajuster selon la précision de votre imprimante)
+    #     scale = 40 
 
-        def format_date(date_value):
-            """Formate une date en JJ/MM/AAAA"""
-            if not date_value:
-                return ""
-            try:
-                from datetime import datetime
-                if isinstance(date_value, datetime):
-                    return date_value.strftime("%d/%m/%Y")
-                elif isinstance(date_value, str):
-                    # Si c'est déjà une chaîne, essayer de la parser
-                    for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"]:
-                        try:
-                            dt = datetime.strptime(date_value, fmt)
-                            return dt.strftime("%d/%m/%Y")
-                        except ValueError:
-                            continue
-                    return date_value[:10]  # Fallback: prendre les 10 premiers caractères
-            except:
+    #     def format_date(date_value):
+    #         """Formate une date en JJ/MM/AAAA"""
+    #         if not date_value:
+    #             return ""
+    #         try:
+    #             from datetime import datetime
+    #             if isinstance(date_value, datetime):
+    #                 return date_value.strftime("%d/%m/%Y")
+    #             elif isinstance(date_value, str):
+    #                 # Si c'est déjà une chaîne, essayer de la parser
+    #                 for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"]:
+    #                     try:
+    #                         dt = datetime.strptime(date_value, fmt)
+    #                         return dt.strftime("%d/%m/%Y")
+    #                     except ValueError:
+    #                         continue
+    #                 return date_value[:10]  # Fallback: prendre les 10 premiers caractères
+    #         except:
+    #             return str(date_value)[:10]
+    #         return str(date_value)[:10]
+        
+    #     def draw_line(xmm, ymm, text):
+    #         if text and text != "None":
+    #             painter.drawText(int(xmm * scale), int(ymm * scale), str(text).upper())
+
+    #     # --- CONFIGURATION DES LIGNES (Coordonnées à ajuster à la règle) ---
+    #     # xmm : distance du bord gauche | ymm : distance du bord haut
+        
+    #     # 1. Nom du propriétaire
+    #     draw_line(10, 85, self.data.get('owner'))
+        
+    #     # 2. BP YDé (Adresse)
+    #     draw_line(10, 95, f"ID: {self.data.get('id', 'N/A')}")
+
+    #     date_debut = format_date(self.data.get('date_debut', ''))
+    #     date_fin = format_date(self.data.get('date_fin', ''))
+    #     periode = f"{date_debut} AU {date_fin}"
+    #     draw_line(10, 105, periode)
+        
+    #     # 4. Marque et Modèle
+    #     marque_mod = f"{self.data.get('marque', '')} {self.data.get('modele', '')}"
+    #     draw_line(10, 115, marque_mod)
+
+    #     draw_line(10, 125, self.data.get('immatriculation', ''))
+        
+    #     # 6. AMS Assurance (Texte fixe ou ID Agence)
+    #     draw_line(10, 135, "VT")
+        
+    #     # 7. ID (Châssis ou Identifiant interne)
+    #     draw_line(10, 145, f"CAT {self.data.get('categorie', '01')}")
+        
+    #     # 8. Période : date_debut AU date_fin
+        
+        
+    #     # 9. Catégorie
+    #     usage_categorie = f"{self.data.get('libele_tarif', '')}"
+    #     draw_line(10, 155, usage_categorie)
+
+    #     # Configuration de la police"
+    #     font = QFont("Courier", 10) # Police fixe souvent utilisée pour les formulaires
+    #     painter.setFont(font)
+    #     painter.setPen(Qt.black)
+
+    #     # --- FONCTION DE PLACEMENT (x, y en mm) ---
+    #     def draw_text_mm(x_mm, y_mm, text):
+    #         if not text: return
+    #         # Conversion mm vers unités logique de l'imprimante
+    #         # On utilise environ 40 dots par mm pour une haute précision
+    #         factor = 40 
+    #         painter.drawText(x_mm * factor, y_mm * factor, str(text).upper())
+
+
+    #      # Ligne 1 : Date de création et Propriétaire
+    #     info_ower = f"{self.data.get('owner', '')} {self.data.get('phone', '')}"
+    #     draw_text_mm(100, 85, info_ower)
+
+    #     # Ligne 3 : Numéro de police ou Code
+    #     draw_text_mm(100, 95, f"{self.data.get('id', 'N/A')}")
+
+    #     # Ligne 2 : Adresse / Ville
+    #     draw_text_mm(100, 105, periode)
+
+    #     # Ligne 5 : Marque et Modèle
+    #     draw_text_mm(100, 115, marque_mod)
+
+    #     # Ligne 7 : Catégorie
+    #     draw_text_mm(100, 125, f"{self.data.get('immatriculation', 'N/A')}")
+
+    #     draw_text_mm(100, 135, 'VT')
+
+
+    #     # --- MAPPAGE SELON VOTRE CAPTURE D'ÉCRAN ---
+    #     # Note : Vous devrez ajuster ces coordonnées au millimètre près avec une règle
+        
+    #     # Ligne 1 : Date de création et Propriétaire
+    #     info_ower = f"{self.data.get('owner', '')} {self.data.get('phone', '')}"
+    #     draw_text_mm(180, 85, info_ower)
+
+    #     # Ligne 2 : Adresse / Ville
+    #     draw_text_mm(180, 95, f"{self.data.get('id', 'N/A')}")
+
+    #     # Ligne 3 : Numéro de police ou Code
+    #     draw_text_mm(180, 105, periode)
+
+    #     # Ligne 4 : Période de validité
+        
+    #     draw_text_mm(180, 115, marque_mod)
+
+    #     # Ligne 5 : Marque et Modèle
+    #     draw_text_mm(180, 125, f"{self.data.get('immatriculation', 'N/A')}")
+
+    #     draw_text_mm(180, 135, f"{self.data.get('libele_tarif', '')}")
+
+    #     # Ligne 7 : Catégorie
+    #     draw_text_mm(180, 145, f"CAT {self.data.get('categorie', '')}")
+
+    #     draw_text_mm(180, 155, marque_mod)
+
+    #     draw_text_mm(180, 165, f"{self.data.get('immatriculation', 'N/A')}")
+
+    def draw_content(self, painter, printer):
+            """Dessine le contenu de la Carte Rose"""
+            # ✅ Obtenir les dimensions de la page en points
+            page_layout = printer.pageLayout()
+            paint_rect = page_layout.paintRect()
+            
+            # ✅ Facteur d'échelle (points par mm)
+            dpi = printer.resolution()
+            scale = dpi / 25.4
+            
+            # Police adaptée à la résolution
+            font = QFont("Courier New", 10)
+            font.setPointSizeF(10)
+            painter.setFont(font)
+            painter.setPen(Qt.black)
+    
+            def draw_line(xmm, ymm, text):
+                """Dessine du texte à partir de coordonnées en millimètres"""
+                if not text or text == "None":
+                    return
+                x = int(xmm * scale)
+                y = int(ymm * scale)
+                painter.drawText(x, y, str(text).upper())
+    
+            def format_date(date_value):
+                """Formate une date en JJ/MM/AAAA"""
+                if not date_value:
+                    return ""
+                try:
+                    from datetime import datetime
+                    if isinstance(date_value, datetime):
+                        return date_value.strftime("%d/%m/%Y")
+                    elif isinstance(date_value, str):
+                        # Si c'est déjà une chaîne, essayer de la parser
+                        for fmt in ["%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M:%S.%f"]:
+                            try:
+                                dt = datetime.strptime(date_value, fmt)
+                                return dt.strftime("%d/%m/%Y")
+                            except ValueError:
+                                continue
+                        return date_value[:10]  # Fallback: prendre les 10 premiers caractères
+                except:
+                    return str(date_value)[:10]
                 return str(date_value)[:10]
-            return str(date_value)[:10]
-        
-        def draw_line(xmm, ymm, text):
-            if text and text != "None":
-                painter.drawText(int(xmm * scale), int(ymm * scale), str(text).upper())
+    
+            # --- POSITIONS EN MILLIMÈTRES ---
+            # A4 paysage: 297mm x 210mm
+            
+            # 1. Nom du propriétaire
+            draw_line(10, 85, self.data.get('owner'))
+            
+            # 2. Immatriculation
+            draw_line(10, 95, f"{self.data.get('id', '')}")
+            
+            # 3. Marque et Modèle
 
-        # --- CONFIGURATION DES LIGNES (Coordonnées à ajuster à la règle) ---
-        # xmm : distance du bord gauche | ymm : distance du bord haut
-        
-        # 1. Nom du propriétaire
-        draw_line(10, 85, self.data.get('owner'))
-        
-        # 2. BP YDé (Adresse)
-        draw_line(10, 95, f"ID: {self.data.get('id', 'N/A')}")
+            date_debut = format_date(self.data.get('date_debut', ''))
+            date_fin = format_date(self.data.get('date_fin', ''))
+            marque_mod = f"{self.data.get('marque', '')} {self.data.get('modele', '')}"
+            periode = f"{date_debut} AU {date_fin}"
 
-        date_debut = format_date(self.data.get('date_debut', ''))
-        date_fin = format_date(self.data.get('date_fin', ''))
-        periode = f"{date_debut} AU {date_fin}"
-        draw_line(10, 105, periode)
-        
-        # 4. Marque et Modèle
-        marque_mod = f"{self.data.get('marque', '')} {self.data.get('modele', '')}"
-        draw_line(10, 115, marque_mod)
+            draw_line(10, 105, periode)
+            
+            # 4. Assureur
+            draw_line(10, 115, marque_mod)
+            
+            # 5. AMS Assurance
+            draw_line(10, 125, self.data.get('immatriculation', ''))
+            
+            # 6. ID (Châssis)
+            draw_line(10, 135, f"ID: {self.data.get('categorie', 'N/A')}")
+            
+            # 7. Période
+            # periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
+            periode = f"{date_debut} AU {date_fin}"
+            draw_line(10, 145, f"CAT {self.data.get('categorie', '01')}")
+            
+            # 8. Catégorie
+            usage_categorie = f"{self.data.get('libele_tarif', '')}, {self.data.get('categorie', '')}"
+            draw_line(10, 155, usage_categorie)
+            
+            # --- DEUXIÈME COLONNE ---
+            draw_line(80, 85, self.data.get('owner', ''))
+            draw_line(80, 95, periode)
+            draw_line(80, 105, self.data.get('immatriculation', ''))
+            draw_line(80, 115, marque_mod)
+            draw_line(80, 125, self.data.get('compagny', ''))
+            draw_line(80, 135, f"ID: {self.data.get('id', 'N/A')}")
+            draw_line(80, 145, usage_categorie)
+            
+            # --- TROISIÈME COLONNE ---
+            draw_line(160, 85, self.data.get('owner', ''))
+            draw_line(160, 95, self.data.get('immatriculation', ''))
+            draw_line(160, 105, "AMS ASSURANCE, YAOUNDE")
+            draw_line(160, 135, usage_categorie)
+    
+     
 
-        draw_line(10, 125, self.data.get('immatriculation', ''))
-        
-        # 6. AMS Assurance (Texte fixe ou ID Agence)
-        draw_line(10, 135, "VT")
-        
-        # 7. ID (Châssis ou Identifiant interne)
-        draw_line(10, 145, f"CAT {self.data.get('categorie', '01')}")
-        
-        # 8. Période : date_debut AU date_fin
-        
-        
-        # 9. Catégorie
-        usage_categorie = f"{self.data.get('libele_tarif', '')}"
-        draw_line(10, 155, usage_categorie)
-
-        # Configuration de la police"
-        font = QFont("Courier", 10) # Police fixe souvent utilisée pour les formulaires
-        painter.setFont(font)
-        painter.setPen(Qt.black)
-
-        # --- FONCTION DE PLACEMENT (x, y en mm) ---
-        def draw_text_mm(x_mm, y_mm, text):
-            if not text: return
-            # Conversion mm vers unités logique de l'imprimante
-            # On utilise environ 40 dots par mm pour une haute précision
-            factor = 40 
-            painter.drawText(x_mm * factor, y_mm * factor, str(text).upper())
-
-
-         # Ligne 1 : Date de création et Propriétaire
-        info_ower = f"{self.data.get('owner', '')} {self.data.get('phone', '')}"
-        draw_text_mm(100, 85, info_ower)
-
-        # Ligne 3 : Numéro de police ou Code
-        draw_text_mm(100, 95, f"{self.data.get('id', 'N/A')}")
-
-        # Ligne 2 : Adresse / Ville
-        draw_text_mm(100, 105, periode)
-
-        # Ligne 5 : Marque et Modèle
-        draw_text_mm(100, 115, marque_mod)
-
-        # Ligne 7 : Catégorie
-        draw_text_mm(100, 125, f"{self.data.get('immatriculation', 'N/A')}")
-
-        draw_text_mm(100, 135, 'VT')
-
-
-        # --- MAPPAGE SELON VOTRE CAPTURE D'ÉCRAN ---
-        # Note : Vous devrez ajuster ces coordonnées au millimètre près avec une règle
-        
-        # Ligne 1 : Date de création et Propriétaire
-        info_ower = f"{self.data.get('owner', '')} {self.data.get('phone', '')}"
-        draw_text_mm(180, 85, info_ower)
-
-        # Ligne 2 : Adresse / Ville
-        draw_text_mm(180, 95, f"{self.data.get('id', 'N/A')}")
-
-        # Ligne 3 : Numéro de police ou Code
-        draw_text_mm(180, 105, periode)
-
-        # Ligne 4 : Période de validité
-        
-        draw_text_mm(180, 115, marque_mod)
-
-        # Ligne 5 : Marque et Modèle
-        draw_text_mm(180, 125, f"{self.data.get('immatriculation', 'N/A')}")
-
-        draw_text_mm(180, 135, f"{self.data.get('libele_tarif', '')}")
-
-        # Ligne 7 : Catégorie
-        draw_text_mm(180, 145, f"CAT {self.data.get('categorie', '')}")
-
-        draw_text_mm(180, 155, marque_mod)
-
-        draw_text_mm(180, 165, f"{self.data.get('immatriculation', 'N/A')}")

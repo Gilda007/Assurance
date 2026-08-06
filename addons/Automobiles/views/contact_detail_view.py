@@ -28,9 +28,19 @@ class ContactDetailView(QDialog):
         self.controller = controller
         self.contact = contact
         self.parent_window = parent
+
+        self.is_driver = hasattr(contact, 'driver_name') or hasattr(contact, 'source_type')
+        
+        # ✅ Si c'est un ContactListItem, extraire l'objet réel
+        if hasattr(contact, 'data') and hasattr(contact, 'source_type'):
+            self.real_contact = contact.data
+            self.source_type = contact.source_type
+        else:
+            self.real_contact = contact
+            self.source_type = 'driver' if hasattr(contact, 'driver_name') else 'contact'
         
         self.setWindowTitle(f"Détails du contact - {contact.nom} {contact.prenom or ''}")
-        self.setMinimumSize(1100, 700)
+        self.setMinimumSize(1200, 800)
         self.resize(1200, 800)
         self.setup_ui()
         self.load_data()
@@ -108,12 +118,31 @@ class ContactDetailView(QDialog):
         layout = QHBoxLayout(header)
         layout.setContentsMargins(40, 20, 40, 20)
 
+        # ✅ Récupérer le nom correctement selon le type
+        if self.source_type == 'driver':
+            nom = getattr(self.real_contact, 'nom', '')
+            prenom = getattr(self.real_contact, 'prenom', '')
+        else:
+            nom = getattr(self.real_contact, 'nom', '')
+            prenom = getattr(self.real_contact, 'prenom', '')
+        
+        name = f"{nom} {prenom}".strip()
+        title = QLabel(name or "Contact sans nom")
+
         # Avatar
         avatar = QLabel()
         avatar.setFixedSize(80, 80)
         avatar.setAlignment(Qt.AlignCenter)
-        initials = (self.contact.nom[0].upper() if self.contact.nom else "C") + \
-                   (self.contact.prenom[0].upper() if self.contact.prenom else "")
+        if self.source_type == 'driver':
+            nom = getattr(self.real_contact, 'driver_name', 'Chauffeur')
+            prenom = ''
+        else:
+            nom = getattr(self.real_contact, 'nom', 'Contact')
+            prenom = getattr(self.real_contact, 'prenom', '')
+
+        initials = (nom[0].upper() if nom else "C")
+        if prenom:
+            initials += prenom[0].upper()
         avatar.setText(initials or "C")
         avatar.setStyleSheet("""
             font-size: 32px;
@@ -128,14 +157,22 @@ class ContactDetailView(QDialog):
         info_container = QVBoxLayout()
         info_container.setSpacing(6)
 
-        name = QLabel(f"{self.contact.nom or ''} {self.contact.prenom or ''}".strip())
+        if self.source_type == 'driver':
+            nom = getattr(self.real_contact, 'driver_name', 'Chauffeur')
+            prenom = ''
+        else:
+            nom = getattr(self.real_contact, 'nom', 'Contact')
+            prenom = getattr(self.real_contact, 'prenom', '')
+        name = QLabel(f"{nom} {prenom}".strip() or "Contact sans nom")
         name.setStyleSheet("font-size: 24px; font-weight: 700; color: #0f172a;")
 
         # Badges
         badges = QHBoxLayout()
         badges.setSpacing(8)
-        
-        type_badge = QLabel(self.contact.type_client or "Client")
+
+        # ✅ Type badge
+        type_text = self.source_type.capitalize()
+        type_badge = QLabel(type_text)
         type_badge.setStyleSheet("""
             background: #dbeafe;
             color: #1d4ed8;
@@ -144,8 +181,14 @@ class ContactDetailView(QDialog):
             font-size: 11px;
             font-weight: 600;
         """)
-        
-        status_badge = QLabel(self.contact.vip_status or "Standard")
+
+        # ✅ Statut badge - utiliser real_contact
+        if self.source_type == 'driver':
+            status_text = "Actif"
+        else:
+            status_text = getattr(self.real_contact, 'statut', 'Actif') or 'Actif'
+
+        status_badge = QLabel(status_text)
         status_badge.setStyleSheet("""
             background: #dcfce7;
             color: #15803d;
@@ -154,25 +197,24 @@ class ContactDetailView(QDialog):
             font-size: 11px;
             font-weight: 600;
         """)
-        
+
         badges.addWidget(type_badge)
         badges.addWidget(status_badge)
-
-        info_container.addWidget(name)
-        info_container.addLayout(badges)
 
         # Contact rapide
         contact_info = QHBoxLayout()
         contact_info.setSpacing(20)
         
-        phone = QLabel(f"📞 +237{self.contact.telephone or 'Tél. non renseigné'}")
-        phone.setStyleSheet("color: #475569; font-size: 13px;")
+        phone = getattr(self.real_contact, 'telephone', 'Tél. non renseigné')
+        phone_label = QLabel(f"📞 {phone or 'Tél. non renseigné'}")
+        phone_label.setStyleSheet("color: #475569; font-size: 13px;")
         
-        email = QLabel(f"✉️ {self.contact.email or 'Email non renseigné'}")
-        email.setStyleSheet("color: #475569; font-size: 13px;")
+        email = getattr(self.real_contact, 'email', 'Email non renseigné')
+        email_label = QLabel(f"✉️ {email or 'Email non renseigné'}")
+        email_label.setStyleSheet("color: #475569; font-size: 13px;")
         
-        contact_info.addWidget(phone)
-        contact_info.addWidget(email)
+        contact_info.addWidget(phone_label)
+        contact_info.addWidget(email_label)
 
         info_container.addLayout(contact_info)
 
@@ -311,6 +353,45 @@ class ContactDetailView(QDialog):
         container_layout = QVBoxLayout(container)
         container_layout.setSpacing(24)
 
+        # ✅ Utiliser real_contact au lieu de contact
+        if self.source_type == 'driver':
+            nom = getattr(self.real_contact, 'driver_name', '')
+            prenom = ''
+            date_naissance = getattr(self.real_contact, 'date_naissance', None)
+            nationalite = getattr(self.real_contact, 'nationalite', '')
+            telephone = getattr(self.real_contact, 'telephone', '')
+            email = getattr(self.real_contact, 'email', '')
+            adresse = getattr(self.real_contact, 'adresse', '')
+            ville = getattr(self.real_contact, 'ville', '')
+            num_permis = getattr(self.real_contact, 'num_permis', '')
+            cat_permis = getattr(self.real_contact, 'cat_permis', '')
+            # Pour un chauffeur, on n'a pas ces champs
+            num_contribuable = ''
+            cat_socio_prof = ''
+            tel_portable = ''
+            adresse_2 = ''
+            type_client = 'Chauffeur'
+            statut = 'Actif'
+            charge_clientele = ''
+        else:
+            nom = getattr(self.real_contact, 'nom', '')
+            prenom = getattr(self.real_contact, 'prenom', '')
+            date_naissance = getattr(self.real_contact, 'date_naissance', None)
+            nationalite = getattr(self.real_contact, 'nationalite', '')
+            telephone = getattr(self.real_contact, 'telephone', '')
+            email = getattr(self.real_contact, 'email', '')
+            adresse = getattr(self.real_contact, 'adresse', '')
+            ville = getattr(self.real_contact, 'ville', '')
+            num_permis = getattr(self.real_contact, 'num_permis', '')
+            cat_permis = getattr(self.real_contact, 'cat_permis', '')
+            num_contribuable = getattr(self.real_contact, 'num_contribuable', '')
+            cat_socio_prof = getattr(self.real_contact, 'cat_socio_prof', '')
+            tel_portable = getattr(self.real_contact, 'tel_portable', '')
+            adresse_2 = getattr(self.real_contact, 'adresse_2', '')
+            type_client = getattr(self.real_contact, 'type_client', '')
+            statut = getattr(self.real_contact, 'statut', 'Actif')
+            charge_clientele = getattr(self.real_contact, 'charge_clientele', '')
+
         # Grille d'informations
         info_grid = QGridLayout()
         info_grid.setSpacing(24)
@@ -319,20 +400,20 @@ class ContactDetailView(QDialog):
 
         sections = [
             ("Identité", [
-                ("Nom complet", f"{self.contact.nom or ''} {self.contact.prenom or ''}".strip()),
-                ("Date de naissance", self.contact.date_naissance.strftime("%d/%m/%Y") if self.contact.date_naissance else "Non renseigné"),
-                ("Nationalité", self.contact.nationalite or "Non renseigné"),
-                ("Numéro contribuable", self.contact.num_contribuable or "Non renseigné"),
-                ("Catégorie socio-pro", self.contact.cat_socio_prof or "Non renseigné"),
+                ("Nom complet", f"{nom} {prenom}".strip()),
+                ("Date de naissance", date_naissance.strftime("%d/%m/%Y") if date_naissance else "Non renseigné"),
+                ("Nationalité", nationalite or "Non renseigné"),
+                ("Numéro contribuable", num_contribuable or "Non renseigné"),
+                ("Catégorie socio-pro", cat_socio_prof or "Non renseigné"),
             ]),
             ("Coordonnées", [
-                ("Téléphone", self.contact.telephone or "Non renseigné"),
-                ("Téléphone portable", self.contact.tel_portable or "Non renseigné"),
-                ("Email", self.contact.email or "Non renseigné"),
-                ("Email secondaire", self.contact.adresse_2 or "Non renseigné"),
-                ("Adresse", self.contact.adresse or "Non renseigné"),
-                ("Ville", self.contact.ville or "Non renseigné"),
-                ("Permis de conduire", self.contact.num_permis or "Non renseigné"),
+                ("Téléphone", telephone or "Non renseigné"),
+                ("Téléphone portable", tel_portable or "Non renseigné"),
+                ("Email", email or "Non renseigné"),
+                ("Email secondaire", adresse_2 or "Non renseigné"),
+                ("Adresse", adresse or "Non renseigné"),
+                ("Ville", ville or "Non renseigné"),
+                ("Permis de conduire", num_permis or "Non renseigné"),
             ]),
         ]
 
@@ -344,18 +425,23 @@ class ContactDetailView(QDialog):
 
         # Section complémentaire
         extra_section = self._create_info_section("Informations complémentaires", [
-            ("Type de client", self.contact.type_client or "Non renseigné"),
-            ("Statut VIP", self.contact.vip_status or "Standard"),
-            ("Chargé de clientèle", self.contact.charge_clientele or "Non attribué"),
+            ("Type de client", type_client or "Non renseigné"),
+            ("Statut", statut or "Standard"),
+            ("Chargé de clientèle", charge_clientele or "Non attribué"),
         ])
         container_layout.addWidget(extra_section)
 
         # Section Audit
+        created_at = getattr(self.real_contact, 'created_at', None)
+        updated_at = getattr(self.real_contact, 'updated_at', None)
+        created_by = getattr(self.real_contact, 'created_by', 'Système')
+        updated_by = getattr(self.real_contact, 'updated_by', '—')
+        
         audit_section = self._create_info_section("Audit", [
-            ("Créé le", self.contact.created_at.strftime("%d/%m/%Y à %H:%M") if self.contact.created_at else "Non renseigné"),
-            ("Créé par", self.contact.created_by or "Système"),
-            ("Dernière modification", self.contact.updated_at.strftime("%d/%m/%Y à %H:%M") if self.contact.updated_at else "Jamais"),
-            ("Modifié par", self.contact.updated_by or "—"),
+            ("Créé le", created_at.strftime("%d/%m/%Y à %H:%M") if created_at else "Non renseigné"),
+            ("Créé par", created_by or "Système"),
+            ("Dernière modification", updated_at.strftime("%d/%m/%Y à %H:%M") if updated_at else "Jamais"),
+            ("Modifié par", updated_by or "—"),
         ])
         container_layout.addWidget(audit_section)
 

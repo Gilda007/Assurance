@@ -25,6 +25,67 @@ os.environ["GDK_BACKEND"] = "x11"
 warnings.filterwarnings("ignore")
 
 
+class Icons:
+    """Codes Unicode pour les icônes (compatibles Cython)"""
+    # Véhicules
+    VEHICLE = "\uD83D\uDE97"      # 🚗
+    FLEET = "\uD83D\uDE9A"        # 🚚
+    CAR = "\uD83D\uDE97"          # 🚗
+    
+    # Actions
+    CHECK = "\u2705"              # ✅
+    CROSS = "\u274C"              # ❌
+    WARNING = "\u26A0"            # ⚠️
+    INFO = "\u2139"               # ℹ️
+    SEARCH = "\uD83D\uDD0D"       # 🔍
+    REFRESH = "\uD83D\uDD04"      # 🔄
+    DOWNLOAD = "\uD83D\uDCE5"     # 📥
+    
+    # Notifications
+    BELL = "\uD83D\uDD14"         # 🔔
+    
+    # Fichiers
+    FOLDER = "\uD83D\uD4C2"       # 📂
+    FILE = "\uD83D\uDCC4"         # 📄
+    
+    # Garanties
+    SHIELD = "\uD83D\uDEE1"       # 🛡️
+    SCALE = "\u2696"              # ⚖️
+    FIRE = "\uD83D\uDD25"         # 🔥
+    GLASS = "\uD83E\uDEAF"        # 🪟
+    WRENCH = "\uD83D\uDD27"       # 🔧
+    BOMB = "\uD83D\uDCA5"         # 💥
+    PEOPLE = "\uD83D\uDC65"       # 👥
+    GUN = "\uD83D\uDD2B"          # 🔫
+    
+    # Finances
+    MONEY = "\uD83D\uDCB0"        # 💰
+    MONEY_BAG = "\uD83D\uDCB0"    # 💰
+    COIN = "\uD83E\uDE99"         # 🪙
+    
+    # Dates
+    CALENDAR = "\uD83D\uDCC5"     # 📅
+    CLOCK = "\u23F1"              # ⏱️
+    
+    # Statistiques
+    CHART = "\uD83D\uDCCA"        # 📊
+    GRAPH = "\uD83D\uDCC8"        # 📈
+    LIST = "\uD83D\uDCCB"         # 📋
+    
+    # Divers
+    TARGET = "\uD83C\uDFAF"       # 🎯
+    PENCIL = "\u270F"             # ✏️
+    HOME = "\uD83C\uDFE0"         # 🏠
+    HELP = "\u2753"               # ❓
+    GEAR = "\u2699"               # ⚙️
+    STAR = "\u2B50"               # ⭐
+    
+    @staticmethod
+    def label(text, icon):
+        """Crée un texte avec une icône"""
+        return f"{icon} {text}"
+
+
 # ============================================================================
 # STYLES MODERNES
 # ============================================================================
@@ -192,17 +253,17 @@ class MassReductionDialog(QDialog):
         layout.setSpacing(14)
         layout.setContentsMargins(20, 20, 20, 20)
         
-        # En-tÃªte
-        header = QLabel("ðŸ“Š Application de rÃ©duction en masse")
+        # En-tête
+        header = QLabel(Icons.label("Application de réduction en masse", Icons.CHART))
         header.setStyleSheet("font-size: 16px; font-weight: 700; color: #0f172a;")
         layout.addWidget(header)
         
-        desc = QLabel("Appliquez un pourcentage de rÃ©duction sur les garanties sÃ©lectionnÃ©es")
+        desc = QLabel("Appliquez un pourcentage de rÃ©duction sur les garanties sélectionnées")
         desc.setStyleSheet("color: #64748b; font-size: 12px;")
         layout.addWidget(desc)
         
         # === GARANTIES ===
-        group = QGroupBox("Garanties concernÃ©es")
+        group = QGroupBox("Garanties concernées")
         group.setStyleSheet("""
             QGroupBox {
                 font-weight: 600;
@@ -225,13 +286,13 @@ class MassReductionDialog(QDialog):
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
         
-        select_all_btn = QPushButton("Tout sÃ©lectionner")
+        select_all_btn = QPushButton("Tout sélectionner")
         select_all_btn.setFlat(True)
         select_all_btn.setStyleSheet("color: #2563eb; font-size: 11px; padding: 4px 8px;")
         select_all_btn.clicked.connect(lambda: self.toggle_all(True))
         btn_layout.addWidget(select_all_btn)
         
-        deselect_all_btn = QPushButton("Tout dÃ©sÃ©lectionner")
+        deselect_all_btn = QPushButton("Tout désélectionner")
         deselect_all_btn.setFlat(True)
         deselect_all_btn.setStyleSheet("color: #64748b; font-size: 11px; padding: 4px 8px;")
         deselect_all_btn.clicked.connect(lambda: self.toggle_all(False))
@@ -241,15 +302,15 @@ class MassReductionDialog(QDialog):
         # Liste des garanties
         self.garantie_checkboxes = {}
         garanties_list = [
-            ('rc', "RC/RTI", "ðŸ›¡ï¸"),
-            ('dr', "DÃ©fense et Recours", "âš–ï¸"),
-            ('vol', "Vol/Vol partie", "ðŸš—"),
-            ('vb', "Vol Braquage", "ðŸ”«"),
-            ('incendie', "Incendie", "ðŸ”¥"),
-            ('bris_glace', "Bris de Glaces", "ðŸªŸ"),
-            ('ar', "Assistance RÃ©paration", "ðŸ”§"),
-            ('dta', "Dommages Tous Accidents", "ðŸ’¥"),
-            ('ipt', "IPT + Conducteur", "ðŸ‘¥"),
+            ('rc', "RC/RTI", Icons.SHIELD),
+            ('dr', "DÃ©fense et Recours", Icons.SCALE),
+            ('vol', "Vol/Vol partie", Icons.GUN),
+            ('vb', "Vol Braquage", Icons.BOMB),
+            ('incendie', "Incendie", Icons.FIRE),
+            ('bris_glace', "Bris de Glaces", Icons.GLASS),
+            ('ar', "Assistance RÃ©paration", Icons.WRENCH),
+            ('dta', "Dommages Tous Accidents", Icons.BOMB),
+            ('ipt', "IPT + Conducteur", Icons.PEOPLE),
         ]
         
         checkbox_layout = QGridLayout()
@@ -281,7 +342,7 @@ class MassReductionDialog(QDialog):
         layout.addWidget(group)
         
         # === PARAMÃˆTRES ===
-        reduction_group = QGroupBox("ParamÃ¨tres de rÃ©duction")
+        reduction_group = QGroupBox("Paramètres de réduction")
         reduction_group.setStyleSheet("""
             QGroupBox {
                 font-weight: 600;
@@ -302,7 +363,7 @@ class MassReductionDialog(QDialog):
         reduction_layout.setContentsMargins(15, 15, 15, 15)
         
         # Pourcentage
-        reduction_layout.addWidget(QLabel("Pourcentage de rÃ©duction (%) :"), 0, 0)
+        reduction_layout.addWidget(QLabel("Pourcentage de réduction (%) :"), 0, 0)
         self.reduction_input = QLineEdit("10")
         self.reduction_input.setStyleSheet("""
             QLineEdit {
@@ -342,12 +403,12 @@ class MassReductionDialog(QDialog):
         """)
         preview_layout = QHBoxLayout(preview_frame)
         
-        self.preview_label = QLabel("ðŸ’¡ 10% de rÃ©duction")
+        self.preview_label = QLabel(Icons.label("10% de réduction", Icons.INFO))
         self.preview_label.setStyleSheet("color: #475569; font-size: 11px; font-weight: 500;")
         preview_layout.addWidget(self.preview_label)
         preview_layout.addStretch()
         
-        self.preview_total = QLabel("0 FCFA Ã©conomisÃ©s")
+        self.preview_total = QLabel(Icons.label("0 FCFA économisés", Icons.MONEY))
         self.preview_total.setStyleSheet("color: #10b981; font-size: 11px; font-weight: 600;")
         preview_layout.addWidget(self.preview_total)
         
@@ -368,12 +429,12 @@ class MassReductionDialog(QDialog):
         summary_layout = QHBoxLayout(summary_frame)
         summary_layout.setSpacing(20)
         
-        self.summary_text = QLabel("ðŸ“‹ 9 garanties sÃ©lectionnÃ©es Â· 10% de rÃ©duction")
+        self.summary_text = QLabel(Icons.label("9 garanties sélectionnées · 10% de réduction", Icons.LIST))
         self.summary_text.setStyleSheet("color: #1e293b; font-size: 12px; font-weight: 500;")
         summary_layout.addWidget(self.summary_text)
         summary_layout.addStretch()
         
-        self.summary_vehicles = QLabel("ðŸš— 0 vÃ©hicules")
+        self.summary_vehicles = QLabel(Icons.label("0 véhicules", Icons.VEHICLE))
         self.summary_vehicles.setStyleSheet("color: #2563eb; font-size: 12px; font-weight: 600;")
         summary_layout.addWidget(self.summary_vehicles)
         
@@ -388,7 +449,7 @@ class MassReductionDialog(QDialog):
         cancel_btn.setFixedSize(120, 35)
         cancel_btn.clicked.connect(self.reject)
         
-        apply_btn = QPushButton("âœ… Appliquer")
+        apply_btn = QPushButton(Icons.label("Appliquer", Icons.CHECK))
         apply_btn.setProperty("class", "BtnSuccess")
         apply_btn.setFixedSize(120, 35)
         apply_btn.clicked.connect(self.accept)
@@ -416,11 +477,11 @@ class MassReductionDialog(QDialog):
         
         # Mettre Ã  jour le texte du rÃ©sumÃ©
         self.summary_text.setText(
-            f"ðŸ“‹ {len(selected)} garantie{'s' if len(selected) > 1 else ''} sÃ©lectionnÃ©e{'s' if len(selected) > 1 else ''} Â· {pct:.1f}% de rÃ©duction"
+            Icons.label(f"{len(selected)} garantie{'s' if len(selected) > 1 else ''} sélectionnée{'s' if len(selected) > 1 else ''} · {pct:.1f}% de réduction", Icons.LIST)
         )
         
         # Mettre Ã  jour l'aperÃ§u
-        self.preview_label.setText(f"ðŸ’¡ {pct:.1f}% de rÃ©duction")
+        self.preview_label.setText(Icons.label(f"{pct:.1f}% de réduction", Icons.INFO))
         
         # Compter les vÃ©hicules impactÃ©s
         if self.parent() and hasattr(self.parent(), 'vehicles_data'):
@@ -432,7 +493,7 @@ class MassReductionDialog(QDialog):
                     if garanties.get(key, 0) > 0:
                         impacted += 1
                         break
-            self.summary_vehicles.setText(f"ðŸš— {impacted} vÃ©hicule{'s' if impacted > 1 else ''}")
+            self.summary_vehicles.setText(Icons.label(f"{impacted} véhicule{'s' if impacted > 1 else ''}", Icons.VEHICLE))
             
             # Calculer les Ã©conomies totales
             total_economies = 0
@@ -442,10 +503,10 @@ class MassReductionDialog(QDialog):
                     amount = garanties.get(key, 0)
                     if amount > 0:
                         total_economies += amount * (pct / 100)
-            self.preview_total.setText(f"{total_economies:,.0f}".replace(",", " ") + " FCFA Ã©conomisÃ©s")
+            self.preview_total.setText(Icons.label(f"{total_economies:,.0f}".replace(",", " ") + " FCFA économisés", Icons.MONEY))
         else:
-            self.summary_vehicles.setText("ðŸš— VÃ©hicules chargÃ©s")
-            self.preview_total.setText("0 FCFA Ã©conomisÃ©s")
+            self.summary_vehicles.setText(Icons.label("Véhicules chargés", Icons.VEHICLE))
+            self.preview_total.setText(Icons.label("0 FCFA économisés", Icons.MONEY))
     
     def get_selected_garanties(self):
         """Retourne la liste des garanties sÃ©lectionnÃ©es"""
@@ -1675,10 +1736,10 @@ class FleetImportAdvancedDialog(QDialog):
         
         layout = QHBoxLayout(header)
         
-        title = QLabel("ðŸšš Importation de flotte")
+        title = QLabel(Icons.label("Importation de flotte", Icons.FLEET))
         title.setStyleSheet("font-size: 20px; font-weight: 800; color: #0f172a;")
         
-        subtitle = QLabel("Importez vos vÃ©hicules en masse avec calcul automatique des garanties")
+        subtitle = QLabel("Importez vos véhicules en masse avec calcul automatique des garanties")
         subtitle.setStyleSheet(f"color: {AppColors.GRAY}; font-size: 12px;")
         
         layout.addWidget(title)
@@ -1707,7 +1768,7 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(self.create_insurance_section())
         
         # Bouton Appliquer les frais
-        apply_frais_btn = QPushButton("ðŸ’° Appliquer les frais aux vÃ©hicules sÃ©lectionnÃ©s")
+        apply_frais_btn = QPushButton(Icons.label("Appliquer les frais aux véhicules sélectionnés", Icons.MONEY))
         apply_frais_btn.setProperty("class", "BtnPrimary")
         apply_frais_btn.clicked.connect(self.apply_global_frais_to_selected)
         layout.addWidget(apply_frais_btn)
@@ -1719,7 +1780,7 @@ class FleetImportAdvancedDialog(QDialog):
     
     def create_file_section(self):
         """Section de sÃ©lection du fichier"""
-        group = QGroupBox("ðŸ“„ 1. Fichier d'importation")
+        group = QGroupBox(Icons.label("1. Fichier d'importation", Icons.FOLDER))
         layout = QVBoxLayout(group)
         
         # Zone de dÃ©pÃ´t
@@ -1737,9 +1798,9 @@ class FleetImportAdvancedDialog(QDialog):
         drop_layout = QVBoxLayout(drop_zone)
         drop_layout.setAlignment(Qt.AlignCenter)
         
-        self.file_icon = QLabel("ðŸ“‚")
+        self.file_icon = QLabel(Icons.FILE)
         self.file_icon.setStyleSheet("font-size: 20px;")
-        self.file_label = QLabel("Cliquez pour sÃ©lectionner un fichier Excel ou CSV")
+        self.file_label = QLabel("📂 Cliquez pour sélectionner un fichier Excel ou CSV")
         self.file_label.setStyleSheet(f"color: {AppColors.GRAY}; font-size: 11px;")
         self.file_info = QLabel("")
         self.file_info.setStyleSheet(f"color: {AppColors.PRIMARY}; font-size: 10px;")
@@ -1751,7 +1812,7 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(drop_zone)
         
         # Lien template
-        template_btn = QPushButton("ðŸ“¥ TÃ©lÃ©charger le modÃ¨le Excel")
+        template_btn = QPushButton(Icons.label("Télécharger le modèle Excel", Icons.DOWNLOAD))
         template_btn.setFlat(True)
         template_btn.setCursor(Qt.PointingHandCursor)
         template_btn.setStyleSheet(f"color: {AppColors.PRIMARY}; text-align: left; font-size: 11px;")
@@ -1767,9 +1828,9 @@ class FleetImportAdvancedDialog(QDialog):
         
         # Mode
         mode_layout = QHBoxLayout()
-        self.mode_new = QRadioButton("âœ¨ CrÃ©er une nouvelle flotte")
+        self.mode_new = QRadioButton(Icons.label("Créer une nouvelle flotte", Icons.STAR))
         self.mode_new.setStyleSheet("color: #0f172a; font-weight: bold;")
-        self.mode_existing = QRadioButton("ðŸ“¦ Ajouter Ã  une flotte existante")
+        self.mode_existing = QRadioButton(Icons.label("Ajouter à une flotte existante", Icons.LIST))
         self.mode_existing.setStyleSheet("color: #0f172a; font-weight: bold;")
         self.mode_new.setChecked(True)
         self.mode_new.toggled.connect(self.on_mode_changed)
@@ -1802,7 +1863,7 @@ class FleetImportAdvancedDialog(QDialog):
         self.existing_fleet_widget = QWidget()
         self.existing_fleet_widget.setVisible(False)
         existing_layout = QHBoxLayout(self.existing_fleet_widget)
-        existing_layout.addWidget(QLabel("SÃ©lectionner :"))
+        existing_layout.addWidget(QLabel("Sélectionner :"))
         self.existing_fleet_combo = QComboBox()
         self.existing_fleet_combo.setStyleSheet("color: #0f172a; font-weight: bold;")
         existing_layout.addWidget(self.existing_fleet_combo, 1)
@@ -1812,7 +1873,7 @@ class FleetImportAdvancedDialog(QDialog):
         
     def create_insurance_section(self):
         """Section des paramÃ¨tres d'assurance (simplifiÃ©e)"""
-        group = QGroupBox("ðŸ“‹ 3. ParamÃ¨tres du contrat")
+        group = QGroupBox(Icons.label("3. Paramètres du contrat", Icons.LIST))
         layout = QGridLayout(group)
         layout.setSpacing(10)
         layout.setContentsMargins(15, 20, 15, 15)

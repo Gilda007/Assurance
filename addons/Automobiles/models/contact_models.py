@@ -31,45 +31,113 @@ class InsuredProfession(enum.Enum):
     AUTRE = "ST12"
 
 
+# class Contact(Base):
+#     __tablename__ = 'contacts'
+
+#     id = Column(Integer, primary_key=True)
+    
+#     # --- I. ADMINISTRATION & STATUT ---
+#     type_client = Column(String(50))      
+#     nature = Column(String(50))           
+#     charge_clientele = Column("charge_clientele", String(100)) # Mappe le nom avec accent vers variable sans accent
+#     redacteur_production = Column(String(100))
+#     code_client = Column(String(50), unique=True)
+#     vip_status = Column(String(10))
+
+#     # --- II. ÉTAT CIVIL & IDENTITÉ ---
+#     civilite = Column(String(20))         
+#     nom = Column(String(100), nullable=False)
+#     prenom = Column(String(100))
+#     date_naissance = Column(Date)
+#     nationalite = Column(String(100))
+#     num_contribuable = Column(String(100))
+#     cat_socio_prof = Column(String(10))    
+#     libelle_socio_prof = Column(String(100))
+
+#     # --- III. COORDONNÉES ---
+#     telephone = Column(String(50))        
+#     tel_portable = Column(String(50))     
+#     fax = Column(String(50))              
+#     email = Column(String(100))           
+#     adresse = Column(Text)                
+#     adresse_2 = Column(Text)              
+#     ville = Column(String(100))           
+
+#     # --- IV. PERMIS ---
+#     cat_permis = Column(String(20))       
+#     num_permis = Column(String(100))      
+#     date_permis = Column(Date)
+#     photo_path = Column(String(255))      
+    
+#     # --- RELATIONS (Utilisation stricte de chaînes de caractères) ---
+#     vehicles = relationship("Vehicle", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
+#     fleets = relationship("Fleet", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
+#     contracts = relationship("Contrat", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
+#     sinistres = relationship("Sinistre", back_populates="client")
+
+#     # --- TRAÇABILITÉ ---
+#     created_at = Column(DateTime, default=datetime.now)
+#     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+#     created_by = Column(Integer, ForeignKey('utilisateurs.id'))
+#     updated_by = Column(Integer, ForeignKey('utilisateurs.id'))
+#     created_ip = Column(String(45))
+#     last_ip = Column(String(45))
+
+#     creator = relationship("User", foreign_keys=[created_by])
+
+# addons/Automobiles/models/contact_models.py
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Date, Boolean
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from core.database import Base
+import enum
+
 class Contact(Base):
+    """Modèle pour les souscripteurs (clients)"""
     __tablename__ = 'contacts'
 
     id = Column(Integer, primary_key=True)
     
     # --- I. ADMINISTRATION & STATUT ---
-    type_client = Column(String(50))      
-    nature = Column(String(50))           
-    charge_clientele = Column("charge_clientele", String(100)) # Mappe le nom avec accent vers variable sans accent
+    type_client = Column(String(50), default="Souscripteur")  # Toujours "Souscripteur"
+    nature = Column(String(50))               # "Particulier" ou "Société"
+    charge_clientele = Column("charge_clientele", String(100))
     redacteur_production = Column(String(100))
     code_client = Column(String(50), unique=True)
     vip_status = Column(String(10))
+    statut = Column(String(20), default="Actif")
 
     # --- II. ÉTAT CIVIL & IDENTITÉ ---
-    civilite = Column(String(20))         
+    civilite = Column(String(20))
     nom = Column(String(100), nullable=False)
     prenom = Column(String(100))
     date_naissance = Column(Date)
     nationalite = Column(String(100))
     num_contribuable = Column(String(100))
-    cat_socio_prof = Column(String(10))    
+    cat_socio_prof = Column(String(10))
     libelle_socio_prof = Column(String(100))
+    profession = Column(String(100))
 
     # --- III. COORDONNÉES ---
-    telephone = Column(String(50))        
-    tel_portable = Column(String(50))     
-    fax = Column(String(50))              
-    email = Column(String(100))           
-    adresse = Column(Text)                
-    adresse_2 = Column(Text)              
-    ville = Column(String(100))           
+    telephone = Column(String(50))
+    tel_portable = Column(String(50))
+    fax = Column(String(50))
+    email = Column(String(100))
+    adresse = Column(Text)
+    adresse_2 = Column(Text)
+    ville = Column(String(100))
 
-    # --- IV. PERMIS ---
-    cat_permis = Column(String(20))       
-    num_permis = Column(String(100))      
+    # --- IV. PERMIS (pour souscripteur, s'il a un permis) ---
+    cat_permis = Column(String(20))
+    num_permis = Column(String(100))
     date_permis = Column(Date)
-    photo_path = Column(String(255))      
+    photo_path = Column(String(255))
+
+    # --- RELATIONS AVEC LES CHAUFFEURS ---
+    # Un souscripteur peut avoir plusieurs chauffeurs
+    drivers = relationship("Driver", back_populates="subscriber", cascade="all, delete-orphan")
     
-    # --- RELATIONS (Utilisation stricte de chaînes de caractères) ---
+    # --- RELATIONS AVEC LES VÉHICULES ---
     vehicles = relationship("Vehicle", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
     fleets = relationship("Fleet", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
     contracts = relationship("Contrat", lazy="selectin", back_populates="owner", cascade="all, delete-orphan")
@@ -84,6 +152,9 @@ class Contact(Base):
     last_ip = Column(String(45))
 
     creator = relationship("User", foreign_keys=[created_by])
+
+    def __repr__(self):
+        return f"<Contact(id={self.id}, nom={self.nom})>"
 
 class ContactAuditLog(Base):
     __tablename__ = "contact_audit_logs"

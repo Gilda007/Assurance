@@ -360,6 +360,7 @@ class Vehicle(Base):
     tva = Column(Float, default=0.0)
     fichier_asac = Column(Float, default=0.0)
     carte_rose = Column(Float, default=0.0)
+    exonere_dta = Column(Boolean, default=False, nullable=False)
     vignette = Column(Float, default=0.0)
     pttc = Column(Float, default=0.0)  # Prix Toutes Taxes Comprises
     

@@ -63,7 +63,7 @@ class BatchPrintDialog(QDialog):
             'carte_rose': QCheckBox("📄 Carte Rose"),
             'attestation': QCheckBox("🛡️ Attestation"),
             'devis': QCheckBox("📊 Devis"),
-            'quittance': QCheckBox("🧾 Quittance")
+            'quittance': QCheckBox("🧾 Conditions Particulières")
         }
         
         for doc in self.documents.values():

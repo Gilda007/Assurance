@@ -25,6 +25,19 @@ from addons.Automobiles.controllers.compagnies_controller import CompagnieContro
 from addons.Automobiles.views.style import Colors, Fonts, Spacing, create_shadow
 
 
+VEHICLE_BRANDS = [
+    "ACURA", "ALFA ROMEO", "ALPINE", "ASTON MARTIN", "AUDI", "BENTLEY", "BMW",
+    "BUGATTI", "BUICK", "CADILLAC", "CHERY", "CHEVROLET", "CHRYSLER", "CITROEN",
+    "DACIA", "DAEWOO", "DAIHATSU", "DODGE", "DS", "FERRARI", "FIAT", "FORD",
+    "GEELY", "GMC", "GREAT WALL", "HONDA", "HUMMER", "HYUNDAI", "INFINITI",
+    "ISUZU", "JAGUAR", "JEEP", "KIA", "LAMBORGHINI", "LANCIA", "LAND ROVER",
+    "LEXUS", "LINCOLN", "LOTUS", "MASERATI", "MAYBACH", "MAZDA", "MCLAREN",
+    "MERCEDES-BENZ", "MG", "MINI", "MITSUBISHI", "NISSAN", "OPEL", "PEUGEOT",
+    "PONTIAC", "PORSCHE", "RENAULT", "ROLLS-ROYCE", "ROVER", "SAAB", "SEAT",
+    "SKODA", "SMART", "SSANGYONG", "SUBARU", "SUZUKI", "TESLA", "TOYOTA",
+    "VOLKSWAGEN", "VOLVO", "YUCHAI", "ZX"
+]
+
 class VehicleForm(QDialog):
     """
     Formulaire complet de gestion des véhicules
@@ -222,8 +235,35 @@ class VehicleForm(QDialog):
     def on_usage_changed(self, usage):
         self.update_rc_calculation_async()
         
+    # def on_power_changed(self, power):
+    #     self.update_rc_calculation_async()
+
     def on_power_changed(self, power):
+        """Met à jour le calcul RC et la vignette lors du changement de puissance"""
         self.update_rc_calculation_async()
+        
+        # ✅ Mettre à jour la vignette si l'exonération est active
+        if hasattr(self, 'check_exonere_dta') and self.check_exonere_dta.isChecked():
+            cv_val = self.get_int_value(self.usage_input)
+            
+            if 2 <= cv_val <= 7:
+                vignette_value = "30000"
+            elif 8 <= cv_val <= 13:
+                vignette_value = "50000"
+            elif 14 <= cv_val <= 20:
+                vignette_value = "75000"
+            elif cv_val > 20:
+                vignette_value = "200000"
+            else:
+                vignette_value = "0"
+            
+            idx = self.vignette.findText(vignette_value)
+            if idx >= 0:
+                self.vignette.setCurrentIndex(idx)
+            else:
+                self.vignette.setCurrentText(vignette_value)
+            
+            self.calculate_pttc()
         
     def on_date_changed(self):
         self.calculate_prorata()
@@ -525,7 +565,7 @@ class VehicleForm(QDialog):
         try:
             d_debut = self.date_debut.date().toPython()
             d_fin = self.date_fin.date().toPython()
-            nbr_jr = (max(0, (d_fin - d_debut).days)) + 1
+            nbr_jr = (max(0, (d_fin - d_debut).days))
             
             self.nbr_jour.setText(str(nbr_jr))
             return nbr_jr / 365.0 if nbr_jr > 0 else 1
@@ -792,7 +832,8 @@ class VehicleForm(QDialog):
             accessoires = self.get_float_value(self.accessoire)
             asac = self.get_float_value(self.asac)
             tva = self.get_float_value(self.tva)
-            vignette = self.get_float_value(self.vignette)
+            vignette_text = self.vignette.currentText() if hasattr(self, 'vignette') else "0"
+            vignette = float(vignette_text.replace(" ", "")) if vignette_text else 0
             carte_rose = self.get_float_value(self.carte_rose)
             
             pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
@@ -885,7 +926,7 @@ class VehicleForm(QDialog):
         group_style = self._get_group_style()
         
         # ====== SOUSCRIPTEUR ======
-        group_customer = QGroupBox("👤 Souscripteur <span style='color:#dc2626;'>*</span>")
+        group_customer = QGroupBox("👤 Souscripteur *")
         group_customer.setStyleSheet(group_style)
         customer_layout = QVBoxLayout(group_customer)
         customer_layout.setSpacing(12)
@@ -967,10 +1008,10 @@ class VehicleForm(QDialog):
             QFrame#CustomerCard {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
-                border-radius: 12px;
-                border: 2px solid {Colors.BORDER};
-                padding: 16px;
-            }}
+                    border-radius: 12px;
+                    border: 2px solid {Colors.BORDER};
+                    padding: 16px;
+                }}
         """)
         customer_card_layout = QHBoxLayout(self.customer_card)
         customer_card_layout.setSpacing(15)
@@ -1030,25 +1071,25 @@ class VehicleForm(QDialog):
         customer_layout.addLayout(customer_content)
         content_layout.addWidget(group_customer)
         
-        # ====== ASSURÉ ======
-        group_insured = QGroupBox("🛡️ Assuré <span style='color:#dc2626;'>*</span>")
-        group_insured.setStyleSheet(group_style)
-        insured_layout = QVBoxLayout(group_insured)
-        insured_layout.setSpacing(12)
-        insured_layout.setContentsMargins(20, 20, 20, 20)
+        # ====== CHAUFFEUR (avec liste et recherche) ======
+        group_driver = QGroupBox("🚗 Chauffeur")
+        group_driver.setStyleSheet(group_style)
+        driver_layout = QVBoxLayout(group_driver)
+        driver_layout.setSpacing(12)
+        driver_layout.setContentsMargins(20, 20, 20, 20)
         
-        # Barre de recherche
-        search_layout2 = QHBoxLayout()
-        search_layout2.setSpacing(10)
+        # ✅ Barre de recherche pour chauffeurs
+        search_driver_layout = QHBoxLayout()
+        search_driver_layout.setSpacing(10)
         
-        self.search_insured = QLineEdit()
-        self.search_insured.setPlaceholderText("🔍 Rechercher un assuré (nom, téléphone, code)...")
-        self.search_insured.setStyleSheet(field_style)
-        self.search_insured.textChanged.connect(self.filter_insured)
-        search_layout2.addWidget(self.search_insured, 1)
+        self.search_driver = QLineEdit()
+        self.search_driver.setPlaceholderText("🔍 Rechercher un chauffeur (nom, permis)...")
+        self.search_driver.setStyleSheet(field_style)
+        self.search_driver.textChanged.connect(self.filter_drivers)
+        search_driver_layout.addWidget(self.search_driver, 1)
         
-        new_insured_btn = QPushButton("➕ Nouveau")
-        new_insured_btn.setStyleSheet(f"""
+        new_driver_btn = QPushButton("➕ Nouveau")
+        new_driver_btn.setStyleSheet(f"""
             QPushButton {{
                 background: {Colors.SUCCESS};
                 color: {Colors.WHITE};
@@ -1061,31 +1102,34 @@ class VehicleForm(QDialog):
                 background: {Colors.SUCCESS}cc;
             }}
         """)
-        new_insured_btn.clicked.connect(self._open_new_contact_dialog)
-        search_layout2.addWidget(new_insured_btn)
+        new_driver_btn.clicked.connect(self._open_new_driver_dialog)
+        search_driver_layout.addWidget(new_driver_btn)
         
-        insured_layout.addLayout(search_layout2)
+        driver_layout.addLayout(search_driver_layout)
         
+        # Séparateur
         sep2 = QFrame()
         sep2.setFrameShape(QFrame.HLine)
         sep2.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
-        insured_layout.addWidget(sep2)
+        driver_layout.addWidget(sep2)
         
-        # Contenu principal
-        insured_content = QHBoxLayout()
-        insured_content.setSpacing(15)
+        # Contenu principal : Liste + Détails du chauffeur
+        driver_content = QHBoxLayout()
+        driver_content.setSpacing(15)
         
-        self.insured_list = QListWidget()
-        self.insured_list.setFixedWidth(280)
-        self.insured_list.setMinimumHeight(150)
-        self.insured_list.setStyleSheet(self.customer_list.styleSheet())
-        self.insured_list.currentRowChanged.connect(self.display_insured_details)
-        insured_content.addWidget(self.insured_list)
+        # ✅ Liste des chauffeurs
+        self.driver_list = QListWidget()
+        self.driver_list.setFixedWidth(280)
+        self.driver_list.setMinimumHeight(150)
+        self.driver_list.setStyleSheet(self.customer_list.styleSheet())
+        self.driver_list.currentRowChanged.connect(self.display_driver_details)
+        driver_content.addWidget(self.driver_list)
         
-        self.insured_card = QFrame()
-        self.insured_card.setObjectName("InsuredCard")
-        self.insured_card.setStyleSheet(f"""
-            QFrame#InsuredCard {{
+        # Carte de détails du chauffeur
+        self.driver_card = QFrame()
+        self.driver_card.setObjectName("DriverCard")
+        self.driver_card.setStyleSheet(f"""
+            QFrame#DriverCard {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
                 border-radius: 12px;
@@ -1093,14 +1137,15 @@ class VehicleForm(QDialog):
                 padding: 16px;
             }}
         """)
-        insured_card_layout = QHBoxLayout(self.insured_card)
-        insured_card_layout.setSpacing(15)
+        driver_card_layout = QHBoxLayout(self.driver_card)
+        driver_card_layout.setSpacing(15)
         
+        # Avatar du chauffeur
         avatar_container2 = QFrame()
         avatar_container2.setFixedSize(70, 70)
         avatar_container2.setStyleSheet(f"""
             QFrame {{
-                background: {Colors.SUCCESS};
+                background: {Colors.WARNING};
                 border-radius: 35px;
                 border: 3px solid {Colors.WHITE};
             }}
@@ -1109,100 +1154,48 @@ class VehicleForm(QDialog):
         avatar_layout2.setAlignment(Qt.AlignCenter)
         avatar_layout2.setContentsMargins(0, 0, 0, 0)
         
-        self.insured_photo = QLabel("🛡️")
-        self.insured_photo.setStyleSheet(f"""
+        self.driver_photo = QLabel("🚗")
+        self.driver_photo.setStyleSheet(f"""
             font-size: 28px;
             color: {Colors.WHITE};
             background: transparent;
         """)
-        self.insured_photo.setAlignment(Qt.AlignCenter)
-        avatar_layout2.addWidget(self.insured_photo)
-        insured_card_layout.addWidget(avatar_container2)
+        self.driver_photo.setAlignment(Qt.AlignCenter)
+        avatar_layout2.addWidget(self.driver_photo)
+        driver_card_layout.addWidget(avatar_container2)
         
+        # Informations du chauffeur
         info_widget2 = QWidget()
         info_layout2 = QVBoxLayout(info_widget2)
         info_layout2.setSpacing(6)
         info_layout2.setContentsMargins(0, 0, 0, 0)
         
-        self.lbl_insured_name = QLabel("Aucun assuré sélectionné")
-        self.lbl_insured_name.setStyleSheet(f"""
+        self.lbl_driver_name = QLabel("Aucun chauffeur sélectionné")
+        self.lbl_driver_name.setStyleSheet(f"""
             font-size: 15px;
             font-weight: 700;
             color: {Colors.TEXT_PRIMARY};
         """)
         
-        self.lbl_insured_info = QLabel("Sélectionnez un assuré dans la liste")
-        self.lbl_insured_info.setStyleSheet(f"""
+        self.lbl_driver_info = QLabel("Sélectionnez un chauffeur dans la liste ou créez-en un")
+        self.lbl_driver_info.setStyleSheet(f"""
             font-size: 12px;
             color: {Colors.TEXT_MUTED};
             line-height: 1.6;
         """)
-        self.lbl_insured_info.setWordWrap(True)
+        self.lbl_driver_info.setWordWrap(True)
         
-        info_layout2.addWidget(self.lbl_insured_name)
-        info_layout2.addWidget(self.lbl_insured_info)
+        info_layout2.addWidget(self.lbl_driver_name)
+        info_layout2.addWidget(self.lbl_driver_info)
         info_layout2.addStretch()
         
-        insured_card_layout.addWidget(info_widget2, 1)
-        insured_content.addWidget(self.insured_card, 1)
+        driver_card_layout.addWidget(info_widget2, 1)
+        driver_content.addWidget(self.driver_card, 1)
         
-        insured_layout.addLayout(insured_content)
-        content_layout.addWidget(group_insured)
-        
-        # ====== CONDUCTEUR ======
-        group_driver = QGroupBox("🚗 Conducteur habituel <span style='color:#dc2626;'>*</span>")
-        group_driver.setStyleSheet(group_style)
-        driver_layout = QGridLayout(group_driver)
-        driver_layout.setSpacing(12)
-        driver_layout.setContentsMargins(20, 20, 20, 20)
-        
-        driver_layout.addWidget(self._create_label("👤", "Nom et prénom *"), 0, 0)
-        driver_layout.addWidget(self._create_label("📅", "Date de naissance *"), 0, 1)
-        
-        self.driver_name = QLineEdit()
-        self.driver_name.setPlaceholderText("NOM Prénom")
-        self.driver_name.setStyleSheet(field_style)
-        driver_layout.addWidget(self.driver_name, 1, 0)
-        
-        self.driver_birth = QDateEdit()
-        self.driver_birth.setDisplayFormat("dd/MM/yyyy")
-        self.driver_birth.setCalendarPopup(True)
-        self.driver_birth.setDate(QDate.currentDate().addYears(-30))
-        self.driver_birth.setStyleSheet(field_style)
-        driver_layout.addWidget(self.driver_birth, 1, 1)
-        
-        driver_layout.addWidget(self._create_label("🪪", "N° de permis *"), 2, 0)
-        driver_layout.addWidget(self._create_label("📋", "Catégorie *"), 2, 1)
-        
-        self.driver_licence = QLineEdit()
-        self.driver_licence.setPlaceholderText("Numéro du permis de conduire")
-        self.driver_licence.setStyleSheet(field_style)
-        driver_layout.addWidget(self.driver_licence, 3, 0)
-        
-        self.driver_licence_cat = QComboBox()
-        self.driver_licence_cat.setStyleSheet(field_style)
-        self.driver_licence_cat.addItems(["", "A", "B", "C", "D", "E"])
-        driver_layout.addWidget(self.driver_licence_cat, 3, 1)
-        
-        driver_layout.addWidget(self._create_label("📅", "Date de délivrance *"), 4, 0)
-        driver_layout.addWidget(self._create_label("🏛️", "Autorité de délivrance"), 4, 1)
-        
-        self.driver_licence_date = QDateEdit()
-        self.driver_licence_date.setDisplayFormat("dd/MM/yyyy")
-        self.driver_licence_date.setCalendarPopup(True)
-        self.driver_licence_date.setDate(QDate.currentDate().addYears(-5))
-        self.driver_licence_date.setStyleSheet(field_style)
-        driver_layout.addWidget(self.driver_licence_date, 5, 0)
-        
-        self.driver_licence_authority = QLineEdit()
-        self.driver_licence_authority.setPlaceholderText("Ex: Préfecture de ...")
-        self.driver_licence_authority.setStyleSheet(field_style)
-        driver_layout.addWidget(self.driver_licence_authority, 5, 1)
-        
+        driver_layout.addLayout(driver_content)
         content_layout.addWidget(group_driver)
-        
         # ====== COMPAGNIE ======
-        group_company = QGroupBox("🏢 Compagnie d'assurance <span style='color:#dc2626;'>*</span>")
+        group_company = QGroupBox("🏢 Compagnie d'assurance *")
         group_company.setStyleSheet(group_style)
         company_layout = QVBoxLayout(group_company)
         company_layout.setSpacing(12)
@@ -1259,10 +1252,10 @@ class VehicleForm(QDialog):
             QFrame#CompanyCard {{
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                     stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
-                border-radius: 12px;
-                border: 2px solid {Colors.BORDER};
-                padding: 16px;
-            }}
+                    border-radius: 12px;
+                    border: 2px solid {Colors.BORDER};
+                    padding: 16px;
+                }}
         """)
         company_card_layout = QHBoxLayout(self.company_card)
         company_card_layout.setSpacing(15)
@@ -1396,31 +1389,31 @@ class VehicleForm(QDialog):
 
     def filter_insured(self, text):
         """Filtre les assurés selon la recherche"""
-        self.insured_list.clear()
+        self.driver_list.clear()
         if len(text) < 2:
             item = QListWidgetItem("🔍 Saisissez au moins 2 caractères")
             item.setFlags(Qt.ItemFlag.NoItemFlags)
-            self.insured_list.addItem(item)
+            self.driver_list.addItem(item)
             return
         
         try:
-            contacts = self.controller.contacts.search_contacts(text)
-            if not contacts:
-                item = QListWidgetItem("Aucun assuré trouvé")
+            drivers = self.controller.contacts.search_drivers(text)
+            if not drivers:
+                item = QListWidgetItem("Aucun chauffeur trouvé")
                 item.setFlags(Qt.ItemFlag.NoItemFlags)
-                self.insured_list.addItem(item)
+                self.driver_list.addItem(item)
                 return
             
-            for contact in contacts:
+            for contact in drivers:
                 display = f"{contact.nom} {contact.prenom or ''} - {contact.telephone or ''}"
                 item = QListWidgetItem(display)
                 item.setData(Qt.UserRole, contact)
-                self.insured_list.addItem(item)
+                self.driver_list.addItem(item)
         except Exception as e:
-            print(f"Erreur filtrage assurés: {e}")
+            print(f"Erreur filtrage chauffeur: {e}")
             item = QListWidgetItem(f"Erreur: {str(e)}")
             item.setFlags(Qt.ItemFlag.NoItemFlags)
-            self.insured_list.addItem(item)
+            self.driver_list.addItem(item)
 
     def filter_companies(self, text):
         """Filtre les compagnies selon la recherche"""
@@ -1460,6 +1453,90 @@ class VehicleForm(QDialog):
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.company_list.addItem(item)
 
+    def filter_drivers(self, text):
+        """Filtre les chauffeurs selon la recherche"""
+        self.driver_list.clear()
+        if len(text) < 2:
+            item = QListWidgetItem("🔍 Saisissez au moins 2 caractères")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.driver_list.addItem(item)
+            return
+        
+        try:
+            from addons.Automobiles.models.driver_models import Driver
+            
+            # ✅ Recherche directe dans la table drivers
+            pattern = f"%{text}%"
+            drivers = self.controller.session.query(Driver).filter(
+                Driver.nom.ilike(pattern) |
+                Driver.num_permis.ilike(pattern) |
+                Driver.cat_permis.ilike(pattern)
+                # ✅ Ne pas chercher sur driver.id (entier)
+            ).limit(10).all()
+            
+            if not drivers:
+                item = QListWidgetItem("Aucun chauffeur trouvé")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.driver_list.addItem(item)
+                return
+            
+            for driver in drivers:
+                display = f"{driver.nom} - {driver.num_permis or ''}"
+                item = QListWidgetItem(display)
+                item.setData(Qt.UserRole, driver)
+                self.driver_list.addItem(item)
+                
+        except Exception as e:
+            print(f"❌ Erreur filtrage chauffeurs: {e}")
+            item = QListWidgetItem(f"Erreur: {str(e)}")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.driver_list.addItem(item)
+
+    def display_driver_details(self, row):
+        """Affiche les détails du chauffeur sélectionné"""
+        if row < 0:
+            return
+        
+        item = self.driver_list.currentItem()
+        if not item or not item.data(Qt.UserRole):
+            return
+        
+        driver = item.data(Qt.UserRole)  # ✅ Maintenant un vrai objet Driver
+        self.selected_driver_id = driver.id
+        
+        # ✅ Utiliser les attributs du modèle Driver
+        name = getattr(driver, 'nom', 'Chauffeur')
+        self.lbl_driver_name.setText(name)
+        
+        info = f"""🪪 Permis: {getattr(driver, 'num_permis', 'N/A')}
+    📋 Catégorie: {getattr(driver, 'driver_licence_category', 'N/A')}
+    📅 Date d'obtention: {getattr(driver, 'driver_licence_issued_at', None).strftime('%d/%m/%Y') if getattr(driver, 'driver_licence_issued_at', None) else 'N/A'}
+    🏷️ Spécialité: {getattr(driver, 'specialite', 'N/A')}
+    ⭐ Expérience: {getattr(driver, 'annees_experience', 0)} ans"""
+        self.lbl_driver_info.setText(info)
+        
+        # Avatar
+        initials = ''.join([part[0].upper() for part in name.split()[:2]])
+        self.driver_photo.setText(initials or "🚗")
+
+    def _open_new_driver_dialog(self):
+        """Ouvre le dialogue de création d'un nouveau chauffeur"""
+        try:
+            from addons.Automobiles.views.contact_form_view import ContactForm
+            
+            # Créer un contact de type chauffeur
+            dialog = ContactForm(self.controller, parent=self)
+            # Forcer le type à chauffeur
+            dialog.type_client.setCurrentIndex(1)  # Chauffeur
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                # Rafraîchir la liste des chauffeurs
+                if hasattr(self, 'search_driver'):
+                    self.filter_drivers(self.search_driver.text())
+                QMessageBox.information(self, "Succès", "Chauffeur créé avec succès")
+        except Exception as e:
+            QMessageBox.warning(self, "Erreur", f"Erreur lors de la création: {str(e)}")
+
+
     def display_customer_details(self, row):
         """Affiche les détails du souscripteur sélectionné"""
         if row < 0:
@@ -1495,7 +1572,7 @@ class VehicleForm(QDialog):
         if row < 0:
             return
         
-        item = self.insured_list.currentItem()
+        item = self.driver_list.currentItem()
         if not item or not item.data(Qt.UserRole):
             return
         
@@ -1577,7 +1654,7 @@ class VehicleForm(QDialog):
                 return
             
             self._add_contact_to_list(contact, self.customer_list)
-            self._add_contact_to_list(contact, self.insured_list)
+            self._add_contact_to_list(contact, self.driver_list)
             
         except Exception as e:
             print(f"Erreur chargement propriétaire: {e}")
@@ -1729,8 +1806,16 @@ class VehicleForm(QDialog):
             if hasattr(self, 'chassis_input') and vehicle.chassis:
                 self.chassis_input.setText(vehicle.chassis)
             
+            # ✅ Marque (QComboBox)
             if hasattr(self, 'marque_input') and vehicle.marque:
-                self.marque_input.setText(vehicle.marque)
+                # Chercher la marque dans la liste
+                index = self.marque_input.findText(vehicle.marque.upper())
+                if index >= 0:
+                    self.marque_input.setCurrentIndex(index)
+                else:
+                    # Si la marque n'est pas dans la liste, l'ajouter
+                    self.marque_input.addItem(vehicle.marque.upper(), vehicle.marque.upper())
+                    self.marque_input.setCurrentText(vehicle.marque.upper())
             
             if hasattr(self, 'modele_input') and vehicle.modele:
                 self.modele_input.setText(vehicle.modele)
@@ -1890,40 +1975,20 @@ class VehicleForm(QDialog):
             # ============================================================
             # 8. CONDUCTEUR (Driver)
             # ============================================================
+
             if hasattr(vehicle, 'driver') and vehicle.driver is not None:
-                driver = vehicle.driver
+                driver = vehicle.driver  # ✅ C'est un objet Driver
                 
-                if hasattr(self, 'driver_name'):
-                    # Le modèle stocke le nom complet dans driver_name
-                    # On essaie de séparer nom et prénom si possible
-                    full_name = driver.driver_name or ''
-                    # Si le nom contient un espace, on le divise en nom et prénom
-                    if ' ' in full_name:
-                        parts = full_name.split(' ', 1)
-                        nom = parts[0]
-                        prenom = parts[1] if len(parts) > 1 else ''
-                    else:
-                        nom = full_name
-                        prenom = ''
-                    self.driver_name.setText(full_name)
-                
-                if hasattr(self, 'driver_birth') and driver.driver_birth_date:
-                    self.driver_birth.setDate(self._to_qdate(driver.driver_birth_date))
-                
-                if hasattr(self, 'driver_licence'):
-                    self.driver_licence.setText(driver.driver_licence_number or '')
-                
-                if hasattr(self, 'driver_licence_cat'):
-                    index = self.driver_licence_cat.findText(driver.driver_licence_category or '')
-                    if index >= 0:
-                        self.driver_licence_cat.setCurrentIndex(index)
-                
-                if hasattr(self, 'driver_licence_date') and driver.driver_licence_issued_at:
-                    self.driver_licence_date.setDate(self._to_qdate(driver.driver_licence_issued_at))
-                
-                if hasattr(self, 'driver_licence_authority'):
-                    self.driver_licence_authority.setText(driver.driver_licence_issued_by or '')
-            
+                if hasattr(self, 'driver_list'):
+                    display = f"{driver.nom} - {driver.num_permis or ''}"
+                    item = QListWidgetItem(display)
+                    item.setData(Qt.UserRole, driver)
+                    self.driver_list.addItem(item)
+                    self.driver_list.setCurrentItem(item)
+                    
+                    self.selected_driver_id = driver.id
+                    self.lbl_driver_name.setText(driver.nom)
+
             # ============================================================
             # 9. GARANTIES
             # ============================================================
@@ -1977,6 +2042,22 @@ class VehicleForm(QDialog):
                 self.pttc.setText(f"{vehicle.pttc:,.0f}".replace(",", " "))
             
             print(f"✅ Données du véhicule {vehicle.immatriculation} chargées avec succès")
+
+            # ============================================================
+            # EXONÉRATION DTA
+            # ============================================================
+            if hasattr(self, 'check_exonere_dta'):
+                # Vérifier si le véhicule a l'attribut exonere_dta
+                if hasattr(vehicle, 'exonere_dta'):
+                    self.check_exonere_dta.setChecked(vehicle.exonere_dta or False)
+                elif hasattr(vehicle, 'vignette') and vehicle.vignette > 0:
+                    # Si vignette > 0, c'est qu'il y a une exonération
+                    self.check_exonere_dta.setChecked(True)
+                    self.vignette.setVisible(True)
+                    # Définir la valeur de la vignette
+                    idx = self.vignette.findText(str(int(vehicle.vignette)))
+                    if idx >= 0:
+                        self.vignette.setCurrentIndex(idx)
             
         except Exception as e:
             print(f"❌ Erreur lors du chargement des données: {e}")
@@ -2184,7 +2265,7 @@ class VehicleForm(QDialog):
             data["chassis"] = ""
         
         if hasattr(self, 'marque_input'):
-            data["marque"] = self.marque_input.text().strip()
+            data["marque"] = self.marque_input.currentText().strip().upper()
         else:
             data["marque"] = ""
         
@@ -2353,35 +2434,22 @@ class VehicleForm(QDialog):
         # ============================================================
         # CONDUCTEUR
         # ============================================================
-        if hasattr(self, 'driver_name'):
-            data["driver_name"] = self.driver_name.text().strip()
+        if hasattr(self, 'selected_driver_id') and self.selected_driver_id:
+            # ✅ Récupérer le chauffeur depuis la base
+            driver = self.controller.contacts.get_driver_by_id(self.selected_driver_id)
+            if driver:
+                # ✅ Préparer les données du conducteur pour la table Driver
+                driver_data = {
+                    'nom': getattr(driver, 'nom', ''),
+                    'date_naissance': getattr(driver, 'date_naissance', None),
+                    'num_permis': getattr(driver, 'num_permis', ''),
+                    'cat_permis': getattr(driver, 'cat_permis', ''),
+                    'date_permis': getattr(driver, 'date_permis', None),
+                    'subscriber': getattr(driver, 'subscriber', ''),
+                }
+                data["driver"] = driver_data
         else:
-            data["driver_name"] = ""
-        
-        if hasattr(self, 'driver_birth'):
-            data["driver_birth"] = self.driver_birth.date().toPython()
-        else:
-            data["driver_birth"] = None
-        
-        if hasattr(self, 'driver_licence'):
-            data["driver_licence"] = self.driver_licence.text().strip()
-        else:
-            data["driver_licence"] = ""
-        
-        if hasattr(self, 'driver_licence_cat'):
-            data["driver_licence_cat"] = self.driver_licence_cat.currentText()
-        else:
-            data["driver_licence_cat"] = ""
-        
-        if hasattr(self, 'driver_licence_date'):
-            data["driver_licence_date"] = self.driver_licence_date.date().toPython()
-        else:
-            data["driver_licence_date"] = None
-        
-        if hasattr(self, 'driver_licence_authority'):
-            data["driver_licence_authority"] = self.driver_licence_authority.text().strip()
-        else:
-            data["driver_licence_authority"] = ""
+            data["driver"] = {}
         
         # ============================================================
         # DATES
@@ -2406,28 +2474,28 @@ class VehicleForm(QDialog):
         # ============================================================
         driver_data = {}
         
-        if hasattr(self, 'driver_name'):
-            driver_data["nom"] = self.driver_name.text().strip()
+        if hasattr(self, 'nom'):
+            driver_data["nom"] = self.nom.text().strip()
         else:
             driver_data["nom"] = ""
         
-        if hasattr(self, 'driver_birth'):
+        if hasattr(self, 'date_naissance'):
             driver_data["date_naissance"] = self.driver_birth.date().toPython()
         else:
             driver_data["date_naissance"] = None
         
-        if hasattr(self, 'driver_licence'):
-            driver_data["num_permis"] = self.driver_licence.text().strip()
+        if hasattr(self, 'num_permis'):
+            driver_data["num_permis"] = self.num_permis.text().strip()
         else:
             driver_data["num_permis"] = ""
         
-        if hasattr(self, 'driver_licence_cat'):
-            driver_data["categorie_permis"] = self.driver_licence_cat.currentText()
+        if hasattr(self, 'categorie_permis'):
+            driver_data["categorie_permis"] = self.cat_permis.currentText()
         else:
             driver_data["categorie_permis"] = ""
         
-        if hasattr(self, 'driver_licence_date'):
-            driver_data["date_permis"] = self.driver_licence_date.date().toPython()
+        if hasattr(self, 'date_permis'):
+            driver_data["date_permis"] = self.date_permis.date().toPython()
         else:
             driver_data["date_permis"] = None
         
@@ -2486,6 +2554,21 @@ class VehicleForm(QDialog):
             data["pttc"] = self.get_float_value(self.pttc)
         else:
             data["pttc"] = 0
+
+        # ============================================================
+        # EXONÉRATION DTA ET VIGNETTE
+        # ============================================================
+        if hasattr(self, 'check_exonere_dta'):
+            data["exonere_dta"] = self.check_exonere_dta.isChecked()
+        else:
+            data["exonere_dta"] = False
+        
+        # Récupérer la vignette depuis la combo box
+        if hasattr(self, 'vignette'):
+            vignette_text = self.vignette.currentText()
+            data["vignette"] = float(vignette_text.replace(" ", "")) if vignette_text else 0
+        else:
+            data["vignette"] = 0
         
         # ============================================================
         # GARANTIES
@@ -2554,7 +2637,7 @@ class VehicleForm(QDialog):
             errors.append("❌ Immatriculation obligatoire")
         if not hasattr(self, 'chassis_input') or not self.chassis_input.text().strip():
             errors.append("❌ N° Châssis obligatoire")
-        if not hasattr(self, 'marque_input') or not self.marque_input.text().strip():
+        if not hasattr(self, 'marque_input') or not self.marque_input.currentText().strip():
             errors.append("❌ Marque obligatoire")
         if not hasattr(self, 'modele_input') or not self.modele_input.text().strip():
             errors.append("❌ Modèle obligatoire")
@@ -2586,15 +2669,15 @@ class VehicleForm(QDialog):
         # Propriétaire (Souscripteur/Assuré)
         if hasattr(self, 'customer_list') and self.customer_list.currentItem() is None:
             errors.append("❌ Souscripteur obligatoire (sélectionnez un contact)")
-        if hasattr(self, 'insured_list') and self.insured_list.currentItem() is None:
+        if hasattr(self, 'driver_list') and self.driver_list.currentItem() is None:
             errors.append("❌ Assuré obligatoire (sélectionnez un contact)")
         
         # Conducteur
-        if hasattr(self, 'driver_name') and not self.driver_name.text().strip():
+        if hasattr(self, 'nom') and not self.normalGeometry.text().strip():
             errors.append("❌ Nom du conducteur obligatoire")
-        if hasattr(self, 'driver_licence') and not self.driver_licence.text().strip():
+        if hasattr(self, 'num_permis') and not self.num_permis.text().strip():
             errors.append("❌ N° de permis obligatoire")
-        if hasattr(self, 'driver_licence_cat') and not self.driver_licence_cat.currentText().strip():
+        if hasattr(self, 'cat_permis') and not self.cat_permis.currentText().strip():
             errors.append("❌ Catégorie du permis obligatoire")
         
         # Compagnie
@@ -2619,7 +2702,7 @@ class VehicleForm(QDialog):
             "Confirmation",
             f"Voulez-vous confirmer la {mode_text} de ce véhicule ?\n\n"
             f"🚗 {self.immat_input.text().strip().upper()}\n"
-            f"🏭 {self.marque_input.text().strip()} {self.modele_input.text().strip()}",
+            f"🏭 {self.marque_input.currentText().strip()} {self.modele_input.text().strip()}",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
@@ -2848,10 +2931,13 @@ class VehicleForm(QDialog):
         id_layout.addWidget(self._create_label("📱", "Modèle *"), 2, 1)
         id_layout.addWidget(self._create_label("📅", "Année"), 2, 2)
         
-        self.marque_input = QLineEdit()
-        self.marque_input.setPlaceholderText("EX: TOYOTA")
+        self.marque_input = QComboBox()
         self.marque_input.setStyleSheet(field_style)
+        self.marque_input.setEditable(True)  # Permet de saisir une marque personnalisée
+        self.marque_input.setPlaceholderText("Sélectionner ou saisir une marque...")
         id_layout.addWidget(self.marque_input, 3, 0)
+        for brand in VEHICLE_BRANDS:
+            self.marque_input.addItem(brand, brand)
         
         self.modele_input = QLineEdit()
         self.modele_input.setPlaceholderText("EX: COROLLA")
@@ -3627,7 +3713,7 @@ class VehicleForm(QDialog):
         """
         
         field_style = """
-            QLineEdit {
+            QLineEdit, QComboBox {
                 border: 2px solid #e2e8f0;
                 border-radius: 12px;
                 padding: 10px 14px;
@@ -3636,7 +3722,7 @@ class VehicleForm(QDialog):
                 color: #2d3748;
                 font-family: 'Segoe UI';
             }
-            QLineEdit:focus {
+            QLineEdit:focus, QComboBox:focus {
                 border-color: #3498db;
                 background-color: #f0f9ff;
             }
@@ -3753,23 +3839,59 @@ class VehicleForm(QDialog):
         sep2.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
         recap_layout.addWidget(sep2, 5, 0, 1, 3)
         
-        # Autres frais
-        recap_layout.addWidget(self._create_label("📋", "Carte Rose (FCFA)"), 6, 0)
+        # ============================================================
+        # NOUVEAU : Exonéré de DTA
+        # ============================================================
+        recap_layout.addWidget(self._create_label("🛡️", "Exonéré de DTA"), 6, 0)
+        self.check_exonere_dta = QCheckBox("Exonéré de DTA")
+        self.check_exonere_dta.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4a5568;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+                border-color: #3498db;
+            }
+        """)
+        self.check_exonere_dta.stateChanged.connect(self.on_exonere_dta_changed)
+        recap_layout.addWidget(self.check_exonere_dta, 7, 0)
+        
+        # Vignette (ComboBox)
+        recap_layout.addWidget(self._create_label("🏷️", "Vignette"), 6, 1)
+        self.vignette = QComboBox()
+        self.vignette.setStyleSheet(field_style)
+        self.vignette.setEditable(False)
+        self.vignette.addItems(["0", "30000", "50000", "75000", "200000"])
+        self.vignette.setCurrentIndex(0)
+        self.vignette.setVisible(False)  # Caché par défaut
+        self.vignette.currentTextChanged.connect(self.calculate_pttc)
+        recap_layout.addWidget(self.vignette, 7, 1)
+        
+        # Carte Rose
+        recap_layout.addWidget(self._create_label("📋", "Carte Rose (FCFA)"), 6, 2)
         self.carte_rose = QLineEdit("0")
         self.carte_rose.setStyleSheet(field_style)
         self.carte_rose.setAlignment(Qt.AlignRight)
         self.carte_rose.textChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.carte_rose, 7, 0)
+        recap_layout.addWidget(self.carte_rose, 7, 2)
         
-        recap_layout.addWidget(self._create_label("📋", "Vignette (FCFA)"), 6, 1)
-        self.vignette = QLineEdit("0")
-        self.vignette.setStyleSheet(field_style)
-        self.vignette.setAlignment(Qt.AlignRight)
-        self.vignette.textChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.vignette, 7, 1)
+        # Séparateur
+        sep3 = QFrame()
+        sep3.setFrameShape(QFrame.HLine)
+        sep3.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+        recap_layout.addWidget(sep3, 8, 0, 1, 3)
         
         # PTTC
-        recap_layout.addWidget(self._create_label("💰", "PTTC (FCFA)"), 6, 2)
+        recap_layout.addWidget(self._create_label("💰", "PTTC (FCFA)"), 9, 0)
         self.pttc = QLineEdit("0")
         self.pttc.setReadOnly(True)
         self.pttc.setStyleSheet("""
@@ -3784,39 +3906,39 @@ class VehicleForm(QDialog):
             }
         """)
         self.pttc.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.pttc, 7, 2)
+        recap_layout.addWidget(self.pttc, 10, 0, 1, 3)
         
         # Séparateur
-        sep3 = QFrame()
-        sep3.setFrameShape(QFrame.HLine)
-        sep3.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
-        recap_layout.addWidget(sep3, 8, 0, 1, 3)
+        sep4 = QFrame()
+        sep4.setFrameShape(QFrame.HLine)
+        sep4.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
+        recap_layout.addWidget(sep4, 11, 0, 1, 3)
         
         # Dates
-        recap_layout.addWidget(self._create_label("📅", "Date début"), 9, 0)
+        recap_layout.addWidget(self._create_label("📅", "Date début"), 12, 0)
         self.date_debut = QDateEdit()
         self.date_debut.setDisplayFormat("dd/MM/yyyy")
         self.date_debut.setCalendarPopup(True)
         self.date_debut.setDate(QDate.currentDate())
         self.date_debut.setStyleSheet(field_style)
         self.date_debut.dateChanged.connect(self.on_date_changed)
-        recap_layout.addWidget(self.date_debut, 10, 0)
+        recap_layout.addWidget(self.date_debut, 13, 0)
         
-        recap_layout.addWidget(self._create_label("📅", "Date fin"), 9, 1)
+        recap_layout.addWidget(self._create_label("📅", "Date fin"), 12, 1)
         self.date_fin = QDateEdit()
         self.date_fin.setDisplayFormat("dd/MM/yyyy")
         self.date_fin.setCalendarPopup(True)
         self.date_fin.setDate(QDate.currentDate().addYears(1))
         self.date_fin.setStyleSheet(field_style)
         self.date_fin.dateChanged.connect(self.on_date_changed)
-        recap_layout.addWidget(self.date_fin, 10, 1)
+        recap_layout.addWidget(self.date_fin, 13, 1)
         
-        recap_layout.addWidget(self._create_label("📊", "Jours"), 9, 2)
+        recap_layout.addWidget(self._create_label("📊", "Jours"), 12, 2)
         self.nbr_jour = QLineEdit("0")
         self.nbr_jour.setReadOnly(True)
         self.nbr_jour.setStyleSheet(field_style)
         self.nbr_jour.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.nbr_jour, 10, 2)
+        recap_layout.addWidget(self.nbr_jour, 13, 2)
         
         content_layout.addWidget(group_recap)
         content_layout.addStretch()
@@ -3825,6 +3947,44 @@ class VehicleForm(QDialog):
         layout.addWidget(scroll)
         
         return tab
+
+    def on_exonere_dta_changed(self, state):
+        """
+        Gère l'activation/désactivation de l'exonération DTA
+        Affiche ou cache la combo box vignette et met à jour sa valeur
+        """
+        is_checked = state == 2  # Qt.Checked
+        
+        # Afficher ou cacher la combo box vignette
+        self.vignette.setVisible(is_checked)
+        
+        if is_checked:
+            # Calculer la vignette en fonction de la puissance fiscale
+            cv_val = self.get_int_value(self.usage_input)
+            
+            if 2 <= cv_val <= 7:
+                vignette_value = "30000"
+            elif 8 <= cv_val <= 13:
+                vignette_value = "50000"
+            elif 14 <= cv_val <= 20:
+                vignette_value = "75000"
+            elif cv_val > 20:
+                vignette_value = "200000"
+            else:
+                vignette_value = "0"
+            
+            # Définir la valeur dans la combo box
+            index = self.vignette.findText(vignette_value)
+            if index >= 0:
+                self.vignette.setCurrentIndex(index)
+            else:
+                self.vignette.setCurrentText(vignette_value)
+        else:
+            # Réinitialiser la vignette à 0
+            self.vignette.setCurrentIndex(0)
+        
+        # Recalculer le PTTC
+        self.calculate_pttc()
 
     def _on_tarif_categories_loaded(self, categories):
         get_global_loader().hide_loading()

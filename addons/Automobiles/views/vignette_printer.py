@@ -334,13 +334,19 @@ class VignettePrinter:
         
         from datetime import datetime
         
-        # 1. Préparation du logo
-        logo_path = "addons/Automobiles/static/logo.png"
+        # ✅ Remplacer la variable 'logo' par l'image du logo
         try:
-            logo = Image(logo_path, width=25*mm, height=20*mm)
-            logo.hAlign = 'RIGHT'
-        except:
-            logo = Paragraph("LOGO", styles['Normal'])
+            logo_path = "addons/Automobiles/static/logo.png"
+            if os.path.exists(logo_path):
+                from reportlab.platypus import Image
+                logo_img = Image(logo_path, width=25*mm, height=20*mm)
+                logo_img.hAlign = 'RIGHT'
+                logo_cell = logo_img
+            else:
+                logo_cell = Paragraph("AMS ASSURANCES", styles['TableLabel'])
+        except Exception as e:
+            print(f"⚠️ Erreur chargement logo: {e}")
+            logo_cell = Paragraph("AMS ASSURANCES", styles['TableLabel'])
         
         # Ajouter un indicateur de statut
         status_indicator = "🔴" if not self.is_paid else "🟢"
@@ -351,7 +357,7 @@ class VignettePrinter:
         
         # 2. Structure des données - Tout à droite
         header_data = [
-            [logo],
+            [logo_cell],  # ✅ Utiliser logo_cell au lieu de logo
             [f"N° Police: {self.data.get('numero_police', 'N/A')}"],
             [f"STATUT: {status_indicator} {status_text}"],
             [f"Assureur agréé"],
@@ -690,3 +696,20 @@ class VignettePrinter:
         
         return signature_table
 
+    def _get_logo_path(self):
+        """Retourne le chemin du logo ou None s'il n'existe pas"""
+        logo_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'logo.png')
+        if os.path.exists(logo_path):
+            return logo_path
+        return None
+
+    def _get_logo_image(self):
+        """Retourne l'image du logo ou None si impossible de charger"""
+        try:
+            from reportlab.platypus import Image
+            logo_path = self._get_logo_path()
+            if logo_path:
+                return Image(logo_path, width=25*mm, height=20*mm)
+        except Exception as e:
+            print(f"⚠️ Erreur chargement logo: {e}")
+        return None
