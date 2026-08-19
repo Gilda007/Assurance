@@ -1,3 +1,5 @@
+
+
 import os
 import json
 import importlib.util
@@ -5,390 +7,523 @@ from core.logger import logger
 from core.base_module import BaseModule
 import traceback
 from datetime import datetime
+import hashlib
+from pathlib import Path
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
 
 SKIP_CERT_VERIFICATION = os.environ.get("LOMETA_SKIP_CERT_VERIFICATION", "0") == "1"
 
 if SKIP_CERT_VERIFICATION:
     print("⚠️ MODE DÉVELOPPEMENT: Vérification des certificats désactivée")
+
+# ============================================================================
+# IMPORT DU GESTIONNAIRE RSA
+# ============================================================================
+
+RSA_AVAILABLE = False
+RSACertificateManager = None
+
+try:
+    from lometa_module_generator.rsa_certificate_manager import RSACertificateManager
+    RSA_AVAILABLE = True
+except ImportError:
+    try:
+        from ..lometa_module_generator.rsa_certificate_manager import RSACertificateManager 
+        RSA_AVAILABLE = True
+    except ImportError:
+        try:
+            import sys
+            cert_path = Path(__file__).parent.parent / "certificates"
+            if cert_path.exists():
+                sys.path.insert(0, str(cert_path))
+                from ..lometa_module_generator.rsa_certificate_manager import RSACertificateManager
+                RSA_AVAILABLE = True
+        except ImportError:
+            pass
+
+if RSA_AVAILABLE:
+    print("✅ RSACertificateManager disponible")
+else:
+    print("⚠️ RSACertificateManager non trouvé. Vérification RSA désactivée.")
+
+# Garder l'ancien gestionnaire pour compatibilité
 try:
     from lometa_module_generator.certificate_manager import CertificateManager
     CERT_MANAGER_AVAILABLE = True
 except ImportError:
     CERT_MANAGER_AVAILABLE = False
 
+
 class AddonLoader:
+    """Chargeur de modules avec vérification des certificats"""
+    
     def __init__(self, addons_path="addons"):
         self.addons_path = addons_path
         self.cert_manager = None
+        self.rsa_manager = None
         self.expiry_warning_threshold = 30
-
         self.last_certificate_status = []
-
-        if CERT_MANAGER_AVAILABLE and not SKIP_CERT_VERIFICATION:
+        self.certificates_dir = self._get_certificates_dir()
+        
+        # Vérifier la présence de la clé publique
+        self.public_key_available = False
+        self.public_key_path = None
+        
+        public_key_candidates = [
+            self.certificates_dir / "developer_public_key.pem",
+            self.certificates_dir / "lometa_ca.pem",
+            self.certificates_dir / "ca.crt",
+            Path.home() / ".lometa" / "certificates" / "developer_public_key.pem",
+            Path.home() / ".lometa" / "certificates" / "lometa_ca.pem",
+        ]
+        
+        for candidate in public_key_candidates:
+            if candidate.exists():
+                self.public_key_path = candidate
+                self.public_key_available = True
+                print(f"✅ Clé publique trouvée: {candidate}")
+                break
+        
+        if not self.public_key_available:
+            print("⚠️ Aucune clé publique trouvée. Les certificats RSA ne pourront pas être vérifiés.")
+            print("   Placez developer_public_key.pem ou lometa_ca.pem dans:")
+            print(f"   - {self.certificates_dir}")
+            print(f"   - ~/.lometa/certificates/")
+        
+        # Initialiser le gestionnaire RSA si disponible
+        if RSA_AVAILABLE and not SKIP_CERT_VERIFICATION and self.public_key_available:
             try:
-                cert_dir = self._get_certificates_dir()
-                # ✅ Utiliser les clés partagées
-                self.cert_manager = CertificateManager(config_dir=cert_dir, use_shared_keys=True)
-                logger.info(f"✅ CertificateManager initialisé avec : {cert_dir}")
+                self.rsa_manager = RSACertificateManager(config_dir=self.certificates_dir)
+                logger.info(f"✅ RSACertificateManager initialisé avec: {self.certificates_dir}")
                 
-                # ✅ Vérifier que les clés sont disponibles
-                if hasattr(self.cert_manager, 'shared_key_manager'):
-                    keys = self.cert_manager.shared_key_manager.list_keys()
-                    if keys:
-                        logger.info(f"   🔑 {len(keys)} clé(s) partagée(s) disponible(s)")
-                    else:
-                        logger.warning("   ⚠️ Aucune clé partagée trouvée - les modules externes pourraient être rejetés")
+                if self.rsa_manager.get_public_key():
+                    logger.info("   🔑 Clé publique RSA chargée")
+                else:
+                    logger.warning("   ⚠️ Aucune clé publique RSA trouvée")
+                    
+            except Exception as e:
+                logger.warning(f"⚠️ Erreur initialisation RSACertificateManager: {e}")
+                self.rsa_manager = None
+        
+        # Fallback: ancien gestionnaire HMAC
+        if CERT_MANAGER_AVAILABLE and not SKIP_CERT_VERIFICATION and not self.rsa_manager:
+            try:
+                self.cert_manager = CertificateManager(config_dir=self.certificates_dir, use_shared_keys=True)
+                logger.info(f"✅ CertificateManager (HMAC) initialisé avec: {self.certificates_dir}")
             except Exception as e:
                 logger.warning(f"⚠️ Erreur initialisation CertificateManager: {e}")
 
+    def _get_certificates_dir(self) -> Path:
+        """Détermine le dossier des certificats en fonction du mode d'exécution."""
+        import sys
+        
+        if getattr(sys, 'frozen', False):
+            base_dir = Path(sys.executable).parent
+            candidates = [
+                base_dir / "certificates",
+                base_dir / "_internal" / "certificates",
+                base_dir.parent / "certificates",
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    return candidate
+            cert_dir = base_dir / "certificates"
+            cert_dir.mkdir(parents=True, exist_ok=True)
+            return cert_dir
+        
+        if Path("certificates").exists():
+            return Path("certificates")
+        
+        home_cert = Path.home() / ".lometa" / "certificates"
+        home_cert.mkdir(parents=True, exist_ok=True)
+        return home_cert
+
+    # def _is_certificate_valid_structure(self, certificate: dict) -> tuple:
+    #     """
+    #     Vérifie si le certificat a une structure valide.
+    #     Supporte les versions 2.0.0 (HMAC) et 3.0.0 (RSA).
+        
+    #     Returns:
+    #         (is_valid, version, missing_fields)
+    #     """
+    #     # Champs requis pour toutes les versions
+    #     common_required = [
+    #         "module_name",
+    #         "module_version", 
+    #         "certified_by",
+    #         "certified_date",
+    #         "certificate_id",
+    #         "checksums"
+    #     ]
+        
+    #     # Champs pour la version 2.0.0 (HMAC)
+    #     v2_required = ["signature", "public_key"]
+        
+    #     # Champs pour la version 3.0.0 (RSA)
+    #     v3_required = ["signature", "public_key", "expiry_date"]
+        
+    #     # Vérifier les champs communs
+    #     missing_common = [f for f in common_required if f not in certificate]
+    #     if missing_common:
+    #         return False, "unknown", missing_common
+        
+    #     # Détecter la version
+    #     version = certificate.get("version", "2.0.0")
+        
+    #     if version.startswith("2."):
+    #         # Version 2.x (HMAC)
+    #         missing = [f for f in v2_required if f not in certificate]
+    #         return len(missing) == 0, "2.0.0", missing
+        
+    #     elif version.startswith("3."):
+    #         # Version 3.x (RSA)
+    #         missing = [f for f in v3_required if f not in certificate]
+    #         return len(missing) == 0, "3.0.0", missing
+        
+    #     else:
+    #         # Version inconnue, essayer de détecter
+    #         if "expiry_date" in certificate:
+    #             return True, "3.0.0", []
+    #         elif "signature" in certificate and "public_key" in certificate:
+    #             return True, "2.0.0", []
+    #         else:
+    #             return False, "unknown", ["version_inconnue"]
+
+    def _is_certificate_valid_structure(self, certificate: dict) -> tuple:
+        """
+        Vérifie si le certificat a une structure valide.
+        Supporte les versions 2.0.0 (HMAC) et 3.0.0 (RSA).
+        
+        Returns:
+            (is_valid, version, missing_fields)
+        """
+        # Champs requis pour toutes les versions
+        common_required = [
+            "module_name",
+            "module_version", 
+            "certified_by",
+            "certified_date",
+            "certificate_id",
+            "checksums"
+        ]
+        
+        # ✅ Vérifier les champs communs
+        missing_common = [f for f in common_required if f not in certificate]
+        if missing_common:
+            return False, "unknown", missing_common
+        
+        # ✅ Détecter la version
+        version = certificate.get("version", "2.0.0")
+        
+        # ✅ Vérifier les champs selon la version
+        if version.startswith("3."):
+            # Version 3.x (RSA) - signature et public_key sont dans le certificat PEM
+            # Le JSON ne contient pas ces champs à la racine
+            v3_required = ["expiry_date", "signature_algorithm"]
+            missing_v3 = [f for f in v3_required if f not in certificate]
+            if missing_v3:
+                return False, version, missing_v3
+            return True, version, []
+        
+        elif version.startswith("2."):
+            # Version 2.x (HMAC) - signature et public_key sont à la racine
+            v2_required = ["signature", "public_key"]
+            missing_v2 = [f for f in v2_required if f not in certificate]
+            if missing_v2:
+                return False, version, missing_v2
+            return True, version, []
+        
+        else:
+            # Version inconnue - essayer de détecter
+            if "expiry_date" in certificate and "signature_algorithm" in certificate:
+                return True, "3.0.0", []
+            elif "signature" in certificate and "public_key" in certificate:
+                return True, "2.0.0", []
+            else:
+                return False, "unknown", ["version_inconnue"]
+
     def load_all(self, main_window):
-        addons_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "addons")
+        """Charge tous les modules avec vérification des certificats"""
+        addons_path = Path(os.path.dirname(os.path.dirname(__file__))) / "addons"
         logger.info(f"--- DÉBUT DU CHARGEMENT DES MODULES ---")
         logger.info(f"Recherche dans : {addons_path}")
 
         self.last_certificate_status = []
-
         loaded_instances = []
 
-        if not os.path.exists(addons_path):
+        if not addons_path.exists():
             logger.error(f"Le dossier addons n'existe pas : {addons_path}")
             return loaded_instances
 
-        for folder in os.listdir(addons_path):
-            folder_path = os.path.join(addons_path, folder)
-            
-            if not os.path.isdir(folder_path) or folder.startswith("__"):
+        for folder in addons_path.iterdir():
+            if not folder.is_dir() or folder.name.startswith("__"):
                 continue
 
-            certificate = None
-            manifest = None
-            manifest_path = os.path.join(folder_path, "manifest.json")
-            if not os.path.exists(manifest_path):
-                logger.warning(f"  ! Manquant : manifest.json dans {folder} -> module ignoré")
-                continue
+            folder_name = folder.name
+            folder_path = folder
 
-            certificate_path = os.path.join(folder_path, "certificate.json")
-            if not os.path.exists(certificate_path):
-                logger.warning(f"le module {folder} n'a pas de certificat (certificate.json). Il est recommandé d'en avoir un pour la sécurité.")
-                logger.warning(f"  ! Manquant : certificate.json dans {folder} -> module ignoré")
+            # ============================================================
+            # 1. LECTURE DU MANIFEST
+            # ============================================================
+            manifest_path = folder_path / "manifest.json"
+            if not manifest_path.exists():
+                logger.warning(f"  ! Manquant : manifest.json dans {folder_name} -> module ignoré")
                 continue
-
-            cert_status = self._get_certificate_status(certificate, folder)
-            if cert_status:
-                self.last_certificate_status.append(cert_status)
 
             try:
                 with open(manifest_path, "r", encoding="utf-8") as f:
                     manifest = json.load(f)
             except Exception as e:
-                logger.error(f"  ! Impossible de lire manifest.json dans {folder} : {e}")
-                continue
-
-            try:
-                with open(certificate_path, "r", encoding="utf-8") as f:
-                    certificate = json.load(f)
-            except Exception as e:
-                logger.error(f"  ! Impossible de lire certificate.json dans {folder} : {e}")
+                logger.error(f"  ! Impossible de lire manifest.json dans {folder_name} : {e}")
                 continue
 
             if not manifest.get("enabled", True):
-                logger.info(f"  - Module {folder} désactivé dans manifest, passage")
+                logger.info(f"  - Module {folder_name} désactivé dans manifest, passage")
                 continue
 
-            if self.cert_manager:
-                success, message = self.cert_manager.verify_module(folder_path)
-                if not success:
-                    logger.warning(f"  ! {message} -> module ignoré")
-                    continue
-                else:
-                    logger.info(f"  ✅ {message}")
-            else:
-                # Fallback: vérifications manuelles basiques
-                required_fields = ["module_name", "module_version", "certificate_id", "signature"]
-                valid = True
-                for field in required_fields:
-                    if field not in certificate:
-                        logger.warning(f"  ! Champ '{field}' manquant dans certificate.json -> module ignoré")
-                        valid = False
-                        break
-                if not valid:
-                    continue
-                
-                if certificate.get("module_name") != manifest.get("name", folder):
-                    logger.warning(f"  ! Nom du module ne correspond pas -> module ignoré")
-                    continue
-                
-                logger.info(f"  ✅ Vérification manuelle: module {folder} valide")
-                logger.info(f"  ✅ Vérification manuelle: module {folder} valide")
-                # ✅ Ajouter le statut du certificat
-                if certificate is not None:
-                    cert_status = self._get_certificate_status(certificate, folder)
-                    if cert_status:
-                        self.last_certificate_status.append(cert_status)
-
             # ============================================================
-            #  VÉRIFICATIONS DU CERTIFICAT
+            # 2. MODE DÉVELOPPEMENT
             # ============================================================
             if SKIP_CERT_VERIFICATION:
-                logger.info(f"🔓 Mode développement: chargement du module {folder} sans vérification")
-                # Continuer le chargement sans vérification
-            else:
-                # 1. Vérification de la structure du certificat
-                required_cert_fields = [
-                    "version", "module_name", "module_version", 
-                    "certified_by", "certified_date", "certificate_id",
-                    "checksums", "signature", "public_key"
-                ]
-                
-                cert_valid = True
-                for field in required_cert_fields:
-                    if field not in certificate:
-                        logger.warning(f"  ! Champ '{field}' manquant dans certificate.json du module {folder} -> module ignoré")
-                        cert_valid = False
-                        break
-                
-                if not cert_valid:
-                    continue
-                
-                # 2. Vérification que le nom du module correspond
-                if certificate.get("module_name") != manifest.get("name", folder):
-                    logger.warning(f"  ! Nom du module dans certificat '{certificate.get('module_name')}' ne correspond pas au manifest '{manifest.get('name', folder)}' -> module ignoré")
-                    continue
-                
-                # 3. Vérification de la version
-                if certificate.get("module_version") != manifest.get("version"):
-                    logger.warning(f"  ! Version du certificat '{certificate.get('module_version')}' ne correspond pas au manifest '{manifest.get('version')}' -> module ignoré")
-                    continue
-                
-                # 4. Vérification de la date de certification
-                try:
-                    cert_date = datetime.fromisoformat(certificate.get("certified_date"))
-                    if cert_date > datetime.now():
-                        logger.warning(f"  ! Certificat du module {folder} avec date future ({certificate.get('certified_date')}) -> module ignoré")
-                        continue
-                except (ValueError, TypeError):
-                    logger.warning(f"  ! Date de certification invalide dans le module {folder} -> module ignoré")
-                    continue
-                
-                # 5. Vérification que checksums est un dictionnaire
-                if not isinstance(certificate.get("checksums"), dict):
-                    logger.warning(f"  ! Le champ 'checksums' doit être un dictionnaire dans le module {folder} -> module ignoré")
-                    continue
-                
-                # 6. Vérification de la signature
-                signature = certificate.get("signature", "")
-                if not signature or len(signature) < 32:
-                    logger.warning(f"  ! Signature invalide dans le module {folder} -> module ignoré")
-                    continue
-                
-                # 7. Vérification de la clé publique
-                public_key = certificate.get("public_key", "")
-                if not public_key or len(public_key) < 32:
-                    logger.warning(f"  ! Clé publique invalide dans le module {folder} -> module ignoré")
-                    continue
-                
-                # 8. Vérification que le certificat n'a pas été révoqué (si vous avez une liste de révocation)
-                # revoked_certificates = self.get_revoked_certificates()  # À implémenter
-                # if certificate.get("certificate_id") in revoked_certificates:
-                #     logger.warning(f"  ! Certificat révoqué pour le module {folder} -> module ignoré")
-                #     continue
-                
-                # 9. Vérification des checksums des fichiers
-                # (Optionnel - vérifier que les fichiers du module correspondent aux checksums)
-                # logger.info(f"  > Vérification des checksums pour le module {folder}...")
-                # for file_path, checksum in certificate.get("checksums", {}).items():
-                #     full_path = os.path.join(folder_path, file_path)
-                #     if not os.path.exists(full_path):
-                #         logger.warning(f"    ! Fichier manquant: {file_path}")
-                #         continue
-                #     # Calculer le checksum du fichier et comparer
-                #     # ...
-                
-                # 10. Vérification que le certificat est valide (certificate.json contient "valid": True)
-                if not certificate.get("valid", True):
-                    logger.warning(f"  ! Certificat du module {folder} marqué comme invalide (valid: false) -> module ignoré")
-                    continue
-                # ✅ 4. VÉRIFIER LA PÉRIODE DE VALIDITÉ (NOUVEAU)
-                validity_valid, remaining_days, validity_msg = self._check_certificate_validity(certificate)
-                if not validity_valid:
-                    logger.warning(f"  ! {validity_msg} -> module {folder} ignoré")
-                    continue
-
-                # Afficher le statut de validité
-                if remaining_days < self.expiry_warning_threshold and remaining_days > 0:
-                    logger.warning(f"  ⚠️ {folder}: {validity_msg}")
-                else:
-                    logger.info(f"  ✅ {folder}: {validity_msg}")
-                
-            # ============================================================
-            #  FIN DES VÉRIFICATIONS DU CERTIFICAT
-            # ============================================================
-
-            if not manifest.get("version"):
-                logger.warning(f"  ! module {folder} sans version dans manifest (requis). Ignoré")
+                logger.info(f"🔓 Mode développement: chargement du module {folder_name} sans vérification")
+                instance = self._load_module_instance(folder_name, folder_path, manifest, main_window)
+                if instance:
+                    loaded_instances.append(instance)
+                    self.last_certificate_status.append({
+                        'module_name': folder_name,
+                        'status': 'dev_mode',
+                        'message': 'Mode développement (certificat ignoré)'
+                    })
                 continue
 
-            logger.info(f"✅ Module certifié : [{folder}] version={manifest.get('version')}")
-            logger.info(f"   Certifié par: {certificate.get('certified_by')}")
-            logger.info(f"   ID: {certificate.get('certificate_id')}")
-            
+            # ============================================================
+            # 3. CHARGEMENT DU CERTIFICAT
+            # ============================================================
+            cert_path = folder_path / "certificate.json"
+            if not cert_path.exists():
+                logger.warning(f"  ! Manquant : certificate.json dans {folder_name} -> module ignoré")
+                self.last_certificate_status.append({
+                    'module_name': folder_name,
+                    'status': 'no_certificate',
+                    'message': 'Certificat manquant'
+                })
+                continue
+
             try:
-                module_file = os.path.join(folder_path, "main_ui.py")
-                if not os.path.exists(module_file):
-                    logger.warning(f"  ! Manquant : main_ui.py dans {folder}")
-                    continue
-
-                module_name = f"addons.{folder}.main_ui"
-                spec = importlib.util.spec_from_file_location(module_name, module_file)
-                if spec is None:
-                    continue
-                
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                logger.info(f"  > Importation réussie : {module_name}")
-
-                module_found = False
-                for name, obj in vars(module).items():
-                    if isinstance(obj, type) and issubclass(obj, BaseModule) and obj is not BaseModule:
-                        logger.info(f"  > Classe de module valide trouvée : {name}")
-                        instance = obj(main_window)
-                        instance.setup()
-                        loaded_instances.append(instance)
-                        module_found = True
-                        logger.info(f"  [OK] Module {folder} chargé et initialisé.")
-                        break
-                
-                if not module_found:
-                    logger.warning(f"  ! Aucune classe héritant de BaseModule trouvée dans {folder}")
-                                        
+                with open(cert_path, "r", encoding="utf-8") as f:
+                    certificate = json.load(f)
             except Exception as e:
-                logger.error(f"  [ERREUR] Échec du chargement de {folder} : {str(e)}")
-                logger.error(traceback.format_exc())
+                logger.error(f"  ! Impossible de lire certificate.json dans {folder_name} : {e}")
+                continue
+
+            # ============================================================
+            # 4. VÉRIFICATION DE LA STRUCTURE DU CERTIFICAT
+            # ============================================================
+            is_valid, version, missing_fields = self._is_certificate_valid_structure(certificate)
+            
+            if not is_valid:
+                missing_msg = ", ".join(missing_fields)
+                logger.warning(f"  ! Structure invalide: {missing_msg} -> module {folder_name} ignoré")
+                self.last_certificate_status.append({
+                    'module_name': folder_name,
+                    'status': 'invalid_structure',
+                    'message': f"Champs manquants: {missing_msg}"
+                })
+                continue
+
+            # ============================================================
+            # 5. VÉRIFICATION DU NOM ET DE LA VERSION
+            # ============================================================
+            if certificate.get("module_name") != manifest.get("name", folder_name):
+                logger.warning(f"  ! Nom du module ne correspond pas: {certificate.get('module_name')} vs {manifest.get('name', folder_name)} -> module ignoré")
+                continue
+
+            if certificate.get("module_version") != manifest.get("version"):
+                logger.warning(f"  ! Version ne correspond pas: {certificate.get('module_version')} vs {manifest.get('version')} -> module ignoré")
+                continue
+
+            # ============================================================
+            # 6. VÉRIFICATION DE LA SIGNATURE (adaptée à la version)
+            # ============================================================
+
+
+            signature_valid = True
+            signature_msg = ""
+
+            if version.startswith("3."):
+                # ✅ Version 3.x (RSA) - La signature est dans le fichier PEM
+                cert_pem = folder_path / "certificate.pem"
+                if not cert_pem.exists():
+                    signature_valid = False
+                    signature_msg = "certificate.pem manquant pour la vérification RSA"
+                else:
+                    # ✅ Vérifier avec openssl en utilisant le certificat CA
+                    ca_cert = self.certificates_dir / "lometa_ca.crt"
+                    
+                    # Si le CA n'est pas trouvé, chercher dans d'autres emplacements
+                    if not ca_cert.exists():
+                        ca_candidates = [
+                            Path.home() / ".lometa" / "certificates" / "lometa_ca.crt",
+                            Path("./certificates/lometa_ca.crt"),
+                            Path("/etc/lometa/certificates/lometa_ca.crt"),
+                        ]
+                        for candidate in ca_candidates:
+                            if candidate.exists():
+                                ca_cert = candidate
+                                break
+                    
+                    if ca_cert.exists():
+                        try:
+                            import subprocess
+                            result = subprocess.run(
+                                ["openssl", "verify", "-CAfile", str(ca_cert), str(cert_pem)],
+                                capture_output=True,
+                                text=True
+                            )
+                            if result.returncode == 0:
+                                signature_msg = "Signature RSA valide"
+                            else:
+                                signature_valid = False
+                                signature_msg = f"Signature RSA invalide: {result.stderr.strip()}"
+                        except Exception as e:
+                            signature_valid = False
+                            signature_msg = f"Erreur vérification RSA: {str(e)}"
+                    else:
+                        # ✅ Pas de CA trouvée, mais le certificat PEM existe
+                        # On peut faire une vérification basique
+                        try:
+                            import subprocess
+                            # Vérifier que le certificat est valide (auto-signé)
+                            result = subprocess.run(
+                                ["openssl", "x509", "-in", str(cert_pem), "-text", "-noout"],
+                                capture_output=True,
+                                text=True
+                            )
+                            if result.returncode == 0:
+                                # Le certificat est valide, mais on ne peut pas vérifier la chaîne
+                                signature_msg = "Signature RSA: CA non trouvée, vérification basique OK"
+                                logger.warning(f"   ⚠️ CA non trouvée, vérification basique du certificat {folder_name}")
+                            else:
+                                signature_valid = False
+                                signature_msg = "Certificat PEM invalide"
+                        except Exception as e:
+                            signature_valid = False
+                            signature_msg = f"Erreur vérification certificat: {str(e)}"
+            else:
+                # Version 2.x (HMAC) - Vérification HMAC
+                signature = certificate.get("signature", "")
+                public_key = certificate.get("public_key", "")
+                
+                if not signature or len(signature) < 32:
+                    signature_valid = False
+                    signature_msg = "Signature HMAC invalide"
+                elif not public_key or len(public_key) < 32:
+                    signature_valid = False
+                    signature_msg = "Clé publique HMAC invalide"
+                else:
+                    signature_msg = "Signature HMAC valide"
+
+            # ============================================================
+            # 7. VÉRIFICATION DE LA DATE D'EXPIRATION
+            # ============================================================
+            if "expiry_date" in certificate:
+                validity_valid, remaining_days, validity_msg = self._check_certificate_validity(certificate)
+                
+                if not validity_valid:
+                    logger.warning(f"  ! {validity_msg} -> module {folder_name} ignoré")
+                    self.last_certificate_status.append({
+                        'module_name': folder_name,
+                        'status': 'expired',
+                        'message': validity_msg,
+                        'expiry_date': certificate.get('expiry_date', '')
+                    })
+                    continue
+            else:
+                remaining_days = 365
+                validity_msg = "Pas de date d'expiration (format ancien)"
+
+            # ============================================================
+            # 8. VÉRIFICATION DE L'INTÉGRITÉ DES FICHIERS
+            # ============================================================
+            integrity_valid, integrity_msg = self._verify_file_integrity(
+                folder_path, certificate.get('checksums', {})
+            )
+
+            if not integrity_valid:
+                logger.warning(f"  ! {integrity_msg} -> module {folder_name} ignoré")
+                self.last_certificate_status.append({
+                    'module_name': folder_name,
+                    'status': 'corrupted',
+                    'message': integrity_msg
+                })
+                continue
+
+            # ============================================================
+            # 9. AJOUTER LE STATUT
+            # ============================================================
+            certificate_id = certificate.get('certificate_id', 'Inconnu')
+            certified_by = certificate.get('certified_by', 'Inconnu')
+            
+            status_info = {
+                'module_name': folder_name,
+                'status': 'valid' if remaining_days > self.expiry_warning_threshold else 'expiring',
+                'remaining_days': remaining_days,
+                'expiry_date': certificate.get('expiry_date', ''),
+                'message': validity_msg,
+                'certified_by': certified_by,
+                'certificate_id': certificate_id,
+                'version': version
+            }
+            self.last_certificate_status.append(status_info)
+
+            if remaining_days < self.expiry_warning_threshold and remaining_days > 0:
+                logger.warning(f"  ⚠️ {folder_name}: {validity_msg}")
+            else:
+                logger.info(f"  ✅ {folder_name}: {validity_msg}")
+
+            # ============================================================
+            # 10. CHARGEMENT DU MODULE
+            # ============================================================
+            logger.info(f"✅ Module certifié : [{folder_name}] version={manifest.get('version')}")
+            logger.info(f"   Certifié par: {certified_by}")
+            logger.info(f"   ID: {certificate_id}")
+            logger.info(f"   Version certificat: {version}")
+
+            instance = self._load_module_instance(folder_name, folder_path, manifest, main_window)
+            if instance:
+                loaded_instances.append(instance)
 
         logger.info(f"--- FIN DU CHARGEMENT DES MODULES ({len(loaded_instances)} chargés) ---")
 
-        # ✅ Afficher un résumé dans les logs
+        # Afficher un résumé
         if self.last_certificate_status:
             logger.info("📋 RÉSUMÉ DES CERTIFICATS:")
             for status in self.last_certificate_status:
-                logger.info(f"   {status.get('module_name')}: {status.get('status')} - {status.get('message', '')}")
+                status_icon = {
+                    'valid': '✅',
+                    'expiring': '⚠️',
+                    'expired': '❌',
+                    'invalid_structure': '❌',
+                    'signature_invalid': '❌',
+                    'revoked': '🚫',
+                    'corrupted': '❌',
+                    'no_certificate': '📭',
+                    'dev_mode': '🔓'
+                }.get(status.get('status'), '❓')
+                logger.info(f"   {status_icon} {status.get('module_name')}: {status.get('message', '')}")
+
         return loaded_instances
 
-    def _get_certificate_status(self, certificate, module_name):
-        """
-        Extrait le statut d'un certificat.
-        """
-        if not certificate:
-            return {
-                'module_name': module_name,
-                'status': 'no_certificate',
-                'message': 'Certificat manquant'
-            }
-        
-        # Vérifier si le certificat a une date d'expiration
-        expiry_date = certificate.get("expiry_date")
-        if not expiry_date:
-            return {
-                'module_name': module_name,
-                'status': 'unknown',
-                'message': 'Pas de date d\'expiration'
-            }
-        
-        try:
-            if isinstance(expiry_date, str):
-                expiry = datetime.fromisoformat(expiry_date)
-            else:
-                expiry = expiry_date
-            
-            now = datetime.now()
-            remaining = (expiry - now).days
-            
-            if remaining < 0:
-                return {
-                    'module_name': module_name,
-                    'status': 'expired',
-                    'remaining_days': remaining,
-                    'expiry_date': expiry.strftime('%d/%m/%Y'),
-                    'message': f'Expiré depuis {abs(remaining)} jours'
-                }
-            elif remaining < self.expiry_warning_threshold:
-                return {
-                    'module_name': module_name,
-                    'status': 'expiring',
-                    'remaining_days': remaining,
-                    'expiry_date': expiry.strftime('%d/%m/%Y'),
-                    'message': f'Expire dans {remaining} jours'
-                }
-            else:
-                return {
-                    'module_name': module_name,
-                    'status': 'valid',
-                    'remaining_days': remaining,
-                    'expiry_date': expiry.strftime('%d/%m/%Y'),
-                    'message': f'Valide ({remaining} jours restants)'
-                }
-        except Exception as e:
-            return {
-                'module_name': module_name,
-                'status': 'error',
-                'message': f'Erreur: {str(e)}'
-            }
-
-    def get_manifest(self, folder_name):
-        manifest_path = os.path.join(self.addons_path, folder_name, "manifest.json")
-        try:
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except FileNotFoundError:
-            logger.warning(f"Manifest non trouvé pour module {folder_name}")
-            return None
-        except Exception as e:
-            logger.error(f"Erreur lecture manifest {folder_name} : {e}")
-            return None
-
-    def set_manifest(self, folder_name, data):
-        manifest_path = os.path.join(self.addons_path, folder_name, "manifest.json")
-        with open(manifest_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-    def enable_module(self, folder_name):
-        manifest = self.get_manifest(folder_name)
-        if not manifest:
-            return False
-        manifest["enabled"] = True
-        self.set_manifest(folder_name, manifest)
-        return True
-
-    def disable_module(self, folder_name):
-        manifest = self.get_manifest(folder_name)
-        if not manifest:
-            return False
-        manifest["enabled"] = False
-        self.set_manifest(folder_name, manifest)
-        return True
-
-    def update_module_version(self, folder_name, new_version):
-        manifest = self.get_manifest(folder_name)
-        if not manifest:
-            return False
-        manifest["version"] = str(new_version)
-        self.set_manifest(folder_name, manifest)
-        return True
-
-    # def _check_certificate_validity(self, certificate):
-    #     """
-    #     Vérifie la période de validité du certificat.
-    #     Retourne (is_valid, remaining_days, message)
-    #     """
-    #     # Vérifier si une date d'expiration est présente
+    # def _check_certificate_validity(self, certificate: dict) -> tuple:
+    #     """Vérifie la période de validité du certificat."""
     #     expiry_date = certificate.get("expiry_date")
     #     if not expiry_date:
-    #         # Pas de date d'expiration -> considéré comme valide (ancien format)
-    #         logger.warning("   ⚠️ Certificat sans date d'expiration (format ancien)")
-    #         return True, 365, "Pas de date d'expiration (format ancien)"
+    #         return True, 365, "Pas de date d'expiration"
         
     #     try:
-    #         # Convertir la date d'expiration
     #         if isinstance(expiry_date, str):
     #             expiry = datetime.fromisoformat(expiry_date)
     #         else:
@@ -396,15 +531,12 @@ class AddonLoader:
             
     #         now = datetime.now()
             
-    #         # Vérifier si expiré
     #         if expiry < now:
     #             return False, 0, f"EXPIRÉ depuis le {expiry.strftime('%d/%m/%Y')}"
             
-    #         # Calculer les jours restants
     #         remaining = (expiry - now).days
             
-    #         # Avertir si proche de l'expiration
-    #         if remaining < self.expiry_warning_threshold:
+    #         if remaining < self.expiry_warning_threshold and remaining > 0:
     #             logger.warning(f"   ⚠️ Certificat expire dans {remaining} jours")
             
     #         return True, remaining, f"Valide ({remaining} jours restants)"
@@ -413,93 +545,408 @@ class AddonLoader:
     #         logger.warning(f"   ⚠️ Date d'expiration invalide: {e}")
     #         return True, 365, "Date d'expiration invalide (ignorée)"
 
-    def _check_certificate_validity(self, certificate):
+    # def _get_certificate_status(self, certificate, module_name):
+    #     """
+    #     Extrait le statut d'un certificat.
+    #     Supporte les versions 2.0.0 et 3.0.0.
+    #     """
+    #     if not certificate:
+    #         return {
+    #             'module_name': module_name,
+    #             'status': 'no_certificate',
+    #             'message': 'Certificat manquant'
+    #         }
+        
+    #     # ✅ Récupérer la date d'expiration (support des deux versions)
+    #     expiry_date = certificate.get("expiry_date")
+    #     validity_days = None
+    #     version = certificate.get("version", "2.0.0")
+        
+    #     # ✅ Version 3.x : la date est dans validity
+    #     if not expiry_date and "validity" in certificate:
+    #         validity = certificate.get("validity", {})
+    #         expiry_date = validity.get("not_after")
+    #         validity_days = validity.get("days")
+        
+    #     if not expiry_date:
+    #         # ✅ Utiliser validity_days si disponible
+    #         if validity_days:
+    #             return {
+    #                 'module_name': module_name,
+    #                 'status': 'valid',
+    #                 'remaining_days': validity_days,
+    #                 'expiry_date': f"Dans {validity_days} jours",
+    #                 'version': version,
+    #                 'message': f'Valide ({validity_days} jours - certifié)'
+    #             }
+    #         return {
+    #             'module_name': module_name,
+    #             'status': 'unknown',
+    #             'version': version,
+    #             'message': 'Pas de date d\'expiration'
+    #         }
+        
+    #     try:
+    #         # ✅ Nettoyer la date
+    #         if isinstance(expiry_date, str):
+    #             expiry_date = expiry_date.strip()
+    #             # Si format GMT
+    #             if "GMT" in expiry_date:
+    #                 from datetime import datetime
+    #                 try:
+    #                     expiry = datetime.strptime(expiry_date.replace(" GMT", ""), "%b %d %H:%M:%S %Y")
+    #                 except ValueError:
+    #                     expiry = datetime.fromisoformat(expiry_date)
+    #             else:
+    #                 expiry = datetime.fromisoformat(expiry_date)
+    #         else:
+    #             expiry = expiry_date
+            
+    #         now = datetime.now()
+    #         remaining = (expiry - now).days
+            
+    #         if remaining < 0:
+    #             return {
+    #                 'module_name': module_name,
+    #                 'status': 'expired',
+    #                 'remaining_days': remaining,
+    #                 'expiry_date': expiry.strftime('%d/%m/%Y'),
+    #                 'version': version,
+    #                 'message': f'Expiré depuis {abs(remaining)} jours'
+    #             }
+    #         elif remaining < self.expiry_warning_threshold:
+    #             return {
+    #                 'module_name': module_name,
+    #                 'status': 'expiring',
+    #                 'remaining_days': remaining,
+    #                 'expiry_date': expiry.strftime('%d/%m/%Y'),
+    #                 'version': version,
+    #                 'message': f'Expire dans {remaining} jours'
+    #             }
+    #         else:
+    #             return {
+    #                 'module_name': module_name,
+    #                 'status': 'valid',
+    #                 'remaining_days': remaining,
+    #                 'expiry_date': expiry.strftime('%d/%m/%Y'),
+    #                 'version': version,
+    #                 'message': f'Valide ({remaining} jours restants)'
+    #             }
+    #     except Exception as e:
+    #         return {
+    #             'module_name': module_name,
+    #             'status': 'error',
+    #             'version': version,
+    #             'message': f'Erreur: {str(e)}'
+    #         }
+
+    def _get_certificate_status(self, certificate, module_name):
         """
-        Vérifie la période de validité du certificat.
-        Retourne (is_valid, remaining_days, message)
+        Extrait le statut d'un certificat.
+        Supporte les versions 2.0.0 et 3.0.0.
         """
-        # Vérifier si une date d'expiration est présente
+        from datetime import datetime
+        import re
+        
+        if not certificate:
+            return {
+                'module_name': module_name,
+                'status': 'no_certificate',
+                'message': 'Certificat manquant'
+            }
+        
+        # ✅ Récupérer la date d'expiration (support des deux versions)
         expiry_date = certificate.get("expiry_date")
+        validity_days = None
+        version = certificate.get("version", "2.0.0")
+        
+        # ✅ Version 3.x : la date est dans validity
+        if not expiry_date and "validity" in certificate:
+            validity = certificate.get("validity", {})
+            expiry_date = validity.get("not_after")
+            validity_days = validity.get("days")
+        
         if not expiry_date:
-            # Pas de date d'expiration -> considéré comme valide (ancien format)
-            logger.warning("   ⚠️ Certificat sans date d'expiration (format ancien)")
-            return True, 365, "Pas de date d'expiration (format ancien)"
+            if validity_days:
+                return {
+                    'module_name': module_name,
+                    'status': 'valid',
+                    'remaining_days': validity_days,
+                    'expiry_date': f"Dans {validity_days} jours",
+                    'version': version,
+                    'message': f'Valide ({validity_days} jours - certifié)'
+                }
+            return {
+                'module_name': module_name,
+                'status': 'unknown',
+                'version': version,
+                'message': 'Pas de date d\'expiration'
+            }
         
         try:
-            # Convertir la date d'expiration
-            if isinstance(expiry_date, str):
-                expiry = datetime.fromisoformat(expiry_date)
+            # ✅ Nettoyer la date
+            expiry_date_str = str(expiry_date).strip()
+            
+            # ✅ Si c'est un format comme "Aug 19 10:04:28 2026 GMT"
+            if "GMT" in expiry_date_str:
+                clean_date = expiry_date_str.replace(" GMT", "").strip()
+                expiry_datetime = datetime.strptime(clean_date, "%b %d %H:%M:%S %Y")
             else:
-                expiry = expiry_date
+                # ✅ Supprimer le fuseau horaire pour avoir une date naive
+                if "+" in expiry_date_str or expiry_date_str.endswith("Z"):
+                    if "+" in expiry_date_str:
+                        expiry_date_str = expiry_date_str.split("+")[0]
+                    elif "Z" in expiry_date_str:
+                        expiry_date_str = expiry_date_str.replace("Z", "")
+                    expiry_date_str = expiry_date_str.replace("T", " ")
+                    expiry_datetime = datetime.strptime(expiry_date_str, "%Y-%m-%d %H:%M:%S")
+                else:
+                    try:
+                        expiry_datetime = datetime.fromisoformat(expiry_date_str)
+                        if expiry_datetime.tzinfo is not None:
+                            expiry_datetime = expiry_datetime.replace(tzinfo=None)
+                    except ValueError:
+                        expiry_datetime = datetime.strptime(expiry_date_str, "%Y-%m-%d %H:%M:%S")
+            
+            now = datetime.now()
+            remaining = (expiry_datetime - now).days
+            
+            if remaining < 0:
+                return {
+                    'module_name': module_name,
+                    'status': 'expired',
+                    'remaining_days': remaining,
+                    'expiry_date': expiry_datetime.strftime('%d/%m/%Y'),
+                    'version': version,
+                    'message': f'Expiré depuis {abs(remaining)} jours'
+                }
+            elif remaining < self.expiry_warning_threshold:
+                return {
+                    'module_name': module_name,
+                    'status': 'expiring',
+                    'remaining_days': remaining,
+                    'expiry_date': expiry_datetime.strftime('%d/%m/%Y'),
+                    'version': version,
+                    'message': f'Expire dans {remaining} jours'
+                }
+            else:
+                return {
+                    'module_name': module_name,
+                    'status': 'valid',
+                    'remaining_days': remaining,
+                    'expiry_date': expiry_datetime.strftime('%d/%m/%Y'),
+                    'version': version,
+                    'message': f'Valide ({remaining} jours restants)'
+                }
+        except Exception as e:
+            if validity_days:
+                return {
+                    'module_name': module_name,
+                    'status': 'valid',
+                    'remaining_days': validity_days,
+                    'expiry_date': f"Dans {validity_days} jours",
+                    'version': version,
+                    'message': f'Valide ({validity_days} jours - certifié)'
+                }
+            return {
+                'module_name': module_name,
+                'status': 'error',
+                'version': version,
+                'message': f'Erreur: {str(e)}'
+            }
+
+    def _check_certificate_validity(self, certificate: dict) -> tuple:
+        """Vérifie la période de validité du certificat."""
+        from datetime import datetime, timedelta
+        import re
+        
+        # ✅ Support des deux versions
+        expiry_date = certificate.get("expiry_date")
+        validity_days = None
+        
+        # ✅ Si version 3.x, la date est dans validity
+        if not expiry_date and "validity" in certificate:
+            validity = certificate.get("validity", {})
+            expiry_date = validity.get("not_after")
+            validity_days = validity.get("days")
+        
+        # ✅ Si toujours pas de date, utiliser validity_days
+        if not expiry_date:
+            if validity_days:
+                return True, validity_days, f"Valide ({validity_days} jours - certifié)"
+            return True, 365, "Pas de date d'expiration"
+        
+        try:
+            # ✅ Nettoyer la date
+            expiry_date_str = str(expiry_date).strip()
+            
+            # ✅ Si c'est un format comme "Aug 19 10:04:28 2026 GMT"
+            if "GMT" in expiry_date_str:
+                # Nettoyer le GMT et les espaces
+                clean_date = expiry_date_str.replace(" GMT", "").strip()
+                expiry_datetime = datetime.strptime(clean_date, "%b %d %H:%M:%S %Y")
+            else:
+                # ✅ Supprimer le fuseau horaire pour avoir une date naive
+                # Format ISO: "2026-08-19T12:04:29+02:00"
+                if "+" in expiry_date_str or expiry_date_str.endswith("Z"):
+                    # Enlever le fuseau horaire
+                    if "+" in expiry_date_str:
+                        expiry_date_str = expiry_date_str.split("+")[0]
+                    elif "Z" in expiry_date_str:
+                        expiry_date_str = expiry_date_str.replace("Z", "")
+                    # Remplacer 'T' par un espace si présent
+                    expiry_date_str = expiry_date_str.replace("T", " ")
+                    expiry_datetime = datetime.strptime(expiry_date_str, "%Y-%m-%d %H:%M:%S")
+                else:
+                    # Essayer le format ISO direct
+                    try:
+                        expiry_datetime = datetime.fromisoformat(expiry_date_str)
+                        # Rendre naive (sans fuseau horaire)
+                        if expiry_datetime.tzinfo is not None:
+                            expiry_datetime = expiry_datetime.replace(tzinfo=None)
+                    except ValueError:
+                        # Essayer avec strptime
+                        expiry_datetime = datetime.strptime(expiry_date_str, "%Y-%m-%d %H:%M:%S")
             
             now = datetime.now()
             
-            # Vérifier si expiré
-            if expiry < now:
-                return False, 0, f"EXPIRÉ depuis le {expiry.strftime('%d/%m/%Y')}"
+            if expiry_datetime < now:
+                return False, 0, f"EXPIRÉ depuis le {expiry_datetime.strftime('%d/%m/%Y')}"
             
-            # Calculer les jours restants
-            remaining = (expiry - now).days
+            remaining = (expiry_datetime - now).days
             
-            # ✅ Utiliser self.expiry_warning_threshold (défini dans __init__)
-            if remaining < self.expiry_warning_threshold:
+            if remaining < self.expiry_warning_threshold and remaining > 0:
                 logger.warning(f"   ⚠️ Certificat expire dans {remaining} jours")
             
             return True, remaining, f"Valide ({remaining} jours restants)"
             
-        except (ValueError, TypeError) as e:
+        except Exception as e:
+            # ✅ Si la date est invalide, utiliser validity_days
+            if validity_days:
+                return True, validity_days, f"Valide ({validity_days} jours - certifié)"
             logger.warning(f"   ⚠️ Date d'expiration invalide: {e}")
             return True, 365, "Date d'expiration invalide (ignorée)"
 
-    def _get_certificates_dir(self):
-        """Détermine le dossier des certificats en fonction du mode d'exécution."""
-        import sys
+    # def _verify_file_integrity(self, module_path: Path, checksums: dict) -> tuple:
+    #     """Vérifie l'intégrité des fichiers du module."""
+    #     if not checksums:
+    #         return False, "Aucun checksum dans le certificat"
         
-        # Mode compilé (exécutable PyInstaller)
-        if getattr(sys, 'frozen', False):
-            base_dir = os.path.dirname(sys.executable)
-            candidates = [
-                os.path.join(base_dir, 'certificates'),
-                os.path.join(base_dir, '_internal', 'certificates'),
-                os.path.join(base_dir, '..', 'certificates'),
-            ]
-            for candidate in candidates:
-                if os.path.exists(candidate):
-                    return candidate
-            # Créer le dossier si nécessaire
-            cert_dir = os.path.join(base_dir, 'certificates')
-            os.makedirs(cert_dir, exist_ok=True)
-            return cert_dir
+    #     errors = []
+    #     checked_files = 0
         
-        # Mode développement
-        if os.path.exists('certificates'):
-            return 'certificates'
-        
-        # Fallback : dossier utilisateur
-        home_cert = os.path.join(os.path.expanduser("~"), ".lometa", "certificates")
-        os.makedirs(home_cert, exist_ok=True)
-        return home_cert
-
-    def _load_addon(self, module_name, main_window):
-        try:
-            # Chercher le manifest.json
-            manifest_path = f"addons/{module_name}/manifest.json"
-            with open(manifest_path, "r", encoding="utf-8") as f:
-                info = json.load(f)
-
-            # Import dynamique du widget principal défini dans le manifest
-            # Exemple: "entry_point": "views.main_view.MainWidget"
-            module_path, class_name = info['entry_point'].rsplit('.', 1)
-            mod = importlib.import_module(f"addons.{module_name}.{module_path}")
-            widget_class = getattr(mod, class_name)
+    #     for file_path, expected_hash in checksums.items():
+    #         full_path = module_path / file_path
+    #         checked_files += 1
             
-            # Création de l'objet addon
-            class Addon: pass
-            a = Addon()
-            a.name = info.get("name", module_name)
-            a.icon = info.get("icon", "📦")
-            a.widget = widget_class(parent=main_window)
-            return a
+    #         if not full_path.exists():
+    #             errors.append(f"Fichier manquant: {file_path}")
+    #             continue
+            
+    #         try:
+    #             actual_hash = self._compute_file_hash(full_path)
+    #             if actual_hash != expected_hash:
+    #                 errors.append(f"Fichier modifié: {file_path}")
+    #         except Exception as e:
+    #             errors.append(f"Erreur lecture {file_path}: {e}")
+        
+    #     # Vérifier les fichiers ajoutés
+    #     for file_path in module_path.rglob('*'):
+    #         if file_path.is_file():
+    #             rel_path = str(file_path.relative_to(module_path))
+    #             if rel_path not in checksums and rel_path not in ['certificate.json', 'certificate.pem']:
+    #                 if not any(x in rel_path for x in ['.pyc', '__pycache__', '.DS_Store', '.git']):
+    #                     errors.append(f"Fichier ajouté: {rel_path}")
+        
+    #     if errors:
+    #         error_msg = "\n- ".join(errors[:10])
+    #         if len(errors) > 10:
+    #             error_msg += f"\n... et {len(errors) - 10} autres erreurs"
+    #         return False, f"Intégrité compromise:\n- {error_msg}"
+        
+    #     logger.info(f"   ✅ {checked_files} fichiers vérifiés, intègres")
+    #     return True, f"{checked_files} fichiers intègres"
+
+    def _verify_file_integrity(self, module_path: Path, checksums: dict) -> tuple:
+        """Vérifie l'intégrité des fichiers du module."""
+        if not checksums:
+            return False, "Aucun checksum dans le certificat"
+        
+        errors = []
+        checked_files = 0
+        total_files = len(checksums)
+        
+        for file_path, expected_hash in checksums.items():
+            full_path = module_path / file_path
+            checked_files += 1
+            
+            if not full_path.exists():
+                errors.append(f"Fichier manquant: {file_path}")
+                continue
+            
+            try:
+                actual_hash = self._compute_file_hash(full_path)
+                if actual_hash != expected_hash:
+                    errors.append(f"Fichier modifié: {file_path}")
+            except Exception as e:
+                errors.append(f"Erreur lecture {file_path}: {e}")
+        
+        # Vérifier les fichiers ajoutés (non listés dans le certificat)
+        for file_path in module_path.rglob('*'):
+            if file_path.is_file():
+                rel_path = str(file_path.relative_to(module_path))
+                # Ignorer les fichiers de certificat et les fichiers temporaires
+                if rel_path not in checksums and rel_path not in ['certificate.json', 'certificate.pem']:
+                    if not any(x in rel_path for x in ['.pyc', '__pycache__', '.DS_Store', '.git', '.pyo']):
+                        errors.append(f"Fichier ajouté: {rel_path}")
+        
+        if errors:
+            error_msg = "\n- ".join(errors[:10])
+            if len(errors) > 10:
+                error_msg += f"\n... et {len(errors) - 10} autres erreurs"
+            return False, f"Intégrité compromise:\n- {error_msg}"
+        
+        logger.info(f"   ✅ {checked_files}/{total_files} fichiers vérifiés, intègres")
+        return True, f"{checked_files}/{total_files} fichiers intègres"
+
+    def _compute_file_hash(self, file_path: Path) -> str:
+        """Calcule le SHA-256 d'un fichier"""
+        sha256 = hashlib.sha256()
+        with open(file_path, 'rb') as f:
+            for chunk in iter(lambda: f.read(4096), b''):
+                sha256.update(chunk)
+        return sha256.hexdigest()
+
+    def _load_module_instance(self, folder_name: str, folder_path: Path, 
+                             manifest: dict, main_window) -> object:
+        """Charge une instance du module."""
+        try:
+            module_file = folder_path / "main_ui.py"
+            if not module_file.exists():
+                logger.warning(f"  ! Manquant : main_ui.py dans {folder_name}")
+                return None
+
+            module_name = f"addons.{folder_name}.main_ui"
+            spec = importlib.util.spec_from_file_location(module_name, module_file)
+            if spec is None:
+                return None
+            
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            logger.info(f"  > Importation réussie : {module_name}")
+
+            for name, obj in vars(module).items():
+                if isinstance(obj, type) and issubclass(obj, BaseModule) and obj is not BaseModule:
+                    logger.info(f"  > Classe de module valide trouvée : {name}")
+                    instance = obj(main_window)
+                    instance.setup()
+                    logger.info(f"  [OK] Module {folder_name} chargé et initialisé.")
+                    return instance
+            
+            logger.warning(f"  ! Aucune classe héritant de BaseModule trouvée dans {folder_name}")
+            return None
+            
         except Exception as e:
-            print(f"Erreur chargement addon {module_name}: {e}")
+            logger.error(f"  [ERREUR] Échec du chargement de {folder_name} : {str(e)}")
+            logger.error(traceback.format_exc())
             return None

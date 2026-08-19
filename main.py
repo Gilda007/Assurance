@@ -164,7 +164,7 @@ def safe_slot(func):
 # main.py - Ajouter après les imports
 
 class CertificateToast(QFrame):
-    """Notification toast moderne pour les certificats"""
+    """Notification toast moderne pour les certificats - Support RSA 3.0.0"""
     
     def __init__(self, statuses, parent=None):
         super().__init__(parent)
@@ -176,11 +176,31 @@ class CertificateToast(QFrame):
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Tool | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         
-        # Compter les statuts
-        self.valid_count = sum(1 for s in self.statuses if s.get('status') == 'valid')
-        self.expiring_count = sum(1 for s in self.statuses if s.get('status') == 'expiring')
-        self.expired_count = sum(1 for s in self.statuses if s.get('status') == 'expired')
-        self.no_cert_count = sum(1 for s in self.statuses if s.get('status') == 'no_certificate')
+        # Compter les statuts avec support des versions
+        self.valid_count = 0
+        self.expiring_count = 0
+        self.expired_count = 0
+        self.no_cert_count = 0
+        self.rsa_count = 0
+        self.hmac_count = 0
+        
+        for s in self.statuses:
+            status = s.get('status')
+            version = s.get('version', '2.0.0')
+            
+            if version.startswith('3.'):
+                self.rsa_count += 1
+            else:
+                self.hmac_count += 1
+            
+            if status == 'valid':
+                self.valid_count += 1
+            elif status == 'expiring':
+                self.expiring_count += 1
+            elif status == 'expired':
+                self.expired_count += 1
+            else:
+                self.no_cert_count += 1
         
         # Couleur principale
         if self.expired_count > 0:
@@ -292,18 +312,35 @@ class CertificateToast(QFrame):
         """)
         details_layout.addWidget(summary_label)
         
-        # Détails des modules expirants/expirés
+        # ✅ Ajouter la version dans les détails
+        if self.rsa_count > 0:
+            version_text = f"🔐 RSA {self.rsa_count} module(s) certifié(s)"
+            if self.hmac_count > 0:
+                version_text += f" | HMAC {self.hmac_count} module(s)"
+            version_label = QLabel(version_text)
+            version_label.setStyleSheet("""
+                color: #64748b;
+                font-size: 11px;
+                background: transparent;
+            """)
+            details_layout.addWidget(version_label)
+        
+        # ✅ Détails des modules avec les jours restants
         if self.expiring_count > 0 or self.expired_count > 0:
             detail_text = ""
             for status in self.statuses:
-                if status.get('status') in ['expiring', 'expired']:
+                status_type = status.get('status')
+                if status_type in ['expiring', 'expired']:
                     name = status.get('module_name', 'Inconnu')
                     days = status.get('remaining_days', 0)
                     expiry = status.get('expiry_date', 'Date inconnue')
-                    if status.get('status') == 'expired':
-                        detail_text += f"   ❌ {name} (expiré le {expiry})\n"
+                    version = status.get('version', '2.0.0')
+                    version_prefix = "🔐" if version.startswith('3.') else "🔑"
+                    
+                    if status_type == 'expired':
+                        detail_text += f"   {version_prefix} ❌ {name} (expiré depuis {abs(days)} jours)\n"
                     else:
-                        detail_text += f"   ⚠️ {name} (expire dans {days} jours)\n"
+                        detail_text += f"   {version_prefix} ⚠️ {name} (expire dans {days} jours)\n"
             
             if detail_text:
                 detail_label = QLabel(detail_text)
@@ -347,7 +384,7 @@ class CertificateToast(QFrame):
         
         # Ajuster la taille
         self.setFixedSize(self.container.sizeHint())
-    
+
     def setup_animation(self):
         """Configure l'animation d'entrée/sortie"""
         # Animation d'opacité
@@ -368,7 +405,7 @@ class CertificateToast(QFrame):
         self.exit_animation.setEndValue(0)
         self.exit_animation.setEasingCurve(QEasingCurve.Type.InCubic)
         self.exit_animation.finished.connect(self.deleteLater)
-    
+
     def show_toast(self):
         """Affiche la notification avec animation"""
         # Positionner en bas à droite
@@ -397,7 +434,7 @@ class CertificateToast(QFrame):
         
         # Ouvrir une boîte de dialogue avec les détails
         details = "\n".join([
-            f"• {s.get('module_name')}: {s.get('status')} - {s.get('message', '')}"
+            f"• {s.get('module_name')}: {s.get('status')} - {s.get('message', '')} ({s.get('version', '2.0.0')})"
             for s in self.statuses
             if s.get('status') in ['expiring', 'expired', 'error']
         ])
@@ -409,10 +446,14 @@ class CertificateToast(QFrame):
             f"📅 Total : {len(self.statuses)} module(s)\n"
             f"✅ Valides : {self.valid_count}\n"
             f"⚠️ Bientôt expirés : {self.expiring_count}\n"
-            f"❌ Expirés : {self.expired_count}\n\n"
+            f"❌ Expirés : {self.expired_count}\n"
+            f"🔐 RSA : {self.rsa_count} module(s)\n"
+            f"🔑 HMAC : {self.hmac_count} module(s)\n\n"
             f"Veuillez contacter l'administrateur pour renouveler les certificats."
         )
         self.close_animation()
+
+
 
 class Watchdog(QThread):
     """Thread de surveillance pour redémarrer l'application en cas de plantage"""
@@ -659,6 +700,7 @@ STYLE_SHEET = f"""
         background: {AppColors.PRIMARY_DARK};
     }}
 """
+
 
 class UpdateChecker(QObject):
     modules_available = Signal(object)
@@ -2493,6 +2535,76 @@ class MainWindow(QMainWindow):
         # Afficher le menu
         menu.exec(self.certificate_btn.mapToGlobal(self.certificate_btn.rect().bottomLeft()))
 
+    def show_certificate_details_dialog(self):
+        """Affiche une boîte de dialogue détaillée des certificats"""
+        if not hasattr(self, '_last_certificate_statuses'):
+            QMessageBox.information(
+                self,
+                "Certificats",
+                "Aucune information sur les certificats disponible."
+            )
+            return
+        
+        statuses = self._last_certificate_statuses
+        
+        if not statuses:
+            QMessageBox.information(
+                self,
+                "Certificats",
+                "Aucun certificat trouvé."
+            )
+            return
+        
+        # Compter les statuts
+        valid = sum(1 for s in statuses if s.get('status') == 'valid')
+        expiring = sum(1 for s in statuses if s.get('status') == 'expiring')
+        expired = sum(1 for s in statuses if s.get('status') == 'expired')
+        no_cert = sum(1 for s in statuses if s.get('status') == 'no_certificate')
+        rsa_count = sum(1 for s in statuses if s.get('version', '').startswith('3.'))
+        hmac_count = sum(1 for s in statuses if not s.get('version', '').startswith('3.'))
+        
+        # Construire le message détaillé
+        details = []
+        for status in statuses:
+            name = status.get('module_name', 'Inconnu')
+            status_type = status.get('status', 'unknown')
+            version = status.get('version', '2.0.0')
+            version_icon = "🔐" if version.startswith('3.') else "🔑"
+            
+            if status_type == 'valid':
+                days = status.get('remaining_days', 0)
+                detail = f"Valide (reste {days} jours)"
+            elif status_type == 'expiring':
+                days = status.get('remaining_days', 0)
+                detail = f"Expire dans {days} jours"
+            elif status_type == 'expired':
+                expiry = status.get('expiry_date', 'Date inconnue')
+                detail = f"Expiré le {expiry}"
+            else:
+                detail = status.get('message', 'Statut inconnu')
+            
+            details.append(f"{version_icon} {name} v{version} : {detail}")
+        
+        # Créer le message
+        msg = (
+            f"📋 RÉSUMÉ DES CERTIFICATS\n"
+            f"{'─' * 40}\n\n"
+            f"✅ Valides : {valid}\n"
+            f"⚠️ Bientôt expirés : {expiring}\n"
+            f"❌ Expirés : {expired}\n"
+            f"📭 Sans certificat : {no_cert}\n"
+            f"🔐 RSA : {rsa_count} module(s)\n"
+            f"🔑 HMAC : {hmac_count} module(s)\n"
+            f"\n{'─' * 40}\n\n"
+            + "\n".join(details)
+        )
+        
+        QMessageBox.information(
+            self,
+            "🔐 Certificats LOMETA",
+            msg
+        )
+
     def _get_color_for_status(self, status_type):
         """Retourne la couleur correspondant au statut"""
         colors = {
@@ -2536,58 +2648,91 @@ class MainWindow(QMainWindow):
         about_action = help_menu.addAction("&À propos")
         about_action.triggered.connect(self.show_about)
 
-    def show_certificate_details_dialog(self):
-        """Affiche une boîte de dialogue détaillée des certificats"""
-        if not hasattr(self, '_last_certificate_statuses'):
+    # def show_certificate_details_dialog(self):
+    #     """Affiche une boîte de dialogue détaillée des certificats"""
+    #     if not hasattr(self, '_last_certificate_statuses'):
+    #         return
+        
+    #     statuses = self._last_certificate_statuses
+        
+    #     # Compter
+    #     valid = sum(1 for s in statuses if s.get('status') == 'valid')
+    #     expiring = sum(1 for s in statuses if s.get('status') == 'expiring')
+    #     expired = sum(1 for s in statuses if s.get('status') == 'expired')
+    #     no_cert = sum(1 for s in statuses if s.get('status') == 'no_certificate')
+        
+    #     # Construire le message
+    #     details = []
+    #     for status in statuses:
+    #         name = status.get('module_name', 'Inconnu')
+    #         status_type = status.get('status', 'unknown')
+            
+    #         if status_type == 'valid':
+    #             icon = "✅"
+    #             days = status.get('remaining_days', 0)
+    #             detail = f"Valide (reste {days} jours)"
+    #         elif status_type == 'expiring':
+    #             icon = "⚠️"
+    #             days = status.get('remaining_days', 0)
+    #             detail = f"Expire dans {days} jours"
+    #         elif status_type == 'expired':
+    #             icon = "❌"
+    #             expiry = status.get('expiry_date', 'Date inconnue')
+    #             detail = f"Expiré le {expiry}"
+    #         else:
+    #             icon = "📭"
+    #             detail = status.get('message', 'Sans certificat')
+            
+    #         details.append(f"{icon} {name} : {detail}")
+        
+    #     msg = (
+    #         f"📋 RÉSUMÉ DES CERTIFICATS\n\n"
+    #         f"✅ Valides : {valid}\n"
+    #         f"⚠️ Bientôt expirés : {expiring}\n"
+    #         f"❌ Expirés : {expired}\n"
+    #         f"📭 Sans certificat : {no_cert}\n\n"
+    #         f"{'─' * 40}\n\n"
+    #         + "\n".join(details)
+    #     )
+        
+    #     QMessageBox.information(
+    #         self,
+    #         "🔐 Certificats LOMETA",
+    #         msg
+    #     )
+
+    def _display_certificate_notification(self, statuses):
+        """
+        Affiche une notification moderne et animée des certificats.
+        """
+        if not statuses:
             return
         
-        statuses = self._last_certificate_statuses
+        # ✅ Vérifier si la notification existe déjà
+        if hasattr(self, '_certificate_toast') and self._certificate_toast is not None:
+            try:
+                self._certificate_toast.close_animation()
+            except:
+                pass
         
-        # Compter
-        valid = sum(1 for s in statuses if s.get('status') == 'valid')
-        expiring = sum(1 for s in statuses if s.get('status') == 'expiring')
-        expired = sum(1 for s in statuses if s.get('status') == 'expired')
-        no_cert = sum(1 for s in statuses if s.get('status') == 'no_certificate')
+        # ✅ Compter les statuts pour un affichage rapide
+        expired_count = sum(1 for s in statuses if s.get('status') == 'expired')
+        expiring_count = sum(1 for s in statuses if s.get('status') == 'expiring')
+        valid_count = sum(1 for s in statuses if s.get('status') == 'valid')
+        no_cert_count = sum(1 for s in statuses if s.get('status') == 'no_certificate')
         
-        # Construire le message
-        details = []
-        for status in statuses:
-            name = status.get('module_name', 'Inconnu')
-            status_type = status.get('status', 'unknown')
-            
-            if status_type == 'valid':
-                icon = "✅"
-                days = status.get('remaining_days', 0)
-                detail = f"Valide (reste {days} jours)"
-            elif status_type == 'expiring':
-                icon = "⚠️"
-                days = status.get('remaining_days', 0)
-                detail = f"Expire dans {days} jours"
-            elif status_type == 'expired':
-                icon = "❌"
-                expiry = status.get('expiry_date', 'Date inconnue')
-                detail = f"Expiré le {expiry}"
-            else:
-                icon = "📭"
-                detail = status.get('message', 'Sans certificat')
-            
-            details.append(f"{icon} {name} : {detail}")
+        # ✅ Si tout va bien, afficher un message discret dans la status bar
+        if expired_count == 0 and expiring_count == 0 and no_cert_count == 0:
+            self.status_bar.showMessage(f"✅ {valid_count} module(s) chargé(s) - Certificats valides", 5000)
+            # Ne pas afficher de toast
+            return
         
-        msg = (
-            f"📋 RÉSUMÉ DES CERTIFICATS\n\n"
-            f"✅ Valides : {valid}\n"
-            f"⚠️ Bientôt expirés : {expiring}\n"
-            f"❌ Expirés : {expired}\n"
-            f"📭 Sans certificat : {no_cert}\n\n"
-            f"{'─' * 40}\n\n"
-            + "\n".join(details)
-        )
+        # ✅ Créer et afficher la notification
+        self._certificate_toast = CertificateToast(statuses, self)
+        self._certificate_toast.show_toast()
         
-        QMessageBox.information(
-            self,
-            "🔐 Certificats LOMETA",
-            msg
-        )
+        # ✅ Sauvegarder les statuts pour le bouton de notification
+        self._last_certificate_statuses = statuses
 
     def check_updates_startup(self):
         """Vérifie les mises à jour au démarrage"""
