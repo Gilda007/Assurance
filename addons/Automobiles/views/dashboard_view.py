@@ -1,7 +1,9 @@
 
+
+
 # addons/Automobiles/views/dashboard_view.py
 """
-Vue Dashboard avec graphiques - Version stable comme reports_view
+Vue Dashboard avec graphiques - Version avec Font Awesome
 """
 
 from PySide6.QtWidgets import (
@@ -17,6 +19,7 @@ from PySide6.QtCharts import (
     QBarCategoryAxis, QValueAxis, QPieSeries, QPieSlice,
     QAreaSeries
 )
+import qtawesome as qta
 
 from datetime import datetime, timedelta
 
@@ -27,6 +30,26 @@ from core.logger import logger
 
 class DashboardView(QWidget):
     """Dashboard moderne avec KPI et graphiques (style reports_view)"""
+
+    # Mapping des icônes Font Awesome 5
+    ICON_MAP = {
+        "vehicles": "fa5s.car",
+        "contracts": "fa5s.file-contract",
+        "clients": "fa5s.users",
+        "revenue": "fa5s.coins",
+        "chart_line": "fa5s.chart-line",
+        "chart_bar": "fa5s.chart-bar",
+        "pie_chart": "fa5s.chart-pie",
+        "sync": "fa5s.sync-alt",
+        "clock": "fa5s.clock",
+        "user": "fa5s.user",
+        "building": "fa5s.building",
+        "exclamation": "fa5s.exclamation-triangle",
+        "search": "fa5s.search-plus",
+        "tools": "fa5s.tools",
+        "upload": "fa5s.upload",
+        "cog": "fa5s.cog",
+    }
     
     def __init__(self, controller, user=None):
         super().__init__()
@@ -64,8 +87,8 @@ class DashboardView(QWidget):
         content_layout.setContentsMargins(20, 20, 20, 20)
         
         # En-tête
-        header = self._create_header()
-        content_layout.addWidget(header)
+        # header = self._create_header()
+        # content_layout.addWidget(header)
         
         # Ligne 1: Cartes KPI
         self.setup_kpi_cards()
@@ -103,7 +126,7 @@ class DashboardView(QWidget):
         layout.addWidget(scroll)
     
     def _create_header(self):
-        """Crée l'en-tête"""
+        """Crée l'en-tête avec Font Awesome"""
         header = QFrame()
         header.setStyleSheet("""
             QFrame {
@@ -117,13 +140,28 @@ class DashboardView(QWidget):
         
         layout = QHBoxLayout(header)
         
-        title = QLabel("📊 Tableau de bord")
-        title.setStyleSheet("color: white; font-size: 24px; font-weight: 700;")
+        # ✅ Icône Dashboard avec Font Awesome
+        icon_label = QLabel()
+        icon = qta.icon('fa5s.chart-pie', color='#ffffff')
+        icon_label.setPixmap(icon.pixmap(28, 28))
+        icon_label.setStyleSheet("background: transparent; border: none;")
+        
+        title = QLabel("Tableau de bord")
+        title.setStyleSheet("color: white; font-size: 24px; font-weight: 700; background: transparent; border: none; margin-left: 10px;")
+        
+        title_layout = QHBoxLayout()
+        title_layout.setSpacing(0)
+        title_layout.addWidget(icon_label)
+        title_layout.addWidget(title)
         
         self.last_update_label = QLabel("Dernière mise à jour: ...")
-        self.last_update_label.setStyleSheet("color: #94a3b8; font-size: 12px;")
+        self.last_update_label.setStyleSheet("color: #94a3b8; font-size: 12px; background: transparent; border: none;")
         
-        refresh_btn = QPushButton("🔄 Actualiser")
+        # ✅ Bouton Actualiser avec Font Awesome
+        refresh_btn = QPushButton()
+        refresh_icon = qta.icon('fa5s.sync-alt', color='#ffffff')
+        refresh_btn.setIcon(refresh_icon)
+        refresh_btn.setText(" Actualiser")
         refresh_btn.setStyleSheet("""
             QPushButton {
                 background: rgba(255,255,255,0.1);
@@ -139,7 +177,7 @@ class DashboardView(QWidget):
         """)
         refresh_btn.clicked.connect(self.load_data)
         
-        layout.addWidget(title)
+        layout.addLayout(title_layout)
         layout.addStretch()
         layout.addWidget(self.last_update_label)
         layout.addWidget(refresh_btn)
@@ -147,27 +185,40 @@ class DashboardView(QWidget):
         return header
     
     def setup_kpi_cards(self):
-        """Configure les cartes KPI"""
+        """Configure les cartes KPI avec Font Awesome"""
         self.kpi_layout = QGridLayout()
         self.kpi_layout.setSpacing(Spacing.LG)
         
         self.kpi_cards = {}
         
+        # ✅ KPI avec icônes Font Awesome
         kpi_data = [
-            {"key": "vehicles", "title": "VÉHICULES", "icon": "🚗", "color": Colors.PRIMARY},
-            {"key": "contracts", "title": "CONTRATS ACTIFS", "icon": "📄", "color": Colors.SUCCESS},
-            {"key": "clients", "title": "CLIENTS", "icon": "👥", "color": Colors.INFO},
-            {"key": "revenue", "title": "CHIFFRE D'AFFAIRES", "icon": "💰", "color": Colors.WARNING},
+            {"key": "vehicles", "title": "VÉHICULES", "icon": "fa5s.car", "color": Colors.PRIMARY},
+            {"key": "contracts", "title": "CONTRATS ACTIFS", "icon": "fa5s.file", "color": Colors.SUCCESS},  # fa5s.file au lieu de file-contract
+            {"key": "clients", "title": "CLIENTS", "icon": "fa5s.user-friends", "color": Colors.INFO},  # user-friends au lieu de users
+            {"key": "revenue", "title": "CHIFFRE D'AFFAIRES", "icon": "fa5s.money-bill-wave", "color": Colors.WARNING},  # money-bill-wave au lieu de coins
         ]
         
         for i, data in enumerate(kpi_data):
             card = StatsCard(data["title"], 0, data["icon"], data["color"])
             self.kpi_layout.addWidget(card, 0, i)
             self.kpi_cards[data["key"]] = card
+
+    def get_icon(self, name, color="#ffffff", size=20):
+        """Récupère une icône avec vérification"""
+        try:
+            # Essayer avec le nom exact
+            icon = qta.icon(name, color=color)
+            return icon.pixmap(size, size)
+        except:
+            # Fallback: utiliser une icône par défaut
+            # print(f"⚠️ Icône non trouvée: {name}, utilisation de 'fa5s.circle'")
+            icon = qta.icon('fa5s.circle', color=color)
+            return icon.pixmap(size, size)
     
     def _create_contracts_chart(self):
-        """Crée le graphique d'évolution des contrats"""
-        card = ModernCard(title="📈 Évolution des contrats", icon="📊")
+        """Crée le graphique d'évolution des contrats avec Font Awesome"""
+        card = ModernCard(title="Évolution des contrats", icon="fa5s.chart-line")
         card.setMinimumHeight(300)
         
         self.chart_contracts = QChart()
@@ -183,8 +234,8 @@ class DashboardView(QWidget):
         return card
     
     def _create_revenue_chart(self):
-        """Crée le graphique des revenus"""
-        card = ModernCard(title="💰 Revenus mensuels", icon="💰")
+        """Crée le graphique des revenus avec Font Awesome"""
+        card = ModernCard(title="Revenus mensuels", icon="fa5s.chart-bar")
         card.setMinimumHeight(300)
         
         self.chart_revenue = QChart()
@@ -200,8 +251,8 @@ class DashboardView(QWidget):
         return card
     
     def _create_vehicle_type_chart(self):
-        """Crée le graphique des types de véhicules"""
-        card = ModernCard(title="🚗 Types de véhicules", icon="📊")
+        """Crée le graphique des types de véhicules avec Font Awesome"""
+        card = ModernCard(title="Types de véhicules", icon="fa5s.car")
         card.setMinimumHeight(250)
         
         self.chart_vehicle_types = QChart()
@@ -218,8 +269,8 @@ class DashboardView(QWidget):
         return card
     
     def _create_contract_status_chart(self):
-        """Crée le graphique des statuts de contrats"""
-        card = ModernCard(title="📊 Statuts des contrats", icon="📊")
+        """Crée le graphique des statuts de contrats avec Font Awesome"""
+        card = ModernCard(title="Statuts des contrats", icon="fa5s.file-contract")
         card.setMinimumHeight(250)
         
         self.chart_contract_status = QChart()
@@ -236,8 +287,8 @@ class DashboardView(QWidget):
         return card
     
     def _create_client_type_chart(self):
-        """Crée le graphique des types de clients"""
-        card = ModernCard(title="👤 Types de clients", icon="📊")
+        """Crée le graphique des types de clients avec Font Awesome"""
+        card = ModernCard(title="Types de clients", icon="fa5s.users")
         card.setMinimumHeight(250)
         
         self.chart_client_types = QChart()
@@ -254,8 +305,8 @@ class DashboardView(QWidget):
         return card
     
     def setup_recent_activity(self):
-        """Configure la section d'activité récente"""
-        self.recent_activity_card = ModernCard(title="📋 Activité récente", icon="🕐")
+        """Configure la section d'activité récente avec Font Awesome"""
+        self.recent_activity_card = ModernCard(title="Activité récente", icon="fa5s.clock")
         self.recent_activity_card.setMinimumHeight(250)
         
         self.activity_table = QTableWidget()
@@ -297,32 +348,21 @@ class DashboardView(QWidget):
             return
         
         self._loading = True
-        self.last_update_label.setText("Chargement...")
         
         try:
-            # Récupérer les données via le contrôleur
             self._fetch_data()
-            
-            # Mettre à jour les KPI
             self._update_kpis()
-            
-            # Mettre à jour les graphiques
             self._update_contracts_chart()
             self._update_revenue_chart()
             self._update_vehicle_type_chart()
             self._update_contract_status_chart()
             self._update_client_type_chart()
-            
-            # Mettre à jour l'activité
             self._update_activity()
             
-            self.last_update_label.setText(
-                f"Dernière mise à jour: {datetime.now().strftime('%H:%M:%S')}"
-            )
+            
             
         except Exception as e:
             logger.error(f"Erreur chargement dashboard: {e}")
-            self.last_update_label.setText("❌ Erreur de chargement")
             import traceback
             traceback.print_exc()
         finally:
@@ -331,7 +371,6 @@ class DashboardView(QWidget):
     def _fetch_data(self):
         """Récupère les données depuis le contrôleur"""
         try:
-            # Statistiques
             if hasattr(self.controller, 'get_vehicle_stats'):
                 self.current_data['vehicle_stats'] = self.controller.get_vehicle_stats()
             if hasattr(self.controller, 'get_contract_stats'):
@@ -339,7 +378,6 @@ class DashboardView(QWidget):
             if hasattr(self.controller, 'get_contact_stats'):
                 self.current_data['contact_stats'] = self.controller.get_contact_stats()
             
-            # Listes
             if hasattr(self.controller, 'vehicles'):
                 if hasattr(self.controller.vehicles, 'get_all_vehicles'):
                     self.current_data['vehicles'] = self.controller.vehicles.get_all_vehicles()
@@ -390,14 +428,12 @@ class DashboardView(QWidget):
             
             contracts = self.current_data.get('contracts', [])
             
-            # Groupement par mois
             monthly_data = {}
             for contract in contracts:
                 if hasattr(contract, 'date_debut') and contract.date_debut:
                     month_key = contract.date_debut.strftime("%b %Y")
                     monthly_data[month_key] = monthly_data.get(month_key, 0) + 1
             
-            # Trier par date
             months = sorted(monthly_data.keys())
             values = [monthly_data[m] for m in months]
             
@@ -405,7 +441,6 @@ class DashboardView(QWidget):
                 months = ["Jan", "Fév", "Mar", "Avr", "Mai", "Juin"]
                 values = [0, 0, 0, 0, 0, 0]
             
-            # Barres
             bar_set = QBarSet("Contrats")
             for value in values:
                 bar_set.append(value)
@@ -417,7 +452,6 @@ class DashboardView(QWidget):
             
             self.chart_contracts.addSeries(bar_series)
             
-            # Axes
             axis_x = QBarCategoryAxis()
             axis_x.append(months)
             self.chart_contracts.addAxis(axis_x, Qt.AlignBottom)
@@ -526,7 +560,7 @@ class DashboardView(QWidget):
             
             status_counts = {}
             for contract in contracts:
-                status = getattr(contract, 'status', 'Inconnu')
+                status = getattr(contract, 'statut', 'Inconnu')
                 status_counts[status] = status_counts.get(status, 0) + 1
             
             if not status_counts:

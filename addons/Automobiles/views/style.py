@@ -26,6 +26,27 @@ class Colors:
     SECONDARY = "#64748b"        # Gris ardoise
     SECONDARY_DARK = "#475569"   # Gris ardoise foncé
     SECONDARY_LIGHT = "#94a3b8"  # Gris ardoise clair
+
+
+    # ============================================================
+    # ✅ AJOUTER CES COULEURS (thème code.html)
+    # ============================================================
+    SECONDARY_FIXED = "#d3e4fe"
+    ON_SECONDARY_FIXED_VARIANT = "#38485d"
+    ON_SURFACE_VARIANT = "#444653"
+    SURFACE_VARIANT = "#e0e3e5"
+    OUTLINE_VARIANT = "#c4c5d5"
+    SURFACE_CONTAINER_LOW = "#f2f4f6"
+    ON_SECONDARY_FIXED = "#0b1c30"
+    SURFACE = "#f7f9fb"
+    SURFACE_CONTAINER = "#eceef0"
+    SURFACE_CONTAINER_HIGH = "#e6e8ea"
+    SURFACE_CONTAINER_HIGHEST = "#e0e3e5"
+    SURFACE_CONTAINER_LOWEST = "#ffffff"
+    ON_SURFACE = "#191c1e"
+    ON_BACKGROUND = "#191c1e"
+    BACKGROUND = "#f7f9fb"
+    SURFACE_TINT = "#3755c3"
     
     # ============================================================
     # COULEURS D'ÉTAT - SUCCÈS
@@ -175,6 +196,14 @@ class Colors:
     info = INFO
     info_dark = INFO_DARK
     info_light = INFO_LIGHT
+
+    # ============================================================
+    # COULEURS DES ICÔNES
+    # ============================================================
+    ICON_COLOR = "#00288e"          # Couleur principale des icônes
+    ICON_COLOR_ACTIVE = "#1e40af"    # Couleur des icônes actives
+    ICON_COLOR_HOVER = "#2563eb"     # Couleur des icônes au survol
+    ICON_COLOR_SECONDARY = "#505f76" # Couleur des icônes secondaires
 
 
 class Fonts:

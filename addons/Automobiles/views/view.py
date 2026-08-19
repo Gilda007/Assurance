@@ -11,37 +11,231 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QFont, QIcon, QPixmap, QColor
+import qtawesome as qta
 
 from addons.Automobiles.views.style import Colors, Fonts, Spacing, apply_global_style
 from addons.Automobiles.views.widgets.modern_card import ModernCard
 from addons.Automobiles.security.access_control import Permissions, SecurityManager, Role
 
 
-class ModernSidebarButton(QPushButton):
-    """Bouton de navigation moderne"""
+
+import qtawesome as qta
+
+# class ModernSidebarButton(QPushButton):
+#     """Bouton de navigation moderne avec Font Awesome - Style code.html"""
     
-    def __init__(self, text: str, icon: str, is_active: bool = False):
-        super().__init__(text)
-        self.icon_text = icon
+#     # Mapping des icônes Font Awesome
+#     ICON_MAP = {
+#         "dashboard": "fa5s.chart-pie",
+#         "vehicles": "fa5s.car",
+#         "contacts": "fa5s.users",
+#         "companies": "fa5s.building",
+#         "contracts": "fa5s.file-contract",
+#         "sinistres": "fa5s.exclamation-triangle",
+#         "expertises": "fa5s.search-plus",
+#         "garages": "fa5s.tools",
+#         "import": "fa5s.upload",
+#         "reports": "fa5s.chart-line",
+#         "settings": "fa5s.cog",
+#     }
+    
+#     def __init__(self, text: str, icon_key: str, is_active: bool = False):
+#         super().__init__()
+#         self.icon_key = icon_key
+#         self.button_text = text
+#         self.is_active = is_active
+#         self.setup_ui()
+    
+#     def setup_ui(self):
+#         self.setFixedHeight(44)
+#         self.setCursor(Qt.PointingHandCursor)
+#         self.setStyleSheet(self.get_style())
+        
+#         self.setLayout(QHBoxLayout())
+#         self.layout().setContentsMargins(12, 0, 16, 0)
+#         self.layout().setSpacing(10)
+        
+#         # ✅ Icône Font Awesome
+#         self.icon_label = QLabel()
+#         self.update_icon()
+        
+#         # Texte
+#         self.text_label = QLabel(self.button_text)
+#         self.text_label.setStyleSheet("""
+#             font-size: 13px;
+#             background: transparent;
+#             border: none;
+#             font-weight: 500;
+#         """)
+        
+#         self.layout().addWidget(self.icon_label)
+#         self.layout().addWidget(self.text_label)
+#         self.layout().addStretch()
+        
+#         self.update_style()
+    
+#     def update_icon(self):
+#         """Met à jour l'icône Font Awesome"""
+#         icon_name = self.ICON_MAP.get(self.icon_key, "fa5s.circle")
+        
+#         if self.is_active:
+#             color = Colors.ON_SECONDARY_FIXED_VARIANT
+#         else:
+#             color = Colors.ON_SURFACE_VARIANT
+        
+#         icon = qta.icon(icon_name, color=color)
+#         self.icon_label.setPixmap(icon.pixmap(18, 18))
+#         self.icon_label.setStyleSheet("background: transparent; border: none;")
+    
+#     def get_style(self):
+#         """Retourne le style selon l'état actif"""
+#         if self.is_active:
+#             return f"""
+#                 QPushButton {{
+#                     background-color: {Colors.SECONDARY_FIXED};
+#                     color: {Colors.ON_SECONDARY_FIXED_VARIANT};
+#                     border-left: 4px solid {Colors.PRIMARY};
+#                     border-radius: 0 8px 8px 0;
+#                     font-weight: 600;
+#                     border-top-right-radius: 8px;
+#                     border-bottom-right-radius: 8px;
+#                     border-top-left-radius: 0px;
+#                     border-bottom-left-radius: 0px;
+#                     text-align: left;
+#                     padding: 0px;
+#                 }}
+#                 QPushButton:hover {{
+#                     background-color: {Colors.PRIMARY}15;
+#                 }}
+#             """
+#         else:
+#             return f"""
+#                 QPushButton {{
+#                     background-color: transparent;
+#                     color: {Colors.ON_SURFACE_VARIANT};
+#                     border: none;
+#                     border-radius: 8px;
+#                     text-align: left;
+#                     padding: 0px;
+#                 }}
+#                 QPushButton:hover {{
+#                     background-color: {Colors.SURFACE_VARIANT};
+#                     color: {Colors.PRIMARY};
+#                 }}
+#             """
+    
+#     def update_style(self):
+#         """Met à jour le style du bouton"""
+#         self.setStyleSheet(self.get_style())
+#         self.update_icon()
+        
+#         if self.is_active:
+#             self.text_label.setStyleSheet(f"""
+#                 font-size: 13px;
+#                 color: {Colors.ON_SECONDARY_FIXED_VARIANT};
+#                 background: transparent;
+#                 border: none;
+#                 font-weight: 600;
+#             """)
+#         else:
+#             self.text_label.setStyleSheet(f"""
+#                 font-size: 13px;
+#                 color: {Colors.ON_SURFACE_VARIANT};
+#                 background: transparent;
+#                 border: none;
+#                 font-weight: 500;
+#             """)
+    
+#     def set_active(self, active: bool):
+#         self.is_active = active
+#         self.update_style()
+
+
+class ModernSidebarButton(QPushButton):
+    """Bouton de navigation moderne avec Font Awesome - Style code.html"""
+    
+    # Mapping des icônes Font Awesome
+    ICON_MAP = {
+        "dashboard": "fa5s.chart-pie",
+        "vehicles": "fa5s.car",
+        "contacts": "fa5s.users",
+        "companies": "fa5s.building",
+        "contracts": "fa5s.file-contract",
+        "sinistres": "fa5s.exclamation-triangle",
+        "expertises": "fa5s.search-plus",
+        "garages": "fa5s.tools",
+        "import": "fa5s.upload",
+        "reports": "fa5s.chart-line",
+        "settings": "fa5s.cog",
+    }
+    
+    def __init__(self, text: str, icon_key: str, is_active: bool = False):
+        super().__init__()
+        self.icon_key = icon_key
+        self.button_text = text
         self.is_active = is_active
         self.setup_ui()
     
     def setup_ui(self):
-        self.setFixedHeight(48)
+        self.setFixedHeight(44)
         self.setCursor(Qt.PointingHandCursor)
         self.setStyleSheet(self.get_style())
+        
+        self.setLayout(QHBoxLayout())
+        self.layout().setContentsMargins(12, 0, 16, 0)
+        self.layout().setSpacing(10)
+        
+        # Icône Font Awesome
+        self.icon_label = QLabel()
+        self.update_icon()
+        
+        # Texte
+        self.text_label = QLabel(self.button_text)
+        self.text_label.setStyleSheet("""
+            font-size: 13px;
+            background: transparent;
+            border: none;
+            font-weight: 500;
+        """)
+        
+        self.layout().addWidget(self.icon_label)
+        self.layout().addWidget(self.text_label)
+        self.layout().addStretch()
+        
+        self.update_style()
+    
+    def update_icon(self):
+        """Met à jour l'icône Font Awesome avec la couleur bleue"""
+        icon_name = self.ICON_MAP.get(self.icon_key, "fa5s.circle")
+        
+        # ✅ Utiliser la couleur bleue pour les icônes
+        if self.is_active:
+            # Bleu foncé pour l'état actif
+            color = Colors.PRIMARY  # ou "#1e40af"
+        else:
+            # Bleu clair/moyen pour l'état inactif
+            color = Colors.ON_SECONDARY_FIXED_VARIANT  # "#2563eb"
+        
+        icon = qta.icon(icon_name, color=color)
+        self.icon_label.setPixmap(icon.pixmap(18, 18))
+        self.icon_label.setStyleSheet("background: transparent; border: none;")
     
     def get_style(self):
+        """Retourne le style selon l'état actif"""
         if self.is_active:
             return f"""
                 QPushButton {{
-                    background-color: {Colors.SIDEBAR_ACTIVE};
+                    background-color: {Colors.SECONDARY_FIXED};
                     color: {Colors.PRIMARY};
-                    font-weight: {Fonts.SEMIBOLD};
-                    border-radius: 12px;
+                    border-left: 4px solid {Colors.PRIMARY};
+                    border-radius: 0 8px 8px 0;
+                    font-weight: 600;
+                    border-top-right-radius: 8px;
+                    border-bottom-right-radius: 8px;
+                    border-top-left-radius: 0px;
+                    border-bottom-left-radius: 0px;
                     text-align: left;
-                    padding-left: 16px;
-                    border: none;
+                    padding: 0px;
                 }}
                 QPushButton:hover {{
                     background-color: {Colors.PRIMARY}15;
@@ -51,43 +245,78 @@ class ModernSidebarButton(QPushButton):
             return f"""
                 QPushButton {{
                     background-color: transparent;
-                    color: {Colors.TEXT_SECONDARY};
-                    border-radius: 12px;
-                    text-align: left;
-                    padding-left: 16px;
+                    color: {Colors.ON_SURFACE_VARIANT};
                     border: none;
+                    border-radius: 8px;
+                    text-align: left;
+                    padding: 0px;
                 }}
                 QPushButton:hover {{
-                    background-color: {Colors.PRIMARY}10;
+                    background-color: {Colors.SURFACE_VARIANT};
                     color: {Colors.PRIMARY};
                 }}
             """
     
+    def update_style(self):
+        """Met à jour le style du bouton"""
+        self.setStyleSheet(self.get_style())
+        self.update_icon()
+        
+        if self.is_active:
+            self.text_label.setStyleSheet(f"""
+                font-size: 13px;
+                color: {Colors.PRIMARY};
+                background: transparent;
+                border: none;
+                font-weight: 600;
+            """)
+        else:
+            self.text_label.setStyleSheet(f"""
+                font-size: 13px;
+                color: {Colors.ON_SURFACE_VARIANT};
+                background: transparent;
+                border: none;
+                font-weight: 500;
+            """)
+    
     def set_active(self, active: bool):
         self.is_active = active
-        self.setStyleSheet(self.get_style())
+        self.update_style()
 
+# addons/Automobiles/views/view.py - StatsCard modifié
 
 class StatsCard(ModernCard):
-    """Carte de statistiques avec valeur animée"""
+    """Carte de statistiques avec icône Font Awesome"""
     
-    def __init__(self, title: str, value: int, icon: str, color: str, trend: str = None):
-        super().__init__(title=None, icon=icon)
+    def __init__(self, title: str, value: int, icon_name: str, color: str, trend: str = None):
+        super().__init__(title=None)
         self.title = title
         self.value = value
-        self.icon = icon
+        self.icon_name = icon_name
         self.color = color
         self.trend = trend
         self.setup_content()
     
     def setup_content(self):
+        # Icône Font Awesome
+        icon_layout = QHBoxLayout()
+        icon_label = QLabel()
+        icon = qta.icon(self.icon_name, color=self.color)
+        icon_label.setPixmap(icon.pixmap(32, 32))
+        icon_label.setStyleSheet("background: transparent; border: none;")
+        icon_layout.addWidget(icon_label, alignment=Qt.AlignCenter)
+        self.main_layout.addLayout(icon_layout)
+        
         # Valeur
         self.value_label = QLabel(str(self.value))
         self.value_label.setStyleSheet(f"""
             font-size: {Fonts.H1}px;
             font-weight: {Fonts.BOLD};
             color: {self.color};
+            background: transparent;
+            border: none;
         """)
+        self.main_layout.addWidget(self.value_label, alignment=Qt.AlignCenter)
         
         # Titre
         title_label = QLabel(self.title)
@@ -95,40 +324,10 @@ class StatsCard(ModernCard):
             font-size: {Fonts.SMALL}px;
             color: {Colors.TEXT_SECONDARY};
             letter-spacing: 0.5px;
+            background: transparent;
+            border: none;
         """)
-        
-        # Tendance
-        if self.trend:
-            trend_layout = QHBoxLayout()
-            trend_layout.setSpacing(Spacing.XS)
-            
-            trend_icon = QLabel("▲" if "+" in self.trend else "▼")
-            trend_icon.setStyleSheet(f"""
-                color: {Colors.SUCCESS if "+" in self.trend else Colors.DANGER};
-                font-size: {Fonts.SMALL}px;
-            """)
-            
-            trend_label = QLabel(self.trend)
-            trend_label.setStyleSheet(f"""
-                color: {Colors.SUCCESS if "+" in self.trend else Colors.DANGER};
-                font-size: {Fonts.SMALL}px;
-                font-weight: {Fonts.MEDIUM};
-            """)
-            
-            trend_layout.addWidget(trend_icon)
-            trend_layout.addWidget(trend_label)
-            trend_layout.addStretch()
-            
-            self.main_layout.addLayout(trend_layout)
-        
-        self.main_layout.addWidget(self.value_label, alignment=Qt.AlignCenter)
         self.main_layout.addWidget(title_label, alignment=Qt.AlignCenter)
-    
-    def animate_value(self, new_value: int):
-        """Anime la valeur de la carte"""
-        self.value = new_value
-        self.value_label.setText(str(new_value))
-
 
 class VehicleMainView(QWidget):
     """Vue principale modernisée"""
@@ -175,10 +374,11 @@ class VehicleMainView(QWidget):
         self.setup_content_area()
         main_layout.addWidget(self.content_container, 1)
     
+
     def setup_sidebar(self):
-        """Configure la sidebar moderne"""
+        """Configure la sidebar moderne avec Font Awesome"""
         self.sidebar = QFrame()
-        self.sidebar.setFixedWidth(280)
+        self.sidebar.setFixedWidth(260)
         self.sidebar.setStyleSheet(f"""
             QFrame {{
                 background-color: {Colors.WHITE};
@@ -187,65 +387,85 @@ class VehicleMainView(QWidget):
         """)
         
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(Spacing.LG, Spacing.XL, Spacing.LG, Spacing.XL)
-        sidebar_layout.setSpacing(Spacing.XL)
+        sidebar_layout.setContentsMargins(16, 24, 16, 24)
+        sidebar_layout.setSpacing(16)
         
-        # Logo
+        # Logo avec icône Font Awesome
         logo_widget = QWidget()
         logo_layout = QHBoxLayout(logo_widget)
         logo_layout.setContentsMargins(0, 0, 0, 0)
+        logo_layout.setSpacing(12)
         
-        logo_icon = QLabel("🚗")
-        logo_icon.setStyleSheet("font-size: 32px;")
+        logo_icon_label = QLabel()
+        logo_icon = qta.icon('fa5s.car', color='#00288e')
+        logo_icon_label.setPixmap(logo_icon.pixmap(32, 32))
+        logo_icon_label.setStyleSheet("background: transparent; border: none;")
+        
+        logo_text_layout = QVBoxLayout()
+        logo_text_layout.setSpacing(0)
         
         logo_text = QLabel("AutoAssure")
         logo_text.setStyleSheet(f"""
-            font-size: {Fonts.H4}px;
-            font-weight: {Fonts.BOLD};
+            font-size: 20px;
+            font-weight: 700;
             color: {Colors.TEXT_PRIMARY};
+            background: transparent;
+            border: none;
         """)
         
-        logo_layout.addWidget(logo_icon)
-        logo_layout.addWidget(logo_text)
+        logo_subtext = QLabel("Management Portal")
+        logo_subtext.setStyleSheet(f"""
+            font-size: 11px;
+            color: {Colors.TEXT_MUTED};
+            background: transparent;
+            border: none;
+        """)
+        
+        logo_text_layout.addWidget(logo_text)
+        logo_text_layout.addWidget(logo_subtext)
+        
+        logo_layout.addWidget(logo_icon_label)
+        logo_layout.addLayout(logo_text_layout)
         logo_layout.addStretch()
         sidebar_layout.addWidget(logo_widget)
         
         # Navigation
         nav_widget = QWidget()
         nav_layout = QVBoxLayout(nav_widget)
-        nav_layout.setSpacing(Spacing.SM)
+        nav_layout.setSpacing(4)
         
         nav_title = QLabel("MENU PRINCIPAL")
         nav_title.setStyleSheet(f"""
-            font-size: {Fonts.CAPTION}px;
-            font-weight: {Fonts.BOLD};
+            font-size: 10px;
+            font-weight: 700;
             color: {Colors.TEXT_MUTED};
             letter-spacing: 1px;
-            margin-bottom: {Spacing.MD}px;
+            background: transparent;
+            border: none;
+            padding-bottom: 8px;
         """)
         nav_layout.addWidget(nav_title)
         
-        # Boutons de navigation
+        # ✅ Boutons de navigation avec Font Awesome
         self.nav_buttons = {}
         nav_items = [
-            ("dashboard", "📊", "Tableau de bord"),
-            ("vehicles", "🚗", "Véhicules"),
-            ("contacts", "👥", "Clients"),
-            ("companies", "🏢", "Compagnies"),
-            ("contracts", "📄", "Contrats"),
-            # NOUVEAUX
-            ("sinistres", "⚠️", "Sinistres"),
-            ("expertises", "🔍", "Expertises"),
-            ("garages", "🔧", "Garages"),
-            ("import", "📥", "Import ASAC"),
-            ("reports", "📈", "Rapports"),
-            ("settings", "⚙️", "Paramètres"),
+            ("dashboard", "Tableau de bord"),
+            ("vehicles", "Véhicules"),
+            ("contacts", "Clients"),
+            ("companies", "Compagnies"),
+            ("contracts", "Contrats"),
+            ("sinistres", "Sinistres"),
+            ("expertises", "Expertises"),
+            ("garages", "Garages"),
+            ("import", "Import ASAC"),
+            ("reports", "Rapports"),
+            ("settings", "Paramètres"),
         ]
         
-        for key, icon, text in nav_items:
+        for key, text in nav_items:
             if not self.can_access_page(key):
                 continue
-            btn = ModernSidebarButton(f"  {icon}  {text}", icon, key == "dashboard")
+            btn = ModernSidebarButton(text, key, key == "dashboard")
             btn.clicked.connect(lambda checked, k=key: self.switch_page(k))
             nav_layout.addWidget(btn)
             self.nav_buttons[key] = btn
@@ -254,27 +474,53 @@ class VehicleMainView(QWidget):
         sidebar_layout.addWidget(nav_widget)
         
         # Footer
-        footer = QWidget()
+        footer = QFrame()
+        footer.setStyleSheet(f"""
+            QFrame {{
+                border-top: 1px solid {Colors.BORDER};
+                padding-top: 8px;
+            }}
+        """)
         footer_layout = QVBoxLayout(footer)
-        footer_layout.setSpacing(Spacing.SM)
+        footer_layout.setSpacing(4)
+        footer_layout.setContentsMargins(0, 8, 0, 0)
         
-        user_label = QLabel(f"👤 {self.user.username if self.user else 'Utilisateur'}")
-        user_label.setStyleSheet(f"""
-            font-size: {Fonts.SMALL}px;
-            color: {Colors.TEXT_SECONDARY};
+        footer_btn = QPushButton()
+        footer_layout_h = QHBoxLayout()
+        footer_layout_h.setContentsMargins(12, 8, 12, 8)
+        footer_layout_h.setSpacing(10)
+        
+        user_icon = qta.icon('fa5s.user', color='#444653')
+        user_icon_label = QLabel()
+        user_icon_label.setPixmap(user_icon.pixmap(16, 16))
+        
+        user_text = QLabel("Admin")
+        user_text.setStyleSheet(f"""
+            font-size: 13px;
+            color: {Colors.ON_SURFACE_VARIANT};
+            background: transparent;
+            border: none;
         """)
         
-        version_label = QLabel("Version 2.0.0")
-        version_label.setStyleSheet(f"""
-            font-size: {Fonts.CAPTION}px;
-            color: {Colors.TEXT_MUTED};
-        """)
+        footer_layout_h.addWidget(user_icon_label)
+        footer_layout_h.addWidget(user_text)
+        footer_layout_h.addStretch()
         
-        footer_layout.addWidget(user_label)
-        footer_layout.addWidget(version_label)
+        footer_btn.setLayout(footer_layout_h)
+        footer_btn.setStyleSheet(f"""
+            QPushButton {{
+                background: transparent;
+                border: none;
+                border-radius: 8px;
+            }}
+            QPushButton:hover {{
+                background-color: {Colors.SURFACE_VARIANT};
+            }}
+        """)
+        footer_btn.setCursor(Qt.PointingHandCursor)
+        
+        footer_layout.addWidget(footer_btn)
         sidebar_layout.addWidget(footer)
-
-
     
     def setup_content_area(self):
         """Configure la zone de contenu principale"""
@@ -286,8 +532,8 @@ class VehicleMainView(QWidget):
         content_layout.setSpacing(Spacing.XL)
         
         # En-tête
-        header = self.setup_header()
-        content_layout.addWidget(header)
+        # header = self.setup_header()
+        # content_layout.addWidget(header)
         
         # Zone de contenu empilé
         self.stacked_widget = QStackedWidget()
@@ -298,72 +544,149 @@ class VehicleMainView(QWidget):
         self.init_pages()
         
         content_layout.addWidget(self.stacked_widget)
-    
-    def setup_header(self):
-        """Configure l'en-tête moderne"""
-        header = QFrame()
-        header.setStyleSheet(f"""
-            QFrame {{
-                background: transparent;
-            }}
-        """)
+
+    def refresh_data(self):
+        """Rafraîchit les données du tableau de bord"""
+        # Chercher le dashboard dans la pile
+        for i in range(self.stacked_widget.count()):
+            widget = self.stacked_widget.widget(i)
+            if widget.__class__.__name__ == "DashboardView":
+                if hasattr(widget, 'refresh_data'):
+                    widget.refresh_data()
+                elif hasattr(widget, 'refresh'):
+                    widget.refresh()
+                elif hasattr(widget, 'load_data'):
+                    widget.load_data()
+                break
+   
+    # def setup_header(self):
+    #     """Configure l'en-tête moderne - style photo"""
+    #     header = QFrame()
+    #     header.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {Colors.WHITE};
+    #             border: 1px solid {Colors.BORDER};
+    #             border-radius: 12px;
+    #             padding: 12px 20px;
+    #         }}
+    #     """)
         
-        header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(0, 0, 0, 0)
+    #     header_layout = QHBoxLayout(header)
+    #     header_layout.setContentsMargins(0, 0, 0, 0)
+    #     header_layout.setSpacing(16)
         
-        # Titre de page
-        self.page_title = QLabel("Tableau de Bord")
-        self.page_title.setStyleSheet(f"""
-            font-size: {Fonts.H2}px;
-            font-weight: {Fonts.BOLD};
-            color: {Colors.TEXT_PRIMARY};
-        """)
+    #     # ✅ Titre de page avec icône Font Awesome
+    #     title_layout = QHBoxLayout()
+    #     title_layout.setSpacing(10)
         
-        # Barre de recherche
-        search_widget = QWidget()
-        search_layout = QHBoxLayout(search_widget)
-        search_layout.setContentsMargins(0, 0, 0, 0)
-        search_layout.setSpacing(Spacing.SM)
+    #     page_icon = qta.icon('fa5s.chart-pie', color=Colors.PRIMARY)
+    #     page_icon_label = QLabel()
+    #     page_icon_label.setPixmap(page_icon.pixmap(20, 20))
+    #     page_icon_label.setStyleSheet("background: transparent; border: none;")
         
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Rechercher...")
-        self.search_input.setFixedWidth(250)
-        self.search_input.setStyleSheet(f"""
-            QLineEdit {{
-                border: 1px solid {Colors.BORDER};
-                border-radius: 20px;
-                padding: 8px 16px;
-                background-color: {Colors.WHITE};
-            }}
-            QLineEdit:focus {{
-                border-color: {Colors.PRIMARY};
-            }}
-        """)
+    #     self.page_title = QLabel("Tableau de Bord")
+    #     self.page_title.setStyleSheet(f"""
+    #         font-size: {Fonts.H4}px;
+    #         font-weight: {Fonts.BOLD};
+    #         color: {Colors.TEXT_PRIMARY};
+    #         background: transparent;
+    #         border: none;
+    #     """)
         
-        search_layout.addWidget(self.search_input)
+    #     title_layout.addWidget(page_icon_label)
+    #     title_layout.addWidget(self.page_title)
         
-        # Bouton notifications
-        notif_btn = QPushButton("🔔")
-        notif_btn.setFixedSize(40, 40)
-        notif_btn.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {Colors.WHITE};
-                border: 1px solid {Colors.BORDER};
-                border-radius: 20px;
-                font-size: 18px;
-            }}
-            QPushButton:hover {{
-                background-color: {Colors.GRAY_100};
-            }}
-        """)
+    #     header_layout.addLayout(title_layout)
+    #     header_layout.addStretch()
         
-        header_layout.addWidget(self.page_title)
-        header_layout.addStretch()
-        header_layout.addWidget(search_widget)
-        header_layout.addWidget(notif_btn)
+    #     # ✅ Barre de recherche
+    #     search_widget = QWidget()
+    #     search_layout = QHBoxLayout(search_widget)
+    #     search_layout.setContentsMargins(0, 0, 0, 0)
+    #     search_layout.setSpacing(8)
         
-        return header
-    
+    #     self.search_input = QLineEdit()
+    #     self.search_input.setPlaceholderText("🔍 Rechercher un véhicule, client, contrat...")
+    #     self.search_input.setFixedWidth(280)
+    #     self.search_input.setStyleSheet(f"""
+    #         QLineEdit {{
+    #             border: 1px solid {Colors.BORDER};
+    #             border-radius: 20px;
+    #             padding: 8px 16px;
+    #             background-color: {Colors.GRAY_50};
+    #             font-size: 13px;
+    #             color: {Colors.TEXT_PRIMARY};
+    #         }}
+    #         QLineEdit:focus {{
+    #             border-color: {Colors.PRIMARY};
+    #             background-color: {Colors.WHITE};
+    #         }}
+    #     """)
+    #     search_layout.addWidget(self.search_input)
+        
+    #     # ✅ Bouton Actualiser
+    #     refresh_btn = QPushButton()
+    #     refresh_icon = qta.icon('fa5s.sync-alt', color=Colors.PRIMARY)
+    #     refresh_btn.setIcon(refresh_icon)
+    #     refresh_btn.setFixedSize(36, 36)
+    #     refresh_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background-color: {Colors.PRIMARY};
+    #             border: none;
+    #             border-radius: 18px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background-color: {Colors.PRIMARY_DARK};
+    #         }}
+    #     """)
+    #     refresh_btn.setCursor(Qt.PointingHandCursor)
+    #     refresh_btn.clicked.connect(self.refresh_data)
+        
+    #     # ✅ Bouton notifications
+    #     notif_btn = QPushButton()
+    #     notif_icon = qta.icon('fa5s.bell', color=Colors.TEXT_MUTED)
+    #     notif_btn.setIcon(notif_icon)
+    #     notif_btn.setFixedSize(36, 36)
+    #     notif_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background-color: {Colors.GRAY_50};
+    #             border: 1px solid {Colors.BORDER};
+    #             border-radius: 18px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background-color: {Colors.GRAY_100};
+    #         }}
+    #     """)
+    #     notif_btn.setCursor(Qt.PointingHandCursor)
+        
+    #     # ✅ Profil utilisateur
+    #     user_btn = QPushButton()
+    #     user_btn.setFixedSize(36, 36)
+    #     user_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background-color: {Colors.PRIMARY};
+    #             border: none;
+    #             border-radius: 18px;
+    #             font-weight: {Fonts.BOLD};
+    #             color: {Colors.WHITE};
+    #             font-size: 14px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background-color: {Colors.PRIMARY_DARK};
+    #         }}
+    #     """)
+    #     user_btn.setText("AD")
+    #     user_btn.setCursor(Qt.PointingHandCursor)
+        
+    #     search_layout.addWidget(refresh_btn)
+    #     search_layout.addWidget(notif_btn)
+    #     search_layout.addWidget(user_btn)
+        
+    #     header_layout.addWidget(search_widget)
+        
+    #     return header
+
+
     def init_pages(self):
         """Initialise les différentes pages"""
         # À implémenter avec les vues spécifiques
@@ -426,7 +749,7 @@ class VehicleMainView(QWidget):
             "expertises": "Expertises Automobiles",
             "garages": "Garages Agréés"
         }
-        self.page_title.setText(titles.get(page_key, page_key))
+        # self.page_title.setText(titles.get(page_key, page_key))
         
         # Changer de page avec animation
         index = list(self.pages.keys()).index(page_key)

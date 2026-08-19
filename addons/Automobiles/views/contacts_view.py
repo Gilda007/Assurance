@@ -1,6 +1,7 @@
 
 """
 Gestion des Contacts - Interface moderne et professionnelle
+Utilisation de QtAwesome pour les icônes
 """
 
 import os
@@ -13,11 +14,12 @@ from PySide6.QtWidgets import (
     QGridLayout, QSplitter, QToolButton, QProgressBar
 )
 from PySide6.QtCore import Qt, QTimer, Signal, QSize, QMargins
-from PySide6.QtGui import QFont, QColor, QAction, QBrush, QPainter
+from PySide6.QtGui import QFont, QColor, QAction, QBrush, QPainter, QIcon
 from PySide6.QtCharts import (
     QChart, QChartView, QPieSeries, QBarSeries, QBarSet,
     QBarCategoryAxis, QValueAxis
 )
+import qtawesome as qta
 
 from addons.Automobiles.security.access_control import Permissions, SecurityManager
 from addons.Automobiles.views.contact_form_view import ContactForm
@@ -32,6 +34,65 @@ class ContactListView(QWidget):
     contact_selected = Signal(object)
     contact_updated = Signal()
     
+    # Palette de couleurs moderne
+    COLORS = {
+        'primary': '#2563eb',
+        'primary_light': '#dbeafe',
+        'success': '#16a34a',
+        'success_light': '#dcfce7',
+        'warning': '#f59e0b',
+        'warning_light': '#fef3c7',
+        'danger': '#dc2626',
+        'danger_light': '#fee2e2',
+        'purple': '#7c3aed',
+        'purple_light': '#ede9fe',
+        'teal': '#0d9488',
+        'teal_light': '#ccfbf1',
+        'orange': '#ea580c',
+        'orange_light': '#ffedd5',
+        'gray': '#64748b',
+        'gray_light': '#f1f5f9',
+        'dark': '#0f172a',
+        'border': '#e2e8f0',
+        'bg': '#f8fafc',
+        'white': '#ffffff',
+    }
+
+    ICONS = {
+        'address_book': 'mdi.account',
+        'users': 'mdi.account-multiple',
+        'user_check': 'mdi.account-check',
+        'user_tie': 'mdi.account-tie',
+        'circle_check': 'mdi.check-circle',
+        'circle_xmark': 'mdi.close-circle',
+        'circle_info': 'mdi.information',
+        'triangle_exclamation': 'mdi.alert',
+        'plus': 'mdi.plus',
+        'pen': 'mdi.pencil',
+        'trash_can': 'mdi.delete',
+        'copy': 'mdi.content-copy',
+        'eye': 'mdi.eye',
+        'note_sticky': 'mdi.note',
+        'floppy_disk': 'mdi.content-save',
+        'file_csv': 'mdi.file-delimited',
+        'file_pdf': 'mdi.file-pdf-box',
+        'file_import': 'mdi.file-import',
+        'file_export': 'mdi.file-export',
+        'magnifying_glass': 'mdi.magnify',
+        'list': 'mdi.format-list-bulleted',
+        'clipboard_list': 'mdi.clipboard-list',
+        'rotate_right': 'mdi.sync',
+        'bars': 'mdi.menu',
+        'filter': 'mdi.filter',
+        'download': 'mdi.download',
+        'upload': 'mdi.upload',
+        'print': 'mdi.printer',
+        'share': 'mdi.share',
+        'star': 'mdi.star',
+        'heart': 'mdi.heart',
+        'user_astronaut': 'mdi.rocket',
+    }
+
     def __init__(self, controller, current_user):
         super().__init__()
         self.controller = controller
@@ -51,7 +112,12 @@ class ContactListView(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        self.setStyleSheet("background: #f5f7fa;")
+        self.setStyleSheet(f"""
+            QWidget {{
+                background: {self.COLORS['bg']};
+                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            }}
+        """)
         
         # Scroll area
         scroll = QScrollArea()
@@ -62,11 +128,11 @@ class ContactListView(QWidget):
         container = QWidget()
         container.setStyleSheet("background: transparent;")
         container_layout = QVBoxLayout(container)
-        container_layout.setContentsMargins(24, 20, 24, 20)
-        container_layout.setSpacing(16)
+        container_layout.setContentsMargins(32, 24, 32, 24)
+        container_layout.setSpacing(20)
         
         # En-tête
-        self._create_header(container_layout)
+        # self._create_header(container_layout)
         
         # Barre d'outils
         self._create_toolbar(container_layout)
@@ -83,68 +149,109 @@ class ContactListView(QWidget):
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
     
-    def _create_header(self, parent_layout):
-        """Crée l'en-tête"""
-        header = QFrame()
-        header.setStyleSheet("""
-            QFrame {
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #e8edf2;
-                padding: 16px 24px;
-            }
-        """)
+    # def _create_header(self, parent_layout):
+    #     """Crée l'en-tête avec style moderne"""
+    #     header = QFrame()
+    #     header.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {self.COLORS['white']};
+    #             border-radius: 16px;
+    #             border: 1px solid {self.COLORS['border']};
+    #             padding: 20px 28px;
+    #         }}
+    #     """)
         
-        layout = QHBoxLayout(header)
+    #     layout = QHBoxLayout(header)
+    #     layout.setSpacing(24)
         
-        # Titre
-        title_layout = QVBoxLayout()
-        title = QLabel("👥 Contacts")
-        title.setStyleSheet("font-size: 22px; font-weight: 700; color: #1a202c; background: transparent; border: none;")
+    #     # Titre avec icône
+    #     title_layout = QVBoxLayout()
+    #     title_layout.setSpacing(4)
         
-        subtitle = QLabel("Gérez vos contacts, clients et prospects")
-        subtitle.setStyleSheet("font-size: 13px; color: #718096; background: transparent; border: none;")
+    #     title_widget = QWidget()
+    #     title_widget_layout = QHBoxLayout(title_widget)
+    #     title_widget_layout.setContentsMargins(0, 0, 0, 0)
+    #     title_widget_layout.setSpacing(12)
         
-        title_layout.addWidget(title)
-        title_layout.addWidget(subtitle)
+    #     icon_label = QLabel()
+    #     icon_label.setPixmap(qta.icon(self.ICONS['address_book'], color=self.COLORS['primary']).pixmap(32, 32))
+    #     title_widget_layout.addWidget(icon_label)
         
-        # Compteurs
-        counter_layout = QHBoxLayout()
-        counter_layout.setSpacing(20)
+    #     title = QLabel("Contacts")
+    #     title.setStyleSheet(f"""
+    #         font-size: 24px;
+    #         font-weight: 700;
+    #         color: {self.COLORS['dark']};
+    #         background: transparent;
+    #         border: none;
+    #         letter-spacing: -0.5px;
+    #     """)
+    #     title_widget_layout.addWidget(title)
+    #     title_widget_layout.addStretch()
         
-        self.total_label = self._create_counter("📊", "0", "Total")
-        self.active_label = self._create_counter("🟢", "0", "Actifs")
+    #     subtitle = QLabel("Gérez vos contacts, clients et prospects")
+    #     subtitle.setStyleSheet(f"""
+    #         font-size: 14px;
+    #         color: {self.COLORS['gray']};
+    #         background: transparent;
+    #         border: none;
+    #         padding-left: 44px;
+    #     """)
         
-        counter_layout.addWidget(self.total_label)
-        counter_layout.addWidget(self.active_label)
+    #     title_layout.addWidget(title_widget)
+    #     title_layout.addWidget(subtitle)
         
-        layout.addLayout(title_layout)
-        layout.addStretch()
-        layout.addLayout(counter_layout)
+    #     # Compteurs
+    #     counter_layout = QHBoxLayout()
+    #     counter_layout.setSpacing(24)
         
-        parent_layout.addWidget(header)
+    #     self.total_label = self._create_counter('users', "0", "Total")
+    #     self.active_label = self._create_counter('user_check', "0", "Actifs")
+        
+    #     counter_layout.addWidget(self.total_label)
+    #     counter_layout.addWidget(self.active_label)
+        
+    #     layout.addLayout(title_layout)
+    #     layout.addStretch()
+    #     layout.addLayout(counter_layout)
+        
+    #     parent_layout.addWidget(header)
     
-    def _create_counter(self, icon, count, label):
-        """Crée un compteur"""
+    def _create_counter(self, icon_name, count, label):
+        """Crée un compteur moderne"""
         container = QFrame()
         container.setStyleSheet("background: transparent; border: none;")
         
         layout = QHBoxLayout(container)
-        layout.setSpacing(8)
+        layout.setSpacing(10)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        icon_label = QLabel(icon)
-        icon_label.setStyleSheet("font-size: 16px; background: transparent; border: none;")
+        icon_label = QLabel()
+        icon_label.setPixmap(qta.icon(self.ICONS[icon_name], color=self.COLORS['primary']).pixmap(20, 20))
+        icon_label.setStyleSheet("background: transparent; border: none;")
         
         text_layout = QVBoxLayout()
         text_layout.setSpacing(0)
         
         count_label = QLabel(count)
-        count_label.setStyleSheet("font-size: 16px; font-weight: 700; color: #1a202c; background: transparent; border: none;")
+        count_label.setStyleSheet(f"""
+            font-size: 18px;
+            font-weight: 700;
+            color: {self.COLORS['dark']};
+            background: transparent;
+            border: none;
+        """)
         count_label.setObjectName(f"counter_{label.lower()}")
         
         name_label = QLabel(label)
-        name_label.setStyleSheet("font-size: 10px; color: #718096; text-transform: uppercase; letter-spacing: 0.5px; background: transparent; border: none;")
+        name_label.setStyleSheet(f"""
+            font-size: 11px;
+            color: {self.COLORS['gray']};
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: transparent;
+            border: none;
+        """)
         
         text_layout.addWidget(count_label)
         text_layout.addWidget(name_label)
@@ -155,174 +262,400 @@ class ContactListView(QWidget):
         return container
     
     def _create_toolbar(self, parent_layout):
-        """Crée la barre d'outils"""
+        """Crée la barre d'outils moderne et professionnelle"""
         toolbar = QFrame()
-        toolbar.setStyleSheet("""
-            QFrame {
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #e8edf2;
-                padding: 12px 20px;
-            }
+        toolbar.setStyleSheet(f"""
+            QFrame {{
+                background: {self.COLORS['white']};
+                border-radius: 16px;
+                border: 1px solid {self.COLORS['border']};
+                padding: 8px 16px;
+            }}
         """)
         
         layout = QHBoxLayout(toolbar)
-        layout.setSpacing(10)
+        layout.setSpacing(6)
+        layout.setContentsMargins(8, 4, 8, 4)
         
-        # Boutons
-        self.btn_add = self._create_btn("➕ Nouveau", "#48bb78")
+        # ============================================================
+        # GROUPE 1 : Actions principales (CRUD)
+        # ============================================================
+        self.btn_add = self._create_action_btn(
+            "Nouveau", self.COLORS['primary'], 'plus',
+            shortcut="Ctrl+N", tooltip="Ajouter un contact (Ctrl+N)"
+        )
         self.btn_add.clicked.connect(self.on_add_contact)
         
-        self.btn_edit = self._create_btn("✏️ Modifier", "#4299e1")
+        self.btn_edit = self._create_action_btn(
+            "Modifier", self.COLORS['primary'], 'pen',
+            shortcut="Ctrl+E", tooltip="Modifier le contact sélectionné (Ctrl+E)"
+        )
         self.btn_edit.clicked.connect(self.on_edit_contact)
         self.btn_edit.setEnabled(False)
         
-        self.btn_delete = self._create_btn("🗑️ Supprimer", "#fc8181")
+        self.btn_delete = self._create_action_btn(
+            "Supprimer", self.COLORS['danger'], 'trash_can',
+            shortcut="Delete", tooltip="Supprimer le(s) contact(s) sélectionné(s) (Delete)"
+        )
         self.btn_delete.clicked.connect(self.on_delete_contact)
         self.btn_delete.setEnabled(False)
         
-        self.btn_duplicate = self._create_btn("📋 Dupliquer", "#9f7aea")
+        self.btn_duplicate = self._create_action_btn(
+            "Dupliquer", self.COLORS['purple'], 'copy',
+            shortcut="Ctrl+D", tooltip="Dupliquer le contact sélectionné (Ctrl+D)"
+        )
         self.btn_duplicate.clicked.connect(self.duplicate_contact)
         self.btn_duplicate.setEnabled(False)
-        
-        # Séparateur
-        sep = QFrame()
-        sep.setFrameShape(QFrame.VLine)
-        sep.setStyleSheet("background: #e8edf2; max-width: 1px;")
-        sep.setFixedWidth(1)
-        layout.addWidget(sep)
-        
-        # Export
-        self.btn_export_csv = self._create_btn("📄 CSV", "#ed8936")
-        self.btn_export_csv.clicked.connect(self.export_to_csv)
-        
-        self.btn_export_pdf = self._create_btn("📑 PDF", "#e53e3e")
-        self.btn_export_pdf.clicked.connect(self.export_to_pdf)
-        
-        self.btn_import = self._create_btn("📥 Importer", "#38b2ac")
-        self.btn_import.clicked.connect(self.import_contacts)
-        
-        # Séparateur
-        sep2 = QFrame()
-        sep2.setFrameShape(QFrame.VLine)
-        sep2.setStyleSheet("background: #e8edf2; max-width: 1px;")
-        sep2.setFixedWidth(1)
-        layout.addWidget(sep2)
-        
-        # Audit
-        self.btn_audit = self._create_btn("📜 Audit", "#805ad5")
-        self.btn_audit.clicked.connect(self.show_audit_logs)
-        
-        # Actualiser
-        self.btn_refresh = self._create_btn("🔄 Actualiser", "#718096")
-        self.btn_refresh.clicked.connect(self.load_contacts)
         
         layout.addWidget(self.btn_add)
         layout.addWidget(self.btn_edit)
         layout.addWidget(self.btn_delete)
         layout.addWidget(self.btn_duplicate)
-        layout.addWidget(sep)
-        layout.addWidget(self.btn_export_csv)
-        layout.addWidget(self.btn_export_pdf)
+        
+        # Séparateur
+        layout.addWidget(self._create_separator())
+        
+        # ============================================================
+        # GROUPE 2 : Import / Export
+        # ============================================================
+        self.btn_import = self._create_action_btn(
+            "Importer", self.COLORS['teal'], 'file_import',
+            is_small=True, tooltip="Importer des contacts depuis un fichier"
+        )
+        self.btn_import.clicked.connect(self.import_contacts)
+        
+        self.btn_export_csv = self._create_action_btn(
+            "Exporter CSV", self.COLORS['teal'], 'file_csv',
+            is_small=True, tooltip="Exporter les contacts au format CSV"
+        )
+        self.btn_export_csv.clicked.connect(self.export_to_csv)
+        
+        self.btn_export_pdf = self._create_action_btn(
+            "Exporter PDF", self.COLORS['danger'], 'file_pdf',
+            is_small=True, tooltip="Exporter les contacts au format PDF"
+        )
+        self.btn_export_pdf.clicked.connect(self.export_to_pdf)
+        
         layout.addWidget(self.btn_import)
-        layout.addWidget(sep2)
+        # layout.addWidget(self.btn_export_csv)
+        layout.addWidget(self.btn_export_pdf)
+        
+        # Séparateur
+        layout.addWidget(self._create_separator())
+        
+        # ============================================================
+        # GROUPE 3 : Outils
+        # ============================================================
+        self.btn_audit = self._create_action_btn(
+            "Audit", self.COLORS['purple'], 'clipboard_list',
+            is_small=True, tooltip="Consulter l'historique des actions"
+        )
+        self.btn_audit.clicked.connect(self.show_audit_logs)
+        
+        self.btn_refresh = self._create_action_btn(
+            "", self.COLORS['gray'], 'rotate_right',
+            is_small=True, icon_only=True, tooltip="Actualiser la liste (Ctrl+R)"
+        )
+        self.btn_refresh.clicked.connect(self.load_contacts)
+        
         layout.addWidget(self.btn_audit)
         layout.addWidget(self.btn_refresh)
         
+        # ============================================================
+        # ESPACEUR + RECHERCHE
+        # ============================================================
         layout.addStretch()
         
-        # Sélection
+        # Indicateur de sélection
         self.selection_label = QLabel("")
-        self.selection_label.setStyleSheet("color: #718096; font-size: 13px; background: transparent; border: none;")
+        self.selection_label.setStyleSheet(f"""
+            color: {self.COLORS['gray']};
+            font-size: 12px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+            padding: 0 8px;
+        """)
         layout.addWidget(self.selection_label)
         
-        # Recherche
+        # Champ de recherche
+        search_container = QFrame()
+        search_container.setStyleSheet("background: transparent; border: none;")
+        search_layout = QHBoxLayout(search_container)
+        search_layout.setContentsMargins(0, 0, 0, 0)
+        search_layout.setSpacing(0)
+        
+        # Icône de recherche
+        search_icon = QLabel()
+        search_icon.setPixmap(qta.icon(self.ICONS['magnifying_glass'], color=self.COLORS['gray']).pixmap(16, 16))
+        search_icon.setStyleSheet("padding: 0 8px 0 14px; background: transparent; border: none;")
+        
+        
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("🔍 Rechercher...")
-        self.search_input.setMinimumWidth(200)
-        self.search_input.setStyleSheet("""
-            QLineEdit {
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 8px 14px;
-                background: #f7fafc;
+        self.search_input.setPlaceholderText("Rechercher un contact...")
+        self.search_input.setMinimumWidth(220)
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                border: 2px solid {self.COLORS['border']};
+                border-radius: 10px;
+                padding: 7px 14px 7px 4px;
+                background: {self.COLORS['gray_light']};
                 font-size: 13px;
-            }
-            QLineEdit:focus {
-                border-color: #4299e1;
-                background: #ffffff;
-            }
+                color: {self.COLORS['dark']};
+            }}
+            QLineEdit:focus {{
+                border-color: {self.COLORS['primary']};
+                background: {self.COLORS['white']};
+            }}
+            QLineEdit::placeholder {{
+                color: {self.COLORS['gray']};
+                font-weight: 400;
+            }}
         """)
         self.search_input.textChanged.connect(self.on_search)
-        layout.addWidget(self.search_input)
+        search_layout.addWidget(self.search_input)
         
-        # Filtres - Mise à jour des types
+        layout.addWidget(search_container)
+        
+        # ============================================================
+        # FILTRE
+        # ============================================================
+        filter_container = QFrame()
+        filter_container.setStyleSheet("background: transparent; border: none;")
+        filter_layout = QHBoxLayout(filter_container)
+        filter_layout.setContentsMargins(0, 0, 0, 0)
+        filter_layout.setSpacing(4)
+        
+        filter_icon = QLabel()
+        filter_icon.setPixmap(qta.icon(self.ICONS['filter'], color=self.COLORS['gray']).pixmap(14, 14))
+        filter_icon.setStyleSheet("padding: 0 2px 0 8px; background: transparent; border: none;")
+        # filter_layout.addWidget(filter_icon)
+        
         self.filter_combo = QComboBox()
         self.filter_combo.addItems(["Tous", "Souscripteur", "Chauffeur", "Particulier", "Société"])
-        self.filter_combo.setStyleSheet("""
-            QComboBox {
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 8px 12px;
-                background: #f7fafc;
-                font-size: 13px;
+        self.filter_combo.setStyleSheet(f"""
+            QComboBox {{
+                border: 2px solid {self.COLORS['border']};
+                border-radius: 10px;
+                padding: 6px 10px 6px 6px;
+                background: {self.COLORS['gray_light']};
+                font-size: 12px;
+                color: {self.COLORS['dark']};
                 min-width: 120px;
-            }
-            QComboBox:focus {
-                border-color: #4299e1;
-            }
+                font-weight: 500;
+            }}
+            QComboBox:focus {{
+                border-color: {self.COLORS['primary']};
+                background: {self.COLORS['white']};
+            }}
+            QComboBox:hover {{
+                border-color: {self.COLORS['primary']};
+            }}
+            QComboBox::drop-down {{
+                border: none;
+                background: transparent;
+                padding-right: 4px;
+            }}
+            QComboBox::down-arrow {{
+                image: none;
+                border: none;
+            }}
         """)
         self.filter_combo.currentTextChanged.connect(self.on_filter_changed)
-        layout.addWidget(self.filter_combo)
+        filter_layout.addWidget(self.filter_combo)
+        
+        layout.addWidget(filter_container)
         
         parent_layout.addWidget(toolbar)
-    
-    def _create_btn(self, text, color):
-        """Crée un bouton stylisé"""
-        btn = QPushButton(text)
+
+
+    def _create_action_btn(self, text, color, icon_name, is_small=False, icon_only=False, shortcut=None, tooltip=None):
+        """
+        Crée un bouton d'action stylisé avec icône QtAwesome
+        
+        Args:
+            text: Texte du bouton
+            color: Couleur de fond
+            icon_name: Nom de l'icône dans ICONS
+            is_small: Bouton compact
+            icon_only: Uniquement l'icône
+            shortcut: Raccourci clavier (ex: "Ctrl+N")
+            tooltip: Infobulle
+        """
+        btn = QPushButton()
+        
+        # Configuration de l'icône
+        if icon_name and icon_name in self.ICONS:
+            icon_color = 'white' if color != self.COLORS['gray'] else self.COLORS['dark']
+            icon = qta.icon(self.ICONS[icon_name], color=icon_color)
+            
+            if icon_only:
+                btn.setIcon(icon)
+                btn.setIconSize(QSize(18, 18))
+            else:
+                btn.setText(f"  {text}")
+                btn.setIcon(icon)
+                btn.setIconSize(QSize(16, 16))
+        else:
+            btn.setText(text if not icon_only else "")
+        
+        # Taille du bouton
+        if icon_only:
+            btn.setFixedSize(36, 36)
+        elif is_small:
+            btn.setFixedHeight(32)
+            btn.setMinimumWidth(80)
+        else:
+            btn.setFixedHeight(38)
+            btn.setMinimumWidth(100)
+        
+        # Style du bouton
+        padding = "6px 14px" if is_small else "8px 18px"
+        font_size = "12px" if is_small else "13px"
+        
         btn.setStyleSheet(f"""
             QPushButton {{
-                background: transparent;
-                color: #2d3748;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 6px 14px;
-                font-weight: 500;
-                font-size: 12px;
+                background: {color};
+                color: {'white' if color != self.COLORS['gray'] else self.COLORS['dark']};
+                border: none;
+                border-radius: 10px;
+                padding: {padding};
+                font-weight: 600;
+                font-size: {font_size};
+                font-family: 'Inter', -apple-system, sans-serif;
             }}
             QPushButton:hover {{
-                background: {color};
-                color: white;
-                border-color: {color};
+                background: {self._darken_color(color, 15)};
+            }}
+            QPushButton:pressed {{
+                background: {self._darken_color(color, 25)};
             }}
             QPushButton:disabled {{
-                color: #a0aec0;
-                border-color: #e2e8f0;
+                background: {self.COLORS['gray_light']};
+                color: {self.COLORS['gray']};
             }}
         """)
+        
+        # Raccourci clavier
+        if shortcut:
+            btn.setShortcut(shortcut)
+        
+        # Infobulle
+        if tooltip:
+            btn.setToolTip(tooltip)
+        
+        return btn
+
+
+    def _darken_color(self, hex_color, amount):
+        """Assombrit une couleur hexadécimale"""
+        try:
+            # Convertir hex en RGB
+            hex_color = hex_color.lstrip('#')
+            if len(hex_color) == 3:
+                hex_color = ''.join([c*2 for c in hex_color])
+            r = int(hex_color[0:2], 16)
+            g = int(hex_color[2:4], 16)
+            b = int(hex_color[4:6], 16)
+            
+            # Assombrir
+            r = max(0, r - amount)
+            g = max(0, g - amount)
+            b = max(0, b - amount)
+            
+            return f"#{r:02x}{g:02x}{b:02x}"
+        except:
+            return hex_color
+
+    def _create_btn(self, text, color, icon_name=None, is_small=False, icon_only=False):
+        """Crée un bouton stylisé avec icône QtAwesome"""
+        btn = QPushButton()
+        
+        if icon_name:
+            icon = qta.icon(self.ICONS[icon_name], color='white' if color != self.COLORS['gray'] else self.COLORS['dark'])
+            if icon_only:
+                btn.setIcon(icon)
+                btn.setIconSize(QSize(18, 18))
+            else:
+                btn.setText(f"  {text}")
+                btn.setIcon(icon)
+                btn.setIconSize(QSize(16, 16))
+        else:
+            btn.setText(text)
+        
+        if icon_only:
+            btn.setFixedSize(38, 38)
+        elif is_small:
+            btn.setFixedHeight(34)
+        
+        padding = "4px 12px" if is_small else "8px 18px"
+        font_size = "12px" if is_small else "13px"
+        
+        btn.setStyleSheet(f"""
+            QPushButton {{
+                background: {color};
+                color: {'white' if color != self.COLORS['gray'] else self.COLORS['dark']};
+                border: none;
+                border-radius: 10px;
+                padding: {padding};
+                font-weight: 600;
+                font-size: {font_size};
+                font-family: 'Inter', sans-serif;
+            }}
+            QPushButton:hover {{
+                background: {self._darken_color(color, 0.1)};
+            }}
+            QPushButton:pressed {{
+                background: {self._darken_color(color, 0.2)};
+            }}
+            QPushButton:disabled {{
+                background: {self.COLORS['gray_light']};
+                color: {self.COLORS['gray']};
+            }}
+            QPushButton:disabled {{
+                background: {self.COLORS['gray_light']};
+                color: {self.COLORS['gray']};
+            }}
+        """)
+        
         return btn
     
+    def _create_separator(self):
+        """Crée un séparateur vertical"""
+        sep = QFrame()
+        sep.setFrameShape(QFrame.VLine)
+        sep.setStyleSheet(f"background: {self.COLORS['border']}; max-width: 1px;")
+        sep.setFixedWidth(1)
+        sep.setFixedHeight(32)
+        return sep
+    
+    def _darken_color(self, hex_color, amount):
+        """Assombrit une couleur hexadécimale"""
+        # Simplification: retourne une version plus sombre
+        # Pour une implémentation complète, on pourrait utiliser QColor
+        return hex_color
+    
     def _create_stats(self, parent_layout):
-        """Crée les statistiques"""
+        """Crée les statistiques modernes"""
         stats_frame = QFrame()
-        stats_frame.setStyleSheet("""
-            QFrame {
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #e8edf2;
+        stats_frame.setStyleSheet(f"""
+            QFrame {{
+                background: {self.COLORS['white']};
+                border-radius: 16px;
+                border: 1px solid {self.COLORS['border']};
                 padding: 16px 20px;
-            }
+            }}
         """)
         
         layout = QHBoxLayout(stats_frame)
         layout.setSpacing(16)
         
-        # Cartes de stats - Mise à jour
+        # Cartes de stats
         stats_data = [
-            ("total", "👥", "Total", "#4299e1"),
-            ("souscripteurs", "📋", "Souscripteurs", "#48bb78"),
-            ("chauffeurs", "🚗", "Chauffeurs", "#ed8936"),
-            ("actifs", "⭐", "Actifs", "#9f7aea")
+            ("total", "users", "Total", self.COLORS['primary']),
+            ("souscripteurs", "user_tie", "Souscripteurs", self.COLORS['success']),
+            ("chauffeurs", "user_astronaut", "Chauffeurs", self.COLORS['orange']),
+            ("actifs", "circle_check", "Actifs", self.COLORS['purple'])
         ]
         
         self.stats_cards = {}
@@ -335,45 +668,50 @@ class ContactListView(QWidget):
         
         parent_layout.addWidget(stats_frame)
     
-    def _create_stat_card(self, icon, label, value, color):
-        """Crée une carte de statistique"""
+    def _create_stat_card(self, icon_name, label, value, color):
+        """Crée une carte de statistique moderne"""
         card = QFrame()
         card.setStyleSheet(f"""
             QFrame {{
                 background: {color}08;
-                border: 1px solid {color}20;
-                border-radius: 10px;
-                padding: 10px 16px;
-                min-width: 100px;
+                border: 1px solid {color}25;
+                border-radius: 8px;
+                padding: 12px 18px;
+                min-width: 120px;
             }}
         """)
         
         layout = QHBoxLayout(card)
-        layout.setSpacing(12)
-        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(14)
+        layout.setContentsMargins(14, 10, 14, 10)
         
-        icon_label = QLabel(icon)
-        icon_label.setStyleSheet("font-size: 20px; background: transparent; border: none;")
+        icon_label = QLabel()
+        icon_label.setPixmap(qta.icon(self.ICONS['circle_check'], color=color).pixmap(24, 24))
+        icon_label.setStyleSheet("background: transparent; border: none;")
         
         text_layout = QVBoxLayout()
-        text_layout.setSpacing(0)
+        text_layout.setSpacing(2)
         
         value_label = QLabel(value)
         value_label.setStyleSheet(f"""
-            font-size: 20px;
+            font-size: 22px;
             font-weight: 700;
             color: {color};
             background: transparent;
             border: none;
+            letter-spacing: -0.5px;
         """)
         value_label.setObjectName(f"stat_{label.lower()}")
         
         name_label = QLabel(label)
-        name_label.setStyleSheet("""
+        name_label.setStyleSheet(f"""
             font-size: 11px;
-            color: #718096;
+            font-weight: 500;
+            color: {self.COLORS['gray']};
             background: transparent;
             border: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         """)
         
         text_layout.addWidget(value_label)
@@ -385,40 +723,62 @@ class ContactListView(QWidget):
         return card
     
     def _create_table(self, parent_layout):
-        """Crée le tableau"""
+        """Crée le tableau moderne"""
         table_container = QFrame()
-        table_container.setStyleSheet("""
-            QFrame {
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #e8edf2;
-            }
+        table_container.setStyleSheet(f"""
+            QFrame {{
+                background: {self.COLORS['white']};
+                border-radius: 16px;
+                border: 1px solid {self.COLORS['border']};
+            }}
         """)
         
         layout = QVBoxLayout(table_container)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         
         # En-tête du tableau
         header = QFrame()
-        header.setStyleSheet("background: transparent; border-bottom: 1px solid #e8edf2; padding: 12px 20px;")
+        header.setStyleSheet(f"""
+            background: transparent;
+            border-bottom: 1px solid {self.COLORS['border']};
+            padding: 14px 24px;
+        """)
         
         header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(0, 0, 0, 0)
         
-        title = QLabel("📋 Liste des contacts")
-        title.setStyleSheet("font-size: 14px; font-weight: 600; color: #1a202c; background: transparent; border: none;")
+        title_icon = QLabel()
+        title_icon.setPixmap(qta.icon(self.ICONS['list'], color=self.COLORS['primary']).pixmap(18, 18))
+        header_layout.addWidget(title_icon)
+        
+        title = QLabel("Liste des contacts")
+        title.setStyleSheet(f"""
+            font-size: 15px;
+            font-weight: 600;
+            color: {self.COLORS['dark']};
+            background: transparent;
+            border: none;
+            padding-left: 10px;
+        """)
+        header_layout.addWidget(title)
+        
+        # header_layout.addStretch()
         
         info = QLabel("Double-cliquez pour voir les détails")
-        info.setStyleSheet("font-size: 11px; color: #a0aec0; background: transparent; border: none;")
-        
-        header_layout.addWidget(title)
-        header_layout.addStretch()
+        info.setStyleSheet(f"""
+            font-size: 12px;
+            color: {self.COLORS['gray']};
+            background: transparent;
+            border: none;
+        """)
         header_layout.addWidget(info)
         
-        layout.addWidget(header)
+        # layout.addWidget(header)
         
-        # Tableau - Mise à jour des colonnes
+        # Tableau
         self.table = QTableWidget()
-        self.table.setColumnCount(8)  # Augmenté pour inclure le type
+        self.table.setColumnCount(8)
         self.table.setHorizontalHeaderLabels([
             "ID", "CONTACT", "TÉLÉPHONE", "EMAIL", "TYPE", "NATURE", "STATUT", "ACTIONS"
         ])
@@ -427,56 +787,56 @@ class ContactListView(QWidget):
         self.table.setSelectionMode(QTableWidget.ExtendedSelection)
         self.table.setAlternatingRowColors(True)
         self.table.setShowGrid(False)
-        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(62)
         self.table.setSortingEnabled(True)
         self.table.setContextMenuPolicy(Qt.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self.show_context_menu)
         
-        self.table.setStyleSheet("""
-            QTableWidget {
+        self.table.setStyleSheet(f"""
+            QTableWidget {{
                 background: transparent;
                 border: none;
                 outline: none;
                 gridline-color: transparent;
-                alternate-background-color: #fafbfc;
-            }
-            QTableWidget::item {
-                padding: 12px 12px;
-                border-bottom: 1px solid #f0f2f5;
+                alternate-background-color: {self.COLORS['gray_light']};
+            }}
+            QTableWidget::item {{
+                padding: 12px 14px;
+                border-bottom: 1px solid {self.COLORS['border']};
                 font-size: 13px;
-                color: #2d3748;
-            }
-            QTableWidget::item:selected {
-                background: #ebf4ff;
-                color: #1a202c;
-            }
-            QTableWidget::item:hover {
-                background: #f7fafc;
-            }
-            QHeaderView::section {
-                background: #f7fafc;
-                padding: 10px 12px;
+                color: {self.COLORS['dark']};
+                background: transparent;
+            }}
+            QTableWidget::item:selected {{
+                background: {self.COLORS['primary_light']};
+                color: {self.COLORS['dark']};
+            }}
+            QTableWidget::item:hover {{
+                background: {self.COLORS['gray_light']};
+            }}
+            QHeaderView::section {{
+                background: {self.COLORS['gray_light']};
+                padding: 12px 14px;
                 border: none;
-                border-bottom: 2px solid #e2e8f0;
+                border-bottom: 2px solid {self.COLORS['border']};
                 font-weight: 600;
                 font-size: 11px;
-                color: #4a5568;
+                color: {self.COLORS['gray']};
                 text-transform: uppercase;
-                letter-spacing: 0.3px;
-            }
+                letter-spacing: 0.5px;
+            }}
         """)
         
         # Ajustement des largeurs de colonnes
-        self.table.setColumnWidth(0, 50)    # ID
-        self.table.setColumnWidth(1, 200)   # CONTACT
-        self.table.setColumnWidth(2, 140)   # TÉLÉPHONE
-        self.table.setColumnWidth(3, 200)   # EMAIL
-        self.table.setColumnWidth(4, 110)   # TYPE
-        self.table.setColumnWidth(5, 100)   # NATURE
-        self.table.setColumnWidth(6, 100)   # STATUT
-        self.table.setColumnWidth(7, 140)   # ACTIONS
+        self.table.setColumnWidth(0, 55)
+        self.table.setColumnWidth(1, 200)
+        self.table.setColumnWidth(2, 150)
+        self.table.setColumnWidth(3, 200)
+        self.table.setColumnWidth(4, 110)
+        self.table.setColumnWidth(5, 100)
+        self.table.setColumnWidth(6, 100)
+        self.table.setColumnWidth(7, 160)
         
-        # Les colonnes extensibles
         self.table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
         self.table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
         
@@ -488,75 +848,104 @@ class ContactListView(QWidget):
         
         # Pied
         footer = QFrame()
-        footer.setStyleSheet("background: transparent; border-top: 1px solid #e8edf2; padding: 8px 20px;")
+        footer.setStyleSheet(f"""
+            background: transparent;
+            border-top: 1px solid {self.COLORS['border']};
+            padding: 10px 24px;
+        """)
         
         footer_layout = QHBoxLayout(footer)
         footer_layout.setContentsMargins(0, 0, 0, 0)
         
         self.total_rows_label = QLabel("0 contact(s)")
-        self.total_rows_label.setStyleSheet("color: #718096; font-size: 12px; background: transparent; border: none;")
+        self.total_rows_label.setStyleSheet(f"""
+            color: {self.COLORS['gray']};
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+        """)
         
         footer_layout.addWidget(self.total_rows_label)
         footer_layout.addStretch()
+        
+        # Indicateur de sélection
+        self.selection_count_label = QLabel("")
+        self.selection_count_label.setStyleSheet(f"""
+            color: {self.COLORS['gray']};
+            font-size: 12px;
+            background: transparent;
+            border: none;
+        """)
+        footer_layout.addWidget(self.selection_count_label)
         
         layout.addWidget(footer)
         
         parent_layout.addWidget(table_container)
     
     def _create_status_bar(self, parent_layout):
-        """Crée la barre de statut"""
+        """Crée la barre de statut moderne"""
         status_bar = QFrame()
-        status_bar.setStyleSheet("""
-            QFrame {
-                background: #ffffff;
-                border-radius: 12px;
-                border: 1px solid #e8edf2;
-                padding: 8px 20px;
-            }
+        status_bar.setStyleSheet(f"""
+            QFrame {{
+                background: {self.COLORS['white']};
+                border-radius: 16px;
+                border: 1px solid {self.COLORS['border']};
+                padding: 10px 24px;
+            }}
         """)
         
         layout = QHBoxLayout(status_bar)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(16)
         
-        self.status_label = QLabel("✅ Prêt")
-        self.status_label.setStyleSheet("color: #48bb78; font-size: 13px; font-weight: 500; background: transparent; border: none;")
+        # Statut avec indicateur
+        status_indicator = QLabel()
+        status_indicator.setPixmap(qta.icon(self.ICONS['circle_check'], color=self.COLORS['success']).pixmap(16, 16))
+        layout.addWidget(status_indicator)
+        
+        self.status_label = QLabel("Prêt")
+        self.status_label.setStyleSheet(f"""
+            color: {self.COLORS['success']};
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+        """)
+        layout.addWidget(self.status_label)
+        
+        layout.addStretch()
+        
+        # Version et info
+        info_label = QLabel("v2.0")
+        info_label.setStyleSheet(f"""
+            color: {self.COLORS['gray']};
+            font-size: 11px;
+            background: transparent;
+            border: none;
+        """)
+        layout.addWidget(info_label)
+        
+        separator = QFrame()
+        separator.setFrameShape(QFrame.VLine)
+        separator.setStyleSheet(f"background: {self.COLORS['border']}; max-width: 1px;")
+        separator.setFixedWidth(1)
+        separator.setFixedHeight(16)
+        layout.addWidget(separator)
         
         self.last_update_label = QLabel("")
-        self.last_update_label.setStyleSheet("color: #a0aec0; font-size: 11px; background: transparent; border: none;")
-        
-        layout.addWidget(self.status_label)
-        layout.addStretch()
+        self.last_update_label.setStyleSheet(f"""
+            color: {self.COLORS['gray']};
+            font-size: 11px;
+            background: transparent;
+            border: none;
+        """)
         layout.addWidget(self.last_update_label)
         
         parent_layout.addWidget(status_bar)
     
-    # def _create_avatar(self, contact):
-    #     """Crée un avatar avec initiales"""
-    #     initials = ""
-    #     if contact.prenom:
-    #         initials += contact.prenom[0].upper()
-    #     if contact.nom:
-    #         initials += contact.nom[0].upper()
-    #     initials = initials or "?"
-        
-    #     colors = ["#4299e1", "#48bb78", "#ed8936", "#fc8181", "#9f7aea", "#38b2ac"]
-    #     color = colors[contact.id % len(colors)] if contact.id else colors[0]
-        
-    #     avatar = QLabel(initials)
-    #     avatar.setFixedSize(36, 36)
-    #     avatar.setAlignment(Qt.AlignCenter)
-    #     avatar.setStyleSheet(f"""
-    #         background: {color};
-    #         color: white;
-    #         border-radius: 18px;
-    #         font-weight: 700;
-    #         font-size: 13px;
-    #     """)
-    #     return avatar
-    
     def _create_avatar(self, item):
-        """Crée un avatar avec initiales"""
-        # ✅ Récupérer nom et prénom correctement
+        """Crée un avatar moderne avec initiales"""
         nom = getattr(item, 'nom', '')
         prenom = getattr(item, 'prenom', '')
         
@@ -573,42 +962,104 @@ class ContactListView(QWidget):
             initials += nom[0].upper()
         initials = initials or "?"
         
-        # ✅ Couleur différente selon le type
         display_type = getattr(item, 'display_type', 'Souscripteur')
         if display_type == "Chauffeur":
-            color = "#ed8936"  # Orange
+            color = self.COLORS['orange']
         else:
-            color = "#4299e1"  # Bleu
+            color = self.COLORS['primary']
         
         avatar = QLabel(initials)
-        avatar.setFixedSize(36, 36)
+        avatar.setFixedSize(38, 38)
         avatar.setAlignment(Qt.AlignCenter)
         avatar.setStyleSheet(f"""
             background: {color};
             color: white;
-            border-radius: 18px;
+            border-radius: 19px;
             font-weight: 700;
-            font-size: 13px;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
         """)
         return avatar
+    
+    # def _create_action_buttons(self, item):
+    #     """Crée les boutons d'action modernes avec QtAwesome"""
+    #     container = QWidget()
+    #     layout = QHBoxLayout(container)
+    #     layout.setContentsMargins(0, 0, 0, 0)
+    #     layout.setSpacing(2)
+    #     layout.setAlignment(Qt.AlignCenter)
+        
+    #     btn_style = """
+    #         QPushButton {
+    #             background: transparent;
+    #             border-radius: 8px;
+    #             padding: 6px;
+    #             min-width: 36px;
+    #             min-height: 36px;
+    #             border: none;
+    #             font-size: 14px;
+    #         }
+    #         QPushButton:hover {
+    #             background: %s;
+    #         }
+    #     """
+        
+    #     # ✅ Voir
+    #     btn_view = QPushButton()
+    #     btn_view.setIcon(qta.icon(self.ICONS['eye'], color=self.COLORS['gray']))
+    #     btn_view.setIconSize(QSize(16, 16))
+    #     btn_view.setToolTip("Voir les détails")
+    #     btn_view.setStyleSheet(btn_style % self.COLORS['primary_light'])
+    #     btn_view.clicked.connect(lambda: self.view_contact(item))
+        
+    #     # ✅ Modifier
+    #     btn_edit = QPushButton()
+    #     btn_edit.setIcon(qta.icon(self.ICONS['pen'], color=self.COLORS['gray']))
+    #     btn_edit.setIconSize(QSize(14, 14))
+    #     btn_edit.setToolTip("Modifier")
+    #     btn_edit.setStyleSheet(btn_style % self.COLORS['warning_light'])
+    #     btn_edit.clicked.connect(lambda: self.edit_contact(item))
+        
+    #     # ✅ Note
+    #     btn_note = QPushButton()
+    #     btn_note.setIcon(qta.icon(self.COLORS['note_sticky'], color=self.COLORS['gray']))
+    #     btn_note.setIconSize(QSize(14, 14))
+    #     btn_note.setToolTip("Ajouter une note")
+    #     btn_note.setStyleSheet(btn_style % self.COLORS['success_light'])
+    #     btn_note.clicked.connect(lambda: self.add_quick_note(item))
+        
+    #     # ✅ Supprimer
+    #     btn_delete = QPushButton()
+    #     btn_delete.setIcon(qta.icon('trash_can', color=self.COLORS['gray']))
+    #     btn_delete.setIconSize(QSize(14, 14))
+    #     btn_delete.setToolTip("Supprimer")
+    #     btn_delete.setStyleSheet(btn_style % self.COLORS['danger_light'])
+    #     btn_delete.clicked.connect(lambda: self.delete_contact(item))
+        
+    #     layout.addWidget(btn_view)
+    #     layout.addWidget(btn_edit)
+    #     layout.addWidget(btn_note)
+    #     layout.addWidget(btn_delete)
+        
+    #     return container
 
     def _create_action_buttons(self, item):
-        """Crée les boutons d'action"""
+        """Crée les boutons d'action modernes avec QtAwesome"""
         container = QWidget()
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(4, 4, 4, 4)
         layout.setSpacing(4)
         layout.setAlignment(Qt.AlignCenter)
         
         btn_style = """
             QPushButton {
                 background: transparent;
-                border-radius: 6px;
-                font-size: 13px;
-                padding: 4px;
-                min-width: 28px;
-                min-height: 28px;
+                border-radius: 8px;
+                padding: 8px;
+                min-width: 36px;
+                min-height: 36px;
                 border: none;
+                font-size: 14px;
             }
             QPushButton:hover {
                 background: %s;
@@ -616,27 +1067,35 @@ class ContactListView(QWidget):
         """
         
         # ✅ Voir
-        btn_view = QPushButton("👁")
+        btn_view = QPushButton()
+        btn_view.setIcon(qta.icon(self.ICONS['eye'], color=self.COLORS['gray']))
+        btn_view.setIconSize(QSize(18, 18))
         btn_view.setToolTip("Voir les détails")
-        btn_view.setStyleSheet(btn_style % "#ebf4ff")
+        btn_view.setStyleSheet(btn_style % self.COLORS['primary_light'])
         btn_view.clicked.connect(lambda: self.view_contact(item))
         
         # ✅ Modifier
-        btn_edit = QPushButton("✏️")
+        btn_edit = QPushButton()
+        btn_edit.setIcon(qta.icon(self.ICONS['pen'], color=self.COLORS['gray']))
+        btn_edit.setIconSize(QSize(16, 16))
         btn_edit.setToolTip("Modifier")
-        btn_edit.setStyleSheet(btn_style % "#fefcbf")
+        btn_edit.setStyleSheet(btn_style % self.COLORS['warning_light'])
         btn_edit.clicked.connect(lambda: self.edit_contact(item))
         
         # ✅ Note
-        btn_note = QPushButton("📝")
+        btn_note = QPushButton()
+        btn_note.setIcon(qta.icon(self.ICONS['note_sticky'], color=self.COLORS['gray']))  # ✅ CORRIGÉ
+        btn_note.setIconSize(QSize(16, 16))
         btn_note.setToolTip("Ajouter une note")
-        btn_note.setStyleSheet(btn_style % "#c6f6d5")
+        btn_note.setStyleSheet(btn_style % self.COLORS['success_light'])
         btn_note.clicked.connect(lambda: self.add_quick_note(item))
         
         # ✅ Supprimer
-        btn_delete = QPushButton("🗑")
+        btn_delete = QPushButton()
+        btn_delete.setIcon(qta.icon(self.ICONS['trash_can'], color=self.COLORS['gray']))  # ✅ CORRIGÉ
+        btn_delete.setIconSize(QSize(16, 16))
         btn_delete.setToolTip("Supprimer")
-        btn_delete.setStyleSheet(btn_style % "#fed7d7")
+        btn_delete.setStyleSheet(btn_style % self.COLORS['danger_light'])
         btn_delete.clicked.connect(lambda: self.delete_contact(item))
         
         layout.addWidget(btn_view)
@@ -646,98 +1105,18 @@ class ContactListView(QWidget):
         
         return container
 
-    # def _create_action_buttons(self, contact):
-    #     """Crée les boutons d'action"""
-    #     container = QWidget()
-    #     layout = QHBoxLayout(container)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-    #     layout.setSpacing(4)
-    #     layout.setAlignment(Qt.AlignCenter)
-        
-    #     btn_style = """
-    #         QPushButton {
-    #             background: transparent;
-    #             border-radius: 6px;
-    #             font-size: 13px;
-    #             padding: 4px;
-    #             min-width: 28px;
-    #             min-height: 28px;
-    #             border: none;
-    #         }
-    #         QPushButton:hover {
-    #             background: %s;
-    #         }
-    #     """
-        
-    #     # Voir
-    #     btn_view = QPushButton("👁")
-    #     btn_view.setToolTip("Voir les détails")
-    #     btn_view.setStyleSheet(btn_style % "#ebf4ff")
-    #     btn_view.clicked.connect(lambda: self.view_contact(contact))
-        
-    #     # Modifier
-    #     btn_edit = QPushButton("✏️")
-    #     btn_edit.setToolTip("Modifier")
-    #     btn_edit.setStyleSheet(btn_style % "#fefcbf")
-    #     btn_edit.clicked.connect(lambda: self.edit_contact(contact))
-        
-    #     # Note
-    #     btn_note = QPushButton("📝")
-    #     btn_note.setToolTip("Ajouter une note")
-    #     btn_note.setStyleSheet(btn_style % "#c6f6d5")
-    #     btn_note.clicked.connect(lambda: self.add_quick_note(contact))
-        
-    #     # Supprimer
-    #     btn_delete = QPushButton("🗑")
-    #     btn_delete.setToolTip("Supprimer")
-    #     btn_delete.setStyleSheet(btn_style % "#fed7d7")
-    #     btn_delete.clicked.connect(lambda: self.delete_contact(contact))
-        
-    #     layout.addWidget(btn_view)
-    #     layout.addWidget(btn_edit)
-    #     layout.addWidget(btn_note)
-    #     layout.addWidget(btn_delete)
-        
-    #     return container
-    
-    # ============================================================
-    # FONCTIONS MÉTIER
-    # ============================================================
-    
-    # def load_contacts(self):
-    #     """Charge les contacts"""
-    #     try:
-    #         self.set_status("Chargement...", "info")
-    #         self.all_contacts = self.controller.contacts.get_all_contacts()
-    #         self.filtered_contacts = self.all_contacts.copy()
-    #         self.display_contacts()
-    #         self.update_statistics()
-    #         self.update_last_update_time()
-            
-    #         count = len(self.all_contacts)
-    #         self.set_status(f"{count} contact(s) chargé(s)", "success")
-            
-    #     except Exception as e:
-    #         self.set_status(f"Erreur: {str(e)}", "error")
-    #         logger.error(f"Erreur chargement contacts: {e}")
-    
+
     def load_contacts(self):
         """Charge les contacts (souscripteurs + chauffeurs)"""
         try:
             self.set_status("Chargement...", "info")
             
-            # ✅ Forcer le rechargement
             from core.workers.query_cache import query_cache
             query_cache.invalidate('all_contacts_drivers')
             query_cache.invalidate('contacts_all')
             
             self.all_contacts = self.controller.contacts.get_all_contacts_with_drivers(force_refresh=True)
             self.filtered_contacts = self.all_contacts.copy()
-            
-            # ✅ Log de débogage
-            print(f"🔍 {len(self.all_contacts)} entrées chargées")
-            for i, entry in enumerate(self.all_contacts):
-                print(f"   {i}: {entry.display_type} - {entry.nom} (ID: {entry.id})")
             
             self.display_contacts()
             self.update_statistics()
@@ -752,75 +1131,11 @@ class ContactListView(QWidget):
             import traceback
             traceback.print_exc()
 
-    # def display_contacts(self):
-    #     """Affiche les contacts"""
-    #     self.table.setRowCount(0)
-    #     count = len(self.filtered_contacts)
-    #     self.total_rows_label.setText(f"{count} contact(s)")
-        
-    #     for row, contact in enumerate(self.filtered_contacts):
-    #         self.table.insertRow(row)
-            
-    #         # ID
-    #         id_item = QTableWidgetItem(str(contact.id))
-    #         id_item.setTextAlignment(Qt.AlignCenter)
-    #         self.table.setItem(row, 0, id_item)
-            
-    #         # Contact (avatar + nom)
-    #         contact_widget = QWidget()
-    #         contact_layout = QHBoxLayout(contact_widget)
-    #         contact_layout.setContentsMargins(0, 0, 0, 0)
-    #         contact_layout.setSpacing(10)
-            
-    #         avatar = self._create_avatar(contact)
-    #         contact_layout.addWidget(avatar)
-            
-    #         name = f"{contact.nom or ''} {contact.prenom or ''}".strip()
-    #         name_label = QLabel(name or "—")
-    #         name_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #1a202c; background: transparent; border: none;")
-    #         contact_layout.addWidget(name_label)
-    #         contact_layout.addStretch()
-            
-    #         self.table.setCellWidget(row, 1, contact_widget)
-            
-    #         # Téléphone
-    #         self.table.setItem(row, 2, QTableWidgetItem(contact.telephone or "—"))
-            
-    #         # Email
-    #         self.table.setItem(row, 3, QTableWidgetItem(contact.email or "—"))
-            
-    #         # Type (Souscripteur/Chauffeur)
-    #         type_item = QTableWidgetItem(contact.type_client or "—")
-    #         type_item.setTextAlignment(Qt.AlignCenter)
-    #         type_item.setForeground(self._get_type_color(contact.type_client))
-    #         self.table.setItem(row, 4, type_item)
-            
-    #         # Nature (Particulier/Société)
-    #         nature_item = QTableWidgetItem(contact.nature or "—")
-    #         nature_item.setTextAlignment(Qt.AlignCenter)
-    #         nature_item.setForeground(self._get_nature_color(contact.nature))
-    #         self.table.setItem(row, 5, nature_item)
-            
-    #         # Statut
-    #         status = contact.statut or "Actif"
-    #         status_item = QTableWidgetItem(status)
-    #         status_item.setTextAlignment(Qt.AlignCenter)
-    #         status_item.setForeground(self._get_status_color(status))
-    #         self.table.setItem(row, 6, status_item)
-            
-    #         # Actions
-    #         actions = self._create_action_buttons(contact)
-    #         self.table.setCellWidget(row, 7, actions)
-            
-    #         self.table.setRowHeight(row, 56)
-
     def display_contacts(self):
-        """Affiche les contacts (souscripteurs et chauffeurs)"""
+        """Affiche les contacts"""
         self.table.setRowCount(0)
         count = len(self.filtered_contacts)
         self.total_rows_label.setText(f"{count} contact(s)")
-        
-        print(f"🔍 Affichage de {count} contacts")
         
         for row, item in enumerate(self.filtered_contacts):
             try:
@@ -838,16 +1153,14 @@ class ContactListView(QWidget):
                 contact_widget = QWidget()
                 contact_layout = QHBoxLayout(contact_widget)
                 contact_layout.setContentsMargins(0, 0, 0, 0)
-                contact_layout.setSpacing(10)
+                contact_layout.setSpacing(12)
                 
                 avatar = self._create_avatar(item)
                 contact_layout.addWidget(avatar)
                 
-                # ✅ Récupérer le nom correctement
                 nom = getattr(item, 'nom', '')
                 prenom = getattr(item, 'prenom', '')
                 if not nom and hasattr(item, 'data'):
-                    # Si c'est un ContactListItem, récupérer depuis data
                     data = getattr(item, 'data', None)
                     if data:
                         nom = getattr(data, 'nom', '')
@@ -855,7 +1168,13 @@ class ContactListView(QWidget):
                 
                 name = f"{nom or ''} {prenom or ''}".strip()
                 name_label = QLabel(name or "—")
-                name_label.setStyleSheet("font-weight: 600; font-size: 13px; color: #1a202c; background: transparent; border: none;")
+                name_label.setStyleSheet(f"""
+                    font-weight: 600;
+                    font-size: 14px;
+                    color: {self.COLORS['dark']};
+                    background: transparent;
+                    border: none;
+                """)
                 contact_layout.addWidget(name_label)
                 contact_layout.addStretch()
                 
@@ -891,7 +1210,7 @@ class ContactListView(QWidget):
                 nature_item.setForeground(self._get_nature_color(nature))
                 self.table.setItem(row, 5, nature_item)
                 
-                # ✅ Statut
+                # ✅ Statut avec badge
                 statut = getattr(item, 'statut', 'Actif')
                 if not statut and hasattr(item, 'data'):
                     statut = getattr(item.data, 'statut', 'Actif')
@@ -904,52 +1223,26 @@ class ContactListView(QWidget):
                 actions = self._create_action_buttons(item)
                 self.table.setCellWidget(row, 7, actions)
                 
-                self.table.setRowHeight(row, 56)
+                self.table.setRowHeight(row, 62)
                 
             except Exception as e:
                 print(f"❌ Erreur à la ligne {row}: {e}")
                 import traceback
                 traceback.print_exc()
 
-    # def update_statistics(self):
-    #     """Met à jour les statistiques"""
-    #     total = len(self.filtered_contacts)
-    #     souscripteurs = len([c for c in self.filtered_contacts if (c.type_client or "") == "Souscripteur"])
-    #     chauffeurs = len([c for c in self.filtered_contacts if (c.type_client or "") == "Chauffeur"])
-    #     actifs = len([c for c in self.filtered_contacts if (c.statut or "Actif") == "Actif"])
-        
-    #     self._update_stat_card("total", str(total))
-    #     self._update_stat_card("souscripteurs", str(souscripteurs))
-    #     self._update_stat_card("chauffeurs", str(chauffeurs))
-    #     self._update_stat_card("actifs", str(actifs))
-        
-    #     # Mettre à jour les compteurs
-    #     self._update_counter("total", str(total))
-    #     self._update_counter("actifs", str(actifs))
-
     def update_statistics(self):
         """Met à jour les statistiques"""
         total = len(self.filtered_contacts)
         
-        # Compter les souscripteurs (contacts)
         souscripteurs = len([e for e in self.filtered_contacts if getattr(e, 'display_type', '') == "Souscripteur" or getattr(e, 'source', '') == 'contact'])
-        
-        # Compter les chauffeurs (drivers)
         chauffeurs = len([e for e in self.filtered_contacts if getattr(e, 'display_type', '') == "Chauffeur" or getattr(e, 'source', '') == 'driver'])
-        
-        # Compter les actifs
-        actifs = 0
-        for e in self.filtered_contacts:
-            statut = getattr(e, 'statut', 'Actif')
-            if statut == "Actif":
-                actifs += 1
+        actifs = len([e for e in self.filtered_contacts if getattr(e, 'statut', 'Actif') == "Actif"])
         
         self._update_stat_card("total", str(total))
         self._update_stat_card("souscripteurs", str(souscripteurs))
         self._update_stat_card("chauffeurs", str(chauffeurs))
         self._update_stat_card("actifs", str(actifs))
         
-        # Mettre à jour les compteurs
         self._update_counter("total", str(total))
         self._update_counter("actifs", str(actifs))
 
@@ -987,6 +1280,12 @@ class ContactListView(QWidget):
         
         self.selection_label.setText(f"{count} sélectionné(s)" if count > 0 else "")
         
+        # Mise à jour du compteur de sélection dans le footer
+        if count > 0:
+            self.selection_count_label.setText(f"• {count} sélectionné{'s' if count > 1 else ''}")
+        else:
+            self.selection_count_label.setText("")
+        
         if count == 1:
             self.contact_selected.emit(self.selected_contacts[0])
     
@@ -1003,28 +1302,7 @@ class ContactListView(QWidget):
     def on_filter_changed(self):
         """Filtre"""
         self.apply_filters()
-    
-    # def apply_filters(self):
-    #     """Applique les filtres"""
-    #     search_text = self.search_input.text().strip().lower()
-    #     filter_text = self.filter_combo.currentText()
-        
-    #     filtered = self.all_contacts.copy()
-        
-    #     if search_text:
-    #         filtered = [c for c in filtered if self._matches_search(c, search_text)]
-        
-    #     if filter_text != "Tous":
-    #         if filter_text in ["Souscripteur", "Chauffeur"]:
-    #             filtered = [c for c in filtered if (c.type_client or "") == filter_text]
-    #         elif filter_text in ["Particulier", "Société"]:
-    #             filtered = [c for c in filtered if (c.nature or "") == filter_text]
-        
-    #     self.filtered_contacts = filtered
-    #     self.display_contacts()
-    #     self.update_statistics()
-    #     self.set_status(f"{len(filtered)} contact(s) trouvé(s)", "info")
-    
+   
     def apply_filters(self):
         """Applique les filtres"""
         search_text = self.search_input.text().strip().lower()
@@ -1048,38 +1326,19 @@ class ContactListView(QWidget):
         self.update_statistics()
         self.set_status(f"{len(filtered)} contact(s) trouvé(s)", "info")
 
-    # def _matches_search(self, contact, search_text):
-    #     """Vérifie si le contact correspond à la recherche"""
-    #     return any([
-    #         search_text in (contact.nom or "").lower(),
-    #         search_text in (contact.prenom or "").lower(),
-    #         search_text in (contact.telephone or "").lower(),
-    #         search_text in (contact.email or "").lower(),
-    #         search_text in (contact.type_client or "").lower(),
-    #         search_text in (contact.nature or "").lower(),
-    #         search_text in (contact.code_client or "").lower(),
-    #         search_text in (contact.code_chauffeur or "").lower()
-    #     ])
-    
     def _matches_search(self, entry, search_text):
         """Vérifie si l'entrée correspond à la recherche"""
-        # ✅ Récupérer les valeurs avec gestion de None
         nom = getattr(entry, 'nom', '') or ''
         prenom = getattr(entry, 'prenom', '') or ''
         telephone = getattr(entry, 'telephone', '') or ''
         email = getattr(entry, 'email', '') or ''
-        
-        # Pour les contacts
         type_client = getattr(entry, 'type_client', '') or ''
         nature = getattr(entry, 'nature', '') or ''
         code_client = getattr(entry, 'code_client', '') or ''
         code_chauffeur = getattr(entry, 'code_chauffeur', '') or ''
-        
-        # Pour les chauffeurs
         display_type = getattr(entry, 'display_type', '') or ''
         specialite = getattr(entry, 'specialite', '') or ''
         
-        # Convertir en minuscules pour la recherche
         search_lower = search_text.lower()
         
         return any([
@@ -1101,15 +1360,13 @@ class ContactListView(QWidget):
     
     def on_add_contact(self):
         """Ajoute un contact"""
-        # ✅ Passer le bon contrôleur
         dialog = ContactForm(self.controller, parent=self)
         if dialog.exec_():
-            # ✅ Récupérer les données via la méthode corrigée
             data = dialog._get_data()
             contact, success, message = self.controller.contacts.create_contact(data)
             if success:
                 self.load_contacts()
-                self.set_status("Contact ajouté", "success")
+                self.set_status("Contact ajouté avec succès", "success")
             else:
                 self.set_status(f"Erreur: {message}", "error")
     
@@ -1122,12 +1379,11 @@ class ContactListView(QWidget):
         """Modifie un contact"""
         fresh_contact = self.controller.contacts.get_contact_by_id(contact.id)
         if fresh_contact:
-            # ✅ Passer le bon contrôleur
             dialog = ContactForm(self.controller, fresh_contact, parent=self, mode="edit")
             if dialog.exec_():
                 self.load_contacts()
                 self.contact_updated.emit()
-                self.set_status("Contact modifié", "success")
+                self.set_status("Contact modifié avec succès", "success")
     
     def view_contact(self, contact):
         """Voir les détails d'un contact"""
@@ -1200,7 +1456,7 @@ class ContactListView(QWidget):
             contact, success, message = self.controller.contacts.create_contact(new_data)
             if success:
                 self.load_contacts()
-                self.set_status("Contact dupliqué", "success")
+                self.set_status("Contact dupliqué avec succès", "success")
     
     def import_contacts(self):
         """Importe des contacts"""
@@ -1221,70 +1477,90 @@ class ContactListView(QWidget):
         dialog = QDialog(self)
         dialog.setWindowTitle(f"📝 Note - {contact.nom}")
         dialog.resize(450, 250)
+        dialog.setStyleSheet(f"""
+            QDialog {{
+                background: {self.COLORS['white']};
+                border-radius: 16px;
+            }}
+        """)
         
         layout = QVBoxLayout(dialog)
-        layout.setSpacing(12)
+        layout.setSpacing(14)
+        layout.setContentsMargins(24, 24, 24, 24)
         
         info = QLabel(f"Contact: {contact.nom} {contact.prenom or ''}")
-        info.setStyleSheet("font-weight: 600; color: #1a202c; background: transparent; border: none;")
+        info.setStyleSheet(f"""
+            font-weight: 600;
+            font-size: 14px;
+            color: {self.COLORS['dark']};
+            background: transparent;
+            border: none;
+        """)
         layout.addWidget(info)
         
         note_input = QTextEdit()
         note_input.setPlaceholderText("Écrivez votre note ici...")
-        note_input.setStyleSheet("""
-            QTextEdit {
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 8px;
+        note_input.setStyleSheet(f"""
+            QTextEdit {{
+                border: 2px solid {self.COLORS['border']};
+                border-radius: 12px;
+                padding: 12px;
                 font-size: 13px;
-            }
-            QTextEdit:focus {
-                border-color: #4299e1;
-            }
+                background: {self.COLORS['gray_light']};
+            }}
+            QTextEdit:focus {{
+                border-color: {self.COLORS['primary']};
+                background: {self.COLORS['white']};
+            }}
         """)
         layout.addWidget(note_input)
         
         btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+        
         btn_cancel = QPushButton("Annuler")
-        btn_cancel.setStyleSheet("""
-            QPushButton {
-                background: #f7fafc;
-                border: 1px solid #e2e8f0;
-                border-radius: 6px;
-                padding: 8px 20px;
+        btn_cancel.setStyleSheet(f"""
+            QPushButton {{
+                background: {self.COLORS['gray_light']};
+                color: {self.COLORS['dark']};
+                border: 1px solid {self.COLORS['border']};
+                border-radius: 10px;
+                padding: 10px 24px;
                 font-weight: 500;
-            }
-            QPushButton:hover {
-                background: #edf2f7;
-            }
+            }}
+            QPushButton:hover {{
+                background: {self.COLORS['border']};
+            }}
         """)
         btn_cancel.clicked.connect(dialog.reject)
         
-        btn_save = QPushButton("💾 Enregistrer")
-        btn_save.setStyleSheet("""
-            QPushButton {
-                background: #4299e1;
+        btn_save = QPushButton()
+        btn_save.setIcon(qta.icon(self.ICONS['floppy_disk'], color='white'))
+        btn_save.setIconSize(QSize(16, 16))
+        btn_save.setText("  Enregistrer")
+        btn_save.setStyleSheet(f"""
+            QPushButton {{
+                background: {self.COLORS['primary']};
                 color: white;
                 border: none;
-                border-radius: 6px;
-                padding: 8px 20px;
+                border-radius: 10px;
+                padding: 10px 24px;
                 font-weight: 600;
-            }
-            QPushButton:hover {
-                background: #3182ce;
-            }
+            }}
+            QPushButton:hover {{
+                background: {self._darken_color(self.COLORS['primary'], 0.1)};
+            }}
         """)
         
         def on_save():
             note = note_input.toPlainText().strip()
             if note:
-                # ✅ Utiliser la méthode existante ou ajouter une méthode add_note
                 self.controller.contacts.log_contact_action(
                     action="NOTE_ADDED",
                     contact_id=contact.id,
                     details=note
                 )
-                self.set_status("Note ajoutée", "success")
+                self.set_status("Note ajoutée avec succès", "success")
                 dialog.accept()
             else:
                 QMessageBox.warning(dialog, "Attention", "Veuillez écrire une note.")
@@ -1362,13 +1638,36 @@ class ContactListView(QWidget):
             dialog = QDialog(self)
             dialog.setWindowTitle("📜 Journal d'audit")
             dialog.resize(1000, 600)
+            dialog.setStyleSheet(f"""
+                QDialog {{
+                    background: {self.COLORS['white']};
+                }}
+            """)
             
             layout = QVBoxLayout(dialog)
-            layout.setSpacing(12)
+            layout.setSpacing(16)
+            layout.setContentsMargins(24, 24, 24, 24)
             
-            title = QLabel("📜 Historique des actions")
-            title.setStyleSheet("font-size: 18px; font-weight: 700; color: #1a202c; background: transparent; border: none;")
-            layout.addWidget(title)
+            title_widget = QWidget()
+            title_layout = QHBoxLayout(title_widget)
+            title_layout.setContentsMargins(0, 0, 0, 0)
+            title_layout.setSpacing(12)
+            
+            icon_label = QLabel()
+            icon_label.setPixmap(qta.icon(self.ICONS['clipboard_list'], color=self.COLORS['primary']).pixmap(28, 28))
+            title_layout.addWidget(icon_label)
+            
+            title = QLabel("Journal d'audit")
+            title.setStyleSheet(f"""
+                font-size: 20px;
+                font-weight: 700;
+                color: {self.COLORS['dark']};
+                background: transparent;
+                border: none;
+            """)
+            title_layout.addWidget(title)
+            title_layout.addStretch()
+            layout.addWidget(title_widget)
             
             table = QTableWidget()
             table.setColumnCount(4)
@@ -1377,19 +1676,23 @@ class ContactListView(QWidget):
             table.setSelectionBehavior(QTableWidget.SelectRows)
             table.setShowGrid(False)
             table.verticalHeader().setVisible(False)
-            table.setStyleSheet("""
-                QTableWidget {
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                }
-                QHeaderView::section {
-                    background: #f7fafc;
-                    padding: 10px;
+            table.setStyleSheet(f"""
+                QTableWidget {{
+                    border: 1px solid {self.COLORS['border']};
+                    border-radius: 12px;
+                }}
+                QHeaderView::section {{
+                    background: {self.COLORS['gray_light']};
+                    padding: 12px 16px;
                     font-weight: 600;
-                }
-                QTableWidget::item {
-                    padding: 10px;
-                }
+                    color: {self.COLORS['gray']};
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    font-size: 11px;
+                }}
+                QTableWidget::item {{
+                    padding: 12px 16px;
+                }}
             """)
             
             table.setRowCount(len(logs))
@@ -1401,25 +1704,26 @@ class ContactListView(QWidget):
                 table.setItem(i, 3, QTableWidgetItem(log.details or "—"))
             
             table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-            table.setColumnWidth(0, 160)
-            table.setColumnWidth(1, 120)
+            table.setColumnWidth(0, 170)
+            table.setColumnWidth(1, 140)
             table.setColumnWidth(2, 100)
             
             layout.addWidget(table)
             
             btn_close = QPushButton("Fermer")
-            btn_close.setStyleSheet("""
-                QPushButton {
-                    background: #4299e1;
+            btn_close.setStyleSheet(f"""
+                QPushButton {{
+                    background: {self.COLORS['primary']};
                     color: white;
                     border: none;
-                    border-radius: 6px;
-                    padding: 10px;
+                    border-radius: 10px;
+                    padding: 12px;
                     font-weight: 600;
-                }
-                QPushButton:hover {
-                    background: #3182ce;
-                }
+                    font-size: 14px;
+                }}
+                QPushButton:hover {{
+                    background: {self._darken_color(self.COLORS['primary'], 0.1)};
+                }}
             """)
             btn_close.clicked.connect(dialog.accept)
             layout.addWidget(btn_close)
@@ -1431,20 +1735,29 @@ class ContactListView(QWidget):
     def show_context_menu(self, position):
         """Affiche le menu contextuel"""
         menu = QMenu()
-        menu.setStyleSheet("""
-            QMenu {
-                background: white;
-                border: 1px solid #e2e8f0;
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background: {self.COLORS['white']};
+                border: 1px solid {self.COLORS['border']};
+                border-radius: 12px;
+                padding: 6px;
+                min-width: 180px;
+            }}
+            QMenu::item {{
+                padding: 10px 20px;
                 border-radius: 8px;
-                padding: 4px;
-            }
-            QMenu::item {
-                padding: 8px 20px;
-                border-radius: 4px;
-            }
-            QMenu::item:selected {
-                background: #ebf4ff;
-            }
+                font-size: 13px;
+                color: {self.COLORS['dark']};
+            }}
+            QMenu::item:selected {{
+                background: {self.COLORS['primary_light']};
+                color: {self.COLORS['primary']};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {self.COLORS['border']};
+                margin: 4px 12px;
+            }}
         """)
         
         item = self.table.itemAt(position)
@@ -1457,19 +1770,19 @@ class ContactListView(QWidget):
         
         contact = self.filtered_contacts[row]
         
-        view_action = QAction("👁️ Voir les détails", self)
+        view_action = QAction(qta.icon(self.ICONS['eye'], color=self.COLORS['gray']), "Voir les détails", self)
         view_action.triggered.connect(lambda: self.view_contact(contact))
         
-        edit_action = QAction("✏️ Modifier", self)
+        edit_action = QAction(qta.icon('pen', color=self.COLORS['gray']), "Modifier", self)
         edit_action.triggered.connect(lambda: self.edit_contact(contact))
         
-        note_action = QAction("📝 Ajouter une note", self)
+        note_action = QAction(qta.icon(self.COLORS['note_sticky'], color=self.COLORS['gray']), "Ajouter une note", self)
         note_action.triggered.connect(lambda: self.add_quick_note(contact))
         
-        duplicate_action = QAction("📋 Dupliquer", self)
+        duplicate_action = QAction(qta.icon('copy', color=self.COLORS['gray']), "Dupliquer", self)
         duplicate_action.triggered.connect(lambda: self.duplicate_single_contact(contact))
         
-        delete_action = QAction("🗑️ Supprimer", self)
+        delete_action = QAction(qta.icon('trash_can', color=self.COLORS['danger']), "Supprimer", self)
         delete_action.triggered.connect(lambda: self.delete_contact(contact))
         
         menu.addAction(view_action)
@@ -1496,7 +1809,7 @@ class ContactListView(QWidget):
         contact, success, message = self.controller.contacts.create_contact(new_data)
         if success:
             self.load_contacts()
-            self.set_status("Contact dupliqué", "success")
+            self.set_status("Contact dupliqué avec succès", "success")
     
     # ============================================================
     # UTILITAIRES
@@ -1505,45 +1818,113 @@ class ContactListView(QWidget):
     def _get_type_color(self, contact_type):
         """Couleur selon le type de client"""
         colors = {
-            "Souscripteur": QColor("#48bb78"),
-            "Chauffeur": QColor("#ed8936"),
-            "Assuré": QColor("#48bb78"),
-            "Prospect": QColor("#ed8936"),
-            "Partenaire": QColor("#9f7aea"),
-            "Fournisseur": QColor("#38b2ac")
+            "Souscripteur": QColor(self.COLORS['success']),
+            "Chauffeur": QColor(self.COLORS['orange']),
+            "Assuré": QColor(self.COLORS['success']),
+            "Prospect": QColor(self.COLORS['orange']),
+            "Partenaire": QColor(self.COLORS['purple']),
+            "Fournisseur": QColor(self.COLORS['teal'])
         }
-        return colors.get(contact_type, QColor("#718096"))
+        return colors.get(contact_type, QColor(self.COLORS['gray']))
     
     def _get_nature_color(self, nature):
         """Couleur selon la nature"""
         colors = {
-            "Particulier": QColor("#4299e1"),
-            "Société": QColor("#9f7aea"),
-            "Personne Physique": QColor("#4299e1"),
-            "Personne Morale": QColor("#9f7aea")
+            "Particulier": QColor(self.COLORS['primary']),
+            "Société": QColor(self.COLORS['purple']),
+            "Personne Physique": QColor(self.COLORS['primary']),
+            "Personne Morale": QColor(self.COLORS['purple'])
         }
-        return colors.get(nature, QColor("#718096"))
+        return colors.get(nature, QColor(self.COLORS['gray']))
     
     def _get_status_color(self, status):
         """Couleur selon le statut"""
         colors = {
-            "Actif": QColor("#48bb78"),
-            "Inactif": QColor("#fc8181"),
-            "En attente": QColor("#ed8936"),
-            "Suspendu": QColor("#ed8936")
+            "Actif": QColor(self.COLORS['success']),
+            "Inactif": QColor(self.COLORS['danger']),
+            "En attente": QColor(self.COLORS['warning']),
+            "Suspendu": QColor(self.COLORS['warning'])
         }
-        return colors.get(status, QColor("#718096"))
+        return colors.get(status, QColor(self.COLORS['gray']))
     
+    # def set_status(self, message, msg_type="info"):
+    #     """Définit le message de statut"""
+    #     icons = {
+    #         "success": qta.icon(self.ICONS['circle_check'], color=self.COLORS['success']),
+    #         "error": qta.icon('circle_xmark', color=self.COLORS['danger']),
+    #         "info": qta.icon('circle_info', color=self.COLORS['primary']),
+    #         "warning": qta.icon('triangle-exclamation', color=self.COLORS['warning'])
+    #     }
+    #     colors = {
+    #         "success": self.COLORS['success'],
+    #         "error": self.COLORS['danger'],
+    #         "info": self.COLORS['primary'],
+    #         "warning": self.COLORS['warning']
+    #     }
+        
+    #     # Mettre à jour l'icône de statut
+    #     status_indicator = self.status_label.parent().findChildren(QLabel)[0] if self.status_label.parent() else None
+    #     if status_indicator and msg_type in icons:
+    #         status_indicator.setPixmap(icons[msg_type].pixmap(16, 16))
+        
+    #     self.status_label.setText(message)
+    #     self.status_label.setStyleSheet(f"""
+    #         color: {colors.get(msg_type, self.COLORS['gray'])};
+    #         font-size: 13px;
+    #         font-weight: 500;
+    #         background: transparent;
+    #         border: none;
+    #     """)
+        
+    #     if msg_type != "error":
+    #         QTimer.singleShot(3000, self._reset_status)
+
     def set_status(self, message, msg_type="info"):
         """Définit le message de statut"""
-        icons = {"success": "✅", "error": "❌", "info": "ℹ️", "warning": "⚠️"}
-        colors = {"success": "#48bb78", "error": "#fc8181", "info": "#4299e1", "warning": "#ed8936"}
+        icons = {
+            "success": qta.icon(self.ICONS['circle_check'], color=self.COLORS['success']),
+            "error": qta.icon(self.ICONS['circle_xmark'], color=self.COLORS['danger']),
+            "info": qta.icon(self.ICONS['circle_info'], color=self.COLORS['primary']),
+            "warning": qta.icon(self.ICONS['triangle_exclamation'], color=self.COLORS['warning'])
+        }
+        colors = {
+            "success": self.COLORS['success'],
+            "error": self.COLORS['danger'],
+            "info": self.COLORS['primary'],
+            "warning": self.COLORS['warning']
+        }
         
-        self.status_label.setText(f"{icons.get(msg_type, 'ℹ️')} {message}")
-        self.status_label.setStyleSheet(f"color: {colors.get(msg_type, '#718096')}; font-size: 13px; font-weight: 500; background: transparent; border: none;")
+        # Mettre à jour l'icône de statut
+        status_indicator = self.status_label.parent().findChildren(QLabel)[0] if self.status_label.parent() else None
+        if status_indicator and msg_type in icons:
+            status_indicator.setPixmap(icons[msg_type].pixmap(16, 16))
+        
+        self.status_label.setText(message)
+        self.status_label.setStyleSheet(f"""
+            color: {colors.get(msg_type, self.COLORS['gray'])};
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+        """)
         
         if msg_type != "error":
-            QTimer.singleShot(3000, lambda: self.status_label.setText("✅ Prêt"))
+            QTimer.singleShot(3000, self._reset_status)
+
+    def _reset_status(self):
+        """Réinitialise le statut"""
+        status_indicator = self.status_label.parent().findChildren(QLabel)[0] if self.status_label.parent() else None
+        if status_indicator:
+            status_indicator.setPixmap(qta.icon(self.ICONS['circle_check'], color=self.COLORS['success']).pixmap(16, 16))
+        
+        self.status_label.setText("Prêt")
+        self.status_label.setStyleSheet(f"""
+            color: {self.COLORS['success']};
+            font-size: 13px;
+            font-weight: 500;
+            background: transparent;
+            border: none;
+        """)
     
     def update_last_update_time(self):
         """Met à jour l'heure de dernière mise à jour"""
@@ -1605,3 +1986,6 @@ class ContactListView(QWidget):
             action.setShortcut(key)
             action.triggered.connect(callback)
             self.addAction(action)
+
+
+        

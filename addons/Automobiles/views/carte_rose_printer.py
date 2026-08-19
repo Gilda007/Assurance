@@ -78,53 +78,53 @@ class CarteRosePrinter:
         draw_line(10, 85, self.data.get('owner'))
         
         # 2. Immatriculation
-        draw_line(10, 95, f"{self.data.get('immatriculation', '')}")
+        draw_line(10, 92, f"{self.data.get('immatriculation', '')}")
         
         # 3. Marque et Modèle
         marque_mod = f"{self.data.get('marque', '')} {self.data.get('modele', '')}"
-        draw_line(10, 105, marque_mod)
+        draw_line(10, 99, marque_mod)
         
         # 4. Assureur
-        draw_line(10, 115, self.data.get('compagny'))
+        draw_line(10, 106, self.data.get('compagny'))
         
         # 5. AMS Assurance
-        draw_line(10, 125, "AMS ASSURANCE")
+        draw_line(10, 113, "AMS ASSURANCE")
         
         # 6. ID (Châssis)
-        draw_line(10, 135, f"ID: {self.data.get('id', 'N/A')}")
+        draw_line(10, 120, f"ID: {self.data.get('id', 'N/A')}")
         
         # 7. Période
         # periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
         date_debut = format_date(self.data.get('date_debut', ''))
         date_fin = format_date(self.data.get('date_fin', ''))
         periode = f"{date_debut} AU {date_fin}"
-        draw_line(10, 145, periode)
+        draw_line(10, 127, periode)
         
         # 8. Catégorie
         usage_categorie = f"{self.data.get('libele_tarif', '')}, {self.data.get('categorie', '')}"
-        draw_line(10, 155, usage_categorie)
+        draw_line(10, 134, usage_categorie)
         
         # --- DEUXIÈME COLONNE ---
         draw_line(80, 85, self.data.get('owner', ''))
-        draw_line(80, 95, periode)
-        draw_line(80, 105, self.data.get('immatriculation', ''))
-        draw_line(80, 115, marque_mod)
-        draw_line(80, 125, self.data.get('compagny', ''))
-        draw_line(80, 135, f"ID: {self.data.get('id', 'N/A')}")
-        draw_line(80, 145, usage_categorie)
+        draw_line(80, 92, periode)
+        draw_line(80, 99, self.data.get('immatriculation', ''))
+        draw_line(80, 106, marque_mod)
+        draw_line(80, 113, self.data.get('compagny', ''))
+        draw_line(80, 120, f"ID: {self.data.get('id', 'N/A')}")
+        draw_line(80, 127, usage_categorie)
         
         # --- TROISIÈME COLONNE ---
         draw_line(160, 85, self.data.get('owner', ''))
-        draw_line(160, 95, self.data.get('immatriculation', ''))
-        draw_line(160, 105, "AMS ASSURANCE, YAOUNDE")
-        draw_line(160, 135, usage_categorie)
+        draw_line(160, 92, self.data.get('immatriculation', ''))
+        draw_line(160, 99, "AMS ASSURANCE, YAOUNDE")
+        draw_line(160, 106, usage_categorie)
 
         # --- QUATRIEME COLONNE ---
         draw_line(230, 85, f"ID: {self.data.get('id', 'N/A')}")
-        draw_line(230, 95, periode)
-        draw_line(230, 105, marque_mod)
-        draw_line(230, 115, self.data.get('chassis', 'N/A'))
-        draw_line(230, 125, "AMS ASSURANCE, YAOUNDE")
+        draw_line(230, 92, periode)
+        draw_line(230, 106, marque_mod)
+        draw_line(230, 113, self.data.get('chassis', 'N/A'))
+        draw_line(230, 120, "AMS ASSURANCE, YAOUNDE")
         
         # ✅ Ajouter un cadre de bordure
         painter.drawRect(

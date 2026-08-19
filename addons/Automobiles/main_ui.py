@@ -7,6 +7,7 @@ import math
 import os
 import json
 from pathlib import Path
+import qtawesome as qta
 
 from core.base_module import BaseModule
 from core.alerts import AlertManager
@@ -28,14 +29,32 @@ except ImportError:
 class ModernSpinner(QWidget):
     """Spinner moderne qui tourne SANS bloquer l'UI"""
     
+    # def __init__(self, parent=None, size=48):
+    #     super().__init__(parent)
+    #     self.setFixedSize(size, size)
+    #     self._angle = 0
+    #     self._timer = QTimer()
+    #     self._timer.timeout.connect(self._rotate)
+    #     self._timer.setInterval(16)  # 60 FPS
+    #     self._animation_running = False
+        
+    #     self._colors = [
+    #         QColor("#3b82f6"), QColor("#6366f1"), QColor("#8b5cf6"),
+    #         QColor("#06b6d4"), QColor("#10b981"),
+    #     ]
+    #     self._current_color = 0
     def __init__(self, parent=None, size=48):
         super().__init__(parent)
         self.setFixedSize(size, size)
         self._angle = 0
         self._timer = QTimer()
         self._timer.timeout.connect(self._rotate)
-        self._timer.setInterval(16)  # 60 FPS
+        self._timer.setInterval(16)
         self._animation_running = False
+        
+        # ✅ Utiliser qtawesome pour l'icône
+        self.icon = qta.icon('fa5s.spinner', color='#3b82f6')
+        self.icon_pixmap = self.icon.pixmap(size-8, size-8)
         
         self._colors = [
             QColor("#3b82f6"), QColor("#6366f1"), QColor("#8b5cf6"),
@@ -261,13 +280,25 @@ class LoadingOverlay(QFrame):
         self.spinner = ModernSpinner(size=64)
         card_layout.addWidget(self.spinner, alignment=Qt.AlignCenter)
         
+        # ✅ Remplacer les emojis par des icônes Font Awesome
         self.title_label = QLabel("Chargement")
         self.title_label.setStyleSheet("color: #1e293b; font-size: 22px; font-weight: 700; background: transparent;")
         card_layout.addWidget(self.title_label, alignment=Qt.AlignCenter)
         
+        # ✅ Icône de chargement avec qtawesome
+        self.message_icon = QLabel()
+        self.message_icon.setPixmap(qta.icon('fa5s.spinner', color='#64748b').pixmap(16, 16))
         self.message_label = QLabel("Veuillez patienter...")
         self.message_label.setStyleSheet("color: #64748b; font-size: 14px; background: transparent;")
-        card_layout.addWidget(self.message_label, alignment=Qt.AlignCenter)
+        
+        # ✅ Layout horizontal pour l'icône + message
+        message_layout = QHBoxLayout()
+        message_layout.setAlignment(Qt.AlignCenter)
+        message_layout.setSpacing(8)
+        message_layout.addWidget(self.message_icon)
+        message_layout.addWidget(self.message_label)
+        
+        card_layout.addLayout(message_layout)
         
         self.progress_bar = QProgressBar()
         self.progress_bar.setRange(0, 100)
@@ -313,38 +344,121 @@ class LoadingOverlay(QFrame):
         self.progress_anim = QPropertyAnimation(self.progress_bar, b"value")
         self.progress_anim.setDuration(400)
 
+    # def _animate_continuous(self):
+    #     """Animation continue indépendante des requêtes"""
+    #     self._animation_value += 0.05
+        
+    #     # 1. Animation du spinner (rotation des couleurs)
+    #     if hasattr(self, 'spinner') and self.spinner:
+    #         # Changer la couleur du spinner cycliquement
+    #         colors = ["#3b82f6", "#6366f1", "#8b5cf6", "#06b6d4", "#10b981"]
+    #         color_index = int(self._animation_value * 2) % len(colors)
+    #         self.spinner._current_color = color_index
+    #         self.spinner.update()
+        
+    #     # 2. Animation de la barre de progression (va et vient)
+    #     if hasattr(self, 'progress_bar'):
+    #         # Effet de vague sur la barre de progression
+    #         progress = int((abs(math.sin(self._animation_value)) * 100))
+    #         self.progress_bar.setValue(progress)
+    #         self.percentage_label.setText(f"{progress}%")
+        
+    #     # 3. Animation du texte des étapes (cycle de messages)
+    #     messages = [
+    #         "🔄 Initialisation...",
+    #         "📊 Chargement des données...",
+    #         "⚙️ Traitement en cours...",
+    #         "🎨 Préparation de l'interface...",
+    #         "✨ Presque terminé..."
+    #     ]
+    #     msg_index = int(self._animation_value * 0.5) % len(messages)
+    #     self.step_label.setText(messages[msg_index])
+        
+    #     # 4. Animation de pulsation du titre
+    #     pulse = 0.8 + abs(math.sin(self._animation_value * 3)) * 0.2
+    #     self.title_label.setStyleSheet(f"""
+    #         color: #1e293b; 
+    #         font-size: {int(20 + pulse * 2)}px; 
+    #         font-weight: 700; 
+    #         background: transparent;
+    #     """)
+
     def _animate_continuous(self):
         """Animation continue indépendante des requêtes"""
         self._animation_value += 0.05
         
-        # 1. Animation du spinner (rotation des couleurs)
+        # ✅ Animation du spinner avec qtawesome
         if hasattr(self, 'spinner') and self.spinner:
-            # Changer la couleur du spinner cycliquement
             colors = ["#3b82f6", "#6366f1", "#8b5cf6", "#06b6d4", "#10b981"]
             color_index = int(self._animation_value * 2) % len(colors)
             self.spinner._current_color = color_index
             self.spinner.update()
         
-        # 2. Animation de la barre de progression (va et vient)
+        # 2. Animation de la barre de progression
         if hasattr(self, 'progress_bar'):
-            # Effet de vague sur la barre de progression
             progress = int((abs(math.sin(self._animation_value)) * 100))
             self.progress_bar.setValue(progress)
             self.percentage_label.setText(f"{progress}%")
         
-        # 3. Animation du texte des étapes (cycle de messages)
+        # ✅ Animation du texte des étapes avec icônes
         messages = [
-            "🔄 Initialisation...",
-            "📊 Chargement des données...",
-            "⚙️ Traitement en cours...",
-            "🎨 Préparation de l'interface...",
-            "✨ Presque terminé..."
+            ("🔄", "Initialisation..."),
+            ("📊", "Chargement des données..."),
+            ("⚙️", "Traitement en cours..."),
+            ("🎨", "Préparation de l'interface..."),
+            ("✨", "Presque terminé...")
         ]
         msg_index = int(self._animation_value * 0.5) % len(messages)
-        self.step_label.setText(messages[msg_index])
+        icon, text = messages[msg_index]
+        
+        # ✅ Mettre à jour l'icône du message
+        self.message_icon.setPixmap(qta.icon('fa5s.circle-notch', color='#64748b').pixmap(16, 16))
+        self.step_label.setText(text)
         
         # 4. Animation de pulsation du titre
         pulse = 0.8 + abs(math.sin(self._animation_value * 3)) * 0.2
+        self.title_label.setStyleSheet(f"""
+            color: #1e293b; 
+            font-size: {int(20 + pulse * 2)}px; 
+            font-weight: 700; 
+            background: transparent;
+        """)
+
+    def _continuous_animation(self):
+        """Animation continue qui tourne jusqu'à la fermeture"""
+        self._continuous_step += 1
+        
+        # 1. Animation de la barre de progression (aller-retour)
+        step = self._continuous_step % 200
+        if step <= 100:
+            progress = step
+        else:
+            progress = 200 - step
+        self.progress_bar.setValue(progress)
+        self.percentage_label.setText(f"{progress}%")
+        
+        # ✅ Animation du texte d'étape avec icônes
+        steps_icons = [
+            ("fa5s.sync-alt", "Analyse des données..."),
+            ("fa5s.database", "Chargement en cours..."),
+            ("fa5s.cogs", "Traitement des informations..."),
+            ("fa5s.paint-brush", "Préparation de l'affichage..."),
+            ("fa5s.check-circle", "Finalisation...")
+        ]
+        idx = (self._continuous_step // 15) % len(steps_icons)
+        icon_name, text = steps_icons[idx]
+        
+        # ✅ Mettre à jour l'icône et le texte
+        self.message_icon.setPixmap(qta.icon(icon_name, color='#64748b').pixmap(16, 16))
+        self.step_label.setText(text)
+        
+        # 3. Animation du message (points qui dansent)
+        if hasattr(self, '_base_message'):
+            dots = "." * ((self._continuous_step // 10) % 4)
+            self.message_label.setText(f"{self._base_message}{dots}")
+        
+        # 4. Animation du titre (pulsation)
+        pulse = 0.9 + (self._continuous_step % 20) / 100
         self.title_label.setStyleSheet(f"""
             color: #1e293b; 
             font-size: {int(20 + pulse * 2)}px; 
@@ -485,44 +599,6 @@ class LoadingOverlay(QFrame):
                 400, 320
             )
         super().resizeEvent(event)
-
-    def _continuous_animation(self):
-        """Animation continue qui tourne jusqu'à la fermeture"""
-        self._continuous_step += 1
-        
-        # 1. Animation de la barre de progression (aller-retour)
-        step = self._continuous_step % 200
-        if step <= 100:
-            progress = step
-        else:
-            progress = 200 - step
-        self.progress_bar.setValue(progress)
-        self.percentage_label.setText(f"{progress}%")
-        
-        # 2. Animation du texte d'étape (cycle)
-        steps = [
-            "🔄 Analyse des données...",
-            "📊 Chargement en cours...",
-            "⚙️ Traitement des informations...",
-            "🎨 Préparation de l'affichage...",
-            "✨ Finalisation..."
-        ]
-        idx = (self._continuous_step // 15) % len(steps)
-        self.step_label.setText(steps[idx])
-        
-        # 3. Animation du message (points qui dansent)
-        if hasattr(self, '_base_message'):
-            dots = "." * ((self._continuous_step // 10) % 4)
-            self.message_label.setText(f"{self._base_message}{dots}")
-        
-        # 4. Animation du titre (pulsation)
-        pulse = 0.9 + (self._continuous_step % 20) / 100
-        self.title_label.setStyleSheet(f"""
-            color: #1e293b; 
-            font-size: {int(20 + pulse * 2)}px; 
-            font-weight: 700; 
-            background: transparent;
-        """)
 
 
 class ModuleInitThread(QThread):
@@ -831,7 +907,10 @@ class AutomobileModule(BaseModule):
         self._add_to_sidebar()
         
     def _create_navigation_button(self):
-        self._button = QPushButton("🚗  Automobile")
+        # ✅ Utiliser qtawesome pour l'icône du bouton
+        self._button = QPushButton()
+        self._button.setIcon(qta.icon('fa5s.car', color='#f8fafc'))
+        self._button.setText("  Automobile")
         self._button.setFixedHeight(self.BUTTON_HEIGHT)
         self._button.setCursor(Qt.PointingHandCursor)
         self._button.setStyleSheet(self.BUTTON_STYLE)
@@ -970,3 +1049,23 @@ class AutomobileModule(BaseModule):
             self._loading_overlay.deleteLater()
             self._loading_overlay = None
         self._controller = None
+
+    # Ajouter en bas du fichier ou dans une classe utilitaire
+
+
+class IconHelper:
+    """Helper pour les icônes Font Awesome via qtawesome"""
+    
+    @staticmethod
+    def get_icon(name, color="#2563eb", size=20, animation=None):
+        """Récupère une icône Font Awesome"""
+        icon = qta.icon(name, color=color)
+        if animation:
+            icon = qta.icon(name, color=color, animation=animation)
+        return icon
+    
+    @staticmethod
+    def get_pixmap(name, color="#2563eb", size=20, animation=None):
+        """Récupère un pixmap d'icône Font Awesome"""
+        icon = IconHelper.get_icon(name, color, animation)
+        return icon.pixmap(size, size)

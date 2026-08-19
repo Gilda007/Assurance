@@ -214,6 +214,7 @@ class BatchPrintManager(QObject):
                 'carte_rose': db_vehicle.carte_rose,
                 'vignette': db_vehicle.vignette,
                 'fichier_asac': db_vehicle.fichier_asac,
+                'puissance-fiscale': db_vehicle.puissance_fiscale,
                 'tva': db_vehicle.tva,
                 'pttc': db_vehicle.pttc,
                 # Garanties (lues depuis la relation guarantees si disponibles)
@@ -242,6 +243,8 @@ class BatchPrintManager(QObject):
                 'owner_email': getattr(owner, 'email', 'N/A') if owner else 'N/A',
                 'owner_address': getattr(owner, 'adresse', 'N/A') if owner else 'N/A',
                 'owner_city': getattr(owner, 'ville', 'Yaoundé') if owner else 'Yaoundé',
+                'profession': getattr(owner, 'profession', 'Null') if owner else 'Null',
+                'owner_code': getattr(owner, 'code_client', '') if owner else '',
             }
             
         except Exception as e:

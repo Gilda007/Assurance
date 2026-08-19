@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Any
+from typing import Dict, Optional, Tuple, Any, List
 import json
 import socket
 
@@ -8,6 +8,7 @@ from addons.Automobiles.models.contact_models import Contact
 from addons.Automobiles.models.compagnies_models import Compagnie
 from addons.Automobiles.models.automobile_models import Vehicle, AuditVehicleLog
 from addons.Automobiles.controllers.contract_controller import ContractController
+from PySide6.QtWidgets import QFileDialog
 from core.workers.query_cache import query_cache
 from datetime import date, datetime
 import requests
@@ -1312,6 +1313,478 @@ class VehicleController:
                     "Erreur d'impression",
                     f"Une erreur est survenue lors de la génération du devis :\n\n{str(e)}"
                 )
+
+    # Dans automobile_controller.py, après la méthode print_devis (vers la fin du fichier)
+
+    # def print_quittance(self, vehicle_data, parent_widget=None):
+    #     """
+    #     Gère la génération et l'impression de la quittance (conditions particulières).
+        
+    #     Args:
+    #         vehicle_data (dict): Données du véhicule et du contrat
+    #         parent_widget (QWidget, optional): Widget parent pour les dialogues
+    #     """
+    #     try:
+    #         # 1. Vérification des données essentielles
+    #         required_fields = ['immatriculation', 'marque', 'modele', 'owner']
+    #         missing_fields = [field for field in required_fields if not vehicle_data.get(field)]
+            
+    #         if missing_fields:
+    #             from PySide6.QtWidgets import QMessageBox
+    #             if parent_widget:
+    #                 QMessageBox.warning(
+    #                     parent_widget,
+    #                     "Données manquantes",
+    #                     f"Impossible de générer la quittance.\n\n"
+    #                     f"Champs manquants : {', '.join(missing_fields)}"
+    #                 )
+    #             print(f"Erreur : Données manquantes - {missing_fields}")
+    #             return
+            
+    #         # 2. Vérification du montant total
+    #         prime_totale = vehicle_data.get('prime_totale', vehicle_data.get('prime_nette', 0))
+    #         if not prime_totale or float(prime_totale) == 0:
+    #             print("Avertissement : Le montant de la prime est à 0.")
+    #             if parent_widget:
+    #                 from PySide6.QtWidgets import QMessageBox
+    #                 reply = QMessageBox.question(
+    #                     parent_widget,
+    #                     "Montant nul",
+    #                     "Le montant de la prime est à 0.\n\n"
+    #                     "Voulez-vous continuer quand même ?",
+    #                     QMessageBox.Yes | QMessageBox.No,
+    #                     QMessageBox.No
+    #                 )
+    #                 if reply == QMessageBox.No:
+    #                     return
+            
+    #         # 3. Importation du générateur de quittance
+    #         try:
+    #             from addons.Automobiles.views.quittance_print import QuittanceGenerator, generate_quittance
+    #         except ImportError as e:
+    #             print(f"Erreur d'import : {e}")
+    #             if parent_widget:
+    #                 from PySide6.QtWidgets import QMessageBox
+    #                 QMessageBox.critical(
+    #                     parent_widget,
+    #                     "Erreur d'import",
+    #                     "Impossible de charger le module d'impression de la quittance.\n\n"
+    #                     "Vérifiez que le fichier quittance_print.py est présent."
+    #                 )
+    #             return
+            
+    #         # 4. Création du dossier d'export si nécessaire
+    #         import os
+    #         export_dir = os.path.join(os.path.expanduser("~"), "Documents", "Quittances_Assurance")
+    #         if not os.path.exists(export_dir):
+    #             try:
+    #                 os.makedirs(export_dir)
+    #                 print(f"Dossier créé : {export_dir}")
+    #             except Exception as e:
+    #                 print(f"Impossible de créer le dossier d'export : {e}")
+            
+    #         # 5. Extraction des données du véhicule
+    #         # Récupérer le propriétaire
+    #         owner = vehicle_data.get('owner', {})
+    #         if isinstance(owner, dict):
+    #             owner_data = owner
+    #         else:
+    #             # Si c'est un objet, essayer de le convertir en dict
+    #             owner_data = {
+    #                 'nom': getattr(owner, 'nom', ''),
+    #                 'prenom': getattr(owner, 'prenom', ''),
+    #                 'adresse': getattr(owner, 'adresse', ''),
+    #                 'code_client': getattr(owner, 'code_client', ''),
+    #                 'activite': getattr(owner, 'activite', ''),
+    #                 'profession': getattr(owner, 'profession', ''),
+    #             }
+            
+    #         # Récupérer la compagnie
+    #         compagny = vehicle_data.get('compagny', {})
+    #         if isinstance(compagny, dict):
+    #             company_data = compagny
+    #         else:
+    #             company_data = {
+    #                 'nom': getattr(compagny, 'nom', 'AMS INSURANCES'),
+    #                 'code_agence': '1020',
+    #                 'agence': 'Yaoundé',
+    #                 'adresse': getattr(compagny, 'adresse', 'BP 3073 DLA'),
+    #                 'telephone': getattr(compagny, 'telephone', '98 76 85 43 / 96 65 01 74 / 77 52 13 17'),
+    #                 'ville': 'Douala',
+    #             }
+            
+    #         # Données du contrat
+    #         contract_data = {
+    #             'numero_police': vehicle_data.get('code_police', vehicle_data.get('numero_police', '')),
+    #             'date_debut': vehicle_data.get('date_debut'),
+    #             'date_fin': vehicle_data.get('date_fin'),
+    #             'produit': vehicle_data.get('categorie', '201 CAT 01'),
+    #             'duree': '365 Jours',
+    #             'apporteur': 'TH',
+    #             'tacite_reconduction': 'Sans Tacite Reconduction',
+    #             'prime_nette': vehicle_data.get('prime_nette', 0),
+    #             'accessoires': vehicle_data.get('accessoires', 0),
+    #             'asac': vehicle_data.get('fichier_asac', 0),
+    #             'tva': vehicle_data.get('tva', 0),
+    #             'carte_rose': vehicle_data.get('carte_rose', 0),
+    #             'vignette': vehicle_data.get('vignette', 0),
+    #             'prime_totale': vehicle_data.get('prime_totale', vehicle_data.get('pttc', 0)),
+    #             'guarantees': vehicle_data.get('guarantees', []),
+    #         }
+            
+    #         # Si les garanties ne sont pas fournies, les construire à partir des données
+    #         if not contract_data['guarantees']:
+    #             contract_data['guarantees'] = self._build_guarantees_from_vehicle(vehicle_data)
+            
+    #         # Données du véhicule
+    #         vehicle_data_for_pdf = {
+    #             'immatriculation': vehicle_data.get('immatriculation', ''),
+    #             'marque': vehicle_data.get('marque', ''),
+    #             'modele': vehicle_data.get('modele', ''),
+    #             'usage': vehicle_data.get('usage', 'CAT 01'),
+    #             'places': vehicle_data.get('places', 5),
+    #             'date_mise_circulation': vehicle_data.get('date_mise_circulation', ''),
+    #             'chassis': vehicle_data.get('chassis', ''),
+    #             'puissance_fiscale': vehicle_data.get('puissance_fiscale', ''),
+    #         }
+            
+    #         # 6. Génération du PDF
+    #         generator = QuittanceGenerator(contract_data, vehicle_data_for_pdf, owner_data, company_data)
+            
+    #         # 7. Ouvrir le dialogue de sauvegarde
+    #         if parent_widget:
+    #             output_path, _ = QFileDialog.getSaveFileName(
+    #                 parent_widget,
+    #                 "Enregistrer la quittance",
+    #                 os.path.join(export_dir, f"quittance_{vehicle_data.get('immatriculation', 'temp')}_{datetime.now().strftime('%Y%m%d')}.pdf"),
+    #                 "PDF Files (*.pdf)"
+    #             )
+    #             if not output_path:
+    #                 return False
+    #         else:
+    #             output_path = None
+            
+    #         # 8. Générer le PDF
+    #         file_path = generator.generate(output_path)
+            
+    #         # 9. Message de succès
+    #         if parent_widget:
+    #             from PySide6.QtWidgets import QMessageBox
+    #             QMessageBox.information(
+    #                 parent_widget,
+    #                 "Succès",
+    #                 f"La quittance a été générée avec succès !\n\n"
+    #                 f"Fichier : {os.path.basename(file_path)}\n"
+    #                 f"Emplacement : {os.path.dirname(file_path)}"
+    #             )
+            
+    #         return True
+            
+    #     except ImportError as e:
+    #         print(f"Erreur d'import du générateur de quittance : {e}")
+    #         if parent_widget:
+    #             from PySide6.QtWidgets import QMessageBox
+    #             QMessageBox.critical(
+    #                 parent_widget,
+    #                 "Erreur",
+    #                 "Le module de génération de quittance est introuvable.\n\n"
+    #                 "Vérifiez que le fichier quittance_print.py est présent dans le dossier reports."
+    #             )
+    #         return False
+            
+    #     except Exception as e:
+    #         print(f"Erreur lors de l'exécution de la génération de quittance : {str(e)}")
+    #         import traceback
+    #         traceback.print_exc()
+            
+    #         if parent_widget:
+    #             from PySide6.QtWidgets import QMessageBox
+    #             QMessageBox.critical(
+    #                 parent_widget,
+    #                 "Erreur d'impression",
+    #                 f"Une erreur est survenue lors de la génération de la quittance :\n\n{str(e)}"
+    #             )
+    #         return False
+
+
+    def print_quittance(self, vehicle_data, parent_widget=None):
+        """
+        Gère la génération et l'impression de la quittance (conditions particulières).
+        """
+        try:
+            # 1. Vérification des données essentielles
+            required_fields = ['immatriculation', 'marque', 'modele', 'owner']
+            missing_fields = [field for field in required_fields if not vehicle_data.get(field)]
+            
+            if missing_fields:
+                from PySide6.QtWidgets import QMessageBox
+                if parent_widget:
+                    QMessageBox.warning(
+                        parent_widget,
+                        "Données manquantes",
+                        f"Impossible de générer la quittance.\n\n"
+                        f"Champs manquants : {', '.join(missing_fields)}"
+                    )
+                print(f"Erreur : Données manquantes - {missing_fields}")
+                return
+            
+            # 2. Vérification du montant total
+            prime_totale = vehicle_data.get('prime_totale', vehicle_data.get('prime_nette', 0))
+            if not prime_totale or float(prime_totale) == 0:
+                print("Avertissement : Le montant de la prime est à 0.")
+                if parent_widget:
+                    from PySide6.QtWidgets import QMessageBox
+                    reply = QMessageBox.question(
+                        parent_widget,
+                        "Montant nul",
+                        "Le montant de la prime est à 0.\n\n"
+                        "Voulez-vous continuer quand même ?",
+                        QMessageBox.Yes | QMessageBox.No,
+                        QMessageBox.No
+                    )
+                    if reply == QMessageBox.No:
+                        return
+            
+            # 3. Importation du générateur de quittance
+            try:
+                from addons.Automobiles.views.quittance_print import QuittanceGenerator, generate_quittance
+            except ImportError as e:
+                print(f"Erreur d'import : {e}")
+                if parent_widget:
+                    from PySide6.QtWidgets import QMessageBox
+                    QMessageBox.critical(
+                        parent_widget,
+                        "Erreur d'import",
+                        "Impossible de charger le module d'impression de la quittance.\n\n"
+                        "Vérifiez que le fichier quittance_print.py est présent."
+                    )
+                return
+            
+            # 4. ✅ Extraction des données du propriétaire DEPUIS vehicle_data
+            # Les clés sont 'owner', 'owner_phone', 'owner_email', 'owner_address', 'owner_city'
+            owner_full_name = vehicle_data.get('owner', '')
+            owner_phone = vehicle_data.get('owner_phone', '')
+            owner_email = vehicle_data.get('owner_email', '')
+            owner_address = vehicle_data.get('owner_address', '')
+            owner_city = vehicle_data.get('owner_city', '')
+            
+            # ✅ Séparer nom et prénom
+            if owner_full_name:
+                name_parts = owner_full_name.rsplit(' ', 1) if ' ' in owner_full_name else [owner_full_name, '']
+                owner_name = name_parts[0] if name_parts else ''
+                owner_prenom = name_parts[1] if len(name_parts) > 1 else ''
+            else:
+                owner_name = ''
+                owner_prenom = ''
+            
+            # ✅ Construire owner_data pour le générateur
+            owner_data = {
+                'nom': owner_name,
+                'prenom': owner_prenom,
+                'adresse': f"{owner_address} {owner_city}".strip() if owner_address or owner_city else '',
+                'telephone': owner_phone,
+                'email': owner_email,
+                'code_client': vehicle_data.get('owner_code', ''),
+                'profession': vehicle_data.get('owner_profession', ''),
+                'activite': vehicle_data.get('owner_activite', ''),
+            }
+            
+            # ✅ Récupérer la compagnie
+            compagny_data = vehicle_data.get('compagny', {})
+            if isinstance(compagny_data, dict):
+                company_data = {
+                    'nom': compagny_data.get('nom', 'AMS INSURANCES'),
+                    'code_agence': '1020',
+                    'agence': 'Yaoundé',
+                    'adresse': compagny_data.get('adresse', 'BP 3073 DLA'),
+                    'telephone': compagny_data.get('telephone', '98 76 85 43 / 96 65 01 74'),
+                    'ville': 'Douala',
+                    'email': compagny_data.get('email', 'contact@ams-insurances.com'),
+                }
+            else:
+                company_data = {
+                    'nom': 'AMS INSURANCES',
+                    'code_agence': '1020',
+                    'agence': 'Yaoundé',
+                    'adresse': 'BP 3073 DLA',
+                    'telephone': '98 76 85 43 / 96 65 01 74',
+                    'ville': 'Douala',
+                    'email': 'contact@ams-insurances.com',
+                }
+            
+            # ✅ Données du contrat
+            contract_data = {
+                'numero_police': vehicle_data.get('code_police', vehicle_data.get('numero_police', '')),
+                'date_debut': vehicle_data.get('date_debut'),
+                'date_fin': vehicle_data.get('date_fin'),
+                'produit': vehicle_data.get('categorie', '201 CAT 01'),
+                'duree': '365 Jours',
+                'apporteur': 'TH',
+                'tacite_reconduction': 'Sans Tacite Reconduction',
+                'prime_nette': vehicle_data.get('prime_nette', 0),
+                'accessoires': vehicle_data.get('accessoires', 0),
+                'asac': vehicle_data.get('fichier_asac', 0),
+                'tva': vehicle_data.get('tva', 0),
+                'carte_rose': vehicle_data.get('carte_rose', 0),
+                'vignette': vehicle_data.get('vignette', 0),
+                'prime_totale': vehicle_data.get('prime_totale', vehicle_data.get('pttc', 0)),
+                'guarantees': vehicle_data.get('guarantees', []),
+            }
+            
+            # ✅ Si les garanties ne sont pas fournies, les construire
+            if not contract_data['guarantees']:
+                contract_data['guarantees'] = self._build_guarantees_from_vehicle(vehicle_data)
+            
+            # ✅ Données du véhicule pour le PDF
+            vehicle_data_for_pdf = {
+                'immatriculation': vehicle_data.get('immatriculation', ''),
+                'marque': vehicle_data.get('marque', ''),
+                'modele': vehicle_data.get('modele', ''),
+                'usage': vehicle_data.get('usage', 'CAT 01'),
+                'places': vehicle_data.get('places', 5),
+                'date_mise_circulation': vehicle_data.get('date_mise_circulation', ''),
+                'chassis': vehicle_data.get('chassis', ''),
+                'puissance_fiscale': vehicle_data.get('puissance_fiscale', ''),
+                # ✅ Ajouter les données du propriétaire pour le fallback dans le générateur
+                'owner': owner_full_name,
+                'owner_phone': owner_phone,
+                'owner_email': owner_email,
+                'owner_address': owner_address,
+                'owner_city': owner_city,
+            }
+            
+            # ✅ Debug
+            print(f"🔍 print_quittance - owner_data: {owner_data}")
+            print(f"🔍 print_quittance - vehicle_data_for_pdf owner: {vehicle_data_for_pdf.get('owner')}")
+            
+            # 5. Génération du PDF
+            generator = QuittanceGenerator(contract_data, vehicle_data_for_pdf, owner_data, company_data)
+            
+            # 6. Ouvrir le dialogue de sauvegarde
+            import os
+            export_dir = os.path.join(os.path.expanduser("~"), "Documents", "Quittances_Assurance")
+            if not os.path.exists(export_dir):
+                try:
+                    os.makedirs(export_dir)
+                except Exception as e:
+                    print(f"Impossible de créer le dossier d'export : {e}")
+            
+            if parent_widget:
+                output_path, _ = QFileDialog.getSaveFileName(
+                    parent_widget,
+                    "Enregistrer la quittance",
+                    os.path.join(export_dir, f"quittance_{vehicle_data.get('immatriculation', 'temp')}_{datetime.now().strftime('%Y%m%d')}.pdf"),
+                    "PDF Files (*.pdf)"
+                )
+                if not output_path:
+                    return False
+            else:
+                output_path = None
+            
+            # 7. Générer le PDF
+            file_path = generator.generate(output_path)
+            
+            # 8. Message de succès
+            if parent_widget:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.information(
+                    parent_widget,
+                    "Succès",
+                    f"La quittance a été générée avec succès !\n\n"
+                    f"Fichier : {os.path.basename(file_path)}\n"
+                    f"Emplacement : {os.path.dirname(file_path)}"
+                )
+            
+            return True
+            
+        except ImportError as e:
+            print(f"Erreur d'import du générateur de quittance : {e}")
+            if parent_widget:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    parent_widget,
+                    "Erreur",
+                    "Le module de génération de quittance est introuvable.\n\n"
+                    "Vérifiez que le fichier quittance_print.py est présent dans le dossier reports."
+                )
+            return False
+            
+        except Exception as e:
+            print(f"Erreur lors de l'exécution de la génération de quittance : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            if parent_widget:
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    parent_widget,
+                    "Erreur d'impression",
+                    f"Une erreur est survenue lors de la génération de la quittance :\n\n{str(e)}"
+                )
+            return False
+
+
+    def _build_guarantees_from_vehicle(self, vehicle_data: Dict) -> List[Dict]:
+        """
+        Construit la liste des garanties à partir des données du véhicule.
+        """
+        guarantees = []
+        
+        # Mapping des garanties
+        guarantee_mapping = {
+            'rc': ('RESPONSABILITE CIVILE', 'ILLIMITE'),
+            'dr': ('DEFENSE RECOURS', ''),
+            'vol': ('VOL / INCENDIE', ''),
+            'vb': ('VOL/BRAQUAGE', ''),
+            'ipt': ('INDIVIDUELLE PERSONNES TRANSPORTÉES', ''),
+            'bris': ('BRIS DE GLACE', ''),
+            'ar': ('ASSISTANCE RÉPARATION', ''),
+            'dta': ('DOMMAGES', ''),
+            'in_garantie': ('INDIVIDUELLE ACCIDENT CHAUFFEUR', ''),
+        }
+        
+        for key, (label, default_capital) in guarantee_mapping.items():
+            # Récupérer le montant
+            amount = vehicle_data.get(f'amt_{key}', 0)
+            if amount > 0:
+                # Récupérer le taux de réduction
+                rate_key = f'rate_{key}'
+                rate = vehicle_data.get(rate_key, 0)
+                
+                # Récupérer la réduction
+                red_key = f'red_{key}'
+                reduction = vehicle_data.get(red_key, 0)
+                
+                # Récupérer le capital
+                capital = vehicle_data.get(f'capital_{key}', default_capital)
+                
+                # Récupérer le statut de la garantie (cochée ou non)
+                check_key = f'check_{key}'
+                is_checked = vehicle_data.get(check_key, False)
+                
+                guarantees.append({
+                    'name': label,
+                    'capital': str(capital),
+                    'taux': f"{rate:,.0f}".replace(',', ' ') if rate else '-',
+                    'reduction': f"{reduction:,.0f}".replace(',', ' ') if reduction else '-',
+                    'prime': f"{amount:,.0f}".replace(',', ' ')
+                })
+        
+        # Si aucune garantie n'a été trouvée, ajouter des garanties par défaut
+        if not guarantees:
+            guarantees = [
+                {'name': 'RESPONSABILITE CIVILE', 'capital': 'ILLIMITE', 'taux': '1 236 634', 'reduction': '-', 'prime': '1 236 634'},
+                {'name': 'DEFENSE RECOURS', 'capital': '', 'taux': '10 000', 'reduction': '-', 'prime': '10 000'},
+                {'name': 'INDIVIDUELLE PERSONNES TRANSPORTÉES', 'capital': '', 'taux': '2 500', 'reduction': '-', 'prime': '2 500'},
+                {'name': 'INDIVIDUELLE ACCIDENT CHAUFFEUR', 'capital': '', 'taux': '33 000', 'reduction': '-', 'prime': '33 000'},
+                {'name': 'VOL / INCENDIE', 'capital': '', 'taux': '-', 'reduction': '-', 'prime': '-'},
+                {'name': 'BRIS DE GLACE', 'capital': '', 'taux': '-', 'reduction': '-', 'prime': '-'},
+                {'name': 'TIERCE COLLISION', 'capital': '', 'taux': '-', 'reduction': '-', 'prime': '-'},
+                {'name': 'DOMMAGES', 'capital': '', 'taux': '-', 'reduction': '-', 'prime': '-'},
+                {'name': 'AVANCES SUR RECOURS', 'capital': '', 'taux': '-', 'reduction': '-', 'prime': '-'},
+            ]
+        
+        return guarantees
 
     def _calculate_base_premium(self, vehicle: Vehicle, data: Dict) -> float:
         """Calcule la prime de base selon les caractéristiques du véhicule"""

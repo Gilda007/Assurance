@@ -2064,9 +2064,11 @@ class VehicleForm(QDialog):
             import traceback
             traceback.print_exc()
 
+
     def _load_guarantee_values(self, guarantees):
         """
         Charge les valeurs des garanties dans le formulaire.
+        Seul le champ 'ipt' (Indiv. Personnes Transportées) a un montant brut modifiable.
         
         Args:
             guarantees: Objet garantie (VehicleGuarantee)
@@ -2102,7 +2104,7 @@ class VehicleForm(QDialog):
                 valeur_net = getattr(guarantees, f'net_{key}', 0) or 0
                 valeur_reduction = getattr(guarantees, f'reduction_{key}', 0) or 0
                 
-                # Si la valeur brute est > 0, activer la garantie
+                # ✅ Si la valeur brute est > 0, activer la garantie
                 if valeur_brute > 0:
                     checkbox.setChecked(True)
                     montant_brut.setText(f"{valeur_brute:,.0f} FCFA".replace(",", " "))
@@ -2119,15 +2121,284 @@ class VehicleForm(QDialog):
                     if valeur_net > 0:
                         montant_net.setText(f"{valeur_net:,.0f} FCFA".replace(",", " "))
                     montant_net.setVisible(True)
+                    
+                    # ============================================================
+                    # ✅ RENDRE MODIFIABLE UNIQUEMENT POUR 'ipt'
+                    # ============================================================
+                    if key == 'ipt':
+                        # ✅ Montant brut modifiable (QLineEdit au lieu de QLabel)
+                        self._make_brut_editable(montant_brut, key)
+                        
+                        # ✅ Taux modifiable
+                        taux_input.setReadOnly(False)
+                        taux_input.setStyleSheet("""
+                            QLineEdit {
+                                border: 2px solid #3498db;
+                                border-radius: 8px;
+                                padding: 6px 10px;
+                                font-size: 12px;
+                                max-width: 80px;
+                                background-color: #f0f9ff;
+                            }
+                            QLineEdit:focus {
+                                border-color: #2563eb;
+                                background-color: #ffffff;
+                            }
+                        """)
+                        # Connecter le signal pour recalculer le net
+                        try:
+                            taux_input.textChanged.disconnect()
+                        except:
+                            pass
+                        taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
+                        
+                        # ✅ Rendre la réduction et le net non modifiables (lecture seule)
+                        montant_taux.setStyleSheet("""
+                            color: #e67e22;
+                            font-weight: bold;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                            background-color: #f1f5f9;
+                        """)
+                        montant_net.setStyleSheet("""
+                            color: #2563eb;
+                            font-weight: bold;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                            background-color: #f1f5f9;
+                        """)
+                        
+                    else:
+                        # ❌ Pour les autres garanties : tout est en lecture seule
+                        self._make_brut_readonly(montant_brut)
+                        
+                        # ❌ Taux non modifiable
+                        taux_input.setReadOnly(True)
+                        taux_input.setStyleSheet("""
+                            QLineEdit {
+                                border: 2px solid #e2e8f0;
+                                border-radius: 8px;
+                                padding: 6px 10px;
+                                font-size: 12px;
+                                max-width: 80px;
+                                background-color: #f1f5f9;
+                                color: #64748b;
+                            }
+                        """)
                 else:
                     checkbox.setChecked(False)
                     montant_brut.setVisible(False)
                     taux_input.setVisible(False)
                     montant_taux.setVisible(False)
                     montant_net.setVisible(False)
+                    
+                    # Réinitialiser les valeurs
+                    # ✅ Pour 'ipt', on remet un QLabel en lecture seule
+                    if key == 'ipt':
+                        # Remplacer le QLineEdit par un QLabel pour le montant brut
+                        self._make_brut_readonly(montant_brut)
+                        # Mettre à jour la référence dans le dictionnaire
+                        self.garanties_widgets[key]['montant_brut'] = montant_brut
+                    
+                    montant_brut.setText("0 FCFA")
+                    montant_taux.setText("0 FCFA")
+                    montant_net.setText("0 FCFA")
+                    taux_input.setText("")
+                            
+        except Exception as e:
+            print(f"❌ Erreur lors du chargement des garanties: {e}")
+            import traceback
+            traceback.print_exc()
+
+
+    def _make_brut_editable(self, widget, key):
+        """
+        Transforme un QLabel en QLineEdit modifiable pour le montant brut.
+        Utilisé uniquement pour la garantie 'ipt'.
+        
+        Args:
+            widget: Le widget actuel (QLabel ou QLineEdit)
+            key: Clé de la garantie
+        """
+        try:
+            # ✅ Si c'est déjà un QLineEdit, ne rien faire
+            if isinstance(widget, QLineEdit):
+                return
+            
+            # Récupérer la valeur actuelle
+            current_text = widget.text()
+            if current_text.endswith(" FCFA"):
+                current_text = current_text.replace(" FCFA", "")
+            current_text = current_text.replace(" ", "").replace(",", ".")
+            
+            # Créer un QLineEdit à la place du QLabel
+            line_edit = QLineEdit()
+            line_edit.setText(current_text)
+            line_edit.setAlignment(Qt.AlignRight)
+            line_edit.setStyleSheet("""
+                QLineEdit {
+                    border: 2px solid #3498db;
+                    border-radius: 8px;
+                    padding: 6px 10px;
+                    font-size: 13px;
+                    max-width: 120px;
+                    background-color: #f0f9ff;
+                    color: #1e40af;
+                    font-weight: bold;
+                }
+                QLineEdit:focus {
+                    border-color: #2563eb;
+                    background-color: #ffffff;
+                }
+            """)
+            line_edit.setToolTip("Modifier le montant brut de l'IPT")
+            
+            # Connecter le signal pour mettre à jour le total
+            line_edit.textChanged.connect(lambda text, k=key: self._on_ipt_brut_changed(k, text))
+            
+            # Remplacer le widget dans le layout
+            layout = widget.parent().layout()
+            if layout:
+                # Trouver l'index du widget
+                for i in range(layout.count()):
+                    item = layout.itemAt(i)
+                    if item and item.widget() == widget:
+                        # Remplacer par le nouveau widget
+                        layout.replaceWidget(widget, line_edit)
+                        widget.setParent(None)  # Ne pas supprimer, Qt le gère
+                        
+                        # Mettre à jour la référence dans le dictionnaire
+                        self.garanties_widgets[key]['montant_brut'] = line_edit
+                        break
             
         except Exception as e:
-            print(f"Erreur lors du chargement des garanties: {e}")
+            print(f"❌ Erreur lors du remplacement du widget: {e}")
+            import traceback
+            traceback.print_exc()
+
+
+    def _make_brut_readonly(self, widget):
+        """
+        Transforme un widget en QLabel en lecture seule pour le montant brut.
+        
+        Args:
+            widget: Le widget actuel (QLineEdit ou QLabel)
+        """
+        try:
+            # ✅ Si c'est déjà un QLabel, ne rien faire
+            if isinstance(widget, QLabel):
+                return widget
+                
+            # Si c'est un QLineEdit, le remplacer par un QLabel
+            if isinstance(widget, QLineEdit):
+                current_text = widget.text()
+                
+                label = QLabel(current_text)
+                label.setStyleSheet("""
+                    color: #27ae60;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                """)
+                label.setAlignment(Qt.AlignRight)
+                
+                # Remplacer le widget dans le layout
+                layout = widget.parent().layout()
+                if layout:
+                    for i in range(layout.count()):
+                        item = layout.itemAt(i)
+                        if item and item.widget() == widget:
+                            layout.replaceWidget(widget, label)
+                            widget.setParent(None)  # Ne pas supprimer, Qt le gère
+                            break
+                return label
+        except Exception as e:
+            print(f"❌ Erreur lors du passage en lecture seule: {e}")
+            import traceback
+            traceback.print_exc()
+        return widget
+
+
+    def _on_ipt_brut_changed(self, key, text):
+        """
+        Gère le changement du montant brut pour l'IPT.
+        Recalcule le net et met à jour le total.
+        
+        Args:
+            key: Clé de la garantie (doit être 'ipt')
+            text: Nouvelle valeur saisie
+        """
+        if key != 'ipt':
+            return
+        
+        try:
+            # Nettoyer le texte
+            clean_text = text.strip().replace(" ", "").replace(",", ".")
+            if not clean_text:
+                clean_text = "0"
+            
+            value = float(clean_text) if clean_text else 0
+            
+            # Mettre à jour le montant brut
+            garantie = self.garanties_widgets.get(key)
+            if garantie:
+                # Mettre à jour l'affichage
+                garantie['montant_brut'].setText(f"{value:,.0f}".replace(",", " "))
+                
+                # Recalculer le net avec le nouveau brut
+                self.update_net_amount(key)
+                
+                # Mettre à jour le total
+                self.calculate_total_premium()
+                
+        except ValueError as e:
+            print(f"⚠️ Valeur invalide pour l'IPT: {e}")
+
+
+    def update_net_amount(self, key):
+        """
+        Met à jour le montant net après application du taux
+        Seul 'ipt' est modifiable, les autres sont en lecture seule
+        """
+        garantie = self.garanties_widgets.get(key)
+        if not garantie:
+            return
+        
+        try:
+            # Récupérer le montant brut
+            brut_widget = garantie['montant_brut']
+            brut_text = ""
+            if isinstance(brut_widget, QLineEdit):
+                brut_text = brut_widget.text()
+            else:
+                brut_text = brut_widget.text()
+            
+            brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+            montant_brut = float(brut_text) if brut_text else 0
+            
+            # Récupérer le taux
+            taux_text = garantie['taux'].text().strip()
+            if taux_text.endswith('%'):
+                taux_text = taux_text[:-1]
+            taux = float(taux_text) if taux_text else 0
+            
+            # Calculer la réduction et le montant net
+            if taux > 0:
+                reduction = montant_brut * (taux / 100)
+                montant_net = montant_brut - reduction
+            else:
+                reduction = 0
+                montant_net = montant_brut
+            
+            # Mettre à jour les labels
+            garantie['montant_taux'].setText(f"{reduction:,.0f} FCFA".replace(",", " "))
+            garantie['montant_net'].setText(f"{montant_net:,.0f} FCFA".replace(",", " "))
+            
+            # Mettre à jour le total
+            self.calculate_total_premium()
+            
+        except Exception as e:
+            print(f"⚠️ Erreur lors de la mise à jour du net pour {key}: {e}")
 
     def _load_company_by_id(self, compagny_id):
         """
@@ -3154,6 +3425,74 @@ class VehicleForm(QDialog):
             montant_taux.setVisible(True)
             montant_net.setVisible(True)
             
+            # ============================================================
+            # ✅ RENDRE MODIFIABLE UNIQUEMENT POUR 'ipt'
+            # ============================================================
+            if key == 'ipt':
+                # ✅ Vérifier si le widget est déjà un QLineEdit
+                if not isinstance(montant_brut, QLineEdit):
+                    # ✅ Montant brut modifiable (QLineEdit au lieu de QLabel)
+                    self._make_brut_editable(montant_brut, key)
+                    # Mettre à jour la référence
+                    montant_brut = self.garanties_widgets[key]['montant_brut']
+                
+                # ✅ Taux modifiable
+                taux_input.setReadOnly(False)
+                taux_input.setStyleSheet("""
+                    QLineEdit {
+                        border: 2px solid #3498db;
+                        border-radius: 8px;
+                        padding: 6px 10px;
+                        font-size: 12px;
+                        max-width: 80px;
+                        background-color: #f0f9ff;
+                    }
+                    QLineEdit:focus {
+                        border-color: #2563eb;
+                        background-color: #ffffff;
+                    }
+                """)
+                # Connecter le signal pour recalculer le net
+                try:
+                    taux_input.textChanged.disconnect()
+                except:
+                    pass
+                taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
+                
+                # ✅ Rendre la réduction et le net non modifiables (lecture seule)
+                montant_taux.setStyleSheet("""
+                    color: #e67e22;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    background-color: #f1f5f9;
+                """)
+                montant_net.setStyleSheet("""
+                    color: #2563eb;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    background-color: #f1f5f9;
+                """)
+                
+            else:
+                # ❌ Pour les autres garanties : tout est en lecture seule
+                self._make_brut_readonly(montant_brut)
+                
+                # ❌ Taux non modifiable
+                taux_input.setReadOnly(True)
+                taux_input.setStyleSheet("""
+                    QLineEdit {
+                        border: 2px solid #e2e8f0;
+                        border-radius: 8px;
+                        padding: 6px 10px;
+                        font-size: 12px;
+                        max-width: 80px;
+                        background-color: #f1f5f9;
+                        color: #64748b;
+                    }
+                """)
+            
             # Calculer le montant brut (appel à la méthode de calcul)
             self.update_garantie_price(key, state)
             
@@ -3165,10 +3504,22 @@ class VehicleForm(QDialog):
             montant_net.setVisible(False)
             
             # Réinitialiser les valeurs
-            montant_brut.setText("0 FCFA")
+            # ✅ Vérifier le type du widget avant de modifier le texte
+            if isinstance(montant_brut, QLineEdit):
+                montant_brut.setText("0")
+            else:
+                montant_brut.setText("0 FCFA")
+            
             montant_taux.setText("0 FCFA")
             montant_net.setText("0 FCFA")
             taux_input.setText("")
+            
+            # Restaurer le style par défaut pour 'ipt' si désactivé
+            if key == 'ipt':
+                # ✅ Remplacer le QLineEdit par un QLabel pour le montant brut
+                new_widget = self._make_brut_readonly(montant_brut)
+                if new_widget:
+                    self.garanties_widgets[key]['montant_brut'] = new_widget
             
             # Mettre à jour le total
             self.calculate_total_premium()

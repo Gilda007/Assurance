@@ -199,7 +199,7 @@ class AttestationPrinter:
             draw_line(10, 85, self.data.get('owner'))
             
             # 2. Immatriculation
-            draw_line(10, 95, f"{self.data.get('id', '')}")
+            draw_line(10, 92, f"{self.data.get('id', '')}")
             
             # 3. Marque et Modèle
 
@@ -208,40 +208,40 @@ class AttestationPrinter:
             marque_mod = f"{self.data.get('marque', '')} {self.data.get('modele', '')}"
             periode = f"{date_debut} AU {date_fin}"
 
-            draw_line(10, 105, periode)
+            draw_line(10, 99, periode)
             
             # 4. Assureur
-            draw_line(10, 115, marque_mod)
+            draw_line(10, 106, marque_mod)
             
             # 5. AMS Assurance
-            draw_line(10, 125, self.data.get('immatriculation', ''))
+            draw_line(10, 113, self.data.get('immatriculation', ''))
             
             # 6. ID (Châssis)
-            draw_line(10, 135, f"ID: {self.data.get('categorie', 'N/A')}")
+            draw_line(10, 120, f"ID: {self.data.get('categorie', 'N/A')}")
             
             # 7. Période
             # periode = f"{self.data.get('date_debut', '')} AU {self.data.get('date_fin', '')}"
             periode = f"{date_debut} AU {date_fin}"
-            draw_line(10, 145, f"CAT {self.data.get('categorie', '01')}")
+            draw_line(10, 127, f"CAT {self.data.get('categorie', '01')}")
             
             # 8. Catégorie
             usage_categorie = f"{self.data.get('libele_tarif', '')}, {self.data.get('categorie', '')}"
-            draw_line(10, 155, usage_categorie)
+            draw_line(10, 134, usage_categorie)
             
             # --- DEUXIÈME COLONNE ---
             draw_line(80, 85, self.data.get('owner', ''))
-            draw_line(80, 95, periode)
-            draw_line(80, 105, self.data.get('immatriculation', ''))
-            draw_line(80, 115, marque_mod)
-            draw_line(80, 125, self.data.get('compagny', ''))
-            draw_line(80, 135, f"ID: {self.data.get('id', 'N/A')}")
-            draw_line(80, 145, usage_categorie)
+            draw_line(80, 92, periode)
+            draw_line(80, 99, self.data.get('immatriculation', ''))
+            draw_line(80, 106, marque_mod)
+            draw_line(80, 113, self.data.get('compagny', ''))
+            draw_line(80, 120, f"ID: {self.data.get('id', 'N/A')}")
+            draw_line(80, 127, usage_categorie)
             
             # --- TROISIÈME COLONNE ---
             draw_line(160, 85, self.data.get('owner', ''))
-            draw_line(160, 95, self.data.get('immatriculation', ''))
-            draw_line(160, 105, "AMS ASSURANCE, YAOUNDE")
-            draw_line(160, 135, usage_categorie)
+            draw_line(160, 92, self.data.get('immatriculation', ''))
+            draw_line(160, 99, "AMS ASSURANCE, YAOUNDE")
+            draw_line(160, 106, usage_categorie)
     
      
 
