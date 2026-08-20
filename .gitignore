@@ -45,3 +45,262 @@ insertion
 
 *.sql
 *.pdf
+
+
+# ============================================================================
+# PYTHON
+# ============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+
+# ============================================================================
+# IDE ET ÉDITEURS
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ============================================================================
+# ENVIRONNEMENTS VIRTUELS
+# ============================================================================
+.venv/
+venv/
+env/
+ENV/
+.env
+.venv/
+
+# ============================================================================
+# CERTIFICATS ET CLÉS (SÉCURITÉ)
+# ============================================================================
+# ✅ Clés privées - NE JAMAIS COMMITER !
+*.pem
+*.key
+*.crt
+*.csr
+*.der
+*.p12
+*.pfx
+*.jks
+*.cer
+*.crl
+
+# ✅ Certificats de développement
+lometa_module_certificate/certificates/*.pem
+lometa_module_certificate/certificates/*.key
+lometa_module_certificate/certificates/*.crt
+lometa_module_certificate/certificates/*.csr
+lometa_module_certificate/certificates/*.der
+lometa_module_certificate/certificates/*.p12
+lometa_module_certificate/certificates/*.pfx
+
+# ✅ Certificats utilisateur
+~/.lometa/certificates/*.pem
+~/.lometa/certificates/*.key
+~/.lometa/certificates/*.crt
+~/.lometa/certificates/*.csr
+
+# ✅ Certificats de modules (sauf le template)
+addons/*/certificate.pem
+addons/*/certificate.json
+
+# ✅ Autoriser le certificat d'exemple
+!addons/Automobiles/certificate.json
+!addons/Paramètres/certificate.json
+
+# ✅ Clés publiques - À distribuer mais pas à commiter
+developer_public_key.pem
+lometa_ca.pem
+lometa_ca.crt
+certificate_chain.pem
+
+# ============================================================================
+# LOGS ET TRACES
+# ============================================================================
+*.log
+logs/
+*.log.*
+*.out
+*.err
+*.pid
+*.seed
+*.pid.lock
+
+# ============================================================================
+# FICHIERS DE BASE DE DONNÉES
+# ============================================================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-shm
+*.db-wal
+cache.db
+
+# ============================================================================
+# RAPPORTS ET DOCUMENTS GÉNÉRÉS
+# ============================================================================
+*.pdf
+*.csv
+*.xlsx
+!requirements*.txt
+reports/
+exports/
+Quittances_Assurance/
+Attestations_Assurance/
+Devis_Assurance/
+
+# ============================================================================
+# FICHIERS DE CONFIGURATION LOCALE
+# ============================================================================
+*.local
+*.local.*
+config.local.*
+*.user.ini
+*.private.*
+
+# ============================================================================
+# FICHIERS TEMPORAIRES
+# ============================================================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.orig
+*.rej
+*~
+
+# ============================================================================
+# OS SPÉCIFIQUE
+# ============================================================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+.fseventsd/
+
+# Linux
+*~
+.directory
+*.swp
+*.swo
+*.swn
+*.un~
+
+# ============================================================================
+# EXÉCUTABLES ET BINAIRES
+# ============================================================================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+dist/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+bin/
+var/
+sdist/
+wheel/
+*.whl
+*.egg
+
+# ============================================================================
+# SERVEUR API
+# ============================================================================
+api/storage/
+api/__pycache__/
+api/*.pyc
+api/*.db
+api/*.log
+
+# ============================================================================
+# MODULES SPÉCIFIQUES
+# ============================================================================
+# Certificats de modules (sauf les fichiers de template)
+addons/*/certificate.pem
+addons/*/certificate.json
+!addons/*/certificate.json.example
+
+# ============================================================================
+# FICHIERS DE TEST
+# ============================================================================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.venv/
+
+# ============================================================================
+# MISCELLANEOUS
+# ============================================================================
+# Dossiers de projets spécifiques
+*.code-workspace
+*.sublime-*
+*.iml
+*.komodoproject
+*.kateproject
+*.katesession
+*.kateworkspace
+
+# ============================================================================
+# CERTIFICATS IMPORTANTS À CONSERVER
+# ============================================================================
+# ✅ Ces fichiers sont nécessaires, ne pas les ignorer
+!generate_dev_certificate.sh
+!certify_module.sh
+!certificate_manager.py
+!rsa_certificate_manager.py
+
+# ✅ Les manifestes et fichiers de configuration
+!addons/*/manifest.json
+!addons/*/manifest.json.example
+!certificates/README.md
+
+# ✅ Les clés publiques de développement (si nécessaires)
+!developer_public_key.pem.example
+!lometa_ca.pem.example
