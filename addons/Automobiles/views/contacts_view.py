@@ -432,7 +432,7 @@ class ContactListView(QWidget):
         # filter_layout.addWidget(filter_icon)
         
         self.filter_combo = QComboBox()
-        self.filter_combo.addItems(["Tous", "Souscripteur", "Chauffeur", "Particulier", "Société"])
+        self.filter_combo.addItems(["Souscripteur", "Tous", "Chauffeur", "Particulier", "Société"])
         self.filter_combo.setStyleSheet(f"""
             QComboBox {{
                 border: 2px solid {self.COLORS['border']};
@@ -1121,6 +1121,9 @@ class ContactListView(QWidget):
             self.display_contacts()
             self.update_statistics()
             self.update_last_update_time()
+
+            # APPLIQUER LE FILTRE APRÈS LE CHARGEMENT
+            self.apply_filters()  # ou self.on_filter_changed()
             
             count = len(self.all_contacts)
             self.set_status(f"{count} contact(s) chargé(s)", "success")

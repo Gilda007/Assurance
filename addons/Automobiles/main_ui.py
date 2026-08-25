@@ -1,7 +1,7 @@
 # addons/Automobiles/main_ui.py - Version avec animation non bloquante
 
 from PySide6.QtWidgets import QPushButton, QFrame, QVBoxLayout, QLabel, QProgressBar, QGraphicsDropShadowEffect, QApplication, QWidget, QHBoxLayout
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QThread, Signal, QEasingCurve, QMetaObject, Q_ARG, Slot
+from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QThread, Signal, QEasingCurve, QMetaObject, Q_ARG, Slot, QSize
 from PySide6.QtGui import QColor, QPainter, QPen, QBrush
 import math
 import os
@@ -906,16 +906,45 @@ class AutomobileModule(BaseModule):
         self._create_navigation_button()
         self._add_to_sidebar()
         
+    # def _create_navigation_button(self):
+    #     # ✅ Utiliser qtawesome pour l'icône du bouton
+    #     self._button = QPushButton()
+    #     self._button.setIcon(qta.icon('fa5s.car', color='#f8fafc'))
+    #     self._button.setText("  Automobile")
+    #     self._button.setFixedHeight(self.BUTTON_HEIGHT)
+    #     self._button.setCursor(Qt.PointingHandCursor)
+    #     self._button.setStyleSheet(self.BUTTON_STYLE)
+    #     self._button.clicked.connect(self.activate_module)
+
     def _create_navigation_button(self):
-        # ✅ Utiliser qtawesome pour l'icône du bouton
-        self._button = QPushButton()
-        self._button.setIcon(qta.icon('fa5s.car', color='#f8fafc'))
-        self._button.setText("  Automobile")
-        self._button.setFixedHeight(self.BUTTON_HEIGHT)
-        self._button.setCursor(Qt.PointingHandCursor)
-        self._button.setStyleSheet(self.BUTTON_STYLE)
-        self._button.clicked.connect(self.activate_module)
+        """Crée le bouton de navigation en utilisant la méthode de la sidebar"""
+        from icons import get_icon
         
+        # Récupérer la sidebar
+        sidebar = getattr(self.main_window, 'sidebar', None)
+        if not sidebar:
+            # Fallback: créer un bouton simple
+            self._button = QPushButton()
+            self._button.setIcon(get_icon('car', color='#f8fafc', size=18))
+            self._button.setIconSize(QSize(18, 18))
+            self._button.setText("  Automobile")
+            self._button.setFixedHeight(self.BUTTON_HEIGHT)
+            self._button.setCursor(Qt.PointingHandCursor)
+            self._button.setStyleSheet(self.BUTTON_STYLE)
+            self._button.clicked.connect(self.activate_module)
+            return
+        
+        # Utiliser la méthode add_menu_button de la sidebar avec l'icône 'car'
+        self._button = sidebar.add_menu_button("Automobile", "car", self)
+        
+        # Définir l'icône via get_icon
+        self._button.setIcon(get_icon('car', color='#cbd5f5', size=18))
+        self._button.setIconSize(QSize(18, 18))
+        
+        # Connecter le clic
+        self._button.clicked.disconnect()
+        self._button.clicked.connect(self.activate_module)
+
     def _add_to_sidebar(self):
         sidebar_layout = getattr(self.main_window, 'sidebar_layout', None)
         if sidebar_layout:

@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QGroupBox, QSizePolicy, QSpacerItem, QMenu, QInputDialog,
     QDialogButtonBox, QSlider
 )
-from PySide6.QtCore import Qt, Signal, QThread, QDate, QSettings
+from PySide6.QtCore import Qt, Signal, QThread, QDate, QSettings, QSize
 from PySide6.QtGui import QFont, QColor, QPalette, QAction
 import pandas as pd
 import traceback
@@ -23,67 +23,76 @@ os.environ["QT_QPA_PLATFORM"] = "xcb"
 os.environ["XDG_SESSION_TYPE"] = "x11"
 os.environ["GDK_BACKEND"] = "x11"
 warnings.filterwarnings("ignore")
+from icons import get_icon, get_icon_pixmap, ICONS
 
 
 class Icons:
-    """Codes Unicode pour les icônes (compatibles Cython)"""
+    """Noms des icônes à utiliser depuis le fichier icons"""
+    
     # Véhicules
-    VEHICLE = "\uD83D\uDE97"      # 🚗
-    FLEET = "\uD83D\uDE9A"        # 🚚
-    CAR = "\uD83D\uDE97"          # 🚗
+    VEHICLE = "car"
+    FLEET = "truck"
+    CAR = "car"
     
     # Actions
-    CHECK = "\u2705"              # ✅
-    CROSS = "\u274C"              # ❌
-    WARNING = "\u26A0"            # ⚠️
-    INFO = "\u2139"               # ℹ️
-    SEARCH = "\uD83D\uDD0D"       # 🔍
-    REFRESH = "\uD83D\uDD04"      # 🔄
-    DOWNLOAD = "\uD83D\uDCE5"     # 📥
+    CHECK = "check"
+    CROSS = "close"
+    WARNING = "alert"
+    INFO = "information"
+    SEARCH = "search"
+    REFRESH = "refresh"
+    DOWNLOAD = "download"
     
     # Notifications
-    BELL = "\uD83D\uDD14"         # 🔔
+    BELL = "bell"
     
     # Fichiers
-    FOLDER = "\uD83D\uD4C2"       # 📂
-    FILE = "\uD83D\uDCC4"         # 📄
+    FOLDER = "folder"
+    FILE = "file"
+    FILE_EXCEL = "file_excel"
+    FILE_CSV = "file_csv"
     
     # Garanties
-    SHIELD = "\uD83D\uDEE1"       # 🛡️
-    SCALE = "\u2696"              # ⚖️
-    FIRE = "\uD83D\uDD25"         # 🔥
-    GLASS = "\uD83E\uDEAF"        # 🪟
-    WRENCH = "\uD83D\uDD27"       # 🔧
-    BOMB = "\uD83D\uDCA5"         # 💥
-    PEOPLE = "\uD83D\uDC65"       # 👥
-    GUN = "\uD83D\uDD2B"          # 🔫
+    SHIELD = "shield"
+    SCALE = "scale"
+    FIRE = "fire"
+    GLASS = "glass"
+    WRENCH = "wrench"
+    BOMB = "bomb"
+    PEOPLE = "account_group"
+    GUN = "gun"
     
     # Finances
-    MONEY = "\uD83D\uDCB0"        # 💰
-    MONEY_BAG = "\uD83D\uDCB0"    # 💰
-    COIN = "\uD83E\uDE99"         # 🪙
+    MONEY = "cash"
+    MONEY_BAG = "cash"
+    COIN = "coins"
     
     # Dates
-    CALENDAR = "\uD83D\uDCC5"     # 📅
-    CLOCK = "\u23F1"              # ⏱️
+    CALENDAR = "calendar"
+    CLOCK = "clock"
     
     # Statistiques
-    CHART = "\uD83D\uDCCA"        # 📊
-    GRAPH = "\uD83D\uDCC8"        # 📈
-    LIST = "\uD83D\uDCCB"         # 📋
+    CHART = "chart_bar"
+    GRAPH = "chart_line"
+    LIST = "list"
     
     # Divers
-    TARGET = "\uD83C\uDFAF"       # 🎯
-    PENCIL = "\u270F"             # ✏️
-    HOME = "\uD83C\uDFE0"         # 🏠
-    HELP = "\u2753"               # ❓
-    GEAR = "\u2699"               # ⚙️
-    STAR = "\u2B50"               # ⭐
+    TARGET = "target"
+    PENCIL = "pencil"
+    HOME = "home"
+    HELP = "help"
+    GEAR = "settings"
+    STAR = "star"
     
     @staticmethod
-    def label(text, icon):
+    def label(text, icon_name):
         """Crée un texte avec une icône"""
-        return f"{icon} {text}"
+        return f" {text}"
+    
+    @staticmethod
+    def get_icon(icon_name, color="#2563eb", size=16):
+        """Récupère une icône"""
+        return get_icon(icon_name, color=color, size=size)
 
 
 # ============================================================================
@@ -233,15 +242,15 @@ STYLESHEET = f"""
 
 
 # ============================================================================
-# DIALOGUE DE RÃ‰DUCTION EN MASSE
+# DIALOGUE DE RéDUCTION EN MASSE
 # ============================================================================
 
 class MassReductionDialog(QDialog):
-    """Dialogue pour appliquer une rÃ©duction en masse sur les garanties sÃ©lectionnÃ©es"""
+    """Dialogue pour appliquer une réduction en masse sur les garanties sélectionnées"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Application de rÃ©duction en masse")
+        self.setWindowTitle("Application de réduction en masse")
         self.setMinimumSize(550, 500)
         self.setModal(True)
         self.setStyleSheet(STYLESHEET)
@@ -254,11 +263,11 @@ class MassReductionDialog(QDialog):
         layout.setContentsMargins(20, 20, 20, 20)
         
         # En-tête
-        header = QLabel(Icons.label("Application de réduction en masse", Icons.CHART))
+        header = QLabel(Icons.label("Application de réduction en masse", "chart_bar"))
         header.setStyleSheet("font-size: 16px; font-weight: 700; color: #0f172a;")
         layout.addWidget(header)
         
-        desc = QLabel("Appliquez un pourcentage de rÃ©duction sur les garanties sélectionnées")
+        desc = QLabel("Appliquez un pourcentage de réduction sur les garanties sélectionnées")
         desc.setStyleSheet("color: #64748b; font-size: 12px;")
         layout.addWidget(desc)
         
@@ -302,15 +311,15 @@ class MassReductionDialog(QDialog):
         # Liste des garanties
         self.garantie_checkboxes = {}
         garanties_list = [
-            ('rc', "RC/RTI", Icons.SHIELD),
-            ('dr', "DÃ©fense et Recours", Icons.SCALE),
-            ('vol', "Vol/Vol partie", Icons.GUN),
-            ('vb', "Vol Braquage", Icons.BOMB),
-            ('incendie', "Incendie", Icons.FIRE),
-            ('bris_glace', "Bris de Glaces", Icons.GLASS),
-            ('ar', "Assistance RÃ©paration", Icons.WRENCH),
-            ('dta', "Dommages Tous Accidents", Icons.BOMB),
-            ('ipt', "IPT + Conducteur", Icons.PEOPLE),
+            ('rc', "RC/RTI", "shield"),
+            ('dr', "Défense et Recours", "scale"),
+            ('vol', "Vol/Vol partie", "gun"),
+            ('vb', "Vol Braquage", "bomb"),
+            ('incendie', "Incendie", "fire"),
+            ('bris_glace', "Bris de Glaces", "glass"),
+            ('ar', "Assistance Réparation", "wrench"),
+            ('dta', "Dommages Tous Accidents", "bomb"),
+            ('ipt', "IPT + Conducteur", "account_group"),
         ]
         
         checkbox_layout = QGridLayout()
@@ -416,7 +425,7 @@ class MassReductionDialog(QDialog):
         
         layout.addWidget(reduction_group)
         
-        # === RÃ‰SUMÃ‰ ===
+        # === RéSUMé ===
         summary_frame = QFrame()
         summary_frame.setStyleSheet("""
             QFrame {
@@ -465,55 +474,55 @@ class MassReductionDialog(QDialog):
         self.reduction_input.setText(str(value))
     
     def toggle_all(self, checked):
-        """Active ou dÃ©sactive toutes les checkboxes"""
+        """Active ou désactive toutes les checkboxes"""
         for cb in self.garantie_checkboxes.values():
             cb.setChecked(checked)
         self.update_summary()
     
-    def update_summary(self):
-        """Met Ã  jour le rÃ©sumÃ©"""
-        selected = [key for key, cb in self.garantie_checkboxes.items() if cb.isChecked()]
-        pct = self.get_reduction_percentage()
+    # def update_summary(self):
+    #     """Met Ã  jour le résumé"""
+    #     selected = [key for key, cb in self.garantie_checkboxes.items() if cb.isChecked()]
+    #     pct = self.get_reduction_percentage()
         
-        # Mettre Ã  jour le texte du rÃ©sumÃ©
-        self.summary_text.setText(
-            Icons.label(f"{len(selected)} garantie{'s' if len(selected) > 1 else ''} sélectionnée{'s' if len(selected) > 1 else ''} · {pct:.1f}% de réduction", Icons.LIST)
-        )
+    #     # Mettre Ã  jour le texte du résumé
+    #     self.summary_text.setText(
+    #         Icons.label(f"{len(selected)} garantie{'s' if len(selected) > 1 else ''} sélectionnée{'s' if len(selected) > 1 else ''} · {pct:.1f}% de réduction", Icons.LIST)
+    #     )
         
-        # Mettre Ã  jour l'aperÃ§u
-        self.preview_label.setText(Icons.label(f"{pct:.1f}% de réduction", Icons.INFO))
+    #     # Mettre Ã  jour l'aperÃ§u
+    #     self.preview_label.setText(Icons.label(f"{pct:.1f}% de réduction", Icons.INFO))
         
-        # Compter les vÃ©hicules impactÃ©s
-        if self.parent() and hasattr(self.parent(), 'vehicles_data'):
-            vehicles = self.parent().vehicles_data
-            impacted = 0
-            for v in vehicles:
-                garanties = v.get('garanties', {})
-                for key in selected:
-                    if garanties.get(key, 0) > 0:
-                        impacted += 1
-                        break
-            self.summary_vehicles.setText(Icons.label(f"{impacted} véhicule{'s' if impacted > 1 else ''}", Icons.VEHICLE))
+    #     # Compter les véhicules impactés
+    #     if self.parent() and hasattr(self.parent(), 'vehicles_data'):
+    #         vehicles = self.parent().vehicles_data
+    #         impacted = 0
+    #         for v in vehicles:
+    #             garanties = v.get('garanties', {})
+    #             for key in selected:
+    #                 if garanties.get(key, 0) > 0:
+    #                     impacted += 1
+    #                     break
+    #         self.summary_vehicles.setText(Icons.label(f"{impacted} véhicule{'s' if impacted > 1 else ''}", Icons.VEHICLE))
             
-            # Calculer les Ã©conomies totales
-            total_economies = 0
-            for v in vehicles:
-                garanties = v.get('garanties', {})
-                for key in selected:
-                    amount = garanties.get(key, 0)
-                    if amount > 0:
-                        total_economies += amount * (pct / 100)
-            self.preview_total.setText(Icons.label(f"{total_economies:,.0f}".replace(",", " ") + " FCFA économisés", Icons.MONEY))
-        else:
-            self.summary_vehicles.setText(Icons.label("Véhicules chargés", Icons.VEHICLE))
-            self.preview_total.setText(Icons.label("0 FCFA économisés", Icons.MONEY))
+    #         # Calculer les économies totales
+    #         total_economies = 0
+    #         for v in vehicles:
+    #             garanties = v.get('garanties', {})
+    #             for key in selected:
+    #                 amount = garanties.get(key, 0)
+    #                 if amount > 0:
+    #                     total_economies += amount * (pct / 100)
+    #         self.preview_total.setText(Icons.label(f"{total_economies:,.0f}".replace(",", " ") + " FCFA économisés", Icons.MONEY))
+    #     else:
+    #         self.summary_vehicles.setText(Icons.label("Véhicules chargés", Icons.VEHICLE))
+    #         self.preview_total.setText(Icons.label("0 FCFA économisés", Icons.MONEY))
     
     def get_selected_garanties(self):
-        """Retourne la liste des garanties sÃ©lectionnÃ©es"""
+        """Retourne la liste des garanties sélectionnées"""
         return [key for key, cb in self.garantie_checkboxes.items() if cb.isChecked()]
     
     def get_reduction_percentage(self):
-        """Retourne le pourcentage de rÃ©duction"""
+        """Retourne le pourcentage de réduction"""
         try:
             value = float(self.reduction_input.text().replace(",", "."))
             if value < 0:
@@ -526,7 +535,7 @@ class MassReductionDialog(QDialog):
 
 
 def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, current_user_id, debut, fin, jours, total_garanties, tva_amount, accessoires, asac, carte_rose, vignette):
-    """Construit le payload attendu par le contrÃ´leur pour crÃ©er un vÃ©hicule complet."""
+    """Construit le payload attendu par le contrÃ´leur pour créer un véhicule complet."""
     garanties = vehicle.get('garanties', {}) or {}
 
     categorie_value = (vehicle.get('categorie') or 'VP').strip() or 'VP'
@@ -535,7 +544,7 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
     usage_value = (vehicle.get('usage') or 'UV01').strip() or 'UV01'
     energie_value = (vehicle.get('energie') or 'SEE').strip() or 'SEE'
 
-    # âœ… RÃ©cupÃ©rer les valeurs de prime depuis le vÃ©hicule (dÃ©jÃ  extraites du fichier)
+    #  Récupérer les valeurs de prime depuis le véhicule (déjÃ  extraites du fichier)
     prime_brute = vehicle.get('prime_brute', 0)
     prime_nette = vehicle.get('prime_nette', 0)
     reductions = vehicle.get('reductions', 0)
@@ -564,7 +573,7 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'check_ipt': guarantee_amounts['amt_ipt'] > 0,
     }
 
-    # âœ… RÃ©cupÃ©rer les rÃ©ductions individuelles
+    #  Récupérer les réductions individuelles
     reductions_individuelles = {
         'red_rc': float(garanties.get('red_rc', garanties.get('reduction_rc', 0)) or 0),
         'red_dr': float(garanties.get('red_dr', garanties.get('reduction_dr', 0)) or 0),
@@ -577,14 +586,14 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'red_ipt': float(garanties.get('red_ipt', garanties.get('reduction_ipt', 0)) or 0),
     }
 
-    # âœ… Calcul de la TVA (sur la base de la prime nette)
+    #  Calcul de la TVA (sur la base de la prime nette)
     # base_tva = prime_nette + accessoires + asac
     # tva = base_tva * 0.1925
     tva_rate = 0.1925
     base_tva = prime_nette + accessoires + asac
     tva_calculee = base_tva * tva_rate
     
-    # âœ… Calcul du PTTC
+    #  Calcul du PTTC
     # pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
     pttc_calcule = prime_nette + accessoires + asac + tva_calculee + vignette + carte_rose
 
@@ -614,10 +623,10 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'date_fin': fin,
         'date_mise_circulation': vehicle.get('date_mise_circulation', None),
         'nbr_jour': jours,
-        'prime_brute': prime_brute,  # âœ… Prime brute du fichier
-        'reduction': reductions,      # âœ… RÃ©ductions du fichier
-        'prime_nette': prime_nette,   # âœ… Prime nette du fichier
-        'prime_emise': prime_nette,   # âœ… Prime Ã©mise = prime nette
+        'prime_brute': prime_brute,  #  Prime brute du fichier
+        'reduction': reductions,      #  Réductions du fichier
+        'prime_nette': prime_nette,   #  Prime nette du fichier
+        'prime_emise': prime_nette,   #  Prime émise = prime nette
         'accessoires': accessoires,
         'tva': tva_calculee,
         'fichier_asac': asac,
@@ -664,14 +673,14 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
     }
 
 class VehicleGarantieDialog(QDialog):
-    """Dialogue de personnalisation complÃ¨te d'un vÃ©hicule"""
+    """Dialogue de personnalisation complète d'un véhicule"""
     
     def __init__(self, vehicle, garanties, parent=None):
         super().__init__(parent)
         self.vehicle = vehicle
         self.garanties = garanties
         self.garantie_cards = {}
-        self.setWindowTitle(f"Gestion du vÃ©hicule - {vehicle.get('immatriculation', 'VÃ©hicule')}")
+        self.setWindowTitle(f"Gestion du véhicule - {vehicle.get('immatriculation', 'Véhicule')}")
         self.setMinimumSize(900, 750)
         self.setModal(True)
         self.setStyleSheet(STYLESHEET)
@@ -685,7 +694,7 @@ class VehicleGarantieDialog(QDialog):
         layout.setSpacing(16)
         layout.setContentsMargins(20, 20, 20, 20)
         
-        # En-tÃªte
+        # En-tête
         header = QFrame()
         header.setStyleSheet(f"""
             background: {AppColors.PRIMARY_LIGHT};
@@ -694,7 +703,7 @@ class VehicleGarantieDialog(QDialog):
         """)
         header_layout = QHBoxLayout(header)
         
-        info = QLabel(f"ðŸš— {self.vehicle.get('immatriculation')} - {self.vehicle.get('marque')} {self.vehicle.get('modele')}")
+        info = QLabel(f" {self.vehicle.get('immatriculation')} - {self.vehicle.get('marque')} {self.vehicle.get('modele')}")
         info.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {AppColors.PRIMARY_DARK};")
         header_layout.addWidget(info)
         header_layout.addStretch()
@@ -705,23 +714,27 @@ class VehicleGarantieDialog(QDialog):
         
         # ========== ONGLET 1 : GARANTIES ==========
         garanties_tab = self.create_garanties_tab()
-        tab_widget.addTab(garanties_tab, "ðŸ›¡ï¸ Garanties")
-        
-        # ========== ONGLET 2 : INFORMATIONS VÃ‰HICULE ==========
+        tab_widget.addTab(garanties_tab, " Garanties")
+        tab_widget.setTabIcon(0, get_icon('shield', color='#4a5568', size=16))
+
+        # ========== ONGLET 2 : INFORMATIONS VÉHICULE ==========
         vehicle_tab = self.create_vehicle_info_tab()
-        tab_widget.addTab(vehicle_tab, "ðŸš— VÃ©hicule")
-        
+        tab_widget.addTab(vehicle_tab, " Véhicule")
+        tab_widget.setTabIcon(1, get_icon('car', color='#4a5568', size=16))
+
         # ========== ONGLET 3 : FRAIS ET TAXES ==========
         frais_tab = self.create_frais_tab()
-        tab_widget.addTab(frais_tab, "ðŸ’° Frais & Taxes")
-        
+        tab_widget.addTab(frais_tab, " Frais & Taxes")
+        tab_widget.setTabIcon(2, get_icon('cash', color='#4a5568', size=16))
+
         # ========== ONGLET 4 : DATES ET STATUT ==========
         dates_tab = self.create_dates_tab()
-        tab_widget.addTab(dates_tab, "ðŸ“… Dates")
-        
+        tab_widget.addTab(dates_tab, " Dates")
+        tab_widget.setTabIcon(3, get_icon('calendar', color='#4a5568', size=16))
+                
         layout.addWidget(tab_widget)
         
-        # Total gÃ©nÃ©ral
+        # Total général
         total_frame = QFrame()
         total_frame.setStyleSheet(f"""
             background: {AppColors.SUCCESS_LIGHT};
@@ -729,7 +742,7 @@ class VehicleGarantieDialog(QDialog):
             padding: 10px;
         """)
         total_layout = QHBoxLayout(total_frame)
-        total_layout.addWidget(QLabel("<b>ðŸ’° TOTAL GÃ‰NÃ‰RAL DES GARANTIES :</b>"))
+        total_layout.addWidget(QLabel("<b>ðŸ’° TOTAL GéNéRAL DES GARANTIES :</b>"))
         self.total_label = QLabel("0 FCFA")
         self.total_label.setStyleSheet(f"font-size: 16px; font-weight: 800; color: {AppColors.SUCCESS_DARK};")
         total_layout.addWidget(self.total_label)
@@ -755,7 +768,7 @@ class VehicleGarantieDialog(QDialog):
         layout.addLayout(btn_layout)
     
     def create_garanties_tab(self):
-        """CrÃ©e l'onglet des garanties"""
+        """Crée l'onglet des garanties"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
         
@@ -769,12 +782,12 @@ class VehicleGarantieDialog(QDialog):
         self.garantie_inputs = {}
         garanties_list = [
             ('rc', "RC/RTI"),
-            ('dr', "DÃ©fense et Recours"),
+            ('dr', "Défense et Recours"),
             ('vol', "Vol/Vol partie"),
             ('vb', "Vol Braquage"),
             ('incendie', "Incendie"),
             ('bris_glace', "Bris de Glaces"),
-            ('ar', "Assistance Ã  la rÃ©paration"),
+            ('ar', "Assistance Ã  la réparation"),
             ('dta', "Dommages Tous Accidents"),
             ('ipt', "IPT + Conducteur"),
         ]
@@ -796,7 +809,7 @@ class VehicleGarantieDialog(QDialog):
             frame_layout.addWidget(amount_input)
             
             reduction_input = QLineEdit()
-            reduction_input.setPlaceholderText("RÃ©duction %")
+            reduction_input.setPlaceholderText("Réduction %")
             reduction_input.setEnabled(False)
             reduction_input.setFixedWidth(100)
             reduction_input.textChanged.connect(lambda: self.update_total())
@@ -823,7 +836,7 @@ class VehicleGarantieDialog(QDialog):
         return tab
 
     def create_vehicle_info_tab(self):
-        """CrÃ©e l'onglet des informations du vÃ©hicule"""
+        """Crée l'onglet des informations du véhicule"""
         tab = QWidget()
         layout = QGridLayout(tab)
         layout.setSpacing(15)
@@ -856,29 +869,29 @@ class VehicleGarantieDialog(QDialog):
         self.info_chassis.setStyleSheet(style_field)
         layout.addWidget(self.info_chassis, 1, 1)
         
-        # Marque et modÃ¨le
+        # Marque et modèle
         layout.addWidget(QLabel("Marque :"), 2, 0)
         self.info_marque = QLineEdit(self.vehicle.get('marque', ''))
         self.info_marque.setStyleSheet(style_field)
         layout.addWidget(self.info_marque, 2, 1)
         
-        layout.addWidget(QLabel("ModÃ¨le :"), 3, 0)
+        layout.addWidget(QLabel("Modèle :"), 3, 0)
         self.info_modele = QLineEdit(self.vehicle.get('modele', ''))
         self.info_modele.setStyleSheet(style_field)
         layout.addWidget(self.info_modele, 3, 1)
         
-        # CaractÃ©ristiques
-        layout.addWidget(QLabel("CatÃ©gorie :"), 4, 0)
+        # Caractéristiques
+        layout.addWidget(QLabel("Catégorie :"), 4, 0)
         self.info_categorie = QLineEdit(self.vehicle.get('categorie', 'VP'))
         self.info_categorie.setStyleSheet(style_field)
         layout.addWidget(self.info_categorie, 4, 1)
         
-        layout.addWidget(QLabel("AnnÃ©e :"), 5, 0)
+        layout.addWidget(QLabel("Année :"), 5, 0)
         self.info_annee = QLineEdit(str(self.vehicle.get('annee', '')) if self.vehicle.get('annee') else '')
         self.info_annee.setStyleSheet(style_field)
         layout.addWidget(self.info_annee, 5, 1)
         
-        layout.addWidget(QLabel("Ã‰nergie :"), 6, 0)
+        layout.addWidget(QLabel("énergie :"), 6, 0)
         self.info_energie = QLineEdit(self.vehicle.get('energie', 'Essence'))
         self.info_energie.setStyleSheet(style_field)
         layout.addWidget(self.info_energie, 6, 1)
@@ -893,13 +906,13 @@ class VehicleGarantieDialog(QDialog):
         self.info_places.setStyleSheet(style_field)
         layout.addWidget(self.info_places, 8, 1)
         
-        # Valeurs financiÃ¨res
+        # Valeurs financières
         layout.addWidget(QLabel("Valeur Ã  neuf (FCFA) :"), 9, 0)
         self.info_valeur_neuf = QLineEdit(f"{self.vehicle.get('valeur_neuf', 0):,.0f}".replace(",", " "))
         self.info_valeur_neuf.setStyleSheet(style_field)
         layout.addWidget(self.info_valeur_neuf, 9, 1)
         
-        layout.addWidget(QLabel("Valeur vÃ©nale (FCFA) :"), 10, 0)
+        layout.addWidget(QLabel("Valeur vénale (FCFA) :"), 10, 0)
         self.info_valeur_venale = QLineEdit(f"{self.vehicle.get('valeur_venale', 0):,.0f}".replace(",", " "))
         self.info_valeur_venale.setStyleSheet(style_field)
         layout.addWidget(self.info_valeur_venale, 10, 1)
@@ -915,7 +928,7 @@ class VehicleGarantieDialog(QDialog):
         return tab
 
     def create_frais_tab(self):
-        """CrÃ©e l'onglet des frais et taxes"""
+        """Crée l'onglet des frais et taxes"""
         tab = QWidget()
         layout = QGridLayout(tab)
         layout.setSpacing(15)
@@ -934,7 +947,7 @@ class VehicleGarantieDialog(QDialog):
             }
         """
         
-        # Frais supplÃ©mentaires
+        # Frais supplémentaires
         layout.addWidget(QLabel("Accessoires (FCFA) :"), 0, 0)
         self.frais_accessoires = QLineEdit(str(self.vehicle.get('accessoires', 0)))
         self.frais_accessoires.setStyleSheet(style_field)
@@ -959,13 +972,13 @@ class VehicleGarantieDialog(QDialog):
         self.frais_vignette.textChanged.connect(self.calculate_pttc)
         layout.addWidget(self.frais_vignette, 3, 1)
         
-        # SÃ©parateur
+        # Séparateur
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
         layout.addWidget(sep, 4, 0, 1, 2)
         
-        # RÃ©sultats des calculs
+        # Résultats des calculs
         layout.addWidget(QLabel("TVA (19.25%) :"), 5, 0)
         self.frais_tva = QLineEdit("0")
         self.frais_tva.setReadOnly(True)
@@ -984,7 +997,7 @@ class VehicleGarantieDialog(QDialog):
         return tab
 
     def create_dates_tab(self):
-        """CrÃ©e l'onglet des dates et statut"""
+        """Crée l'onglet des dates et statut"""
         tab = QWidget()
         layout = QGridLayout(tab)
         layout.setSpacing(15)
@@ -1001,8 +1014,8 @@ class VehicleGarantieDialog(QDialog):
             }
         """
         
-        # Date dÃ©but
-        layout.addWidget(QLabel("Date de dÃ©but :"), 0, 0)
+        # Date début
+        layout.addWidget(QLabel("Date de début :"), 0, 0)
         self.dates_date_debut = QDateEdit()
         self.dates_date_debut.setCalendarPopup(True)
         self.dates_date_debut.setDisplayFormat("dd/MM/yyyy")
@@ -1017,14 +1030,14 @@ class VehicleGarantieDialog(QDialog):
         self.dates_date_fin.dateChanged.connect(self.update_dates_calculations)
         layout.addWidget(self.dates_date_fin, 1, 1)
         
-        # SÃ©parateur
+        # Séparateur
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
         layout.addWidget(sep, 2, 0, 1, 2)
         
-        # DurÃ©e
-        layout.addWidget(QLabel("DurÃ©e (jours) :"), 3, 0)
+        # Durée
+        layout.addWidget(QLabel("Durée (jours) :"), 3, 0)
         self.dates_duree = QLabel("365")
         self.dates_duree.setStyleSheet("font-weight: bold; color: #2563eb; font-size: 14px;")
         layout.addWidget(self.dates_duree, 3, 1)
@@ -1049,8 +1062,20 @@ class VehicleGarantieDialog(QDialog):
         
         return tab
 
+    def on_garantie_toggle(self, key, checked):
+        """Appelé quand une checkbox est cochée/décochée"""
+        inputs = self.garantie_inputs[key]
+        inputs['amount'].setEnabled(checked)
+        inputs['reduction'].setEnabled(checked)
+        if not checked:
+            inputs['amount'].setText("0")
+            inputs['reduction'].setText("0")
+            inputs['net'].setText("0 FCFA")
+        self.update_total()
+        self.calculate_tva_pttc()
+
     def load_dates(self):
-        """Charge les dates du vÃ©hicule"""
+        """Charge les dates du véhicule"""
         date_debut = self.vehicle.get('date_debut')
         date_fin = self.vehicle.get('date_fin')
         
@@ -1078,7 +1103,7 @@ class VehicleGarantieDialog(QDialog):
         fin = self.dates_date_fin.date()
         
         if fin >= debut:
-            jours = debut.daysTo(fin)
+            jours = (debut.daysTo(fin))+1
             prorata = (jours / 365.0) * 100
             
             self.dates_duree.setText(f"{jours} jours")
@@ -1086,7 +1111,7 @@ class VehicleGarantieDialog(QDialog):
             
             today = QDate.currentDate()
             if fin < today:
-                self.dates_statut.setText("ExpirÃ©")
+                self.dates_statut.setText("Expiré")
                 self.dates_statut.setStyleSheet("color: #ef4444; font-weight: bold;")
             elif debut > today:
                 self.dates_statut.setText("Ã€ venir")
@@ -1101,27 +1126,27 @@ class VehicleGarantieDialog(QDialog):
             self.dates_statut.setStyleSheet("color: #ef4444; font-weight: bold;")
     
     def load_vehicle_infos(self):
-        """Charge les informations du vÃ©hicule"""
-        # Les valeurs sont dÃ©jÃ  chargÃ©es dans les widgets via les text()
+        """Charge les informations du véhicule"""
+        # Les valeurs sont déjÃ  chargées dans les widgets via les text()
         pass
 
     def load_garanties(self):
         """Charge les garanties dans les cartes"""
         for key, card in self.garantie_cards.items():
-            # RÃ©cupÃ©rer le montant de la garantie
+            # Récupérer le montant de la garantie
             amount = self.garanties.get(key, 0)
             
-            # âœ… VÃ©rifier si le montant est valide (non None et > 0)
+            #  Vérifier si le montant est valide (non None et > 0)
             if amount is None:
                 amount = 0
             
-            # âœ… Charger la rÃ©duction si elle existe
+            #  Charger la réduction si elle existe
             reduction_key = f'reduction_{key}'
             reduction = self.garanties.get(reduction_key, 0)
             if reduction is None:
                 reduction = 0
             
-            # âœ… DÃ©finir les valeurs dans la carte
+            #  Définir les valeurs dans la carte
             card.set_values(float(amount), float(reduction))
             card.garantie_changed.connect(self.on_garantie_changed)
 
@@ -1137,6 +1162,7 @@ class VehicleGarantieDialog(QDialog):
     def calculate_tva_pttc(self):
         """Calcule la TVA et le PTTC"""
         try:
+            # print(self.garantie_cards.values())
             total_garanties = sum(card.get_net_amount() for card in self.garantie_cards.values())
             accessoires = self.get_float_value(self.frais_accessoires)
             asac = self.get_float_value(self.frais_asac)
@@ -1165,7 +1191,7 @@ class VehicleGarantieDialog(QDialog):
             pass
     
     def get_float_value(self, widget):
-        """RÃ©cupÃ¨re une valeur float d'un widget"""
+        """Récupère une valeur float d'un widget"""
         try:
             if not widget or not widget.text():
                 return 0.0
@@ -1175,7 +1201,7 @@ class VehicleGarantieDialog(QDialog):
             return 0.0
     
     def get_data(self):
-        """Retourne les donnÃ©es modifiÃ©es"""
+        """Retourne les données modifiées"""
         data = {}
         
         # Garanties
@@ -1196,7 +1222,7 @@ class VehicleGarantieDialog(QDialog):
                 data[key] = 0
                 data[f'reduction_{key}'] = 0
         
-        # âœ… Utiliser self.info_inputs pour rÃ©cupÃ©rer les valeurs
+        #  Utiliser self.info_inputs pour récupérer les valeurs
         for key, input_widget in self.info_inputs.items():
             value = input_widget.text().strip()
             if key in ['annee', 'puissance', 'places']:
@@ -1212,7 +1238,7 @@ class VehicleGarantieDialog(QDialog):
             else:
                 data[key] = value
         
-        # âœ… Ajouter les frais
+        #  Ajouter les frais
         data['accessoires'] = self.get_float_value(self.frais_accessoires)
         data['asac'] = self.get_float_value(self.frais_asac)
         data['carte_rose'] = self.get_float_value(self.frais_carte_rose)
@@ -1238,7 +1264,7 @@ class VehicleGarantieDialog(QDialog):
         result['tva'] = self.get_float_value(self.frais_tva)
         result['pttc'] = self.get_float_value(self.frais_pttc)
         
-        # Ajouter les informations du vÃ©hicule
+        # Ajouter les informations du véhicule
         result['immatriculation'] = self.info_immatriculation.text().strip().upper()
         result['chassis'] = self.info_chassis.text().strip()
         result['marque'] = self.info_marque.text().strip()
@@ -1305,18 +1331,18 @@ class CalculationThread(QThread):
 
     def calculate_garanties(self, vehicle):
         """
-        Calcule les garanties pour un vÃ©hicule
+        Calcule les garanties pour un véhicule
         Reprend la logique de calculate_garantie_amount de automobile_form_view.py
         """
         garanties = {}
         
-        # RÃ©cupÃ©rer les paramÃ¨tres
+        # Récupérer les paramètres
         cie_id = self.params.get('compagny_id')
         zone = self.params.get('zone', 'A')
         code_tarif = self.params.get('code_tarif', '')
         avec_remorque = self.params.get('avec_remorque', False)
         
-        # Valeurs du vÃ©hicule
+        # Valeurs du véhicule
         v_neuf = vehicle.get('valeur_neuf', 0)
         v_venale = vehicle.get('valeur_venale', 0)
         places = vehicle.get('places', 5)
@@ -1328,8 +1354,8 @@ class CalculationThread(QThread):
         jours = self.params.get('duree_jours', 365)
         prorata = jours / 365.0
         
-        # âœ… 1. CALCUL DE LA RC (ResponsabilitÃ© Civile)
-        # Appel Ã  la mÃ©thode du contrÃ´leur pour obtenir la prime RC
+        #  1. CALCUL DE LA RC (Responsabilité Civile)
+        # Appel Ã  la méthode du contrÃ´leur pour obtenir la prime RC
         try:
             res = self.controller.vehicles.get_rc_premium_from_matrix(
                 cie_id=cie_id,
@@ -1345,39 +1371,39 @@ class CalculationThread(QThread):
             print(f"Erreur calcul RC: {e}")
             rc_base = 0
         
-        # âœ… 2. CALCUL DES GARANTIES (comme dans automobile_form_view.py)
+        #  2. CALCUL DES GARANTIES (comme dans automobile_form_view.py)
         # RC
         garanties['rc'] = rc_base * prorata
         
-        # DR (DÃ©fense et Recours) - 3% de la RC
+        # DR (Défense et Recours) - 3% de la RC
         garanties['dr'] = (rc_base * prorata) * 0.03 * prorata
         
-        # VOL - 2% de la valeur vÃ©nale
+        # VOL - 2% de la valeur vénale
         garanties['vol'] = v_venale * 0.02 * prorata
         
-        # VB (Vol Ã  main armÃ©e) - 2% de la valeur vÃ©nale
+        # VB (Vol Ã  main armée) - 2% de la valeur vénale
         garanties['vb'] = v_venale * 0.02 * prorata
         
-        # INCENDIE - 2.5% de la valeur vÃ©nale
+        # INCENDIE - 2.5% de la valeur vénale
         garanties['incendie'] = v_venale * 0.025 * prorata
         
         # BRIS DE GLACE - 0.5% de la valeur Ã  neuf
         garanties['bris_glace'] = v_neuf * 0.005 * prorata
         
-        # AR (Assistance RÃ©paration) - 3% de 75% de la valeur vÃ©nale
+        # AR (Assistance Réparation) - 3% de 75% de la valeur vénale
         garanties['ar'] = v_venale * 0.75 * 0.03 * prorata
         
         # DTA (Dommages Tous Accidents) - 5% de la valeur Ã  neuf
         garanties['dta'] = v_neuf * 0.05 * prorata
         
-        # IPT (Individuelle Personnes TransportÃ©es)
+        # IPT (Individuelle Personnes Transportées)
         # Si places <= 5: 7500 FCFA, sinon: (7500 * places / 5)
         if places <= 5:
             garanties['ipt'] = 7500 * prorata
         else:
             garanties['ipt'] = (7500 * places / 5) * prorata
         
-        # âœ… 3. TOTAL
+        #  3. TOTAL
         garanties['total'] = sum([
             garanties.get('rc', 0),
             garanties.get('dr', 0),
@@ -1396,7 +1422,7 @@ class CalculationThread(QThread):
 # ============================================================================
 
 class VehicleActionsWidget(QWidget):
-    """Widget contenant les deux boutons d'action pour un vÃ©hicule"""
+    """Widget contenant les deux boutons d'action pour un véhicule"""
     
     def __init__(self, vehicle_id, on_garanties_clicked, on_dates_clicked, on_modified_clicked, parent=None):
         super().__init__(parent)
@@ -1416,7 +1442,9 @@ class VehicleActionsWidget(QWidget):
         layout.setSpacing(6)
         
         # Bouton Garanties
-        self.garanties_btn = QPushButton("ðŸŽ¯")
+        self.garanties_btn = QPushButton()
+        self.garanties_btn.setIcon(get_icon('shield', color='white', size=14))
+        self.garanties_btn.setIconSize(QSize(14, 14))
         self.garanties_btn.setToolTip("Modifier les garanties")
         self.garanties_btn.setFixedSize(38, 34)
         self.garanties_btn.setCursor(Qt.PointingHandCursor)
@@ -1436,7 +1464,9 @@ class VehicleActionsWidget(QWidget):
         self.garanties_btn.clicked.connect(lambda: self.on_garanties_clicked(self.vehicle_id))
         
         # Bouton Dates
-        self.dates_btn = QPushButton("ðŸ“…")
+        self.dates_btn = QPushButton()
+        self.dates_btn.setIcon(get_icon('calendar', color='white', size=14))
+        self.dates_btn.setIconSize(QSize(14, 14))
         self.dates_btn.setToolTip("Modifier les dates du contrat")
         self.dates_btn.setFixedSize(38, 34)
         self.dates_btn.setCursor(Qt.PointingHandCursor)
@@ -1456,8 +1486,10 @@ class VehicleActionsWidget(QWidget):
         self.dates_btn.clicked.connect(lambda: self.on_dates_clicked(self.vehicle_id))
 
         # Bouton Dates
-        self.update_btn = QPushButton("âœï¸")
-        self.update_btn.setToolTip("Modifier les donnÃ©es du vÃ©hicule")
+        self.update_btn = QPushButton()
+        self.update_btn.setIcon(get_icon('edit', color='white', size=14))
+        self.update_btn.setIconSize(QSize(14, 14))
+        self.update_btn.setToolTip("Modifier les données du véhicule")
         self.update_btn.setFixedSize(38, 34)
         self.update_btn.setCursor(Qt.PointingHandCursor)
         self.update_btn.setStyleSheet("""
@@ -1485,13 +1517,199 @@ class VehicleActionsWidget(QWidget):
 # VEHICLE DATES DIALOG
 # ============================================================================
 
+# class VehicleDatesDialog(QDialog):
+#     """Dialogue pour modifier les dates d'un véhicule"""
+    
+#     def __init__(self, vehicle, parent=None):
+#         super().__init__(parent)
+#         self.vehicle = vehicle
+#         self.setWindowTitle(f"Dates du contrat - {vehicle.get('immatriculation', 'Véhicule')}")
+#         self.setMinimumSize(450, 350)
+#         self.setModal(True)
+#         self.setStyleSheet(STYLESHEET)
+        
+#         self.setup_ui()
+#         self.load_dates()
+    
+#     def setup_ui(self):
+#         layout = QVBoxLayout(self)
+#         layout.setSpacing(16)
+#         layout.setContentsMargins(20, 20, 20, 20)
+        
+#         # En-tête
+#         header = QFrame()
+#         header.setStyleSheet(f"""
+#             background: {AppColors.PRIMARY_LIGHT};
+#             border-radius: 10px;
+#         """)
+#         header_layout = QHBoxLayout(header)
+#         header_layout.setContentsMargins(15, 12, 15, 12)
+        
+#         info = QLabel(f" {self.vehicle.get('immatriculation')} - {self.vehicle.get('marque')} {self.vehicle.get('modele')}")
+#         info.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {AppColors.PRIMARY_DARK};")
+#         header_layout.addWidget(info)
+#         layout.addWidget(header)
+        
+#         # Formulaire
+#         form_group = QGroupBox("Paramètres du contrat")
+#         form_layout = QGridLayout(form_group)
+#         form_layout.setSpacing(15)
+#         form_layout.setContentsMargins(15, 20, 15, 15)
+        
+#         # Date début
+#         form_layout.addWidget(QLabel("Date de début :"), 0, 0)
+#         self.date_debut = QDateEdit()
+#         self.date_debut.setCalendarPopup(True)
+#         self.date_debut.setDisplayFormat("dd/MM/yyyy")
+#         self.date_debut.dateChanged.connect(self.update_calculations)
+#         form_layout.addWidget(self.date_debut, 0, 1)
+        
+#         # Date fin
+#         form_layout.addWidget(QLabel("Date de fin :"), 1, 0)
+#         self.date_fin = QDateEdit()
+#         self.date_fin.setCalendarPopup(True)
+#         self.date_fin.setDisplayFormat("dd/MM/yyyy")
+#         self.date_fin.dateChanged.connect(self.update_calculations)
+#         form_layout.addWidget(self.date_fin, 1, 1)
+        
+#         # Séparateur
+#         line = QFrame()
+#         line.setFrameShape(QFrame.HLine)
+#         line.setFrameShadow(QFrame.Sunken)
+#         line.setStyleSheet(f"background-color: {AppColors.BORDER};")
+#         form_layout.addWidget(line, 2, 0, 1, 2)
+        
+#         # Durée calculée
+#         form_layout.addWidget(QLabel("âDurée :"), 3, 0)
+#         self.duree_label = QLabel("365 jours")
+#         self.duree_label.setStyleSheet(f"font-weight: bold; color: {AppColors.PRIMARY}; font-size: 14px;")
+#         form_layout.addWidget(self.duree_label, 3, 1)
+        
+#         # Statut
+#         form_layout.addWidget(QLabel("Statut :"), 4, 0)
+#         self.statut_label = QLabel("En Circulation")
+#         self.statut_label.setStyleSheet(f"font-weight: bold;")
+#         form_layout.addWidget(self.statut_label, 4, 1)
+        
+#         # Prorata
+#         form_layout.addWidget(QLabel("Prorata :"), 5, 0)
+#         self.prorata_label = QLabel("100%")
+#         self.prorata_label.setStyleSheet(f"color: {AppColors.SUCCESS}; font-weight: bold;")
+#         form_layout.addWidget(self.prorata_label, 5, 1)
+        
+#         layout.addWidget(form_group)
+        
+#         # Boutons
+#         btn_layout = QHBoxLayout()
+#         btn_layout.addStretch()
+        
+#         cancel_btn = QPushButton("Annuler")
+#         cancel_btn.setProperty("class", "BtnSecondary")
+#         cancel_btn.setFixedSize(120, 35)
+#         cancel_btn.clicked.connect(self.reject)
+        
+#         save_btn = QPushButton("Sauvegarder")
+#         save_btn.setProperty("class", "BtnSuccess")
+#         save_btn.setFixedSize(120, 35)
+#         save_btn.clicked.connect(self.accept)
+        
+#         btn_layout.addWidget(cancel_btn)
+#         btn_layout.addWidget(save_btn)
+#         layout.addLayout(btn_layout)
+    
+#     def load_dates(self):
+#         """Charge les dates existantes du véhicule"""
+#         date_debut = self.vehicle.get('date_debut')
+#         if date_debut:
+#             if isinstance(date_debut, QDate):
+#                 self.date_debut.setDate(date_debut)
+#             elif isinstance(date_debut, datetime):
+#                 self.date_debut.setDate(QDate(date_debut.year, date_debut.month, date_debut.day))
+#             elif isinstance(date_debut, str):
+#                 try:
+#                     d = datetime.strptime(date_debut, "%Y-%m-%d")
+#                     self.date_debut.setDate(QDate(d.year, d.month, d.day))
+#                 except:
+#                     self.date_debut.setDate(QDate.currentDate())
+#         else:
+#             self.date_debut.setDate(QDate.currentDate())
+        
+#         date_fin = self.vehicle.get('date_fin')
+#         if date_fin:
+#             if isinstance(date_fin, QDate):
+#                 self.date_fin.setDate(date_fin)
+#             elif isinstance(date_fin, datetime):
+#                 self.date_fin.setDate(QDate(date_fin.year, date_fin.month, date_fin.day))
+#             elif isinstance(date_fin, str):
+#                 try:
+#                     d = datetime.strptime(date_fin, "%Y-%m-%d")
+#                     self.date_fin.setDate(QDate(d.year, d.month, d.day))
+#                 except:
+#                     self.date_fin.setDate(QDate.currentDate().addYears(1))
+#         else:
+#             self.date_fin.setDate(QDate.currentDate().addYears(1))
+        
+#         self.update_calculations()
+    
+#     def update_calculations(self):
+#         """Calcule et affiche la durée, le statut et le prorata"""
+#         debut = self.date_debut.date()
+#         fin = self.date_fin.date()
+        
+#         if fin >= debut:
+#             jours = (debut.daysTo(fin))+1
+#             self.duree_label.setText(f"{jours} jours ({jours/30:.1f} mois)")
+            
+#             prorata = (jours / 365.0) * 100
+#             self.prorata_label.setText(f"{prorata:.1f}% de la prime annuelle")
+            
+#             today = QDate.currentDate()
+#             if fin < today:
+#                 self.statut_label.setText("Expiré")
+#                 self.statut_label.setStyleSheet(f"color: {AppColors.DANGER}; font-weight: bold;")
+#             elif debut > today:
+#                 self.statut_label.setText("à venir")
+#                 self.statut_label.setStyleSheet(f"color: {AppColors.WARNING}; font-weight: bold;")
+#             else:
+#                 self.statut_label.setText(" En Circulation")
+#                 self.statut_label.setStyleSheet(f"color: {AppColors.SUCCESS}; font-weight: bold;")
+#         else:
+#             self.duree_label.setText("Date de fin invalide")
+#             self.prorata_label.setText("0%")
+#             self.statut_label.setText("âInvalide")
+#             self.statut_label.setStyleSheet(f"color: {AppColors.DANGER}; font-weight: bold;")
+    
+#     def get_dates(self):
+#         """Retourne les dates sélectionnées"""
+#         debut = self.date_debut.date().toPython()
+#         fin = self.date_fin.date().toPython()
+#         jours = (self.date_debut.date().daysTo(self.date_fin.date())) + 1
+#         prorata = jours / 365.0 if jours > 0 else 0
+        
+#         today = datetime.now().date()
+#         if fin < today:
+#             statut = "Expiré"
+#         elif debut > today:
+#             statut = "à venir"
+#         else:
+#             statut = "En Circulation"
+        
+#         return {
+#             'date_debut': debut,
+#             'date_fin': fin,
+#             'nbr_jour': jours,
+#             'prorata': prorata,
+#             'statut': statut
+#         }
+
+
 class VehicleDatesDialog(QDialog):
-    """Dialogue pour modifier les dates d'un vÃ©hicule"""
+    """Dialogue pour modifier les dates d'un véhicule"""
     
     def __init__(self, vehicle, parent=None):
         super().__init__(parent)
         self.vehicle = vehicle
-        self.setWindowTitle(f"Dates du contrat - {vehicle.get('immatriculation', 'VÃ©hicule')}")
+        self.setWindowTitle(f"Dates du contrat - {vehicle.get('immatriculation', 'Véhicule')}")
         self.setMinimumSize(450, 350)
         self.setModal(True)
         self.setStyleSheet(STYLESHEET)
@@ -1504,7 +1722,7 @@ class VehicleDatesDialog(QDialog):
         layout.setSpacing(16)
         layout.setContentsMargins(20, 20, 20, 20)
         
-        # En-tÃªte
+        # En-tête
         header = QFrame()
         header.setStyleSheet(f"""
             background: {AppColors.PRIMARY_LIGHT};
@@ -1513,19 +1731,19 @@ class VehicleDatesDialog(QDialog):
         header_layout = QHBoxLayout(header)
         header_layout.setContentsMargins(15, 12, 15, 12)
         
-        info = QLabel(f"ðŸ“… {self.vehicle.get('immatriculation')} - {self.vehicle.get('marque')} {self.vehicle.get('modele')}")
+        info = QLabel(f" {self.vehicle.get('immatriculation')} - {self.vehicle.get('marque')} {self.vehicle.get('modele')}")
         info.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {AppColors.PRIMARY_DARK};")
         header_layout.addWidget(info)
         layout.addWidget(header)
         
         # Formulaire
-        form_group = QGroupBox("ParamÃ¨tres du contrat")
+        form_group = QGroupBox("Paramètres du contrat")
         form_layout = QGridLayout(form_group)
         form_layout.setSpacing(15)
         form_layout.setContentsMargins(15, 20, 15, 15)
         
-        # Date dÃ©but
-        form_layout.addWidget(QLabel("ðŸ“… Date de dÃ©but :"), 0, 0)
+        # Date début
+        form_layout.addWidget(QLabel("Date de début :"), 0, 0)
         self.date_debut = QDateEdit()
         self.date_debut.setCalendarPopup(True)
         self.date_debut.setDisplayFormat("dd/MM/yyyy")
@@ -1533,34 +1751,34 @@ class VehicleDatesDialog(QDialog):
         form_layout.addWidget(self.date_debut, 0, 1)
         
         # Date fin
-        form_layout.addWidget(QLabel("ðŸ“… Date de fin :"), 1, 0)
+        form_layout.addWidget(QLabel("Date de fin :"), 1, 0)
         self.date_fin = QDateEdit()
         self.date_fin.setCalendarPopup(True)
         self.date_fin.setDisplayFormat("dd/MM/yyyy")
         self.date_fin.dateChanged.connect(self.update_calculations)
         form_layout.addWidget(self.date_fin, 1, 1)
         
-        # SÃ©parateur
+        # Séparateur
         line = QFrame()
         line.setFrameShape(QFrame.HLine)
         line.setFrameShadow(QFrame.Sunken)
         line.setStyleSheet(f"background-color: {AppColors.BORDER};")
         form_layout.addWidget(line, 2, 0, 1, 2)
         
-        # DurÃ©e calculÃ©e
-        form_layout.addWidget(QLabel("â±ï¸ DurÃ©e :"), 3, 0)
+        # Durée calculée
+        form_layout.addWidget(QLabel("Durée :"), 3, 0)
         self.duree_label = QLabel("365 jours")
         self.duree_label.setStyleSheet(f"font-weight: bold; color: {AppColors.PRIMARY}; font-size: 14px;")
         form_layout.addWidget(self.duree_label, 3, 1)
         
         # Statut
-        form_layout.addWidget(QLabel("ðŸ“Œ Statut :"), 4, 0)
+        form_layout.addWidget(QLabel("Statut :"), 4, 0)
         self.statut_label = QLabel("En Circulation")
         self.statut_label.setStyleSheet(f"font-weight: bold;")
         form_layout.addWidget(self.statut_label, 4, 1)
         
         # Prorata
-        form_layout.addWidget(QLabel("ðŸ’° Prorata :"), 5, 0)
+        form_layout.addWidget(QLabel("Prorata :"), 5, 0)
         self.prorata_label = QLabel("100%")
         self.prorata_label.setStyleSheet(f"color: {AppColors.SUCCESS}; font-weight: bold;")
         form_layout.addWidget(self.prorata_label, 5, 1)
@@ -1570,13 +1788,19 @@ class VehicleDatesDialog(QDialog):
         # Boutons
         btn_layout = QHBoxLayout()
         btn_layout.addStretch()
+
+        # ✅ Bouton pour appliquer aux sélectionnés
+        self.apply_selected_btn = QPushButton("Appliquer aux sélectionnés")
+        self.apply_selected_btn.setProperty("class", "BtnWarning")
+        self.apply_selected_btn.setFixedSize(180, 35)
+        self.apply_selected_btn.clicked.connect(self.apply_to_selected)
         
         cancel_btn = QPushButton("Annuler")
         cancel_btn.setProperty("class", "BtnSecondary")
         cancel_btn.setFixedSize(120, 35)
         cancel_btn.clicked.connect(self.reject)
         
-        save_btn = QPushButton("ðŸ’¾ Sauvegarder")
+        save_btn = QPushButton("Sauvegarder")
         save_btn.setProperty("class", "BtnSuccess")
         save_btn.setFixedSize(120, 35)
         save_btn.clicked.connect(self.accept)
@@ -1584,9 +1808,83 @@ class VehicleDatesDialog(QDialog):
         btn_layout.addWidget(cancel_btn)
         btn_layout.addWidget(save_btn)
         layout.addLayout(btn_layout)
+
+    def apply_to_selected(self):
+        """Applique les dates à tous les véhicules sélectionnés"""
+        # Vérifier si le parent a des véhicules sélectionnés
+        if not hasattr(self.parent(), 'vehicles_data') or not hasattr(self.parent(), 'vehicles_table'):
+            QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné disponible.")
+            return
+        
+        # Compter les véhicules sélectionnés
+        selected_rows = []
+        for row in range(self.parent().vehicles_table.rowCount()):
+            item = self.parent().vehicles_table.item(row, 0)
+            if item and item.checkState() == Qt.Checked:
+                selected_rows.append(row)
+        
+        if not selected_rows:
+            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner au moins un véhicule dans le tableau.")
+            return
+        
+        # Confirmation
+        reply = QMessageBox.question(
+            self,
+            "Application en masse",
+            f"Appliquer ces dates à {len(selected_rows)} véhicule(s) sélectionné(s) ?\n\n"
+            f"Date début : {self.date_debut.date().toString('dd/MM/yyyy')}\n"
+            f"Date fin : {self.date_fin.date().toString('dd/MM/yyyy')}\n"
+            f"Durée : {self.duree_label.text()}\n\n"
+            "Cette action est réversible.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            new_dates = self.get_dates()
+            applied_count = 0
+            
+            for row in selected_rows:
+                vehicle = self.parent().vehicles_data[row]
+                
+                # Sauvegarder les montants annuels
+                if 'garanties_annuelles' not in vehicle:
+                    vehicle['garanties_annuelles'] = vehicle.get('garanties', {}).copy()
+                
+                # Mettre à jour les dates
+                vehicle['date_debut'] = new_dates['date_debut']
+                vehicle['date_fin'] = new_dates['date_fin']
+                vehicle['nbr_jour'] = new_dates['nbr_jour']
+                vehicle['statut'] = new_dates['statut']
+                
+                # Recalculer les garanties au prorata
+                prorata = new_dates['prorata']
+                garanties_annuelles = vehicle['garanties_annuelles']
+                new_garanties = {}
+                for key, amount in garanties_annuelles.items():
+                    if key != 'total' and not key.startswith('reduction_'):
+                        new_garanties[key] = amount * prorata
+                
+                new_garanties['total'] = sum(new_garanties.values())
+                vehicle['garanties'] = new_garanties
+                
+                # Mettre à jour l'affichage
+                self.parent().update_vehicle_row(row, vehicle)
+                applied_count += 1
+            
+            # Mettre à jour le résumé
+            self.parent().update_summary()
+            
+            QMessageBox.information(
+                self,
+                "Succès",
+                f"Dates appliquées à {applied_count} véhicule(s) avec succès !"
+            )
+            
+            # Fermer le dialogue
+            self.accept()
     
     def load_dates(self):
-        """Charge les dates existantes du vÃ©hicule"""
+        """Charge les dates existantes du véhicule"""
         date_debut = self.vehicle.get('date_debut')
         if date_debut:
             if isinstance(date_debut, QDate):
@@ -1620,12 +1918,12 @@ class VehicleDatesDialog(QDialog):
         self.update_calculations()
     
     def update_calculations(self):
-        """Calcule et affiche la durÃ©e, le statut et le prorata"""
+        """Calcule et affiche la durée, le statut et le prorata"""
         debut = self.date_debut.date()
         fin = self.date_fin.date()
         
         if fin >= debut:
-            jours = debut.daysTo(fin)
+            jours = (debut.daysTo(fin)) + 1
             self.duree_label.setText(f"{jours} jours ({jours/30:.1f} mois)")
             
             prorata = (jours / 365.0) * 100
@@ -1633,22 +1931,22 @@ class VehicleDatesDialog(QDialog):
             
             today = QDate.currentDate()
             if fin < today:
-                self.statut_label.setText("â° ExpirÃ©")
+                self.statut_label.setText("Expiré")
                 self.statut_label.setStyleSheet(f"color: {AppColors.DANGER}; font-weight: bold;")
             elif debut > today:
-                self.statut_label.setText("â³ Ã€ venir")
+                self.statut_label.setText("à venir")
                 self.statut_label.setStyleSheet(f"color: {AppColors.WARNING}; font-weight: bold;")
             else:
-                self.statut_label.setText("âœ… En Circulation")
+                self.statut_label.setText(" En Circulation")
                 self.statut_label.setStyleSheet(f"color: {AppColors.SUCCESS}; font-weight: bold;")
         else:
             self.duree_label.setText("Date de fin invalide")
             self.prorata_label.setText("0%")
-            self.statut_label.setText("âŒ Invalide")
+            self.statut_label.setText("Invalide")
             self.statut_label.setStyleSheet(f"color: {AppColors.DANGER}; font-weight: bold;")
     
     def get_dates(self):
-        """Retourne les dates sÃ©lectionnÃ©es"""
+        """Retourne les dates sélectionnées"""
         debut = self.date_debut.date().toPython()
         fin = self.date_fin.date().toPython()
         jours = self.date_debut.date().daysTo(self.date_fin.date())
@@ -1656,9 +1954,9 @@ class VehicleDatesDialog(QDialog):
         
         today = datetime.now().date()
         if fin < today:
-            statut = "ExpirÃ©"
+            statut = "Expiré"
         elif debut > today:
-            statut = "Ã€ venir"
+            statut = "à venir"
         else:
             statut = "En Circulation"
         
@@ -1669,15 +1967,39 @@ class VehicleDatesDialog(QDialog):
             'prorata': prorata,
             'statut': statut
         }
-
+    
+    def apply_dates_to_vehicle(self, vehicle):
+        """Applique les dates au véhicule"""
+        new_dates = self.get_dates()
+        
+        # Sauvegarder les montants annuels
+        if 'garanties_annuelles' not in vehicle:
+            vehicle['garanties_annuelles'] = vehicle.get('garanties', {}).copy()
+        
+        # Mettre à jour les dates
+        vehicle['date_debut'] = new_dates['date_debut']
+        vehicle['date_fin'] = new_dates['date_fin']
+        vehicle['nbr_jour'] = new_dates['nbr_jour']
+        vehicle['statut'] = new_dates['statut']
+        
+        # Recalculer les garanties au prorata
+        prorata = new_dates['prorata']
+        garanties_annuelles = vehicle['garanties_annuelles']
+        new_garanties = {}
+        for key, amount in garanties_annuelles.items():
+            if key != 'total' and not key.startswith('reduction_'):
+                new_garanties[key] = amount * prorata
+        
+        new_garanties['total'] = sum(new_garanties.values())
+        vehicle['garanties'] = new_garanties
 # ============================================================================
 # DIALOGUE PRINCIPAL
 # ============================================================================
 
 class FleetImportAdvancedDialog(QDialog):
-    """Dialogue d'importation de flotte avec nouvelles fonctionnalitÃ©s"""
+    """Dialogue d'importation de flotte avec nouvelles fonctionnalités"""
     
-    # Signal pour le rafraÃ®chissement des donnÃ©es
+    # Signal pour le rafraÃ®chissement des données
     data_changed = Signal()
     
     def __init__(self, controller, parent=None):
@@ -1702,7 +2024,7 @@ class FleetImportAdvancedDialog(QDialog):
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(20)
         
-        # En-tÃªte
+        # En-tête
         header = self.create_header()
         main_layout.addWidget(header)
         
@@ -1714,7 +2036,7 @@ class FleetImportAdvancedDialog(QDialog):
         left_panel = self.create_left_panel()
         main_splitter.addWidget(left_panel)
         
-        # Panneau droit - RÃ©sultats
+        # Panneau droit - Résultats
         right_panel = self.create_right_panel()
         main_splitter.addWidget(right_panel)
         
@@ -1726,7 +2048,7 @@ class FleetImportAdvancedDialog(QDialog):
         main_layout.addWidget(footer)
     
     def create_header(self):
-        """CrÃ©e l'en-tÃªte"""
+        """Crée l'en-tête"""
         header = QWidget()
         header.setStyleSheet(f"""
             background: {AppColors.WHITE};
@@ -1736,7 +2058,7 @@ class FleetImportAdvancedDialog(QDialog):
         
         layout = QHBoxLayout(header)
         
-        title = QLabel(Icons.label("Importation de flotte", Icons.FLEET))
+        title = QLabel(" Importation de flotte")
         title.setStyleSheet("font-size: 20px; font-weight: 800; color: #0f172a;")
         
         subtitle = QLabel("Importez vos véhicules en masse avec calcul automatique des garanties")
@@ -1749,7 +2071,7 @@ class FleetImportAdvancedDialog(QDialog):
         return header
     
     def create_left_panel(self):
-        """CrÃ©e le panneau de configuration (scrollable)"""
+        """Crée le panneau de configuration (scrollable)"""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -1764,12 +2086,13 @@ class FleetImportAdvancedDialog(QDialog):
         # 2. Flotte
         layout.addWidget(self.create_fleet_section())
         
-        # 3. ParamÃ¨tres d'assurance (simplifiÃ©)
+        # 3. Paramètres d'assurance (simplifié)
         layout.addWidget(self.create_insurance_section())
         
         # Bouton Appliquer les frais
-        apply_frais_btn = QPushButton(Icons.label("Appliquer les frais aux véhicules sélectionnés", Icons.MONEY))
-        apply_frais_btn.setProperty("class", "BtnPrimary")
+        apply_frais_btn = QPushButton(" Appliquer les frais aux véhicules sélectionnés")
+        apply_frais_btn.setIcon(get_icon('cash', color='white', size=16))
+        apply_frais_btn.setIconSize(QSize(16, 16))
         apply_frais_btn.clicked.connect(self.apply_global_frais_to_selected)
         layout.addWidget(apply_frais_btn)
         
@@ -1779,11 +2102,11 @@ class FleetImportAdvancedDialog(QDialog):
         return scroll
     
     def create_file_section(self):
-        """Section de sÃ©lection du fichier"""
-        group = QGroupBox(Icons.label("1. Fichier d'importation", Icons.FOLDER))
+        """Section de sélection du fichier"""
+        group = QGroupBox(" 1. Fichier d'importation")
         layout = QVBoxLayout(group)
         
-        # Zone de dÃ©pÃ´t
+        # Zone de départ
         drop_zone = QFrame()
         drop_zone.setStyleSheet(f"""
             QFrame {{
@@ -1812,7 +2135,9 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(drop_zone)
         
         # Lien template
-        template_btn = QPushButton(Icons.label("Télécharger le modèle Excel", Icons.DOWNLOAD))
+        template_btn = QPushButton(" Télécharger le modèle Excel")
+        template_btn.setIcon(get_icon('download', color=AppColors.PRIMARY, size=16))
+        template_btn.setIconSize(QSize(16, 16))
         template_btn.setFlat(True)
         template_btn.setCursor(Qt.PointingHandCursor)
         template_btn.setStyleSheet(f"color: {AppColors.PRIMARY}; text-align: left; font-size: 11px;")
@@ -1823,14 +2148,14 @@ class FleetImportAdvancedDialog(QDialog):
     
     def create_fleet_section(self):
         """Section de configuration de la flotte"""
-        group = QGroupBox("ðŸ¢ 2. Configuration de la flotte")
+        group = QGroupBox(" 2. Configuration de la flotte")
         layout = QVBoxLayout(group)
         
         # Mode
         mode_layout = QHBoxLayout()
-        self.mode_new = QRadioButton(Icons.label("Créer une nouvelle flotte", Icons.STAR))
+        self.mode_new = QRadioButton(" Créer une nouvelle flotte")
         self.mode_new.setStyleSheet("color: #0f172a; font-weight: bold;")
-        self.mode_existing = QRadioButton(Icons.label("Ajouter à une flotte existante", Icons.LIST))
+        self.mode_existing = QRadioButton(" Ajouter à une flotte existante")
         self.mode_existing.setStyleSheet("color: #0f172a; font-weight: bold;")
         self.mode_new.setChecked(True)
         self.mode_new.toggled.connect(self.on_mode_changed)
@@ -1872,14 +2197,14 @@ class FleetImportAdvancedDialog(QDialog):
         return group
         
     def create_insurance_section(self):
-        """Section des paramÃ¨tres d'assurance (simplifiÃ©e)"""
+        """Section des paramètres d'assurance (simplifiée)"""
         group = QGroupBox(Icons.label("3. Paramètres du contrat", Icons.LIST))
         layout = QGridLayout(group)
         layout.setSpacing(10)
         layout.setContentsMargins(15, 20, 15, 15)
         
-        # Date dÃ©but
-        layout.addWidget(QLabel("ðŸ“… Date dÃ©but :"), 0, 0)
+        # Date début
+        layout.addWidget(QLabel("Date début :"), 0, 0)
         self.date_debut = QDateEdit()
         self.date_debut.setDate(QDate.currentDate())
         self.date_debut.setCalendarPopup(True)
@@ -1887,34 +2212,34 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(self.date_debut, 0, 1)
         
         # Date fin
-        layout.addWidget(QLabel("ðŸ“… Date fin :"), 1, 0)
+        layout.addWidget(QLabel("Date fin :"), 1, 0)
         self.date_fin = QDateEdit()
         self.date_fin.setDate(QDate.currentDate().addYears(1))
         self.date_fin.setCalendarPopup(True)
         self.date_fin.setDisplayFormat("dd/MM/yyyy")
         layout.addWidget(self.date_fin, 1, 1)
         
-        # SÃ©parateur
+        # Séparateur
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet("background: #e2e8f0; margin: 8px 0;")
         layout.addWidget(sep, 2, 0, 1, 2)
         
         # Titre des frais
-        frais_title = QLabel("ðŸ’° FRAIS SUPPLÃ‰MENTAIRES")
+        frais_title = QLabel(" FRAIS SUPPLÉMENTAIRES")
         frais_title.setStyleSheet("font-weight: 700; color: #475569; font-size: 12px;")
         layout.addWidget(frais_title, 3, 0, 1, 2)
         
         # Mode de calcul
         layout.addWidget(QLabel("Mode de calcul :"), 4, 0)
         self.frais_mode_combo = QComboBox()
-        self.frais_mode_combo.addItems(["Par vÃ©hicule (unitaire)", "Global (rÃ©parti)"])
+        self.frais_mode_combo.addItems(["Par véhicule (unitaire)", "Global (réparti)"])
         self.frais_mode_combo.setStyleSheet("border: 1px solid #e2e8f0; border-radius: 8px; padding: 6px 10px;")
         self.frais_mode_combo.currentIndexChanged.connect(self.on_frais_mode_changed)
         layout.addWidget(self.frais_mode_combo, 4, 1)
         
         # Info mode
-        self.frais_mode_info = QLabel("ðŸ’¡ Le montant sera appliquÃ© Ã  chaque vÃ©hicule sÃ©lectionnÃ©")
+        self.frais_mode_info = QLabel(" Le montant sera appliqué à chaque véhicule sélectionné")
         self.frais_mode_info.setStyleSheet("color: #64748b; font-size: 10px; font-style: italic;")
         layout.addWidget(self.frais_mode_info, 5, 0, 1, 2)
         
@@ -1957,7 +2282,7 @@ class FleetImportAdvancedDialog(QDialog):
             }
         """)
         preview_layout = QHBoxLayout(preview_frame)
-        self.frais_preview = QLabel("ðŸ’° Total frais: 0 FCFA (0 vÃ©hicules)")
+        self.frais_preview = QLabel("Total frais: 0 FCFA (0 véhicules)")
         self.frais_preview.setStyleSheet("color: #475569; font-size: 11px; font-weight: 500;")
         preview_layout.addWidget(self.frais_preview)
         preview_layout.addStretch()
@@ -1969,9 +2294,9 @@ class FleetImportAdvancedDialog(QDialog):
         """Met Ã  jour l'info du mode de calcul"""
         is_global = self.frais_mode_combo.currentIndex() == 1
         if is_global:
-            self.frais_mode_info.setText("ðŸ’¡ Le montant sera rÃ©parti entre tous les vÃ©hicules sÃ©lectionnÃ©s")
+            self.frais_mode_info.setText("ðŸ’¡ Le montant sera réparti entre tous les véhicules sélectionnés")
         else:
-            self.frais_mode_info.setText("ðŸ’¡ Le montant sera appliquÃ© Ã  chaque vÃ©hicule sÃ©lectionnÃ©")
+            self.frais_mode_info.setText("ðŸ’¡ Le montant sera appliqué Ã  chaque véhicule sélectionné")
         self.on_frais_changed()
 
     def on_frais_changed(self):
@@ -1983,7 +2308,7 @@ class FleetImportAdvancedDialog(QDialog):
                 selected_count += 1
         
         if selected_count == 0:
-            self.frais_preview.setText("ðŸ’° Total frais: 0 FCFA (0 vÃ©hicules sÃ©lectionnÃ©s)")
+            self.frais_preview.setText("ðŸ’° Total frais: 0 FCFA (0 véhicules sélectionnés)")
             return
         
         try:
@@ -1997,25 +2322,83 @@ class FleetImportAdvancedDialog(QDialog):
             is_global = self.frais_mode_combo.currentIndex() == 1
             
             if is_global:
-                # Mode global: le montant est rÃ©parti entre tous les vÃ©hicules
+                # Mode global: le montant est réparti entre tous les véhicules
                 total_frais_global = total_frais
                 par_vehicule = total_frais / selected_count if selected_count > 0 else 0
                 self.frais_preview.setText(
                     f"ðŸ’° Total frais: {total_frais_global:,.0f}".replace(",", " ") + 
-                    f" FCFA (rÃ©parti sur {selected_count} vÃ©hicules - {par_vehicule:,.0f}".replace(",", " ") + " FCFA/vÃ©hicule)"
+                    f" FCFA (réparti sur {selected_count} véhicules - {par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule)"
                 )
             else:
-                # Mode unitaire: le montant est multipliÃ© par le nombre de vÃ©hicules
+                # Mode unitaire: le montant est multiplié par le nombre de véhicules
                 total_frais_global = total_frais * selected_count
                 self.frais_preview.setText(
                     f"ðŸ’° Total frais: {total_frais_global:,.0f}".replace(",", " ") + 
-                    f" FCFA ({total_frais:,.0f}".replace(",", " ") + f" FCFA Ã— {selected_count} vÃ©hicules)"
+                    f" FCFA ({total_frais:,.0f}".replace(",", " ") + f" FCFA Ã— {selected_count} véhicules)"
                 )
         except:
             pass
 
+    def apply_mass_dates(self):
+        """Applique des dates en masse aux véhicules sélectionnés"""
+        # Compter les véhicules sélectionnés
+        selected_rows = []
+        for row in range(self.vehicles_table.rowCount()):
+            item = self.vehicles_table.item(row, 0)
+            if item and item.checkState() == Qt.Checked:
+                selected_rows.append(row)
+        
+        if not selected_rows:
+            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner au moins un véhicule.")
+            return
+        
+        # Utiliser le premier véhicule sélectionné comme modèle
+        first_vehicle = self.vehicles_data[selected_rows[0]]
+        dialog = VehicleDatesDialog(first_vehicle, self)
+        
+        # Surcharger le comportement du bouton "Sauvegarder" pour appliquer à tous
+        if dialog.exec() == QDialog.Accepted:
+            new_dates = dialog.get_dates()
+            applied_count = 0
+            
+            for row in selected_rows:
+                vehicle = self.vehicles_data[row]
+                
+                # Sauvegarder les montants annuels
+                if 'garanties_annuelles' not in vehicle:
+                    vehicle['garanties_annuelles'] = vehicle.get('garanties', {}).copy()
+                
+                # Mettre à jour les dates
+                vehicle['date_debut'] = new_dates['date_debut']
+                vehicle['date_fin'] = new_dates['date_fin']
+                vehicle['nbr_jour'] = new_dates['nbr_jour']
+                vehicle['statut'] = new_dates['statut']
+                
+                # Recalculer les garanties au prorata
+                prorata = new_dates['prorata']
+                garanties_annuelles = vehicle['garanties_annuelles']
+                new_garanties = {}
+                for key, amount in garanties_annuelles.items():
+                    if key != 'total' and not key.startswith('reduction_'):
+                        new_garanties[key] = amount * prorata
+                
+                new_garanties['total'] = sum(new_garanties.values())
+                vehicle['garanties'] = new_garanties
+                
+                # Mettre à jour l'affichage
+                self.update_vehicle_row(row, vehicle)
+                applied_count += 1
+            
+            self.update_summary()
+            
+            QMessageBox.information(
+                self,
+                "Succès",
+                f"Dates appliquées à {applied_count} véhicule(s) avec succès !"
+            )
+
     def create_right_panel(self):
-        """CrÃ©e le panneau des rÃ©sultats"""
+        """Crée le panneau des résultats"""
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
@@ -2036,26 +2419,39 @@ class FleetImportAdvancedDialog(QDialog):
         status_layout = QHBoxLayout(self.status_frame)
         self.status_icon = QLabel("â³")
         self.status_icon.setStyleSheet("font-size: 18px;")
-        self.status_text = QLabel("SÃ©lectionnez un fichier pour commencer")
+        self.status_text = QLabel("Sélectionnez un fichier pour commencer")
         self.status_text.setStyleSheet(f"color: {AppColors.PRIMARY_DARK}; font-weight: 500; font-size: 13px;")
         status_layout.addWidget(self.status_icon)
         status_layout.addWidget(self.status_text)
         status_layout.addStretch()
         
-        self.calc_btn = QPushButton("ðŸ”¢ Calculer les garanties")
+        self.calc_btn = QPushButton(" Calculer les garanties")
+        self.calc_btn.setIcon(get_icon('calculator', color='white', size=16))
+        self.calc_btn.setIconSize(QSize(16, 16))
         self.calc_btn.setProperty("class", "BtnPrimary")
         self.calc_btn.setEnabled(False)
         self.calc_btn.clicked.connect(self.start_calculation)
         status_layout.addWidget(self.calc_btn)
 
-        self.refresh_btn = QPushButton("ðŸ”„ RafraÃ®chir")
+        self.mass_dates_btn = QPushButton(" Dates en masse")
+        self.mass_dates_btn.setIcon(get_icon('calendar', color='white', size=16))
+        self.mass_dates_btn.setIconSize(QSize(16, 16))
+        self.mass_dates_btn.setProperty("class", "BtnPrimary")
+        self.mass_dates_btn.clicked.connect(self.apply_mass_dates)
+        status_layout.addWidget(self.mass_dates_btn)
+
+        self.refresh_btn = QPushButton(" Rafraîchir")
+        self.refresh_btn.setIcon(get_icon('refresh', color='white', size=16))
+        self.refresh_btn.setIconSize(QSize(16, 16))
         self.refresh_btn.setProperty("class", "BtnSecondary")
         self.refresh_btn.setEnabled(False)
         self.refresh_btn.clicked.connect(self.refresh_fleet_guarantees)
         status_layout.addWidget(self.refresh_btn)
         
-        # Bouton de rÃ©duction en masse
-        self.mass_reduction_btn = QPushButton("ðŸ“‰ RÃ©duction en masse")
+        # Bouton de réduction en masse
+        self.mass_reduction_btn = QPushButton(" Réduction en masse")
+        self.mass_reduction_btn.setIcon(get_icon('percent', color='white', size=16))
+        self.mass_reduction_btn.setIconSize(QSize(16, 16))
         self.mass_reduction_btn.setProperty("class", "BtnWarning")
         self.mass_reduction_btn.setEnabled(True)
         self.mass_reduction_btn.clicked.connect(self.apply_mass_reduction)
@@ -2077,11 +2473,11 @@ class FleetImportAdvancedDialog(QDialog):
         progress_layout.addWidget(self.progress_label)
         layout.addWidget(self.progress_widget)
         
-        # Tableau des vÃ©hicules avec nouvelles colonnes
+        # Tableau des véhicules avec nouvelles colonnes
         self.setup_vehicle_table()
         layout.addWidget(self.vehicles_table, 1)
         
-        # RÃ©capitulatif
+        # Récapitulatif
         recap_group = self.create_recap_section()
         layout.addWidget(recap_group)
         
@@ -2089,8 +2485,8 @@ class FleetImportAdvancedDialog(QDialog):
         return scroll
           
     def create_recap_section(self):
-        """CrÃ©e la section rÃ©capitulative avec des cartes Ã©lÃ©gantes"""
-        recap_group = QGroupBox("ðŸ“Š RÃ©capitulatif")
+        """Crée la section récapitulative avec des cartes élégantes"""
+        recap_group = QGroupBox("Récapitulatif")
         recap_group.setStyleSheet("""
             QGroupBox {
                 font-weight: 600;
@@ -2116,36 +2512,30 @@ class FleetImportAdvancedDialog(QDialog):
         self.recap_cards = {}
         
         # Configuration des cartes
-        recap_items = [
-            # Informations gÃ©nÃ©rales
-            {'key': 'total', 'label': 'Total', 'icon': 'ðŸš—', 'type': 'info'},
-            {'key': 'selected', 'label': 'SÃ©lectionnÃ©s', 'icon': 'âœ…', 'type': 'info'},
-            
-            # Garanties
-            {'key': 'rc', 'label': 'RC/RTI', 'icon': 'ðŸ›¡ï¸', 'type': 'garantie'},
-            {'key': 'dr', 'label': 'DR', 'icon': 'âš–ï¸', 'type': 'garantie'},
-            {'key': 'vol', 'label': 'Vol', 'icon': 'ðŸš—', 'type': 'garantie'},
-            {'key': 'vb', 'label': 'VB', 'icon': 'ðŸ”«', 'type': 'garantie'},
-            {'key': 'incendie', 'label': 'Incendie', 'icon': 'ðŸ”¥', 'type': 'garantie'},
-            {'key': 'bris_glace', 'label': 'Bris Glace', 'icon': 'ðŸªŸ', 'type': 'garantie'},
-            {'key': 'ar', 'label': 'AR', 'icon': 'ðŸ”§', 'type': 'garantie'},
-            {'key': 'dta', 'label': 'DTA', 'icon': 'ðŸ’¥', 'type': 'garantie'},
-            {'key': 'ipt', 'label': 'IPT', 'icon': 'ðŸ‘¥', 'type': 'garantie'},
-            
-            # Totaux
-            {'key': 'prime_brute', 'label': 'Prime brute', 'icon': 'ðŸ’°', 'type': 'total'},
-            {'key': 'reductions_total', 'label': 'RÃ©ductions', 'icon': 'ðŸ“‰', 'type': 'total'},
-            {'key': 'prime_nette', 'label': 'Prime nette', 'icon': 'ðŸ’³', 'type': 'total'},
-            
-            # Frais
-            {'key': 'carte_rose', 'label': 'Carte Rose', 'icon': 'ðŸ“„', 'type': 'frais'},
-            {'key': 'accessoires', 'label': 'Accessoires', 'icon': 'ðŸ”§', 'type': 'frais'},
-            {'key': 'asac', 'label': 'ASAC', 'icon': 'ðŸ“', 'type': 'frais'},
-            {'key': 'vignette', 'label': 'Vignette', 'icon': 'ðŸ·ï¸', 'type': 'frais'},
-            {'key': 'tva', 'label': 'TVA', 'icon': 'ðŸ“Š', 'type': 'frais'},
-            {'key': 'pttc', 'label': 'PTTC Total', 'icon': 'ðŸ’°', 'type': 'frais'},
-        ]
         
+        recap_items = [
+            {'key': 'total', 'label': 'Total', 'icon': 'car', 'type': 'info'},
+            {'key': 'selected', 'label': 'Sélectionnés', 'icon': 'check', 'type': 'info'},
+            {'key': 'rc', 'label': 'RC/RTI', 'icon': 'shield', 'type': 'garantie'},
+            {'key': 'dr', 'label': 'DR', 'icon': 'scale', 'type': 'garantie'},
+            {'key': 'vol', 'label': 'Vol', 'icon': 'gun', 'type': 'garantie'},
+            {'key': 'vb', 'label': 'VB', 'icon': 'bomb', 'type': 'garantie'},
+            {'key': 'incendie', 'label': 'Incendie', 'icon': 'fire', 'type': 'garantie'},
+            {'key': 'bris_glace', 'label': 'Bris Glace', 'icon': 'glass', 'type': 'garantie'},
+            {'key': 'ar', 'label': 'AR', 'icon': 'wrench', 'type': 'garantie'},
+            {'key': 'dta', 'label': 'DTA', 'icon': 'bomb', 'type': 'garantie'},
+            {'key': 'ipt', 'label': 'IPT', 'icon': 'account_group', 'type': 'garantie'},
+            {'key': 'prime_brute', 'label': 'Prime brute', 'icon': 'cash', 'type': 'total'},
+            {'key': 'reductions_total', 'label': 'Réductions', 'icon': 'percent', 'type': 'total'},
+            {'key': 'prime_nette', 'label': 'Prime nette', 'icon': 'cash', 'type': 'total'},
+            {'key': 'carte_rose', 'label': 'Carte Rose', 'icon': 'card', 'type': 'frais'},
+            {'key': 'accessoires', 'label': 'Accessoires', 'icon': 'wrench', 'type': 'frais'},
+            {'key': 'asac', 'label': 'ASAC', 'icon': 'file', 'type': 'frais'},
+            {'key': 'vignette', 'label': 'Vignette', 'icon': 'tag', 'type': 'frais'},
+            {'key': 'tva', 'label': 'TVA', 'icon': 'percent', 'type': 'frais'},
+            {'key': 'pttc', 'label': 'PTTC Total', 'icon': 'cash', 'type': 'frais'},
+        ]
+
         row = 0
         col = 0
         max_cols = 4
@@ -2156,7 +2546,7 @@ class FleetImportAdvancedDialog(QDialog):
             icon = item['icon']
             card_type = item['type']
             
-            # Carte avec style Ã©purÃ©
+            # Carte avec style épuré
             card = QFrame()
             card.setStyleSheet("""
                 QFrame {
@@ -2171,7 +2561,7 @@ class FleetImportAdvancedDialog(QDialog):
             card_layout.setSpacing(4)
             card_layout.setContentsMargins(8, 6, 8, 6)
             
-            # En-tÃªte
+            # En-tête
             header_layout = QHBoxLayout()
             header_layout.setSpacing(6)
             
@@ -2202,7 +2592,7 @@ class FleetImportAdvancedDialog(QDialog):
                 value_widget.setAlignment(Qt.AlignCenter)
                 card_layout.addWidget(value_widget)
                 
-                # Ligne rÃ©duction
+                # Ligne réduction
                 reduction_layout = QHBoxLayout()
                 reduction_layout.setSpacing(6)
                 
@@ -2211,7 +2601,7 @@ class FleetImportAdvancedDialog(QDialog):
                 pct_widget.setStyleSheet("color: #f59e0b; font-size: 11px; font-weight: 600;")
                 pct_widget.setAlignment(Qt.AlignCenter)
                 
-                # Montant dÃ©duit
+                # Montant déduit
                 deduit_widget = QLabel("0")
                 deduit_widget.setStyleSheet("color: #ef4444; font-size: 11px; font-weight: 600;")
                 deduit_widget.setAlignment(Qt.AlignCenter)
@@ -2249,7 +2639,7 @@ class FleetImportAdvancedDialog(QDialog):
         return recap_group
 
     def update_summary(self):
-        """Met Ã  jour le rÃ©capitulatif avec les rÃ©ductions"""
+        """Met Ã  jour le récapitulatif avec les réductions"""
         total = len(self.vehicles_data)
         selected = 0
         
@@ -2259,7 +2649,7 @@ class FleetImportAdvancedDialog(QDialog):
         reductions_amount = {key: 0.0 for key in garanties_keys}
         reduction_percentages = {key: [] for key in garanties_keys}
         
-        # âœ… Totaux des primes (brute, nette, rÃ©ductions)
+        #  Totaux des primes (brute, nette, réductions)
         total_prime_brute = 0
         total_prime_nette = 0
         total_reductions = 0
@@ -2280,6 +2670,7 @@ class FleetImportAdvancedDialog(QDialog):
                 selected += 1
             
             vehicle = self.vehicles_data[row] if row < len(self.vehicles_data) else None
+            # print(f"information sur le véhicule: {vehicle}")
             if vehicle and is_selected:
                 garanties = vehicle.get('garanties', {})
                 
@@ -2288,7 +2679,7 @@ class FleetImportAdvancedDialog(QDialog):
                     amount = garanties.get(key, 0)
                     selected_totals[key] += amount
                     
-                    # RÃ©cupÃ©rer le pourcentage de rÃ©duction
+                    # Récupérer le pourcentage de réduction
                     reduction_key = f'reduction_{key}'
                     reduction_pct = garanties.get(reduction_key, 0)
                     if isinstance(reduction_pct, str):
@@ -2302,7 +2693,7 @@ class FleetImportAdvancedDialog(QDialog):
                         deduit = amount * (reduction_pct / 100)
                         reductions_amount[key] += deduit
                 
-                # âœ… Additionner les primes brute et nette du vÃ©hicule
+                #  Additionner les primes brute et nette du véhicule
                 total_prime_brute += vehicle.get('prime_brute', 0)
                 total_prime_nette += vehicle.get('prime_nette', 0)
                 total_reductions += vehicle.get('reductions', 0)
@@ -2312,31 +2703,32 @@ class FleetImportAdvancedDialog(QDialog):
                 total_asac += vehicle.get('asac', 0)
                 total_carte_rose += vehicle.get('carte_rose', 0)
                 total_vignette += vehicle.get('vignette', 0)
-                total_tva += vehicle.get('tva', 0)
-                total_pttc += vehicle.get('pttc', 0)
+                base_tva = total_prime_nette + total_accessoires + total_asac
+                total_tva = base_tva * 0.1925
+                total_pttc = total_prime_nette + total_accessoires + total_asac + total_tva + total_vignette + total_carte_rose
         
         # Mettre Ã  jour les cartes
         self.recap_cards['total'].setText(str(total))
         self.recap_cards['selected'].setText(str(selected))
         
-        # Garanties avec leurs dÃ©tails
+        # Garanties avec leurs détails
         for key in garanties_keys:
             # Montant total
             total_amount = selected_totals.get(key, 0)
             self.recap_cards[key].setText(f"{total_amount:,.0f}".replace(",", " "))
             
-            # Pourcentage de rÃ©duction (moyenne ou dernier appliquÃ©)
+            # Pourcentage de réduction (moyenne ou dernier appliqué)
             if reduction_percentages.get(key):
                 avg_red = sum(reduction_percentages[key]) / len(reduction_percentages[key])
                 self.recap_cards[f'{key}_red'].setText(f"{avg_red:.1f}%")
             else:
                 self.recap_cards[f'{key}_red'].setText("0%")
             
-            # Montant total dÃ©duit
+            # Montant total déduit
             deduit = reductions_amount.get(key, 0)
             self.recap_cards[f'{key}_deduit'].setText(f"{deduit:,.0f}".replace(",", " "))
         
-        # âœ… Totaux des primes (brute, nette, rÃ©ductions)
+        #  Totaux des primes (brute, nette, réductions)
         self.recap_cards['prime_brute'].setText(f"{total_prime_brute:,.0f}".replace(",", " "))
         self.recap_cards['reductions_total'].setText(f"{total_reductions:,.0f}".replace(",", " "))
         self.recap_cards['prime_nette'].setText(f"{total_prime_nette:,.0f}".replace(",", " "))
@@ -2352,26 +2744,30 @@ class FleetImportAdvancedDialog(QDialog):
         self.update_selection_count()
 
     def create_footer(self):
-        """CrÃ©e le pied de page"""
+        """Crée le pied de page"""
         footer = QFrame()
         footer.setStyleSheet(f"border-top: 1px solid {AppColors.BORDER}; padding-top: 12px;")
         
         layout = QHBoxLayout(footer)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Info sur les sÃ©lections
-        self.selection_info = QLabel("0 vÃ©hicules sÃ©lectionnÃ©s")
+        # Info sur les sélections
+        self.selection_info = QLabel("0 véhicules sélectionnés")
         self.selection_info.setStyleSheet(f"color: {AppColors.GRAY}; font-size: 12px;")
         layout.addWidget(self.selection_info)
         
         layout.addStretch()
         
-        self.cancel_btn = QPushButton("Annuler")
+        self.cancel_btn = QPushButton(" Annuler")
+        self.cancel_btn.setIcon(get_icon('close', color='#475569', size=16))
+        self.cancel_btn.setIconSize(QSize(16, 16))
         self.cancel_btn.setProperty("class", "BtnSecondary")
         self.cancel_btn.setFixedSize(120, 35)
         self.cancel_btn.clicked.connect(self.reject)
         
-        self.import_btn = QPushButton("âœ… Importer la flotte")
+        self.import_btn = QPushButton(" Importer la flotte")
+        self.import_btn.setIcon(get_icon('upload', color='white', size=16))
+        self.import_btn.setIconSize(QSize(16, 16))
         self.import_btn.setProperty("class", "BtnSuccess")
         self.import_btn.setEnabled(False)
         self.import_btn.setFixedSize(160, 40)
@@ -2384,23 +2780,23 @@ class FleetImportAdvancedDialog(QDialog):
         return footer
     
     def on_table_item_clicked(self, item):
-        """GÃ¨re le clic sur un Ã©lÃ©ment du tableau"""
-        # Mettre Ã  jour le compteur de sÃ©lection
+        """Gère le clic sur un élément du tableau"""
+        # Mettre Ã  jour le compteur de sélection
         self.update_selection_count()
     
     def update_selection_count(self):
-        """Met Ã  jour le compteur de vÃ©hicules sÃ©lectionnÃ©s"""
+        """Met Ã  jour le compteur de véhicules sélectionnés"""
         count = 0
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
             if item and item.checkState() == Qt.Checked:
                 count += 1
-        self.selection_info.setText(f"{count} vÃ©hicule(s) sÃ©lectionnÃ©(s)")
+        self.selection_info.setText(f"{count} véhicule(s) sélectionné(s)")
     
     def select_file(self):
-        """SÃ©lectionne le fichier"""
+        """Sélectionne le fichier"""
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "SÃ©lectionner un fichier", "",
+            self, "Sélectionner un fichier", "",
             "Excel (*.xlsx *.xls);;CSV (*.csv)"
         )
         
@@ -2410,13 +2806,13 @@ class FleetImportAdvancedDialog(QDialog):
             self.load_file()
 
     # ============================================================================
-    # MÃ‰THODE LOAD_FILE AMÃ‰LIORÃ‰E
+    # MéTHODE LOAD_FILE AMéLIORéE
     # ============================================================================
 
     def load_file(self):
         """
-        Charge un fichier Excel/CSV avec dÃ©tection intelligente amÃ©liorÃ©e.
-        Version avec mapping manuel, prÃ©visualisation, validation et gestion d'erreurs.
+        Charge un fichier Excel/CSV avec détection intelligente améliorée.
+        Version avec mapping manuel, prévisualisation, validation et gestion d'erreurs.
         """
         try:
             # 1. LECTURE DU FICHIER
@@ -2426,59 +2822,59 @@ class FleetImportAdvancedDialog(QDialog):
                 self.status_text.setText("Erreur: fichier vide")
                 return
             
-            # 2. DÃ‰TECTION AMÃ‰LIORÃ‰E DE L'EN-TÃŠTE
+            # 2. DéTECTION AMéLIORéE DE L'EN-TÊTE
             header_row = self._detect_header_row(df_raw)
             if header_row == -1:
-                self.file_info.setText("âŒ En-tÃªte non dÃ©tectÃ©")
+                self.file_info.setText("âŒ En-tête non détecté")
                 self.status_text.setText("Erreur: format de fichier non reconnu")
                 return
             
-            # 3. EXTRACTION DES DONNÃ‰ES
+            # 3. EXTRACTION DES DONNéES
             df = self._extract_data(df_raw, header_row)
             if df is None or df.empty:
-                self.file_info.setText("âŒ Aucune donnÃ©e valide")
-                self.status_text.setText("Erreur: aucune donnÃ©e trouvÃ©e")
+                self.file_info.setText("âŒ Aucune donnée valide")
+                self.status_text.setText("Erreur: aucune donnée trouvée")
                 return
             
-            # 4. NETTOYAGE AMÃ‰LIORÃ‰
+            # 4. NETTOYAGE AMéLIORé
             df = self._clean_data(df)
             if df is None or df.empty:
-                self.file_info.setText("âŒ DonnÃ©es vides aprÃ¨s nettoyage")
-                self.status_text.setText("Erreur: aucune donnÃ©e valide")
+                self.file_info.setText("âŒ Données vides après nettoyage")
+                self.status_text.setText("Erreur: aucune donnée valide")
                 return
             
             # 5. MAPPING INTELLIGENT DES COLONNES
             df, mapping_warnings = self._map_columns_advanced(df)
             
-            # 6. AFFICHAGE DE LA PRÃ‰VISUALISATION POUR CONFIRMATION
+            # 6. AFFICHAGE DE LA PRéVISUALISATION POUR CONFIRMATION
             if not self._show_preview(df, mapping_warnings):
-                return  # L'utilisateur a annulÃ©
+                return  # L'utilisateur a annulé
             
-            # 7. EXTRACTION ET CONVERSION DES DONNÃ‰ES
+            # 7. EXTRACTION ET CONVERSION DES DONNéES
             self.vehicles_data = self._extract_vehicles_data(df)
             
             if not self.vehicles_data:
-                self.file_info.setText("âŒ Aucun vÃ©hicule trouvÃ©")
-                self.status_text.setText("Erreur: aucun vÃ©hicule valide")
+                self.file_info.setText("âŒ Aucun véhicule trouvé")
+                self.status_text.setText("Erreur: aucun véhicule valide")
                 return
             
-            # 8. VALIDATION DES DONNÃ‰ES
+            # 8. VALIDATION DES DONNéES
             invalid_count = self._validate_vehicles_data()
             if invalid_count > 0:
                 reply = QMessageBox.question(
                     self,
-                    "âš ï¸ DonnÃ©es invalides",
-                    f"{invalid_count} vÃ©hicule(s) ont des donnÃ©es invalides.\n"
-                    "Voulez-vous continuer avec les donnÃ©es valides ?",
+                    "âš ï¸ Données invalides",
+                    f"{invalid_count} véhicule(s) ont des données invalides.\n"
+                    "Voulez-vous continuer avec les données valides ?",
                     QMessageBox.Yes | QMessageBox.No
                 )
                 if reply == QMessageBox.No:
                     return
             
-            # 9. AFFICHAGE RÃ‰SULTATS
-            self.file_info.setText(f"âœ… {len(self.vehicles_data)} vÃ©hicules trouvÃ©s")
-            self.status_text.setText(f"{len(self.vehicles_data)} vÃ©hicules chargÃ©s")
-            self.status_icon.setText("âœ…")
+            # 9. AFFICHAGE RéSULTATS
+            self.file_info.setText(f" {len(self.vehicles_data)} véhicules trouvés")
+            self.status_text.setText(f"{len(self.vehicles_data)} véhicules chargés")
+            self.status_icon.setText("")
             self.calc_btn.setEnabled(True)
             self.display_vehicles()
             
@@ -2489,7 +2885,7 @@ class FleetImportAdvancedDialog(QDialog):
             traceback.print_exc()
 
     # ============================================================================
-    # 1. LECTURE AMÃ‰LIORÃ‰E DES FICHIERS
+    # 1. LECTURE AMéLIORéE DES FICHIERS
     # ============================================================================
 
     def _read_file_with_formulas(self, file_path):
@@ -2499,7 +2895,7 @@ class FleetImportAdvancedDialog(QDialog):
                 import openpyxl
                 from openpyxl.utils import get_column_letter
                 
-                # Chargement avec gestion de la mÃ©moire
+                # Chargement avec gestion de la mémoire
                 wb = openpyxl.load_workbook(
                     file_path, 
                     data_only=True,
@@ -2508,7 +2904,7 @@ class FleetImportAdvancedDialog(QDialog):
                 )
                 ws = wb.active
                 
-                # Lecture en mode itÃ©rateur pour Ã©conomiser la mÃ©moire
+                # Lecture en mode itérateur pour économiser la mémoire
                 data = []
                 max_cols = 0
                 for row in ws.iter_rows(values_only=True):
@@ -2521,14 +2917,14 @@ class FleetImportAdvancedDialog(QDialog):
                 
                 wb.close()
                 
-                # Normaliser les lignes pour qu'elles aient toutes le mÃªme nombre de colonnes
+                # Normaliser les lignes pour qu'elles aient toutes le même nombre de colonnes
                 for i in range(len(data)):
                     if len(data[i]) < max_cols:
                         data[i].extend([''] * (max_cols - len(data[i])))
                 
                 return pd.DataFrame(data)
             else:
-                # CSV avec dÃ©tection d'encodage
+                # CSV avec détection d'encodage
                 encodings = ['utf-8', 'latin-1', 'iso-8859-1', 'cp1252']
                 for encoding in encodings:
                     try:
@@ -2536,34 +2932,34 @@ class FleetImportAdvancedDialog(QDialog):
                             file_path, 
                             encoding=encoding, 
                             header=None,
-                            dtype=str,  # Garder tout en string pour Ã©viter les problÃ¨mes de type
-                            engine='python',  # Plus flexible pour les fichiers mal formÃ©s
+                            dtype=str,  # Garder tout en string pour éviter les problèmes de type
+                            engine='python',  # Plus flexible pour les fichiers mal formés
                             on_bad_lines='skip'
                         )
                     except UnicodeDecodeError:
                         continue
                 
-                raise ValueError("Aucun encodage valide trouvÃ© pour le fichier CSV")
+                raise ValueError("Aucun encodage valide trouvé pour le fichier CSV")
                 
         except Exception as e:
             print(f"Erreur lecture fichier: {e}")
             return None
 
     # ============================================================================
-    # 2. DÃ‰TECTION AMÃ‰LIORÃ‰E DE L'EN-TÃŠTE
+    # 2. DéTECTION AMéLIORéE DE L'EN-TÊTE
     # ============================================================================
 
     def _detect_header_row(self, df):
-        """DÃ©tecte la ligne d'en-tÃªte avec des mots-clÃ©s multiples"""
-        # Mots-clÃ©s pour identifier l'en-tÃªte
+        """Détecte la ligne d'en-tête avec des mots-clés multiples"""
+        # Mots-clés pour identifier l'en-tête
         header_keywords = {
             'immatriculation': ['immatriculation', 'immat', 'plaque', 'matricule', 'immatricule'],
-            'marque': ['marque', 'marque et type', 'type', 'modÃ¨le', 'model'],
+            'marque': ['marque', 'marque et type', 'type', 'modèle', 'model'],
             'puissance': ['puissance', 'cv', 'chevaux', 'fiscale'],
-            'genre': ['genre', 'catÃ©gorie', 'categorie', 'type de vÃ©hicule'],
+            'genre': ['genre', 'catégorie', 'categorie', 'type de véhicule'],
             'places': ['places', 'place', 'nb places', 'nombre de places'],
             'valeur': ['valeur', 'prix', 'montant', 'cout', 'coÃ»t'],
-            'rc': ['rc', 'rti', 'responsabilitÃ©', 'responsabilite']
+            'rc': ['rc', 'rti', 'responsabilité', 'responsabilite']
         }
         
         for idx, row in df.iterrows():
@@ -2577,30 +2973,30 @@ class FleetImportAdvancedDialog(QDialog):
                         matches += 1
                         break
             
-            # Si plus de 5 mots-clÃ©s sont trouvÃ©s, c'est probablement l'en-tÃªte
+            # Si plus de 5 mots-clés sont trouvés, c'est probablement l'en-tête
             if matches >= 5:
-                print(f"âœ… En-tÃªte dÃ©tectÃ© Ã  la ligne {idx} avec {matches} correspondances")
+                # print(f" En-tête détecté Ã  la ligne {idx} avec {matches} correspondances")
                 return idx
             
-            # VÃ©rification spÃ©cifique pour "Rang" et "Immatriculation"
+            # Vérification spécifique pour "Rang" et "Immatriculation"
             row_text = ' '.join(row_values)
             if 'rang' in row_text and ('immatriculation' in row_text or 'plaque' in row_text):
-                print(f"âœ… En-tÃªte dÃ©tectÃ© Ã  la ligne {idx} (Rang + Immatriculation)")
+                # print(f" En-tête détecté Ã  la ligne {idx} (Rang + Immatriculation)")
                 return idx
         
         return -1
 
     # ============================================================================
-    # 3. EXTRACTION DES DONNÃ‰ES
+    # 3. EXTRACTION DES DONNéES
     # ============================================================================
 
     def _extract_data(self, df, header_row):
-        """Extrait les donnÃ©es Ã  partir de la ligne d'en-tÃªte"""
+        """Extrait les données Ã  partir de la ligne d'en-tête"""
         try:
-            # RÃ©cupÃ©rer les en-tÃªtes
+            # Récupérer les en-têtes
             header_values = df.iloc[header_row].values
             
-            # Trouver la derniÃ¨re colonne non vide
+            # Trouver la dernière colonne non vide
             max_cols = 0
             for i, val in enumerate(header_values):
                 if pd.notna(val) and str(val).strip():
@@ -2609,22 +3005,22 @@ class FleetImportAdvancedDialog(QDialog):
             if max_cols == 0:
                 max_cols = len(header_values)
             
-            # CrÃ©er les en-tÃªtes normalisÃ©s
+            # Créer les en-têtes normalisés
             column_names = []
             for i in range(max_cols):
                 if i < len(header_values) and pd.notna(header_values[i]):
                     name = str(header_values[i]).strip()
-                    # Ã‰viter les doublons
+                    # éviter les doublons
                     if name in column_names:
                         name = f"{name}_{i}"
                     column_names.append(name)
                 else:
                     column_names.append(f"Col_{i}")
             
-            # Extraire les donnÃ©es
+            # Extraire les données
             data_values = df.values[header_row+1:, :max_cols]
             
-            # CrÃ©er le DataFrame
+            # Créer le DataFrame
             df_data = pd.DataFrame(data_values, columns=column_names)
             
             # Nettoyer les lignes totalement vides
@@ -2633,17 +3029,17 @@ class FleetImportAdvancedDialog(QDialog):
             return df_data
             
         except Exception as e:
-            print(f"Erreur extraction donnÃ©es: {e}")
+            print(f"Erreur extraction données: {e}")
             return None
 
     # ============================================================================
-    # 4. NETTOYAGE AMÃ‰LIORÃ‰ DES DONNÃ‰ES
+    # 4. NETTOYAGE AMéLIORé DES DONNéES
     # ============================================================================
 
     def _clean_data(self, df):
-        """Nettoie les donnÃ©es avec prÃ©servation des informations"""
+        """Nettoie les données avec préservation des informations"""
         try:
-            # 1. Supprimer les lignes complÃ¨tement vides
+            # 1. Supprimer les lignes complètement vides
             df = df.dropna(how='all')
             
             # 2. Identifier la colonne d'immatriculation
@@ -2655,7 +3051,7 @@ class FleetImportAdvancedDialog(QDialog):
                     break
             
             if immat_col is None:
-                # Essayer de trouver une colonne avec des donnÃ©es qui ressemblent Ã  des plaques
+                # Essayer de trouver une colonne avec des données qui ressemblent Ã  des plaques
                 for col in df.columns:
                     sample = df[col].dropna().astype(str).head(10)
                     if sample.str.contains(r'[A-Z0-9\-]', regex=True).any():
@@ -2676,16 +3072,17 @@ class FleetImportAdvancedDialog(QDialog):
             df = df[df[immat_col] != 'NAN']
             df = df[df[immat_col].notna()]
             
-            # 5. Filtrer les lignes de total (avec plusieurs mots-clÃ©s)
-            total_keywords = ['prime', 'total', 'sous-total', 'rÃ©duction', 'nette', 'brute', 
-                            'carburant', 'kilomÃ©trage', 'km', 'essence', 'diesel']
+            # 5. Filtrer les lignes de total (avec plusieurs mots-clés)
+            total_keywords = ['prime', 'total', 'sous-total', 'réduction', 'nette', 'brute', 'Prime Nette',
+                            'carburant', 'kilométrage', 'km', 'essence', 'diesel', 'Prime Brute', 
+                            'Réductions : RC/RTI & DR -15% ; Autres risques sauf I.P.T -54%']
             mask = ~df[immat_col].str.contains('|'.join(total_keywords), case=False, na=False)
             df = df[mask]
             
             # 6. Supprimer les colonnes inutiles (toutes les valeurs sont NaN ou vides)
             df = df.dropna(axis=1, how='all')
             
-            # 7. Remplacer les NaN par des chaÃ®nes vides pour les colonnes string
+            # 7. Remplacer les NaN par des chaines vides pour les colonnes string
             for col in df.columns:
                 if df[col].dtype == 'object':
                     df[col] = df[col].fillna('')
@@ -2693,42 +3090,42 @@ class FleetImportAdvancedDialog(QDialog):
             return df
             
         except Exception as e:
-            print(f"Erreur nettoyage donnÃ©es: {e}")
+            print(f"Erreur nettoyage données: {e}")
             return None
 
     # ============================================================================
-    # 5. MAPPING AVANCÃ‰ DES COLONNES
+    # 5. MAPPING AVANCé DES COLONNES
     # ============================================================================
 
     def _map_columns_advanced(self, df):
-        """Mappe les colonnes avec dÃ©tection intelligente - Version avec les nouvelles colonnes"""
+        """Mappe les colonnes avec détection intelligente - Version avec les nouvelles colonnes"""
         
-        # âœ… MAPPING MIS Ã€ JOUR AVEC LES NOUVELLES COLONNES
+        #  MAPPING MIS Ã€ JOUR AVEC LES NOUVELLES COLONNES
         column_mapping_config = {
             'Rang': ['rang', 'nÂ°', 'numero', '#'],
             'Immatriculation': ['immatriculation', 'immat', 'plaque', 'matricule', 'immatricule'],
-            'Numero Chassi': ['numÃ©ro chassi', 'numero chassi', 'chassis', 'chÃ¢ssis', 'vin'],
+            'Numero Chassi': ['numéro chassi', 'numero chassi', 'chassis', 'chÃ¢ssis', 'vin'],
             'Marque': ['marque', 'marque et type', 'marque_type', 'brand'],
-            'Modele': ['modele', 'modÃ¨le', 'model', 'type', 'version'],
-            'Genre': ['genre', 'catÃ©gorie', 'categorie', 'type vÃ©hicule'],
+            'Modele': ['modele', 'modèle', 'model', 'type', 'version'],
+            'Genre': ['genre', 'catégorie', 'categorie', 'type véhicule'],
             'Puissance en CV': ['puissance', 'cv', 'chevaux', 'fiscale', 'puissance fiscale'],
             'Usage': ['usage', 'utilisation', 'type usage', 'destination'],
-            'Nombre de Places': ['places', 'place', 'nb places', 'nombre de places', 'capacitÃ©'],
-            'Nombre de jours assurÃ©s': ['jours', 'durÃ©e', 'pÃ©riode', 'pÃ©riode assurance', 'nbr jours'],
+            'Nombre de Places': ['places', 'place', 'nb places', 'nombre de places', 'capacité'],
+            'Nombre de jours assurés': ['jours', 'durée', 'période', 'période assurance', 'nbr jours'],
             'PMEC': ['pmec', 'poids', 'charge', 'ptac', 'poids max'],
             'Valeur Neuve': ['valeur neuf', 'valeur_neuf', 'prix neuf', 'achat'],
             'Valeur Venale': ['valeur venale', 'valeur_venale', 'prix actuel', 'prix venal', 'venale'],
-            'Capital Assistance Ã  la rÃ©paration': ['capital assistance', 'capital ar', 'assistance rÃ©paration', 'assistance reparation'],
-            'RC/RTI': ['rc', 'rti', 'responsabilitÃ© civile', 'responsabilite civile'],
-            'DÃ©fense et Recours': ['dÃ©fense', 'defense', 'recours', 'defense recours'],
+            'Capital Assistance Ã  la réparation': ['capital assistance', 'capital ar', 'assistance réparation', 'assistance reparation'],
+            'RC/RTI': ['rc', 'rti', 'responsabilité civile', 'responsabilite civile'],
+            'Défense et Recours': ['défense', 'defense', 'recours', 'defense recours'],
             'Vol/Vol partiel - Braquage': ['vol/vol partiel - braquage', 'vol/vol partiel', 'vol braquage', 'vol', 'vb'],
             'Incendie': ['incendie', 'feu'],
             'Bris de Glaces': ['bris', 'brise', 'bris de glace', 'vitres', 'pare-brise'],
-            'Assistance Ã  la rÃ©paration': ['assistance rÃ©paration', 'assistance reparation', 'ar', 'assistance'],
+            'Assistance Ã  la réparation': ['assistance réparation', 'assistance reparation', 'ar', 'assistance'],
             'Dommages Tous Accidents': ['dommages', 'dta', 'tous accidents', 'tous accid'],
-            'Individuelle Personnes TransportÃ©es (I.P.T) + Conducteur': ['individuelle personnes transportÃ©es', 'ipt', 'individuelle', 'conducteur', 'personnes transportÃ©es'],
+            'Individuelle Personnes Transportées (I.P.T) + Conducteur': ['individuelle personnes transportées', 'ipt', 'individuelle', 'conducteur', 'personnes transportées'],
             'Prime brute': ['prime brute', 'prime_brute', 'brute'],
-            'RÃ©ductions': ['rÃ©ductions', 'reductions', 'remise', 'rÃ©duction'],
+            'Réductions': ['réductions', 'reductions', 'remise', 'réduction'],
             'Prime nette': ['prime nette', 'prime_nette', 'nette'],
             'Droit de Timbre Automobile': ['timbre', 'droit timbre', 'droit de timbre', 'vignette', 'attestation']
         }
@@ -2736,7 +3133,7 @@ class FleetImportAdvancedDialog(QDialog):
         mapping = {}
         warnings = []
         
-        # 1. DÃ©tection automatique
+        # 1. Détection automatique
         for target, keywords in column_mapping_config.items():
             found = False
             for col in df.columns:
@@ -2751,39 +3148,39 @@ class FleetImportAdvancedDialog(QDialog):
             
             if not found:
                 mapping[target] = None
-                warnings.append(f"âŒ Colonne non trouvÃ©e: {target}")
+                warnings.append(f"âŒ Colonne non trouvée: {target}")
         
-        # âœ… VÃ‰RIFICATION SPÃ‰CIALE POUR "Assistance Ã  la rÃ©paration"
-        if mapping.get('Assistance Ã  la rÃ©paration') is None:
+        #  VéRIFICATION SPéCIALE POUR "Assistance Ã  la réparation"
+        if mapping.get('Assistance Ã  la réparation') is None:
             for col in df.columns:
                 col_lower = col.lower().strip()
-                if any(k in col_lower for k in ['assistance', 'ar', 'assistance reparation', 'assistance rÃ©paration']):
-                    mapping['Assistance Ã  la rÃ©paration'] = col
-                    warnings.append(f"âœ… Colonne 'Assistance Ã  la rÃ©paration' trouvÃ©e sous: {col}")
+                if any(k in col_lower for k in ['assistance', 'ar', 'assistance reparation', 'assistance réparation']):
+                    mapping['Assistance Ã  la réparation'] = col
+                    warnings.append(f" Colonne 'Assistance Ã  la réparation' trouvée sous: {col}")
                     break
         
-        # âœ… VÃ‰RIFICATION SPÃ‰CIALE POUR "Vol/Vol partiel - Braquage"
+        #  VéRIFICATION SPéCIALE POUR "Vol/Vol partiel - Braquage"
         if mapping.get('Vol/Vol partiel - Braquage') is None:
             for col in df.columns:
                 col_lower = col.lower().strip()
                 if any(k in col_lower for k in ['vol', 'braquage', 'vol partiel']):
                     mapping['Vol/Vol partiel - Braquage'] = col
-                    warnings.append(f"âœ… Colonne 'Vol/Vol partiel - Braquage' trouvÃ©e sous: {col}")
+                    warnings.append(f" Colonne 'Vol/Vol partiel - Braquage' trouvée sous: {col}")
                     break
         
-        # 2. VÃ©rification des colonnes obligatoires
+        # 2. Vérification des colonnes obligatoires
         required_cols = ['Immatriculation', 'Marque et Type']
         missing_required = [c for c in required_cols if mapping.get(c) is None]
         
         if missing_required:
             warnings.append(f"âš ï¸ Colonnes obligatoires manquantes: {', '.join(missing_required)}")
             
-            # Demander Ã  l'utilisateur de sÃ©lectionner manuellement
+            # Demander Ã  l'utilisateur de sélectionner manuellement
             missing_cols = self._ask_for_missing_columns(df, missing_required)
             for target, col in missing_cols.items():
                 if col:
                     mapping[target] = col
-                    warnings.append(f"âœ… Colonne '{target}' mappÃ©e manuellement sur '{col}'")
+                    warnings.append(f" Colonne '{target}' mappée manuellement sur '{col}'")
         
         # 3. Appliquer le renommage
         rename_dict = {v: k for k, v in mapping.items() if v is not None}
@@ -2796,14 +3193,14 @@ class FleetImportAdvancedDialog(QDialog):
         result = {}
         
         for col in missing_columns:
-            # CrÃ©er un petit dialogue de sÃ©lection
+            # Créer un petit dialogue de sélection
             dialog = QDialog(self)
             dialog.setWindowTitle(f"Mapper la colonne: {col}")
             dialog.setModal(True)
             dialog.setMinimumWidth(400)
             
             layout = QVBoxLayout(dialog)
-            layout.addWidget(QLabel(f"SÃ©lectionnez la colonne correspondant Ã  '{col}' :"))
+            layout.addWidget(QLabel(f"Sélectionnez la colonne correspondant Ã  '{col}' :"))
             
             combo = QComboBox()
             combo.addItem("-- Aucune --", None)
@@ -2826,14 +3223,14 @@ class FleetImportAdvancedDialog(QDialog):
         return result
 
     # ============================================================================
-    # 6. PRÃ‰VISUALISATION
+    # 6. PRéVISUALISATION
     # ============================================================================
 
     def _show_preview(self, df, warnings):
-        """Affiche une prÃ©visualisation et demande confirmation"""
+        """Affiche une prévisualisation et demande confirmation"""
         
         preview_dialog = QDialog(self)
-        preview_dialog.setWindowTitle("ðŸ“‹ PrÃ©visualisation des donnÃ©es")
+        preview_dialog.setWindowTitle("ðŸ“‹ Prévisualisation des données")
         preview_dialog.setModal(True)
         preview_dialog.setMinimumSize(900, 600)
         
@@ -2848,15 +3245,15 @@ class FleetImportAdvancedDialog(QDialog):
                 warning_layout.addWidget(QLabel(warn))
             layout.addWidget(warning_frame)
         
-        # Tableau de prÃ©visualisation
+        # Tableau de prévisualisation
         preview_table = QTableWidget()
         preview_table.setColumnCount(min(len(df.columns), 10))
         
-        # En-tÃªtes
+        # En-têtes
         headers = df.columns[:10].tolist()
         preview_table.setHorizontalHeaderLabels(headers)
         
-        # DonnÃ©es (5 premiÃ¨res lignes)
+        # Données (5 premières lignes)
         n_rows = min(5, len(df))
         preview_table.setRowCount(n_rows)
         for i in range(n_rows):
@@ -2866,7 +3263,7 @@ class FleetImportAdvancedDialog(QDialog):
         
         preview_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         preview_table.setAlternatingRowColors(True)
-        layout.addWidget(QLabel(f"ðŸ“Š {len(df)} lignes trouvÃ©es"))
+        layout.addWidget(QLabel(f"ðŸ“Š {len(df)} lignes trouvées"))
         layout.addWidget(preview_table)
         
         # Boutons
@@ -2876,7 +3273,7 @@ class FleetImportAdvancedDialog(QDialog):
         cancel_btn = QPushButton("âŒ Annuler")
         cancel_btn.clicked.connect(preview_dialog.reject)
         
-        confirm_btn = QPushButton("âœ… Confirmer l'import")
+        confirm_btn = QPushButton(" Confirmer l'import")
         confirm_btn.setStyleSheet("background-color: #10b981; color: white; font-weight: bold;")
         confirm_btn.clicked.connect(preview_dialog.accept)
         
@@ -2886,171 +3283,19 @@ class FleetImportAdvancedDialog(QDialog):
         
         return preview_dialog.exec() == QDialog.Accepted
 
-    # def _extract_vehicles_data(self, df):
-    #     """Extrait les donnÃ©es des vÃ©hicules - Version avec traitement des textes spÃ©ciaux"""
-    #     vehicles = []
-        
-    #     # âœ… Colonnes numÃ©riques avec les nouveaux noms
-    #     numeric_cols = [
-    #         'Puissance en CV', 'Nombre de Places', 'Nombre de jours assurÃ©s',
-    #         'Valeur Neuve', 'Valeur Venale', 'Capital Assistance Ã  la rÃ©paration',
-    #         'RC/RTI', 'DÃ©fense et Recours', 'Vol/Vol partiel - Braquage',
-    #         'Incendie', 'Bris de Glaces', 'Assistance Ã  la rÃ©paration',
-    #         'Dommages Tous Accidents', 'Individuelle Personnes TransportÃ©es (I.P.T) + Conducteur',
-    #         'Prime brute', 'RÃ©ductions', 'Prime nette', 'Droit de Timbre Automobile'
-    #     ]
-        
-    #     for idx, row in df.iterrows():
-    #         try:
-    #             # Extraire l'immatriculation
-    #             immat = self._safe_str(row.get('Immatriculation', ''))
-    #             if not immat:
-    #                 continue
-                
-    #             # âœ… VÃ©rifier si c'est une ligne de total (exclure les lignes de rÃ©capitulatif)
-    #             if any(keyword in immat.upper() for keyword in ['PRIME', 'REDUCTIONS', 'TOTAL', 'SOUS-TOTAL']):
-    #                 print(f"â­ï¸ Ligne de total ignorÃ©e: {immat}")
-    #                 continue
-                
-    #             # âœ… Extraire la marque et le modÃ¨le (sÃ©parÃ©s)
-    #             marque = self._safe_str(row.get('Marque', ''))
-    #             modele = self._safe_str(row.get('Modele', ''))
-                
-    #             # Si la colonne Marque est vide mais que Marque et Type existe
-    #             if not marque:
-    #                 marque_type = self._safe_str(row.get('Marque et Type', ''))
-    #                 if marque_type:
-    #                     # âœ… Ne pas traiter les lignes de rÃ©capitulatif
-    #                     if not any(k in marque_type.upper() for k in ['PRIME', 'REDUCTIONS', 'TOTAL']):
-    #                         parts = marque_type.split(' ', 1)
-    #                         marque = parts[0] if parts else ''
-    #                         modele = parts[1] if len(parts) > 1 else ''
-                
-    #             # Extraire les valeurs numÃ©riques
-    #             values = {}
-    #             for col in numeric_cols:
-    #                 if col in row.index:
-    #                     val = row[col]
-    #                     if hasattr(val, 'iloc'):
-    #                         val = val.iloc[0] if len(val) > 0 else 0
-    #                     # âœ… Utiliser la nouvelle mÃ©thode safe_float qui gÃ¨re "INCLUS"
-    #                     values[col] = self._safe_float(val)
-    #                 else:
-    #                     values[col] = 0
-                
-    #             # âœ… EXTRAIRE LA PUISSANCE ET L'Ã‰NERGIE DE LA COLONNE "Puissance en CV"
-    #             puissance_raw = row.get('Puissance en CV', '')
-    #             if hasattr(puissance_raw, 'iloc'):
-    #                 puissance_raw = puissance_raw.iloc[0] if len(puissance_raw) > 0 else ''
-                
-    #             puissance, energie = self._extract_power_and_energy(puissance_raw)
-                
-    #             # âœ… RÃ‰CUPÃ‰RATION CORRECTE DE "Assistance Ã  la rÃ©paration"
-    #             ar_value = 0
-                
-    #             #1. Essayer de rÃ©cupÃ©rer depuis la colonne "Assistance Ã  la rÃ©paration"
-    #             if 'Assistance Ã  la rÃ©paration' in row.index:
-    #                 val = row['Assistance Ã  la rÃ©paration']
-    #                 if hasattr(val, 'iloc'):
-    #                     val = val.iloc[0] if len(val) > 0 else 0
-    #                 ar_value = self._safe_float(val)
-    #                 if ar_value > 0:
-    #                     print(f"âœ… AR trouvÃ©e dans colonne 'Assistance Ã  la rÃ©paration': {ar_value}")
-                
-    #             if 'Assistance Ã  la rÃ©paration' in row.index:
-    #                 val = row['Prime brute']
-    #                 if hasattr(val, 'iloc'):
-    #                     val = val.iloc[0] if len(val) > 0 else 0
-    #                 pb_value = self._safe_float(val)
-    #                 if pb_value > 0:
-    #                     print(f"âœ… PB trouvÃ©e dans colonne 'Prime brute': {pb_value}")
-
-    #             # Extraire les dates
-    #             pmec_val = row.get('PMEC')
-    #             if hasattr(pmec_val, 'iloc'):
-    #                 pmec_val = pmec_val.iloc[0] if len(pmec_val) > 0 else None
-    #             pmec_date = self._extract_date_smart(pmec_val)
-                
-    #             # RÃ©cupÃ©rer le rang
-    #             rang_val = row.get('Rang')
-    #             if hasattr(rang_val, 'iloc'):
-    #                 rang_val = rang_val.iloc[0] if len(rang_val) > 0 else idx + 1
-                
-    #             vehicle = {
-    #                 'id': idx + 1,
-    #                 'rang': self._safe_int(rang_val) or (idx + 1),
-    #                 'immatriculation': immat,
-    #                 'chassis': self._safe_str(row.get('Numero Chassi', '')),
-    #                 'marque': marque,
-    #                 'modele': modele,
-    #                 'marque_type': f"{marque} {modele}".strip(),
-    #                 'genre': self._safe_str(row.get('Genre', 'VP')),
-    #                 'puissance': puissance,
-    #                 'energie': energie,
-    #                 'usage': self._safe_str(row.get('Usage', '')),
-    #                 'places': int(values.get('Nombre de Places', 5)),
-    #                 'nbr_jour': int(values.get('Nombre de jours assurÃ©s', 365)),
-    #                 'pmec': pmec_date,
-    #                 'valeur_neuf': values.get('Valeur Neuve', 0),
-    #                 'valeur_venale': values.get('Valeur Venale', 0),
-    #                 'capital_ar': values.get('Capital Assistance Ã  la rÃ©paration', 0),
-    #                 'garanties': {
-    #                     'rc': values.get('RC/RTI', 0),
-    #                     'dr': values.get('DÃ©fense et Recours', 0),
-    #                     'vol': values.get('Vol/Vol partiel - Braquage', 0),
-    #                     'vb': values.get('Vol/Vol partiel - Braquage', 0),
-    #                     'incendie': values.get('Incendie', 0),
-    #                     'bris_glace': values.get('Bris de Glaces', 0),
-    #                     'ar': ar_value,  # âœ… Utiliser la valeur corrigÃ©e
-    #                     'dta': values.get('Dommages Tous Accidents', 0),
-    #                     'ipt': values.get('Individuelle Personnes TransportÃ©es (I.P.T) + Conducteur', 0),
-    #                 },
-    #                 'prime_brute': row['Prime brute'],
-    #                 'reductions': values.get('RÃ©ductions', 0),
-    #                 'prime_nette': values.get('Prime nette', 0),
-    #                 'droit_timbre': values.get('Droit de Timbre Automobile', 0),
-    #                 'accessoires': 0,
-    #                 'asac': 0,
-    #                 'carte_rose': 0,
-    #                 'vignette': 0,
-    #                 'tva': 0,
-    #                 'pttc': 0,
-    #                 'status': 'loaded',
-    #                 'from_fleet': False,
-    #                 'categorie': self._safe_str(row.get('Genre', 'VP')),
-    #                 'annee': self._safe_year(pmec_val),
-    #             }
-                
-    #             # âœ… Calcul du total des garanties
-    #             garanties_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
-    #             total = sum(vehicle['garanties'].get(k, 0) for k in garanties_keys)
-    #             vehicle['garanties']['total'] = total
-                
-    #             # âœ… Journalisation pour le dÃ©bogage
-    #             print(f"âœ… {immat} - Marque: {marque}, ModÃ¨le: {modele}, AR: {ar_value} FCFA")
-                
-    #             vehicles.append(vehicle)
-                
-    #         except Exception as e:
-    #             print(f"Erreur extraction ligne {idx}: {e}")
-    #             import traceback
-    #             traceback.print_exc()
-    #             continue
-        
-    #     return vehicles
 
     def _extract_vehicles_data(self, df):
-        """Extrait les donnÃ©es des vÃ©hicules - Version avec traitement des textes spÃ©ciaux"""
+        """Extrait les données des véhicules - Version avec traitement des textes spéciaux"""
         vehicles = []
         
-        # âœ… Colonnes numÃ©riques avec les nouveaux noms
+        #  Colonnes numériques avec les nouveaux noms
         numeric_cols = [
-            'Puissance en CV', 'Nombre de Places', 'Nombre de jours assurÃ©s',
-            'Valeur Neuve', 'Valeur Venale', 'Capital Assistance Ã  la rÃ©paration',
-            'RC/RTI', 'DÃ©fense et Recours', 'Vol/Vol partiel - Braquage',
-            'Incendie', 'Bris de Glaces', 'Assistance Ã  la rÃ©paration',
-            'Dommages Tous Accidents', 'Individuelle Personnes TransportÃ©es (I.P.T) + Conducteur',
-            'Prime brute', 'RÃ©ductions', 'Prime nette', 'Droit de Timbre Automobile'
+            'Puissance en CV', 'Nombre de Places', 'Nombre de jours assurés',
+            'Valeur Neuve', 'Valeur Venale', 'Capital Assistance Ã  la réparation',
+            'RC/RTI', 'Défense et Recours', 'Vol/Vol partiel - Braquage',
+            'Incendie', 'Bris de Glaces', 'Assistance Ã  la réparation',
+            'Dommages Tous Accidents', 'Individuelle Personnes Transportées (I.P.T) + Conducteur',
+            'Prime brute', 'Réductions', 'Prime nette', 'Droit de Timbre Automobile'
         ]
         
         for idx, row in df.iterrows():
@@ -3060,12 +3305,12 @@ class FleetImportAdvancedDialog(QDialog):
                 if not immat:
                     continue
                 
-                # âœ… VÃ©rifier si c'est une ligne de total (exclure les lignes de rÃ©capitulatif)
+                #  Vérifier si c'est une ligne de total (exclure les lignes de récapitulatif)
                 if any(keyword in immat.upper() for keyword in ['PRIME', 'REDUCTIONS', 'TOTAL', 'SOUS-TOTAL']):
-                    print(f"â­ï¸ Ligne de total ignorÃ©e: {immat}")
+                    # print(f"â­ï¸ Ligne de total ignorée: {immat}")
                     continue
                 
-                # âœ… Extraire la marque et le modÃ¨le (sÃ©parÃ©s)
+                #  Extraire la marque et le modèle (séparés)
                 marque = self._safe_str(row.get('Marque', ''))
                 modele = self._safe_str(row.get('Modele', ''))
                 
@@ -3073,13 +3318,13 @@ class FleetImportAdvancedDialog(QDialog):
                 if not marque:
                     marque_type = self._safe_str(row.get('Marque et Type', ''))
                     if marque_type:
-                        # âœ… Ne pas traiter les lignes de rÃ©capitulatif
+                        #  Ne pas traiter les lignes de récapitulatif
                         if not any(k in marque_type.upper() for k in ['PRIME', 'REDUCTIONS', 'TOTAL']):
                             parts = marque_type.split(' ', 1)
                             marque = parts[0] if parts else ''
                             modele = parts[1] if len(parts) > 1 else ''
                 
-                # Extraire les valeurs numÃ©riques
+                # Extraire les valeurs numériques
                 values = {}
                 for col in numeric_cols:
                     if col in row.index:
@@ -3090,24 +3335,24 @@ class FleetImportAdvancedDialog(QDialog):
                     else:
                         values[col] = 0
                 
-                # âœ… EXTRAIRE LA PUISSANCE ET L'Ã‰NERGIE DE LA COLONNE "Puissance en CV"
+                #  EXTRAIRE LA PUISSANCE ET L'éNERGIE DE LA COLONNE "Puissance en CV"
                 puissance_raw = row.get('Puissance en CV', '')
                 if hasattr(puissance_raw, 'iloc'):
                     puissance_raw = puissance_raw.iloc[0] if len(puissance_raw) > 0 else ''
                 
                 puissance, energie = self._extract_power_and_energy(puissance_raw)
                 
-                # âœ… RÃ‰CUPÃ‰RATION CORRECTE DE "Assistance Ã  la rÃ©paration"
+                #  RéCUPéRATION CORRECTE DE "Assistance Ã  la réparation"
                 ar_value = 0
                 
-                # 1. Essayer de rÃ©cupÃ©rer depuis la colonne "Assistance Ã  la rÃ©paration"
-                if 'Assistance Ã  la rÃ©paration' in row.index:
-                    val = row['Assistance Ã  la rÃ©paration']
+                # 1. Essayer de récupérer depuis la colonne "Assistance Ã  la réparation"
+                if 'Assistance Ã  la réparation' in row.index:
+                    val = row['Assistance Ã  la réparation']
                     if hasattr(val, 'iloc'):
                         val = val.iloc[0] if len(val) > 0 else 0
                     ar_value = self._safe_float(val)
-                    if ar_value > 0:
-                        print(f"âœ… AR trouvÃ©e dans colonne 'Assistance Ã  la rÃ©paration': {ar_value}")
+                    # if ar_value > 0:
+                    #     print(f" AR trouvée dans colonne 'Assistance Ã  la réparation': {ar_value}")
 
                 # Extraire les dates
                 pmec_val = row.get('PMEC')
@@ -3115,35 +3360,35 @@ class FleetImportAdvancedDialog(QDialog):
                     pmec_val = pmec_val.iloc[0] if len(pmec_val) > 0 else None
                 pmec_date = self._extract_date_smart(pmec_val)
                 
-                # RÃ©cupÃ©rer le rang
+                # Récupérer le rang
                 rang_val = row.get('Rang')
                 if hasattr(rang_val, 'iloc'):
                     rang_val = rang_val.iloc[0] if len(rang_val) > 0 else idx + 1
                 
-                # âœ… RÃ©cupÃ©rer les garanties
+                #  Récupérer les garanties
                 garanties = {
                     'rc': values.get('RC/RTI', 0),
-                    'dr': values.get('DÃ©fense et Recours', 0),
+                    'dr': values.get('Défense et Recours', 0),
                     'vol': values.get('Vol/Vol partiel - Braquage', 0),
                     'vb': values.get('Vol/Vol partiel - Braquage', 0),
                     'incendie': values.get('Incendie', 0),
                     'bris_glace': values.get('Bris de Glaces', 0),
                     'ar': ar_value,
                     'dta': values.get('Dommages Tous Accidents', 0),
-                    'ipt': values.get('Individuelle Personnes TransportÃ©es (I.P.T) + Conducteur', 0),
+                    'ipt': values.get('Individuelle Personnes Transportées (I.P.T) + Conducteur', 0),
                 }
                 
-                # âœ… Calcul du total des garanties (brut)
+                #  Calcul du total des garanties (brut)
                 garanties_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
                 total_brut = sum(garanties.get(k, 0) for k in garanties_keys)
                 garanties['total'] = total_brut
                 
-                # âœ… RÃ©cupÃ©rer les valeurs de prime depuis le fichier
+                #  Récupérer les valeurs de prime depuis le fichier
                 prime_brute_from_file = values.get('Prime brute', 0)
                 prime_nette_from_file = values.get('Prime nette', 0)
-                reductions_from_file = values.get('RÃ©ductions', 0)
+                reductions_from_file = values.get('Réductions', 0)
                 
-                # âœ… Si les valeurs du fichier sont valides, les utiliser, sinon utiliser les calculs
+                #  Si les valeurs du fichier sont valides, les utiliser, sinon utiliser les calculs
                 # Si prime_brute_from_file > 0, c'est qu'elle vient du fichier
                 if prime_brute_from_file > 0:
                     prime_brute = prime_brute_from_file
@@ -3173,11 +3418,11 @@ class FleetImportAdvancedDialog(QDialog):
                     'energie': energie,
                     'usage': self._safe_str(row.get('Usage', '')),
                     'places': int(values.get('Nombre de Places', 5)),
-                    'nbr_jour': int(values.get('Nombre de jours assurÃ©s', 365)),
+                    'nbr_jour': int(values.get('Nombre de jours assurés', 365)),
                     'pmec': pmec_date,
                     'valeur_neuf': values.get('Valeur Neuve', 0),
                     'valeur_venale': values.get('Valeur Venale', 0),
-                    'capital_ar': values.get('Capital Assistance Ã  la rÃ©paration', 0),
+                    'capital_ar': values.get('Capital Assistance Ã  la réparation', 0),
                     'garanties': garanties,
                     'prime_brute': prime_brute,
                     'reductions': reductions,
@@ -3195,9 +3440,9 @@ class FleetImportAdvancedDialog(QDialog):
                     'annee': self._safe_year(pmec_val),
                 }
                 
-                # âœ… Journalisation pour le dÃ©bogage
-                print(f"âœ… {immat} - Marque: {marque}, ModÃ¨le: {modele}, AR: {ar_value} FCFA")
-                print(f"   Prime brute: {prime_brute}, Prime nette: {prime_nette}, RÃ©ductions: {reductions}")
+                #  Journalisation pour le débogage
+                # print(f" {immat} - Marque: {marque}, Modèle: {modele}, AR: {ar_value} FCFA")
+                # print(f"   Prime brute: {prime_brute}, Prime nette: {prime_nette}, Réductions: {reductions}")
                 
                 vehicles.append(vehicle)
                 
@@ -3210,36 +3455,36 @@ class FleetImportAdvancedDialog(QDialog):
         return vehicles
 
     # ============================================================================
-    # 8. VALIDATION DES DONNÃ‰ES
+    # 8. VALIDATION DES DONNéES
     # ============================================================================
 
     def _validate_vehicles_data(self):
-        """Valide les donnÃ©es des vÃ©hicules"""
+        """Valide les données des véhicules"""
         invalid_count = 0
         
         for vehicle in self.vehicles_data:
             errors = []
             
-            # VÃ©rifier l'immatriculation
+            # Vérifier l'immatriculation
             immat = vehicle.get('immatriculation', '')
             if not immat or len(immat) < 3:
                 errors.append("Immatriculation invalide")
             
-            # VÃ©rifier les valeurs numÃ©riques
+            # Vérifier les valeurs numériques
             if vehicle.get('valeur_neuf', 0) < 0:
-                errors.append("Valeur Ã  neuf nÃ©gative")
+                errors.append("Valeur Ã  neuf négative")
             if vehicle.get('valeur_venale', 0) < 0:
-                errors.append("Valeur vÃ©nale nÃ©gative")
+                errors.append("Valeur vénale négative")
             if vehicle.get('puissance', 0) < 0:
-                errors.append("Puissance nÃ©gative")
+                errors.append("Puissance négative")
             if vehicle.get('places', 0) <= 0:
                 errors.append("Nombre de places invalide")
             
-            # VÃ©rifier les garanties
+            # Vérifier les garanties
             garanties = vehicle.get('garanties', {})
             for key, value in garanties.items():
                 if key != 'total' and value < 0:
-                    errors.append(f"Garantie {key} nÃ©gative")
+                    errors.append(f"Garantie {key} négative")
             
             if errors:
                 vehicle['validation_errors'] = errors
@@ -3250,7 +3495,7 @@ class FleetImportAdvancedDialog(QDialog):
         
         # Afficher les erreurs de validation
         if invalid_count > 0:
-            error_msg = f"âš ï¸ {invalid_count} vÃ©hicule(s) ont des erreurs:\n\n"
+            error_msg = f"âš ï¸ {invalid_count} véhicule(s) ont des erreurs:\n\n"
             for v in self.vehicles_data:
                 if not v.get('valid', True):
                     errors = v.get('validation_errors', [])
@@ -3268,88 +3513,55 @@ class FleetImportAdvancedDialog(QDialog):
     # ============================================================================
 
     def _safe_str(self, value):
-        """Convertit en chaÃ®ne de caractÃ¨res de maniÃ¨re sÃ©curisÃ©e"""
+        """Convertit en chaÃ®ne de caractères de manière sécurisée"""
         if pd.isna(value) or value is None:
             return ''
         return str(value).strip()
 
-    # def _safe_float(self, value):
-    #     """Convertit en float de maniÃ¨re sÃ©curisÃ©e avec gestion des sÃ©parateurs"""
-    #     try:
-    #         if pd.isna(value) or value is None:
-    #             return 0.0
-    #         if isinstance(value, (int, float)):
-    #             return float(value)
-            
-    #         # Nettoyer la chaÃ®ne
-    #         value_str = str(value).strip()
-            
-    #         # GÃ©rer les sÃ©parateurs
-    #         # 1. Supprimer les espaces
-    #         value_str = value_str.replace(' ', '')
-            
-    #         # 2. GÃ©rer les virgules comme sÃ©parateur dÃ©cimal
-    #         if ',' in value_str and '.' not in value_str:
-    #             value_str = value_str.replace(',', '.')
-    #         # 3. GÃ©rer les points comme sÃ©parateur de milliers
-    #         elif '.' in value_str and value_str.count('.') > 1:
-    #             value_str = value_str.replace('.', '')
-    #         # 4. GÃ©rer les virgules comme sÃ©parateur de milliers
-    #         elif ',' in value_str and '.' in value_str:
-    #             value_str = value_str.replace(',', '')
-            
-    #         # Supprimer les caractÃ¨res non numÃ©riques sauf le point
-    #         import re
-    #         value_str = re.sub(r'[^\d.]+', '', value_str)
-            
-    #         return float(value_str) if value_str else 0.0
-    #     except Exception as e:
-    #         print(f"Erreur conversion float '{value}': {e}")
-    #         return 0.0
 
     def _safe_float(self, value):
-        """Convertit en float de maniÃ¨re sÃ©curisÃ©e avec gestion des sÃ©parateurs et des textes"""
+        """Convertit en float de manière sécurisée avec gestion des séparateurs et des textes"""
         try:
-            # âœ… Si c'est une Series, prendre la premiÃ¨re valeur
+            #  Si c'est une Series, prendre la première valeur
             if hasattr(value, 'iloc'):
                 value = value.iloc[0] if len(value) > 0 else 0
             
             if pd.isna(value) or value is None:
                 return 0.0
             
-            # âœ… Si c'est dÃ©jÃ  un nombre
+            #  Si c'est déjÃ  un nombre
             if isinstance(value, (int, float)):
                 return float(value)
             
-            # âœ… Si c'est une chaÃ®ne
+            #  Si c'est une chaÃ®ne
             value_str = str(value).strip()
             if not value_str:
                 return 0.0
             
-            # âœ… VÃ©rifier si c'est un texte spÃ©cial comme "INCLUS" ou "EXCLU"
+            #  Vérifier si c'est un texte spécial comme "INCLUS" ou "EXCLU"
             value_upper = value_str.upper()
             if value_upper in ['INCLUS', 'EXCLU', 'N/A', 'NON', 'OUI']:
                 return 0.0
             
-            # âœ… Supprimer les espaces insÃ©cables et autres caractÃ¨res spÃ©ciaux
+            #  Supprimer les espaces insécables et autres caractères spéciaux
             value_str = value_str.replace('\xa0', ' ').replace('â€¯', ' ')
             
             # Nettoyer la chaÃ®ne
-            # GÃ©rer les sÃ©parateurs
+            # Gérer les séparateurs
             # 1. Supprimer les espaces
             value_str = value_str.replace(' ', '')
             
-            # 2. GÃ©rer les virgules comme sÃ©parateur dÃ©cimal
+            # 2. Gérer les virgules comme séparateur décimal
             if ',' in value_str and '.' not in value_str:
                 value_str = value_str.replace(',', '.')
-            # 3. GÃ©rer les points comme sÃ©parateur de milliers
+            # 3. Gérer les points comme séparateur de milliers
             elif '.' in value_str and value_str.count('.') > 1:
                 value_str = value_str.replace('.', '')
-            # 4. GÃ©rer les virgules comme sÃ©parateur de milliers
+            # 4. Gérer les virgules comme séparateur de milliers
             elif ',' in value_str and '.' in value_str:
                 value_str = value_str.replace(',', '')
             
-            # Supprimer les caractÃ¨res non numÃ©riques sauf le point
+            # Supprimer les caractères non numériques sauf le point
             import re
             value_str = re.sub(r'[^\d.]+', '', value_str)
             
@@ -3359,7 +3571,7 @@ class FleetImportAdvancedDialog(QDialog):
             return 0.0
 
     def _safe_int(self, value):
-        """Convertit en entier de maniÃ¨re sÃ©curisÃ©e"""
+        """Convertit en entier de manière sécurisée"""
         try:
             if pd.isna(value) or value is None:
                 return 0
@@ -3370,7 +3582,7 @@ class FleetImportAdvancedDialog(QDialog):
                 value_str = value.strip()
                 if not value_str:
                     return 0
-                # Supprimer les espaces et les caractÃ¨res non numÃ©riques
+                # Supprimer les espaces et les caractères non numériques
                 import re
                 value_str = re.sub(r'[^\d]', '', value_str)
                 return int(value_str) if value_str else 0
@@ -3380,7 +3592,7 @@ class FleetImportAdvancedDialog(QDialog):
             return 0
 
     def _extract_date_smart(self, value):
-        """Extrait une date de maniÃ¨re intelligente"""
+        """Extrait une date de manière intelligente"""
         if pd.isna(value) or not value:
             return None
         
@@ -3389,7 +3601,7 @@ class FleetImportAdvancedDialog(QDialog):
         
         value_str = str(value).strip()
         
-        # Essayer diffÃ©rents formats
+        # Essayer différents formats
         formats = [
             '%Y-%m-%d %H:%M:%S',
             '%Y-%m-%d',
@@ -3424,19 +3636,19 @@ class FleetImportAdvancedDialog(QDialog):
         return None
 
     def _extract_energy(self, value):
-        """Extrait le type d'Ã©nergie Ã  partir de la valeur de puissance"""
+        """Extrait le type d'énergie Ã  partir de la valeur de puissance"""
         if pd.isna(value) or not value:
-            return 'SEE'  # Essence par dÃ©faut
+            return 'SEE'  # Essence par défaut
         
         value_str = str(value).strip().upper()
         
-        # DÃ©tection des lettres d'Ã©nergie
+        # Détection des lettres d'énergie
         energy_map = {
             'D': 'SED',  # Diesel
             'E': 'SEE',  # Essence
             'H': 'HYBRIDE',  # Hybride
             'G': 'GAZ',  # Gaz
-            'EL': 'ELECTRIQUE'  # Ã‰lectrique
+            'EL': 'ELECTRIQUE'  # électrique
         }
         
         import re
@@ -3448,7 +3660,7 @@ class FleetImportAdvancedDialog(QDialog):
         return 'SEE'
 
     def _safe_year(self, value):
-        """Extrait l'annÃ©e Ã  partir d'une date ou d'une chaÃ®ne"""
+        """Extrait l'année Ã  partir d'une date ou d'une chaÃ®ne"""
         try:
             if pd.isna(value) or not value:
                 return None
@@ -3476,34 +3688,35 @@ class FleetImportAdvancedDialog(QDialog):
             "Immatriculation",  # 2
             "Numero Chassi",  # 3
             "Marque",  # 4
-            "ModÃ¨le",  # 5
+            "Modèle",  # 5
             "Genre",  # 6
             "Puissance en CV",  # 7
-            "Ã‰nergie",  # 8
+            "énergie",  # 8
             "Usage",  # 9
             "Nombre de Places",  # 10
-            "Nombre de jours assurÃ©s",  # 11
+            "Nombre de jours assurés",  # 11
             "PMEC",  # 12
             "Valeur Neuve",  # 13
             "Valeur Venale",  # 14
-            "Capital Assistance Ã  la rÃ©paration",  # 15
+            "Capital Assistance Ã  la réparation",  # 15
             "RC/RTI",  # 16
-            "DÃ©fense et Recours",  # 17
+            "Défense et Recours",  # 17
             "Vol/Vol partiel - Braquage",  # 18
             "Incendie",  # 19
             "Bris de Glaces",  # 20
-            "Assistance Ã  la rÃ©paration",  # 21
+            "Assistance Ã  la réparation",  # 21
             "Dommages Tous Accidents",  # 22
-            "Individuelle Personnes TransportÃ©es (I.P.T) + Conducteur",  # 23
+            "Individuelle Personnes Transportées (I.P.T) + Conducteur",  # 23
             "Prime brute",  # 24
-            "RÃ©ductions",  # 25
+            "Réductions",  # 25
             "Prime nette",  # 26
             "Droit de Timbre Automobile",  # 27
-            "Actions"  # 28 
+            "Vignette"  # 28,
+            "Actions"  # 29, 
         ]
         
         self.vehicles_table = QTableWidget()
-        self.vehicles_table.setColumnCount(len(headers))
+        self.vehicles_table.setColumnCount(30)
         self.vehicles_table.setHorizontalHeaderLabels(headers)
         
         # Configuration des colonnes
@@ -3513,13 +3726,13 @@ class FleetImportAdvancedDialog(QDialog):
             2: 100,  # Immatriculation
             3: 100,  # Numero Chassi
             4: 120,  # Marque
-            5: 120,  #ModÃ¨le
+            5: 120,  #Modèle
             6: 70,   # Genre
             7: 80,   # Puissance en CV
-            8: 80,   # Ã‰nergie
+            8: 80,   # énergie
             9: 80,   # Usage
             10: 60,  # Nombre de Places
-            11: 80,   # Nombre de jours assurÃ©s
+            11: 80,   # Nombre de jours assurés
             12: 70,  # PMEC
             13: 90,  # Valeur Neuve
             14: 90,  # Valeur Venale
@@ -3533,10 +3746,11 @@ class FleetImportAdvancedDialog(QDialog):
             22: 80,  # DTA
             23: 80,  # IPT
             24: 80,  # Prime brute
-            25: 70,  # RÃ©ductions
+            25: 70,  # Réductions
             26: 80,  # Prime nette
             27: 80,  # Droit de Timbre
-            28: 120  # Actions
+            28: 80,  # Vignette
+            29: 120  # Actions
         }
         
         for col, width in column_widths.items():
@@ -3549,7 +3763,7 @@ class FleetImportAdvancedDialog(QDialog):
         self.vehicles_table.verticalHeader().setMinimumSectionSize(35)
         
     def display_vehicles(self):
-        """Affiche les vÃ©hicules dans le tableau avec les nouvelles colonnes"""
+        """Affiche les véhicules dans le tableau avec les nouvelles colonnes"""
         self.vehicles_table.setRowCount(len(self.vehicles_data))
         
         for row, vehicle in enumerate(self.vehicles_data):
@@ -3559,7 +3773,7 @@ class FleetImportAdvancedDialog(QDialog):
             check_item.setCheckState(Qt.Checked)
             self.vehicles_table.setItem(row, 0, check_item)
             
-            # Mettre Ã  jour la ligne (utilise update_vehicle_row qui gÃ¨re toutes les colonnes)
+            # Mettre Ã  jour la ligne (utilise update_vehicle_row qui gère toutes les colonnes)
             self.update_vehicle_row(row, vehicle)
             
             # Actions (colonne 27)
@@ -3570,19 +3784,19 @@ class FleetImportAdvancedDialog(QDialog):
                 self.edit_vehicle_dates,
                 self.on_modify_vehicle
             )
-            self.vehicles_table.setCellWidget(row, 28, actions_widget)
+            self.vehicles_table.setCellWidget(row, 29, actions_widget)
         
         self.adjust_row_heights()
         self.update_selection_count()
         self.update_summary()
     
     def apply_mass_reduction(self):
-        """Applique une rÃ©duction en masse sur les garanties sÃ©lectionnÃ©es"""
+        """Applique une réduction en masse sur les garanties sélectionnées"""
         if not self.vehicles_data:
-            QMessageBox.warning(self, "Erreur", "Aucun vÃ©hicule chargÃ©")
+            QMessageBox.warning(self, "Erreur", "Aucun véhicule chargé")
             return
         
-        # VÃ©rifier qu'il y a des vÃ©hicules sÃ©lectionnÃ©s
+        # Vérifier qu'il y a des véhicules sélectionnés
         selected_rows = []
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
@@ -3590,25 +3804,25 @@ class FleetImportAdvancedDialog(QDialog):
                 selected_rows.append(row)
         
         if not selected_rows:
-            QMessageBox.warning(self, "Erreur", "Veuillez sÃ©lectionner au moins un vÃ©hicule")
+            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner au moins un véhicule")
             return
         
-        # Ouvrir le dialogue de rÃ©duction
+        # Ouvrir le dialogue de réduction
         dialog = MassReductionDialog(self)
         if dialog.exec() != QDialog.Accepted:
             return
         
         selected_garanties = dialog.get_selected_garanties()
         if not selected_garanties:
-            QMessageBox.warning(self, "Erreur", "Veuillez sÃ©lectionner au moins une garantie")
+            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner au moins une garantie")
             return
         
         reduction_percent = dialog.get_reduction_percentage()
         if reduction_percent <= 0:
-            QMessageBox.warning(self, "Erreur", "Le pourcentage de rÃ©duction doit Ãªtre supÃ©rieur Ã  0")
+            QMessageBox.warning(self, "Erreur", "Le pourcentage de réduction doit être supérieur Ã  0")
             return
         
-        # âœ… Appliquer la rÃ©duction (UNIQUEMENT en pourcentage)
+        #  Appliquer la réduction (UNIQUEMENT en pourcentage)
         applied_count = 0
         modifications = []
         
@@ -3627,7 +3841,7 @@ class FleetImportAdvancedDialog(QDialog):
                 
                 current_value = garanties.get(key, 0)
                 
-                # âœ… Appliquer le pourcentage de rÃ©duction
+                #  Appliquer le pourcentage de réduction
                 reduction_factor = 1 - (reduction_percent / 100)
                 new_value = round(current_value * reduction_factor, 2)
                 
@@ -3672,7 +3886,7 @@ class FleetImportAdvancedDialog(QDialog):
                 if pn_item:
                     pn_item.setText(f"{prime_brute:,.0f}".replace(",", " "))
                 
-                # Mettre Ã  jour les rÃ©ductions
+                # Mettre Ã  jour les réductions
                 reductions_item = self.vehicles_table.item(row, 25)
                 if reductions_item:
                     reductions_item.setText(f"{reduction_percent:.0f}%")
@@ -3680,39 +3894,39 @@ class FleetImportAdvancedDialog(QDialog):
                 applied_count += 1
                 modifications.append(vehicle['immatriculation'])
         
-        # Mettre Ã  jour les rÃ©capitulatifs
+        # Mettre Ã  jour les récapitulatifs
         self.update_summary()
         
         if applied_count > 0:
             mod_list = "\n".join(modifications[:5]) + ("\n..." if len(modifications) > 5 else "")
             QMessageBox.information(
                 self, 
-                "âœ… SuccÃ¨s", 
-                f"RÃ©duction appliquÃ©e Ã  {applied_count} vÃ©hicule(s)\n\n"
-                f"Garanties concernÃ©es: {len(selected_garanties)}\n"
-                f"RÃ©duction: {reduction_percent:.1f}%\n\n"
-                f"VÃ©hicules modifiÃ©s:\n{mod_list}"
+                " Succès", 
+                f"Réduction appliquée Ã  {applied_count} véhicule(s)\n\n"
+                f"Garanties concernées: {len(selected_garanties)}\n"
+                f"Réduction: {reduction_percent:.1f}%\n\n"
+                f"Véhicules modifiés:\n{mod_list}"
             )
         else:
             QMessageBox.information(
                 self, 
                 "â„¹ï¸ Information", 
-                "Aucune modification n'a Ã©tÃ© appliquÃ©e.\n"
-                "Les garanties sÃ©lectionnÃ©es Ã©taient peut-Ãªtre dÃ©jÃ  Ã  0."
+                "Aucune modification n'a été appliquée.\n"
+                "Les garanties sélectionnées étaient peut-être déjÃ  Ã  0."
             )
 
     def start_calculation(self):
-        """DÃ©marre le calcul des garanties"""
+        """Démarre le calcul des garanties"""
         if not self.vehicles_data:
             return
         
-        # Calculer la durÃ©e
+        # Calculer la durée
         debut = self.date_debut.date().toPython()
         fin = self.date_fin.date().toPython()
-        jours = max(1, (fin - debut).days)
+        jours = max(1, ((fin - debut).days)+1)
         
         params = {
-            'compagny_id': 1,  # ID par dÃ©faut
+            'compagny_id': 1,  # ID par défaut
             'zone': 'A',
             'code_tarif': '',
             'avec_remorque': False,
@@ -3727,7 +3941,7 @@ class FleetImportAdvancedDialog(QDialog):
         self.status_icon.setText("ðŸ”„")
         self.status_text.setText("Calcul des garanties en cours...")
         
-        # DÃ©marrer le thread
+        # Démarrer le thread
         self.calculation_thread = CalculationThread(self.controller, self.vehicles_data, params)
         self.calculation_thread.progress.connect(self.on_calculation_progress)
         self.calculation_thread.finished_signal.connect(self.on_calculation_finished)
@@ -3738,13 +3952,13 @@ class FleetImportAdvancedDialog(QDialog):
         self.vehicles_data = results
         self.progress_widget.setVisible(False)
         self.calc_btn.setEnabled(False)
-        self.calc_btn.setText("Calcul terminÃ©")
+        self.calc_btn.setText("Calcul terminé")
         self.import_btn.setEnabled(True)
         self.mass_reduction_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
         
-        self.status_icon.setText("âœ…")
-        self.status_text.setText("Calcul terminÃ©, vous pouvez importer les vÃ©hicules sÃ©lectionnÃ©s")
+        self.status_icon.setText("")
+        self.status_text.setText("Calcul terminé, vous pouvez importer les véhicules sélectionnés")
         
         self.update_summary()
 
@@ -3753,13 +3967,13 @@ class FleetImportAdvancedDialog(QDialog):
         self.vehicles_data = results
         self.progress_widget.setVisible(False)
         self.calc_btn.setEnabled(False)
-        self.calc_btn.setText("Calcul terminÃ©")
+        self.calc_btn.setText("Calcul terminé")
         self.import_btn.setEnabled(True)
         self.mass_reduction_btn.setEnabled(True)
         self.refresh_btn.setEnabled(True)
         
-        self.status_icon.setText("âœ…")
-        self.status_text.setText("Calcul terminÃ©, vous pouvez importer les vÃ©hicules sÃ©lectionnÃ©s")
+        self.status_icon.setText("")
+        self.status_text.setText("Calcul terminé, vous pouvez importer les véhicules sélectionnés")
         
         self.update_summary()
 
@@ -3780,7 +3994,7 @@ class FleetImportAdvancedDialog(QDialog):
         self.update_vehicle_row(row, vehicle)
         
         # Actions
-        if not self.vehicles_table.cellWidget(row, 27):
+        if not self.vehicles_table.cellWidget(row, 29):
             vehicle_id = vehicle.get('id', row)
             actions_widget = VehicleActionsWidget(
                 vehicle_id,
@@ -3788,7 +4002,7 @@ class FleetImportAdvancedDialog(QDialog):
                 self.edit_vehicle_dates,
                 self.on_modify_vehicle
             )
-            self.vehicles_table.setCellWidget(row, 27, actions_widget)
+            self.vehicles_table.setCellWidget(row, 29, actions_widget)
         
         if current == total:
             self.adjust_row_heights()
@@ -3796,13 +4010,13 @@ class FleetImportAdvancedDialog(QDialog):
             self.mass_reduction_btn.setEnabled(True)
     
     def download_template(self):
-        """TÃ©lÃ©charge le modÃ¨le Excel avec les nouvelles colonnes"""
+        """Télécharge le modèle Excel avec les nouvelles colonnes"""
         template_path, _ = QFileDialog.getSaveFileName(
-            self, "Enregistrer le modÃ¨le", "modele_flotte_import.xlsx", "Excel (*.xlsx)"
+            self, "Enregistrer le modèle", "modele_flotte_import.xlsx", "Excel (*.xlsx)"
         )
         
         if template_path:
-            # CrÃ©er un DataFrame avec les nouvelles colonnes
+            # Créer un DataFrame avec les nouvelles colonnes
             data = {
                 'Rang': [1, 2, 3, 4, 5],
                 'Immatriculation': ['LT-001-AB', 'LT-002-BC', 'LT-003-CD', 'LT-004-DE', 'LT-005-EF'],
@@ -3811,22 +4025,22 @@ class FleetImportAdvancedDialog(QDialog):
                 'Puissance en CV': [7, 5, 6, 4, 8],
                 'Usage': ['Transport de personnes', 'Transport de marchandises', 'Transport de personnes', 'Transport de marchandises', 'Transport de personnes'],
                 'Nombre de Places': [5, 3, 7, 5, 9],
-                'Nombre de jours assurÃ©s': [365, 365, 365, 365, 365],
+                'Nombre de jours assurés': [365, 365, 365, 365, 365],
                 'PMEC': [2000, 1200, 1800, 1500, 3500],
                 'Valeur Neuve': [35000000, 18000000, 28000000, 22000000, 45000000],
                 'Valeur Venale': [32000000, 15000000, 26000000, 20000000, 42000000],
-                'Capital Assistance Ã  la rÃ©paration': [5000000, 3000000, 4000000, 3500000, 6000000],
+                'Capital Assistance Ã  la réparation': [5000000, 3000000, 4000000, 3500000, 6000000],
                 'RC/RTI': [0, 0, 0, 0, 0],
-                'DÃ©fense et Recours': [0, 0, 0, 0, 0],
+                'Défense et Recours': [0, 0, 0, 0, 0],
                 'Vol/Vol partie': [0, 0, 0, 0, 0],
                 'Vol Braquage': [0, 0, 0, 0, 0],
                 'Incendie': [0, 0, 0, 0, 0],
                 'Bris de Glaces': [0, 0, 0, 0, 0],
-                'Assistance Ã  la rÃ©paration': [0, 0, 0, 0, 0],
+                'Assistance Ã  la réparation': [0, 0, 0, 0, 0],
                 'Dommages Tous Accidents': [0, 0, 0, 0, 0],
                 'IPT + Conducteur': [0, 0, 0, 0, 0],
                 'Prime brute': [0, 0, 0, 0, 0],
-                'RÃ©ductions': [0, 0, 0, 0, 0],
+                'Réductions': [0, 0, 0, 0, 0],
                 'Prime nette': [0, 0, 0, 0, 0],
                 'Droit de Timbre Automobile': [5000, 5000, 5000, 5000, 5000]
             }
@@ -3834,43 +4048,43 @@ class FleetImportAdvancedDialog(QDialog):
             df = pd.DataFrame(data)
             
             with pd.ExcelWriter(template_path, engine='openpyxl') as writer:
-                df.to_excel(writer, sheet_name='VÃ©hicules', index=False)
+                df.to_excel(writer, sheet_name='Véhicules', index=False)
                 
                 # Feuille d'instructions
                 instructions_data = {
                     'Colonne': list(data.keys()),
                     'Description': [
-                        'NumÃ©ro de rang (optionnel)',
+                        'Numéro de rang (optionnel)',
                         'ðŸ”´ OBLIGATOIRE - Plaque d\'immatriculation',
-                        'ðŸ”´ OBLIGATOIRE - Marque et modÃ¨le du vÃ©hicule',
-                        'Genre du vÃ©hicule (VP, VU, PL, etc.)',
+                        'ðŸ”´ OBLIGATOIRE - Marque et modèle du véhicule',
+                        'Genre du véhicule (VP, VU, PL, etc.)',
                         'Puissance fiscale en CV',
-                        'Usage du vÃ©hicule',
+                        'Usage du véhicule',
                         'Nombre de places assises',
-                        'Nombre de jours d\'assurance (365 par dÃ©faut)',
-                        'PMEC (Poids Maximum AutorisÃ©)',
-                        'Valeur Ã  neuf du vÃ©hicule (FCFA)',
-                        'Valeur vÃ©nale actuelle (FCFA)',
-                        'Capital pour l\'assistance Ã  la rÃ©paration',
+                        'Nombre de jours d\'assurance (365 par défaut)',
+                        'PMEC (Poids Maximum Autorisé)',
+                        'Valeur Ã  neuf du véhicule (FCFA)',
+                        'Valeur vénale actuelle (FCFA)',
+                        'Capital pour l\'assistance Ã  la réparation',
                         'RC/RTI - Laisser 0 pour calcul automatique',
-                        'DÃ©fense et Recours - Laisser 0 pour calcul automatique',
+                        'Défense et Recours - Laisser 0 pour calcul automatique',
                         'Vol/Vol partie - Laisser 0 pour calcul automatique',
                         'Vol Braquage - Laisser 0 pour calcul automatique',
                         'Incendie - Laisser 0 pour calcul automatique',
                         'Bris de Glaces - Laisser 0 pour calcul automatique',
-                        'Assistance Ã  la rÃ©paration - Laisser 0 pour calcul automatique',
+                        'Assistance Ã  la réparation - Laisser 0 pour calcul automatique',
                         'Dommages Tous Accidents - Laisser 0 pour calcul automatique',
                         'IPT + Conducteur - Laisser 0 pour calcul automatique',
                         'Prime brute - Laisser 0 pour calcul automatique',
-                        'RÃ©ductions - Appliquer manuellement si besoin',
+                        'Réductions - Appliquer manuellement si besoin',
                         'Prime nette - Laisser 0 pour calcul automatique',
-                        'Droit de Timbre Automobile (5000 FCFA par dÃ©faut)'
+                        'Droit de Timbre Automobile (5000 FCFA par défaut)'
                     ],
                     'Statut': [
                         'Optionnel', 'ðŸ”´ Requis', 'ðŸ”´ Requis',
-                        'RecommandÃ©', 'RecommandÃ©', 'Optionnel',
-                        'RecommandÃ©', 'Optionnel', 'Optionnel',
-                        'RecommandÃ©', 'RecommandÃ©', 'Optionnel',
+                        'Recommandé', 'Recommandé', 'Optionnel',
+                        'Recommandé', 'Optionnel', 'Optionnel',
+                        'Recommandé', 'Recommandé', 'Optionnel',
                         'Optionnel', 'Optionnel', 'Optionnel',
                         'Optionnel', 'Optionnel', 'Optionnel',
                         'Optionnel', 'Optionnel', 'Optionnel',
@@ -3887,11 +4101,11 @@ class FleetImportAdvancedDialog(QDialog):
                 
                 workbook = writer.book
                 
-                # Colorer les en-tÃªtes
+                # Colorer les en-têtes
                 header_fill = PatternFill(start_color="4472C4", end_color="4472C4", fill_type="solid")
                 header_font = Font(color="FFFFFF", bold=True)
                 
-                for sheet_name in ['VÃ©hicules', 'Instructions']:
+                for sheet_name in ['Véhicules', 'Instructions']:
                     ws = workbook[sheet_name]
                     for cell in ws[1]:
                         cell.fill = header_fill
@@ -3913,11 +4127,11 @@ class FleetImportAdvancedDialog(QDialog):
             
             QMessageBox.information(
                 self, 
-                "SuccÃ¨s", 
-                f"âœ… ModÃ¨le crÃ©Ã© avec succÃ¨s !\n\n"
+                "Succès", 
+                f" Modèle créé avec succès !\n\n"
                 f"ðŸ“ Emplacement: {template_path}\n\n"
                 f"ðŸ“‹ Le fichier contient:\n"
-                f"  â€¢ Une feuille 'VÃ©hicules' avec les donnÃ©es Ã  remplir\n"
+                f"  â€¢ Une feuille 'Véhicules' avec les données Ã  remplir\n"
                 f"  â€¢ Une feuille 'Instructions' avec la description des colonnes\n\n"
                 f"ðŸ”´ Les colonnes obligatoires sont:\n"
                 f"  â€¢ Immatriculation\n"
@@ -3931,23 +4145,23 @@ class FleetImportAdvancedDialog(QDialog):
     
     def _extract_power_and_energy(self, value):
         """
-        Extrait la puissance et le type d'Ã©nergie d'une chaÃ®ne comme '9D', '6E', '4H'
+        Extrait la puissance et le type d'énergie d'une chaÃ®ne comme '9D', '6E', '4H'
         Retourne (puissance, energie)
         D = Diesel (SED)
         E = Essence (SEE)
         H = Hybride
         """
         try:
-            # âœ… Si c'est une Series, prendre la premiÃ¨re valeur
+            #  Si c'est une Series, prendre la première valeur
             if hasattr(value, 'iloc'):
                 value = value.iloc[0] if len(value) > 0 else ''
             
             if pd.isna(value) or not value:
-                return (0, 'SEE')  # Essence par dÃ©faut
+                return (0, 'SEE')  # Essence par défaut
             
             val_str = str(value).strip().upper()
             
-            # Si c'est dÃ©jÃ  un nombre pur
+            # Si c'est déjÃ  un nombre pur
             if val_str.isdigit():
                 return (int(val_str), 'SEE')
             
@@ -3966,7 +4180,7 @@ class FleetImportAdvancedDialog(QDialog):
                 elif energie_letter == 'H':
                     energie = 'HYBRIDE'  # Hybride
                 else:
-                    energie = 'SEE'  # Essence par dÃ©faut
+                    energie = 'SEE'  # Essence par défaut
                 
                 return (puissance, energie)
             
@@ -3978,10 +4192,10 @@ class FleetImportAdvancedDialog(QDialog):
             return (0, 'SEE')
             
         except Exception as e:
-            print(f"Erreur extraction puissance/Ã©nergie: {e}")
+            print(f"Erreur extraction puissance/énergie: {e}")
             return (0, 'SEE')
 
-    # MÃ©thodes de gestion des flottes existantes (simplifiÃ©es)
+    # Méthodes de gestion des flottes existantes (simplifiées)
     def on_mode_changed(self):
         """Change le mode d'importation"""
         is_new = self.mode_new.isChecked()
@@ -3990,37 +4204,37 @@ class FleetImportAdvancedDialog(QDialog):
         
         if not is_new:
             self.load_existing_fleets()
-            # Connecter le signal de changement de sÃ©lection
+            # Connecter le signal de changement de sélection
             try:
                 self.existing_fleet_combo.currentIndexChanged.disconnect()
             except:
                 pass
             self.existing_fleet_combo.currentIndexChanged.connect(self.on_existing_fleet_selected)
         else:
-            # DÃ©connecter pour Ã©viter les appels inutiles
+            # Déconnecter pour éviter les appels inutiles
             try:
                 self.existing_fleet_combo.currentIndexChanged.disconnect()
             except:
                 pass
       
     def load_existing_fleets(self):
-        """Charge les flottes existantes depuis la base de donnÃ©es"""
+        """Charge les flottes existantes depuis la base de données"""
         try:
             self.existing_fleet_combo.clear()
-            self.existing_fleet_combo.addItem("SÃ©lectionner une flotte", None)
+            self.existing_fleet_combo.addItem("Sélectionner une flotte", None)
             
-            # RÃ©cupÃ©rer l'ID du contact propriÃ©taire
+            # Récupérer l'ID du contact propriétaire
             contact_id = None
             if hasattr(self.parent(), 'contact'):
                 contact_id = self.parent().contact.id
             elif hasattr(self.controller, 'current_user_id'):
-                # RÃ©cupÃ©rer le contact associÃ© Ã  l'utilisateur courant
+                # Récupérer le contact associé Ã  l'utilisateur courant
                 try:
                     current_user = self.controller.users.get_by_id(self.controller.current_user_id)
                     if current_user and hasattr(current_user, 'contact_id'):
                         contact_id = current_user.contact_id
                 except Exception as e:
-                    print(f"Erreur rÃ©cupÃ©ration utilisateur: {e}")
+                    print(f"Erreur récupération utilisateur: {e}")
             
             # Charger les flottes
             fleets = []
@@ -4028,13 +4242,13 @@ class FleetImportAdvancedDialog(QDialog):
                 try:
                     fleets = self.controller.fleets.get_fleets_by_owner(contact_id)
                 except AttributeError:
-                    # Si la mÃ©thode n'existe pas, essayer d'autres mÃ©thodes
+                    # Si la méthode n'existe pas, essayer d'autres méthodes
                     try:
                         fleets = self.controller.fleets.get_all_fleets()
                     except:
                         pass
             
-            # Si pas de flottes trouvÃ©es, essayer de charger toutes les flottes
+            # Si pas de flottes trouvées, essayer de charger toutes les flottes
             if not fleets:
                 try:
                     fleets = self.controller.fleets.get_all_fleets()
@@ -4043,7 +4257,7 @@ class FleetImportAdvancedDialog(QDialog):
             
             if fleets:
                 for fleet in fleets:
-                    # RÃ©cupÃ©rer le nom de la flotte
+                    # Récupérer le nom de la flotte
                     if hasattr(fleet, 'nom_flotte'):
                         name = fleet.nom_flotte
                     elif hasattr(fleet, 'nom'):
@@ -4053,21 +4267,21 @@ class FleetImportAdvancedDialog(QDialog):
                     else:
                         name = f"Flotte {fleet.id if hasattr(fleet, 'id') else ''}"
                     
-                    # Compter les vÃ©hicules
+                    # Compter les véhicules
                     vehicle_count = 0
                     if hasattr(fleet, 'vehicles'):
                         vehicle_count = len(fleet.vehicles)
                     elif hasattr(fleet, 'vehicle_count'):
                         vehicle_count = fleet.vehicle_count
                     
-                    # RÃ©cupÃ©rer l'ID
+                    # Récupérer l'ID
                     fleet_id = fleet.id if hasattr(fleet, 'id') else None
                     
                     if fleet_id:
-                        display_name = f"{name} ({vehicle_count} vÃ©hicules)" if vehicle_count > 0 else name
+                        display_name = f"{name} ({vehicle_count} véhicules)" if vehicle_count > 0 else name
                         self.existing_fleet_combo.addItem(display_name, fleet_id)
                 
-                # SÃ©lectionner le premier Ã©lÃ©ment si disponible
+                # Sélectionner le premier élément si disponible
                 if self.existing_fleet_combo.count() > 1:
                     self.existing_fleet_combo.setCurrentIndex(1)
                     self.on_existing_fleet_selected(1)
@@ -4081,28 +4295,28 @@ class FleetImportAdvancedDialog(QDialog):
             self.existing_fleet_combo.addItem("Erreur de chargement", None)
 
     def on_existing_fleet_selected(self, index):
-        """Charge les vÃ©hicules de la flotte sÃ©lectionnÃ©e"""
+        """Charge les véhicules de la flotte sélectionnée"""
         fleet_id = self.existing_fleet_combo.currentData()
         if not fleet_id:
             return
         
         try:
             self.status_icon.setText("ðŸ”„")
-            self.status_text.setText("Chargement des vÃ©hicules de la flotte...")
+            self.status_text.setText("Chargement des véhicules de la flotte...")
             
-            # RÃ©cupÃ©rer les vÃ©hicules de la flotte
+            # Récupérer les véhicules de la flotte
             vehicles = []
             try:
                 vehicles = self.controller.vehicles.get_vehicles_by_fleet(fleet_id)
             except AttributeError:
-                # Essayer d'autres mÃ©thodes
+                # Essayer d'autres méthodes
                 try:
                     vehicles = self.controller.fleets.get_fleet_vehicles(fleet_id)
                 except:
                     pass
             
             if not vehicles:
-                self.status_text.setText("Aucun vÃ©hicule dans cette flotte")
+                self.status_text.setText("Aucun véhicule dans cette flotte")
                 self.status_icon.setText("ðŸ“­")
                 self.vehicles_data = []
                 self.vehicles_table.setRowCount(0)
@@ -4110,7 +4324,7 @@ class FleetImportAdvancedDialog(QDialog):
                 self.import_btn.setEnabled(False)
                 return
             
-            # Transformer les donnÃ©es des vÃ©hicules
+            # Transformer les données des véhicules
             self.vehicles_data = []
             for idx, vehicle in enumerate(vehicles):
                 # Si c'est un objet SQLAlchemy, le convertir en dict
@@ -4156,7 +4370,7 @@ class FleetImportAdvancedDialog(QDialog):
                     garanties = {}
                     guarantee_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
                     for key in guarantee_keys:
-                        # Essayer de rÃ©cupÃ©rer depuis l'objet
+                        # Essayer de récupérer depuis l'objet
                         if hasattr(vehicle, key):
                             garanties[key] = getattr(vehicle, key, 0)
                         elif hasattr(vehicle, 'guarantees') and vehicle.guarantees:
@@ -4168,7 +4382,7 @@ class FleetImportAdvancedDialog(QDialog):
                     vehicle_dict['garanties'] = garanties
                     
                 else:
-                    # Si c'est dÃ©jÃ  un dict
+                    # Si c'est déjÃ  un dict
                     vehicle_dict = vehicle.copy() if isinstance(vehicle, dict) else {'immatriculation': str(vehicle)}
                     if 'garanties' not in vehicle_dict:
                         vehicle_dict['garanties'] = {}
@@ -4178,15 +4392,15 @@ class FleetImportAdvancedDialog(QDialog):
                 
                 self.vehicles_data.append(vehicle_dict)
             
-            # Afficher les vÃ©hicules
+            # Afficher les véhicules
             self.display_vehicles()
             
-            self.file_info.setText(f"âœ… {len(self.vehicles_data)} vÃ©hicules chargÃ©s depuis la flotte")
-            self.status_text.setText(f"{len(self.vehicles_data)} vÃ©hicules chargÃ©s")
-            self.status_icon.setText("âœ…")
+            self.file_info.setText(f" {len(self.vehicles_data)} véhicules chargés depuis la flotte")
+            self.status_text.setText(f"{len(self.vehicles_data)} véhicules chargés")
+            self.status_icon.setText("")
             
             self.calc_btn.setEnabled(False)
-            self.calc_btn.setText("Calcul dÃ©jÃ  effectuÃ©")
+            self.calc_btn.setText("Calcul déjà  effectué")
             self.import_btn.setEnabled(True)
             self.refresh_btn.setEnabled(True)
             self.mass_reduction_btn.setEnabled(True)
@@ -4194,25 +4408,25 @@ class FleetImportAdvancedDialog(QDialog):
         except Exception as e:
             self.status_text.setText(f"Erreur: {str(e)}")
             self.status_icon.setText("âŒ")
-            QMessageBox.critical(self, "Erreur", f"Impossible de charger les vÃ©hicules: {str(e)}")
+            QMessageBox.critical(self, "Erreur", f"Impossible de charger les véhicules: {str(e)}")
             traceback.print_exc()
 
     def refresh_fleet_guarantees(self):
         """RafraÃ®chit les garanties de la flotte"""
         if not self.vehicles_data:
-            QMessageBox.warning(self, "Erreur", "Aucun vÃ©hicule Ã  rafraÃ®chir")
+            QMessageBox.warning(self, "Erreur", "Aucun véhicule Ã  rafraÃ®chir")
             return
         
-        # VÃ©rifier que les donnÃ©es sont valides
+        # Vérifier que les données sont valides
         for vehicle in self.vehicles_data:
             if 'immatriculation' not in vehicle:
-                QMessageBox.warning(self, "Erreur", "DonnÃ©es de vÃ©hicule invalides")
+                QMessageBox.warning(self, "Erreur", "Données de véhicule invalides")
                 return
         
         self.start_calculation()
        
     def apply_global_frais_to_selected(self):
-        """Applique les frais aux vÃ©hicules sÃ©lectionnÃ©s avec gestion du mode global/unitaire"""
+        """Applique les frais aux véhicules sélectionnés avec gestion du mode global/unitaire"""
         selected_rows = []
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
@@ -4220,7 +4434,7 @@ class FleetImportAdvancedDialog(QDialog):
                 selected_rows.append(row)
         
         if not selected_rows:
-            QMessageBox.warning(self, "Aucune sÃ©lection", "Veuillez sÃ©lectionner au moins un vÃ©hicule")
+            QMessageBox.warning(self, "Aucune sélection", "Veuillez sélectionner au moins un véhicule")
             return
         
         try:
@@ -4233,13 +4447,13 @@ class FleetImportAdvancedDialog(QDialog):
             count = len(selected_rows)
             
             if is_global and count > 0:
-                # Mode global: rÃ©partir les frais entre tous les vÃ©hicules
+                # Mode global: répartir les frais entre tous les véhicules
                 accessoires_par_vehicule = accessoires / count
                 asac_par_vehicule = asac / count
                 carte_rose_par_vehicule = carte_rose / count
                 vignette_par_vehicule = vignette / count
             else:
-                # Mode unitaire: chaque vÃ©hicule paie le montant entier
+                # Mode unitaire: chaque véhicule paie le montant entier
                 accessoires_par_vehicule = accessoires
                 asac_par_vehicule = asac
                 carte_rose_par_vehicule = carte_rose
@@ -4252,10 +4466,10 @@ class FleetImportAdvancedDialog(QDialog):
                 vehicle['carte_rose'] = carte_rose_par_vehicule
                 vehicle['vignette'] = vignette_par_vehicule
                 
-                # Recalculer la TVA et le PTTC pour chaque vÃ©hicule
+                # Recalculer la TVA et le PTTC pour chaque véhicule
                 garanties = vehicle.get('garanties', {})
                 total_garanties = garanties.get('total', 0)
-                print(total_garanties)
+                # print(total_garanties)
                 tva_rate = 0.1925
                 tva = (total_garanties + accessoires_par_vehicule + asac_par_vehicule) * tva_rate
                 vehicle['tva'] = tva
@@ -4264,31 +4478,31 @@ class FleetImportAdvancedDialog(QDialog):
             self.update_summary()
             self.update_vehicles_table()
             
-            mode_text = "rÃ©partis" if is_global else "appliquÃ©s individuellement"
+            mode_text = "répartis" if is_global else "appliqués individuellement"
             QMessageBox.information(
                 self, 
-                "SuccÃ¨s", 
-                f"Frais {mode_text} Ã  {len(selected_rows)} vÃ©hicule(s)\n\n"
-                f"Accessoires: {accessoires_par_vehicule:,.0f}".replace(",", " ") + " FCFA/vÃ©hicule\n"
-                f"ASAC: {asac_par_vehicule:,.0f}".replace(",", " ") + " FCFA/vÃ©hicule\n"
-                f"Carte Rose: {carte_rose_par_vehicule:,.0f}".replace(",", " ") + " FCFA/vÃ©hicule\n"
-                f"Vignette: {vignette_par_vehicule:,.0f}".replace(",", " ") + " FCFA/vÃ©hicule"
+                "Succès", 
+                f"Frais {mode_text} Ã  {len(selected_rows)} véhicule(s)\n\n"
+                f"Accessoires: {accessoires_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule\n"
+                f"ASAC: {asac_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule\n"
+                f"Carte Rose: {carte_rose_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule\n"
+                f"Vignette: {vignette_par_vehicule:,.0f}".replace(",", " ") + " FCFA/véhicule"
             )
             
         except ValueError as e:
             QMessageBox.warning(self, "Erreur", f"Valeur invalide: {str(e)}")
 
     def update_vehicles_table(self):
-        """Met Ã  jour l'affichage du tableau des vÃ©hicules"""
+        """Met Ã  jour l'affichage du tableau des véhicules"""
         for row, vehicle in enumerate(self.vehicles_data):
             self.update_vehicle_row(row, vehicle)
         self.update_summary()
 
     def edit_vehicle_garanties(self, vehicle_id):
-        """Modifie les garanties d'un vÃ©hicule"""
+        """Modifie les garanties d'un véhicule"""
         row = self.find_row_by_vehicle_id(vehicle_id)
         if row == -1:
-            QMessageBox.warning(self, "Erreur", "VÃ©hicule non trouvÃ©")
+            QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
             return
         
         vehicle = self.vehicles_data[row]
@@ -4310,7 +4524,7 @@ class FleetImportAdvancedDialog(QDialog):
             total_keys = ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']
             vehicle['garanties']['total'] = sum(vehicle['garanties'].get(k, 0) for k in total_keys)
             
-            # Mettre Ã  jour les informations du vÃ©hicule
+            # Mettre Ã  jour les informations du véhicule
             for key in ['immatriculation', 'Numero Chassis', 'marque', 'modele', 'categorie', 'annee', 'energie', 'puissance', 'places', 'valeur_neuf', 'valeur_venale']:
                 if key in new_data:
                     vehicle[key] = new_data[key]
@@ -4319,59 +4533,79 @@ class FleetImportAdvancedDialog(QDialog):
             self.update_vehicle_row(row, vehicle)
             self.update_summary()
             
-            QMessageBox.information(self, "SuccÃ¨s", f"VÃ©hicule {vehicle['immatriculation']} mis Ã  jour")
+            QMessageBox.information(self, "Succès", f"Véhicule {vehicle['immatriculation']} mis Ã  jour")
+    
+    # def edit_vehicle_dates(self, vehicle_id):
+    #     """Modifie les dates d'un véhicule"""
+    #     row = self.find_row_by_vehicle_id(vehicle_id)
+    #     if row == -1:
+    #         if isinstance(vehicle_id, int) and vehicle_id < len(self.vehicles_data):
+    #             row = vehicle_id
+    #         else:
+    #             QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
+    #             return
+        
+    #     vehicle = self.vehicles_data[row]
+        
+    #     dialog = VehicleDatesDialog(vehicle, self)
+    #     if dialog.exec() == QDialog.Accepted:
+    #         new_dates = dialog.get_dates()
+            
+    #         # Sauvegarder les montants annuels
+    #         if 'garanties_annuelles' not in vehicle:
+    #             vehicle['garanties_annuelles'] = vehicle.get('garanties', {}).copy()
+            
+    #         # Mettre Ã  jour les dates
+    #         vehicle['date_debut'] = new_dates['date_debut']
+    #         vehicle['date_fin'] = new_dates['date_fin']
+    #         vehicle['nbr_jour'] = new_dates['nbr_jour']
+    #         vehicle['statut'] = new_dates['statut']
+            
+    #         # Recalculer les garanties au prorata
+    #         prorata = new_dates['prorata']
+    #         garanties_annuelles = vehicle['garanties_annuelles']
+    #         new_garanties = {}
+    #         for key, amount in garanties_annuelles.items():
+    #             if key != 'total' and not key.startswith('reduction_'):
+    #                 new_garanties[key] = amount * prorata
+            
+    #         new_garanties['total'] = sum(new_garanties.values())
+    #         vehicle['garanties'] = new_garanties
+            
+    #         # Mettre Ã  jour l'affichage
+    #         self.update_vehicle_row(row, vehicle)
+    #         self.update_summary()
+            
+    #         QMessageBox.information(self, "Succès", f"Dates mises Ã  jour pour {vehicle['immatriculation']}")
     
     def edit_vehicle_dates(self, vehicle_id):
-        """Modifie les dates d'un vÃ©hicule"""
+        """Modifie les dates d'un véhicule"""
         row = self.find_row_by_vehicle_id(vehicle_id)
         if row == -1:
             if isinstance(vehicle_id, int) and vehicle_id < len(self.vehicles_data):
                 row = vehicle_id
             else:
-                QMessageBox.warning(self, "Erreur", "VÃ©hicule non trouvÃ©")
+                QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
                 return
         
         vehicle = self.vehicles_data[row]
         
         dialog = VehicleDatesDialog(vehicle, self)
         if dialog.exec() == QDialog.Accepted:
-            new_dates = dialog.get_dates()
-            
-            # Sauvegarder les montants annuels
-            if 'garanties_annuelles' not in vehicle:
-                vehicle['garanties_annuelles'] = vehicle.get('garanties', {}).copy()
-            
-            # Mettre Ã  jour les dates
-            vehicle['date_debut'] = new_dates['date_debut']
-            vehicle['date_fin'] = new_dates['date_fin']
-            vehicle['nbr_jour'] = new_dates['nbr_jour']
-            vehicle['statut'] = new_dates['statut']
-            
-            # Recalculer les garanties au prorata
-            prorata = new_dates['prorata']
-            garanties_annuelles = vehicle['garanties_annuelles']
-            new_garanties = {}
-            for key, amount in garanties_annuelles.items():
-                if key != 'total' and not key.startswith('reduction_'):
-                    new_garanties[key] = amount * prorata
-            
-            new_garanties['total'] = sum(new_garanties.values())
-            vehicle['garanties'] = new_garanties
-            
-            # Mettre Ã  jour l'affichage
+            # Les dates sont déjà appliquées dans le dialogue
+            # Mais on rafraîchit l'affichage
             self.update_vehicle_row(row, vehicle)
             self.update_summary()
-            
-            QMessageBox.information(self, "SuccÃ¨s", f"Dates mises Ã  jour pour {vehicle['immatriculation']}")
-    
+            QMessageBox.information(self, "Succès", f"Dates mises à jour pour {vehicle['immatriculation']}")
+
     def on_modify_vehicle(self, vehicle_id):
-        """Modifie complÃ¨tement un vÃ©hicule"""
+        """Modifie complètement un véhicule"""
         row = self.find_row_by_vehicle_id(vehicle_id)
         if row == -1:
             if isinstance(vehicle_id, int) and vehicle_id < len(self.vehicles_data):
                 row = vehicle_id
             else:
-                QMessageBox.warning(self, "Erreur", "VÃ©hicule non trouvÃ©")
+                QMessageBox.warning(self, "Erreur", "Véhicule non trouvé")
                 return
         
         vehicle = self.vehicles_data[row]
@@ -4381,7 +4615,7 @@ class FleetImportAdvancedDialog(QDialog):
         if dialog.exec() == QDialog.Accepted:
             new_data = dialog.get_data()
             
-            # Mettre Ã  jour toutes les donnÃ©es
+            # Mettre Ã  jour toutes les données de garanties
             for key in ['rc', 'dr', 'vol', 'vb', 'incendie', 'bris_glace', 'ar', 'dta', 'ipt']:
                 if key in new_data:
                     vehicle['garanties'][key] = new_data[key]
@@ -4402,10 +4636,10 @@ class FleetImportAdvancedDialog(QDialog):
             self.update_vehicle_row(row, vehicle)
             self.update_summary()
             
-            QMessageBox.information(self, "SuccÃ¨s", f"VÃ©hicule {vehicle['immatriculation']} mis Ã  jour")
+            QMessageBox.information(self, "Succès", f"Véhicule {vehicle['immatriculation']} mis Ã  jour")
     
     def find_row_by_vehicle_id(self, vehicle_id):
-        """Trouve l'index de la ligne Ã  partir de l'ID du vÃ©hicule"""
+        """Trouve l'index de la ligne Ã  partir de l'ID du véhicule"""
         for i, vehicle in enumerate(self.vehicles_data):
             if vehicle.get('id') == vehicle_id:
                 return i
@@ -4415,7 +4649,7 @@ class FleetImportAdvancedDialog(QDialog):
         return -1
     
     def update_vehicle_row(self, row, vehicle):
-        """Met Ã  jour l'affichage d'une ligne du tableau - Version avec Marque/ModÃ¨le sÃ©parÃ©s"""
+        """Met Ã  jour l'affichage d'une ligne du tableau - Version avec Marque/Modèle séparés"""
         if row >= self.vehicles_table.rowCount():
             return
         
@@ -4424,7 +4658,7 @@ class FleetImportAdvancedDialog(QDialog):
         self.vehicles_table.setItem(row, 2, QTableWidgetItem(vehicle.get('immatriculation', '')))
         self.vehicles_table.setItem(row, 3, QTableWidgetItem(vehicle.get('chassis', '')))
         
-        # Marque et ModÃ¨le sÃ©parÃ©s
+        # Marque et Modèle séparés
         self.vehicles_table.setItem(row, 4, QTableWidgetItem(vehicle.get('marque', '')))
         self.vehicles_table.setItem(row, 5, QTableWidgetItem(vehicle.get('modele', '')))
         
@@ -4440,7 +4674,7 @@ class FleetImportAdvancedDialog(QDialog):
             'SED': 'Diesel',
             'HYBRIDE': 'Hybride',
             'GAZ': 'Gaz',
-            'ELECTRIQUE': 'Ã‰lectrique'
+            'ELECTRIQUE': 'électrique'
         }
         energie_label = energie_labels.get(energie, energie)
         energie_item = QTableWidgetItem(energie_label)
@@ -4481,7 +4715,7 @@ class FleetImportAdvancedDialog(QDialog):
             'rc': 16,
             'dr': 17,
             'vol': 18,
-            'vb': 18,  # MÃªme colonne que Vol/Vol partiel
+            'vb': 18,  # Même colonne que Vol/Vol partiel
             'incendie': 19,
             'bris_glace': 20,
             'ar': 21,
@@ -4495,10 +4729,10 @@ class FleetImportAdvancedDialog(QDialog):
             item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
             self.vehicles_table.setItem(row, col, item)
         
-        # âœ… CORRECTION : RÃ©cupÃ©rer Prime brute en toute sÃ©curitÃ©
+        #  CORRECTION : Récupérer Prime brute en toute sécurité
         prime_brute = 0
         
-        # Essayer diffÃ©rentes clÃ©s possibles
+        # Essayer différentes clés possibles
         if 'Prime brute' in vehicle:
             prime_brute = vehicle.get('Prime brute', 0)
         elif 'Prime_brute' in vehicle:
@@ -4511,7 +4745,7 @@ class FleetImportAdvancedDialog(QDialog):
         # Si prime_brute est une chaÃ®ne, la nettoyer et la convertir
         if isinstance(prime_brute, str):
             try:
-                # Supprimer les espaces insÃ©cables et les sÃ©parateurs de milliers
+                # Supprimer les espaces insécables et les séparateurs de milliers
                 import re
                 cleaned = re.sub(r'[^\d.,]', '', prime_brute)
                 cleaned = cleaned.replace(',', '.').replace(' ', '')
@@ -4533,7 +4767,7 @@ class FleetImportAdvancedDialog(QDialog):
         reductions_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.vehicles_table.setItem(row, 25, reductions_item)
         
-        prime_nette = vehicle.get('prime_nette', prime_brute)
+        prime_nette = vehicle.get('prime_nette', 0)
         pn_item = QTableWidgetItem(f"{prime_nette:,.0f}".replace(",", " "))
         pn_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.vehicles_table.setItem(row, 26, pn_item)
@@ -4541,10 +4775,13 @@ class FleetImportAdvancedDialog(QDialog):
         timbre_item = QTableWidgetItem(f"{vehicle.get('droit_timbre', 0):,.0f}".replace(",", " "))
         timbre_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.vehicles_table.setItem(row, 27, timbre_item)
+        vignette_item = QTableWidgetItem(f"{vehicle.get('vignette', 0):,.0f}".replace(",", " "))
+        vignette_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.vehicles_table.setItem(row, 28, vignette_item)
 
     def import_fleet(self):
-        """Importe la flotte dans la base de donnÃ©es"""
-        # RÃ©cupÃ©rer les vÃ©hicules sÃ©lectionnÃ©s
+        """Importe la flotte dans la base de données"""
+        # Récupérer les véhicules sélectionnés
         selected = []
         for row in range(self.vehicles_table.rowCount()):
             item = self.vehicles_table.item(row, 0)
@@ -4554,25 +4791,25 @@ class FleetImportAdvancedDialog(QDialog):
                     # self.apply_global_frais_to_selected()
         
         if not selected:
-            QMessageBox.warning(self, "Erreur", "Aucun vÃ©hicule sÃ©lectionnÃ©")
+            QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
             return
         
-        # âœ… VÃ‰RIFIER QU'UNE COMPAGNIE EST SÃ‰LECTIONNÃ‰E
-        # RÃ©cupÃ©rer l'ID de la compagnie depuis la combo box
+        #  VéRIFIER QU'UNE COMPAGNIE EST SéLECTIONNéE
+        # Récupérer l'ID de la compagnie depuis la combo box
         compagny_id = self.compagny_combo.currentData() if hasattr(self, 'compagny_combo') else None
         
-        # Si la combo box n'existe pas ou n'est pas dans l'UI, on la crÃ©e
+        # Si la combo box n'existe pas ou n'est pas dans l'UI, on la crée
         if not hasattr(self, 'compagny_combo'):
-            # Demander Ã  l'utilisateur de sÃ©lectionner une compagnie
+            # Demander Ã  l'utilisateur de sélectionner une compagnie
             compagny_id = self._ask_for_compagny()
             if not compagny_id:
                 return
         elif not compagny_id:
-            QMessageBox.warning(self, "Erreur", "Veuillez sÃ©lectionner une compagnie d'assurance")
+            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une compagnie d'assurance")
             return
         
         try:
-            # RÃ©cupÃ©rer l'ID du propriÃ©taire
+            # Récupérer l'ID du propriétaire
             owner_id = None
             if hasattr(self.parent(), 'contact'):
                 owner_id = self.parent().contact.id
@@ -4582,7 +4819,7 @@ class FleetImportAdvancedDialog(QDialog):
             else:
                 current_user_id = 1
             
-            # CrÃ©er ou rÃ©cupÃ©rer la flotte
+            # Créer ou récupérer la flotte
             fleet_id = None
             
             if self.mode_new.isChecked():
@@ -4596,29 +4833,29 @@ class FleetImportAdvancedDialog(QDialog):
                     'code_flotte': self.fleet_code.text().strip(),
                     'owner_id': owner_id,
                     'statut': 'Actif',
-                    'assureur': compagny_id,  # âœ… Utiliser l'ID de la compagnie
+                    'assureur': compagny_id,  #  Utiliser l'ID de la compagnie
                     'date_debut': self.date_debut.date().toPython(),
                     'date_fin': self.date_fin.date().toPython(),
                 }
                 
                 success, result = self.controller.fleets.create_fleet(fleet_data, current_user_id)
                 if not success:
-                    QMessageBox.critical(self, "Erreur", f"Erreur crÃ©ation flotte: {result}")
+                    QMessageBox.critical(self, "Erreur", f"Erreur création flotte: {result}")
                     return
                 fleet_id = result.id if hasattr(result, 'id') else result
             else:
                 fleet_id = self.existing_fleet_combo.currentData()
                 if not fleet_id:
-                    QMessageBox.warning(self, "Erreur", "Veuillez sÃ©lectionner une flotte")
+                    QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une flotte")
                     return
             
-            # âœ… IMPORTER LES VÃ‰HICULES
+            #  IMPORTER LES VéHICULES
             imported = 0
             errors = []
             
             for vehicle in selected:
                 try:
-                    # PrÃ©parer les donnÃ©es du vÃ©hicule
+                    # Préparer les données du véhicule
                     garanties = vehicle.get('garanties', {})
                     
                     chassis_value = vehicle.get('chassis', '')
@@ -4640,9 +4877,9 @@ class FleetImportAdvancedDialog(QDialog):
                     else:
                         fin = self.date_fin.date().toPython()
                     
-                    jours = max(1, (fin - debut).days) if fin and debut else 365
+                    jours = max(1, ((fin - debut).days))+1 if fin and debut else 365
                     
-                    # CatÃ©gorie
+                    # Catégorie
                     categorie_value = vehicle.get('categorie', 'VP')
                     if not categorie_value:
                         categorie_value = 'VP'
@@ -4652,13 +4889,13 @@ class FleetImportAdvancedDialog(QDialog):
                     total_garanties = garanties.get('total', 0)
                     tva_amount = total_garanties * tva_rate
                     
-                    # RÃ©cupÃ©rer les frais
+                    # Récupérer les frais
                     accessoires = vehicle.get('accessoires', 0)
                     asac = vehicle.get('asac', 0)
                     carte_rose = vehicle.get('carte_rose', 0)
                     vignette = vehicle.get('vignette', 0)
                     
-                    # âœ… PRÃ‰PARER LES DONNÃ‰ES DU VÃ‰HICULE
+                    #  PRéPARER LES DONNéES DU VéHICULE
                     vehicle_data = build_vehicle_import_payload(
                         vehicle=vehicle,
                         owner_id=owner_id,
@@ -4676,8 +4913,8 @@ class FleetImportAdvancedDialog(QDialog):
                         vignette=vignette,
                     )
                     
-                    print(vehicle_data)
-                    # âœ… APPEL AU CONTROLLER
+                    # print(vehicle_data)
+                    #  APPEL AU CONTROLLER
                     result = self.controller.vehicles.create_vehicle(vehicle_data, current_user_id)
                     
                     if isinstance(result, tuple):
@@ -4690,11 +4927,11 @@ class FleetImportAdvancedDialog(QDialog):
                             message = "Format de retour inattendu"
                     else:
                         success = bool(result)
-                        message = "SuccÃ¨s" if success else "Erreur"
+                        message = "Succès" if success else "Erreur"
                     
                     if success:
                         imported += 1
-                        print(f"âœ… VÃ©hicule {vehicle['immatriculation']} importÃ© avec succÃ¨s")
+                        # print(f" Véhicule {vehicle['immatriculation']} importé avec succès")
                     else:
                         errors.append(f"{vehicle['immatriculation']}: {message}")
                         
@@ -4702,14 +4939,14 @@ class FleetImportAdvancedDialog(QDialog):
                     errors.append(f"{vehicle['immatriculation']}: {str(e)}")
                     traceback.print_exc()
             
-            # âœ… AFFICHER LE RÃ‰SULTAT
+            #  AFFICHER LE RéSULTAT
             if imported > 0:
-                msg = f"âœ… {imported} vÃ©hicule(s) importÃ©s avec succÃ¨s"
+                msg = f" {imported} véhicule(s) importés avec succès"
                 if errors:
                     msg += f"\n\nâš ï¸ {len(errors)} erreur(s):\n" + "\n".join(errors[:5])
-                QMessageBox.information(self, "Importation terminÃ©e", msg)
+                QMessageBox.information(self, "Importation terminée", msg)
                 
-                # âœ… Ã‰mettre le signal pour rafraÃ®chir la vue parente
+                #  émettre le signal pour rafraÃ®chir la vue parente
                 self.data_changed.emit()
                 self.accept()
             else:
@@ -4720,17 +4957,17 @@ class FleetImportAdvancedDialog(QDialog):
             traceback.print_exc()
 
     def _ask_for_compagny(self):
-        """Demande Ã  l'utilisateur de sÃ©lectionner une compagnie"""
+        """Demande Ã  l'utilisateur de sélectionner une compagnie"""
         from PySide6.QtWidgets import QInputDialog, QComboBox, QDialogButtonBox, QVBoxLayout
         
-        # CrÃ©er un dialogue simple
+        # Créer un dialogue simple
         dialog = QDialog(self)
-        dialog.setWindowTitle("SÃ©lectionner une compagnie")
+        dialog.setWindowTitle("Sélectionner une compagnie")
         dialog.setModal(True)
         dialog.setMinimumWidth(400)
         
         layout = QVBoxLayout(dialog)
-        layout.addWidget(QLabel("Veuillez sÃ©lectionner une compagnie d'assurance :"))
+        layout.addWidget(QLabel("Veuillez sélectionner une compagnie d'assurance :"))
         
         combo = QComboBox()
         # Charger les compagnies
@@ -4758,16 +4995,16 @@ class FleetImportAdvancedDialog(QDialog):
         return None
     
     def _load_compagnies(self):
-        """Charge les compagnies (simplifiÃ©)"""
+        """Charge les compagnies (simplifié)"""
         pass
 
     def create_compagny_section(self):
-        """Section de sÃ©lection de la compagnie"""
+        """Section de sélection de la compagnie"""
         group = QGroupBox("ðŸ¢ 2.5. Compagnie d'assurance")
         layout = QVBoxLayout(group)
         
         self.compagny_combo = QComboBox()
-        self.compagny_combo.addItem("SÃ©lectionner une compagnie", None)
+        self.compagny_combo.addItem("Sélectionner une compagnie", None)
         
         # Charger les compagnies
         try:
@@ -4795,5 +5032,5 @@ class FleetImportAdvancedDialog(QDialog):
 # ============================================================================
 
 def create_fleet_import_dialog(controller, parent=None):
-    """CrÃ©e et retourne le dialogue d'importation de flotte"""
+    """Crée et retourne le dialogue d'importation de flotte"""
     return FleetImportAdvancedDialog(controller, parent)

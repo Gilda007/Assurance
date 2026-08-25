@@ -5769,11 +5769,15 @@ class VehicleDetailView(QWidget):
         # Récupérer les données du véhicule
         prime_nette = float(self.data.get('prime_nette', 0))
         prime_brute = float(self.data.get('prime_brute', 0))
+        user_id = self._get_current_user_id()
         
         # Créer le contrat via le contrôleur
         contract_data = {
             'vehicle_id': vehicle_id,
             'company_id': compagnie_id,
+            'owner_id': user_id,
+            'updated_by': user_id,
+            'created_by': user_id,
             'numero_police': police_number_complet,
             'numero_police_attribue': police_number_attribue,
             'prime_pure': prime_nette,
@@ -5789,7 +5793,7 @@ class VehicleDetailView(QWidget):
             success, contrat, message = self.contract_ctrl.create_contract(
                 contract_data,
                 user_id=self._get_current_user_id(),
-                ip=self._get_local_ip()
+                # ip=self._get_local_ip()
             )
         else:
             # Méthode alternative

@@ -56,6 +56,93 @@ class ContactController:
                 print(f"ERREUR get_driver_by_id: {e}")
                 return None
 
+    def update_driver(self, driver_id, data):
+        """
+        Met à jour un chauffeur (Driver) existant
+        
+        Args:
+            driver_id: ID du chauffeur à modifier
+            data: Dictionnaire des données à mettre à jour
+        
+        Returns:
+            tuple: (driver, success, message)
+        """
+        try:
+            from addons.Automobiles.models.driver_models import Driver
+            
+            # 1. Supprimer l'image brute
+            data.pop("image_brute", None)
+            
+            # 2. Récupérer le chauffeur
+            driver = self.db.query(Driver).filter(Driver.id == driver_id).first()
+            if not driver:
+                return None, False, "Chauffeur non trouvé"
+            
+            # 3. Définir les champs autorisés
+            allowed_keys = [c.key for c in Driver.__table__.columns]
+            
+            # 4. Mettre à jour uniquement les champs autorisés
+            for key, value in data.items():
+                if key in allowed_keys:
+                    setattr(driver, key, value)
+                    print(f"   ✅ Mise à jour Driver: {key} = {value}")
+                else:
+                    print(f"⚠️ Champ ignoré pour Driver: {key}")
+            
+            # 5. Traçabilité
+            if hasattr(self, 'current_user_id') and self.current_user_id:
+                driver.updated_by = self.current_user_id
+            
+            # 6. Sauvegarder
+            self.db.commit()
+            self.db.refresh(driver)
+            
+            print(f"✅ Chauffeur mis à jour avec succès: {driver.nom} (ID: {driver.id})")
+            return driver, True, "Chauffeur mis à jour avec succès"
+            
+        except Exception as e:
+            self.db.rollback()
+            print(f"--- ERREUR MISE À JOUR CHAUFFEUR ---")
+            print(f"Détails : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None, False, f"Erreur technique : {str(e)}"
+
+    def delete_driver(self, driver_id):
+        """
+        Supprime un chauffeur (Driver)
+        
+        Args:
+            driver_id: ID du chauffeur à supprimer
+        
+        Returns:
+            bool: True si suppression réussie, False sinon
+        """
+        try:
+            
+            driver = self.db.query(Driver).filter(Driver.id == driver_id).first()
+            if not driver:
+                print(f"❌ Chauffeur ID {driver_id} non trouvé")
+                return False
+            
+            self.db.delete(driver)
+            self.db.commit()
+            
+            # Invalider le cache
+            query_cache.invalidate('drivers_all')
+            query_cache.invalidate('all_contacts_drivers')
+            
+            print(f"✅ Chauffeur supprimé: {driver.nom} (ID: {driver.id})")
+            return True
+            
+        except Exception as e:
+            self.db.rollback()
+            print(f"--- ERREUR SUPPRESSION CHAUFFEUR ---")
+            print(f"Détails : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False
+
     def load_contacts(self):
         """Charge les contacts (souscripteurs + chauffeurs)"""
         try:

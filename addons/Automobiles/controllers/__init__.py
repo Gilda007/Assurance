@@ -32,7 +32,6 @@ class AutomobileMainController:
         self.expertise = ExpertiseController(self.session, self.user_id)
         self.garage = GarageController(self.session, self.user_id)
         self.intervention = InterventionController(self.session, self.user_id)
-        # self.compagnies = FleetController(session, current_user_id)
 
     def is_asac_available(self):
         """Vérifie si l'API ASAC est disponible"""

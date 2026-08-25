@@ -981,6 +981,41 @@ class ContactDetailView(QDialog):
                 background: #2563eb;
             }
         """)
+
+        # ✅ Bouton Actualiser
+        self.btn_refresh = QPushButton("🔄 Actualiser")
+        self.btn_refresh.setCursor(Qt.PointingHandCursor)
+        self.btn_refresh.setStyleSheet("""
+            QPushButton {
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                padding: 10px 20px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #059669;
+            }
+        """)
+        self.btn_refresh.clicked.connect(self.refresh_all_data)
+
+        self.btn_edit = QPushButton("Modifier le contact")
+        self.btn_edit.setCursor(Qt.PointingHandCursor)
+        self.btn_edit.setStyleSheet("""
+            QPushButton {
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 10px;
+                padding: 10px 24px;
+                font-weight: 600;
+            }
+            QPushButton:hover {
+                background: #2563eb;
+            }
+        """)
+        self.btn_edit.clicked.connect(self._on_edit_click)
         self.btn_edit.clicked.connect(self._on_edit_click)
 
         self.btn_close = QPushButton("Fermer")
@@ -1003,6 +1038,7 @@ class ContactDetailView(QDialog):
         layout.addWidget(self.btn_edit)
         layout.addSpacing(10)
         layout.addWidget(self.btn_close)
+        layout.addWidget(self.btn_refresh)
 
         return bar
 
@@ -1013,9 +1049,11 @@ class ContactDetailView(QDialog):
         self.load_flottes()
         self._update_summary_cards()
 
-    def load_contrats(self):
+    def load_contrats(self, force_refresh: bool = False):
         """Charge les contrats du contact (plusieurs contrats possibles)"""
         try:
+            if force_refresh and hasattr(self.controller.contracts, '_invalidate_cache'):
+                self.controller.contracts._invalidate_cache()
             # Récupérer TOUS les contrats du contact
             contrats = self.controller.contracts.get_active_contract_by_owner_id(self.contact.id)
             print(self.contact.id)
@@ -1080,9 +1118,11 @@ class ContactDetailView(QDialog):
             import traceback
             traceback.print_exc()
 
-    def load_vehicules(self):
+    def load_vehicules(self, force_refresh: bool = False):
         """Charge les véhicules du contact avec colonne de sélection"""
         try:
+            if force_refresh and hasattr(self.controller.vehicles, '_invalidate_cache'):
+                self.controller.vehicles._invalidate_cache()
             result = self.controller.vehicles.get_vehicles_by_owner_id(self.contact.id)
             if result is None:
                 vehicules = []
@@ -1133,6 +1173,116 @@ class ContactDetailView(QDialog):
             import traceback
             traceback.print_exc()
 
+    # def refresh_all_data(self):
+    #     """
+    #     Rafraîchit toutes les données de la page (contrats, véhicules, flottes, cartes)
+    #     """
+    #     # Désactiver le bouton pendant l'actualisation
+    #     self.btn_refresh.setEnabled(False)
+    #     self.btn_refresh.setText("⏳ Actualisation...")
+        
+    #     # Forcer le rafraîchissement des données
+    #     # 1. Contrats
+    #     self.load_contrats()
+        
+    #     # 2. Véhicules
+    #     self.load_vehicules()
+        
+    #     # 3. Flottes
+    #     self.load_flottes()
+        
+    #     # 4. Mettre à jour les cartes de résumé
+    #     self._update_summary_cards()
+        
+    #     # 5. Mettre à jour l'en-tête avec les dernières infos
+    #     self._update_header_info()
+        
+    #     # Réactiver le bouton
+    #     self.btn_refresh.setEnabled(True)
+    #     self.btn_refresh.setText("🔄 Actualiser")
+        
+    #     # Notification
+    #     QMessageBox.information(self, "Actualisation", "✅ Toutes les données ont été actualisées avec succès.")
+
+    def refresh_all_data(self):
+        """
+        Rafraîchit toutes les données de la page (contrats, véhicules, flottes, cartes)
+        """
+        # Désactiver le bouton pendant l'actualisation
+        self.btn_refresh.setEnabled(False)
+        self.btn_refresh.setText("⏳ Actualisation...")
+        
+        try:
+            # ✅ 1. Invalider le cache des véhicules
+            if hasattr(self.controller, 'vehicles'):
+                if hasattr(self.controller.vehicles, '_invalidate_cache'):
+                    self.controller.vehicles._invalidate_cache()
+                if hasattr(self.controller.vehicles, 'invalidate_vehicle_cache'):
+                    self.controller.vehicles.invalidate_vehicle_cache()
+            
+            # ✅ 2. Invalider le cache des contrats
+            if hasattr(self.controller, 'contracts'):
+                if hasattr(self.controller.contracts, '_invalidate_cache'):
+                    self.controller.contracts._invalidate_cache()
+            
+            # ✅ 3. Invalider le cache des flottes (CORRECTION)
+            if hasattr(self.controller, 'fleets'):
+                # Appeler _invalidate_cache si elle existe
+                if hasattr(self.controller.fleets, '_invalidate_cache'):
+                    self.controller.fleets._invalidate_cache()
+                # Appeler invalidate_fleet_cache si elle existe
+                if hasattr(self.controller.fleets, 'invalidate_fleet_cache'):
+                    self.controller.fleets.invalidate_fleet_cache()
+            
+            # ✅ 4. Invalider le cache des contacts
+            if hasattr(self.controller, 'contacts'):
+                if hasattr(self.controller.contacts, 'invalidate_cache'):
+                    self.controller.contacts.invalidate_cache()
+            
+            # ✅ 5. Recharger toutes les données
+            self.load_contrats()
+            self.load_vehicules()
+            self.load_flottes()
+            
+            # ✅ 6. Mettre à jour les cartes de résumé
+            self._update_summary_cards()
+            
+            # ✅ 7. Mettre à jour l'en-tête
+            self._update_header_info()
+            
+            # ✅ 8. Notification de succès
+            QMessageBox.information(self, "Actualisation", "✅ Toutes les données ont été actualisées avec succès.")
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'actualisation: {e}")
+            import traceback
+            traceback.print_exc()
+            QMessageBox.warning(self, "Erreur", f"Erreur lors de l'actualisation: {str(e)}")
+        
+        finally:
+            # Réactiver le bouton
+            self.btn_refresh.setEnabled(True)
+            self.btn_refresh.setText("🔄 Actualiser")
+
+    def _update_header_info(self):
+        """
+        Met à jour les informations de l'en-tête (nom, code client, etc.)
+        """
+        # Récupérer les dernières données du contact depuis la base
+        if self.source_type == 'driver':
+            refreshed_contact = self.controller.drivers.get_driver_by_id(self.real_contact.id)
+        else:
+            refreshed_contact = self.controller.contacts.get_contact_by_id(self.real_contact.id)
+        
+        if refreshed_contact:
+            # Mettre à jour l'objet interne
+            self.real_contact = refreshed_contact
+            
+            # Mettre à jour l'en-tête (optionnel)
+            # Si tu veux mettre à jour le titre de la fenêtre
+            nom = getattr(self.real_contact, 'nom', 'Contact')
+            prenom = getattr(self.real_contact, 'prenom', '')
+            self.setWindowTitle(f"Détails du contact - {nom} {prenom}".strip())
 
     def _on_vehicle_selection_changed(self, item):
         """Active/désactive le bouton d'impression selon la sélection"""
@@ -1231,9 +1381,11 @@ class ContactDetailView(QDialog):
         
         return container
     
-    def load_flottes(self):
+    def load_flottes(self, force_refresh: bool = False):
         """Charge les flottes du contact avec colonne de sélection"""
         try:
+            if force_refresh and hasattr(self.controller.fleets, '_invalidate_cache'):
+                self.controller.fleets._invalidate_cache()
             # Vider le tableau AVANT de parcourir les données
             self.flottes_table.setRowCount(0)
             

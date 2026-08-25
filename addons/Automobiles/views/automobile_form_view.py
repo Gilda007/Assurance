@@ -234,9 +234,6 @@ class VehicleForm(QDialog):
         
     def on_usage_changed(self, usage):
         self.update_rc_calculation_async()
-        
-    # def on_power_changed(self, power):
-    #     self.update_rc_calculation_async()
 
     def on_power_changed(self, power):
         """Met à jour le calcul RC et la vignette lors du changement de puissance"""
@@ -565,7 +562,7 @@ class VehicleForm(QDialog):
         try:
             d_debut = self.date_debut.date().toPython()
             d_fin = self.date_fin.date().toPython()
-            nbr_jr = (max(0, (d_fin - d_debut).days))
+            nbr_jr = (max(0, (d_fin - d_debut).days))+1
             
             self.nbr_jour.setText(str(nbr_jr))
             return nbr_jr / 365.0 if nbr_jr > 0 else 1
@@ -604,7 +601,7 @@ class VehicleForm(QDialog):
         self._setup_header(card_layout)
         
         # --- BANNIÈRE D'ALERTE ---
-        self._setup_alert_banner(card_layout)
+        # self._setup_alert_banner(card_layout)
         
         # --- CONTENU AVEC ONGLETS ---
         self.tab_widget = QTabWidget()
@@ -716,39 +713,6 @@ class VehicleForm(QDialog):
         
         parent_layout.addWidget(header_widget)
 
-    def _setup_alert_banner(self, parent_layout):
-        """Configure la bannière d'alerte pour les champs obligatoires"""
-        alert_widget = QFrame()
-        alert_widget.setStyleSheet(f"""
-            QFrame {{
-                background: {Colors.WARNING}20;
-                border: 2px solid {Colors.WARNING};
-                border-radius: 10px;
-                margin: 8px 20px 0 20px;
-            }}
-        """)
-        alert_widget.setFixedHeight(44)
-        
-        alert_layout = QHBoxLayout(alert_widget)
-        alert_layout.setContentsMargins(16, 6, 16, 6)
-        
-        alert_icon = QLabel("⚠️")
-        alert_icon.setStyleSheet("font-size: 18px; background: transparent;")
-        
-        alert_text = QLabel(
-            "Les champs marqués d'une <b><span style='color: #dc2626;'>*</span></b> sont obligatoires"
-        )
-        alert_text.setStyleSheet(f"""
-            font-size: 13px;
-            color: {Colors.TEXT_SECONDARY};
-            background: transparent;
-        """)
-        
-        alert_layout.addWidget(alert_icon)
-        alert_layout.addWidget(alert_text, 1)
-        alert_layout.addStretch()
-        
-        parent_layout.addWidget(alert_widget)
 
     def _create_label(self, icon, text):
         """Crée un label avec icône"""
@@ -2036,7 +2000,7 @@ class VehicleForm(QDialog):
                 self.carte_rose.setText(f"{vehicle.carte_rose:,.0f}".replace(",", " "))
             
             if hasattr(self, 'vignette') and vehicle.vignette:
-                self.vignette.setText(f"{vehicle.vignette:,.0f}".replace(",", " "))
+                self.vignette.setItemText(0, f"{vehicle.vignette:,.0f}".replace(",", " "))
             
             if hasattr(self, 'pttc') and vehicle.pttc:
                 self.pttc.setText(f"{vehicle.pttc:,.0f}".replace(",", " "))

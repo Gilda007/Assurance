@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, 
                                QTableWidgetItem, QHeaderView, QLineEdit, QProgressBar,
                                QStatusBar, QMenu, QMessageBox, QComboBox, QScrollArea,
                                QSplitter, QGraphicsOpacityEffect)
-from PySide6.QtCore import Q_ARG, QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QEvent, QMetaObject, QThread
+from PySide6.QtCore import Q_ARG, QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QSize, QMetaObject, QThread
 from PySide6.QtGui import QFont, QColor, QKeySequence, QShortcut, QPainter
 from core.database import SessionLocal, engine, Base, init_db
 from core.alerts import AlertManager
@@ -36,6 +36,7 @@ from addons.Paramètres.views.setup_view import SetupView
 from addons.Paramètres.controllers.setup_controller import SetupController
 from addons.Paramètres.views.loggin_view import LoginView
 from addons.Paramètres.controllers.login_controller import LoginController
+from icons import ICONS, get_icon, get_icon_pixmap, COLORS, ThemeManager, ThemeType
 from addons.Paramètres.models.models import User
 from update_manager import UpdateManager
 from update_client import UpdateClient
@@ -1615,7 +1616,7 @@ class ModernDashboard(QWidget):
             self.activities_table.removeRow(10)
 
 class AnimatedSidebar(QFrame):
-    """Sidebar moderne avec animation et design premium"""
+    """Sidebar moderne sans contours arrondis et sans espaces"""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1625,6 +1626,7 @@ class AnimatedSidebar(QFrame):
         self.collapsed_width = 70
         self.expanded_width = 240
         self.setFixedWidth(self.expanded_width)
+        self.setMinimumHeight(0)
         
         # Initialiser la liste des boutons
         self.menu_buttons = []
@@ -1634,25 +1636,20 @@ class AnimatedSidebar(QFrame):
         self.animation.setDuration(300)
         self.animation.setEasingCurve(QEasingCurve.Type.InOutQuart)
 
-        # Style global
+        # ✅ Style sans contours arrondis et sans marges
         self.setStyleSheet("""
-        #Sidebar {
-            background: qlineargradient(
-                x1:0, y1:0, x2:0, y2:1,
-                stop:0 #1e293b,
-                stop:1 #0f172a
-            );
-            border-right: 1px solid rgba(255,255,255,0.08);
-        }
+            QFrame#Sidebar {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #1e293b,
+                    stop:1 #0f172a
+                );
+                border: none;
+                border-radius: 0px;
+                margin: 0px;
+                padding: 0px;
+            }
         """)
-
-        # Ombre
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(25)
-        shadow.setXOffset(3)
-        shadow.setYOffset(0)
-        shadow.setColor(QColor(0, 0, 0, 120))
-        self.setGraphicsEffect(shadow)
 
         self.setup_ui()
 
@@ -1664,27 +1661,38 @@ class AnimatedSidebar(QFrame):
         # Burger button
         burger_frame = QFrame()
         burger_frame.setFixedHeight(60)
+        burger_frame.setStyleSheet("""
+            QFrame {
+                background: transparent;
+                border: none;
+                margin: 0px;
+                padding: 0px;
+            }
+        """)
         burger_layout = QHBoxLayout(burger_frame)
-        burger_layout.setContentsMargins(15, 0, 15, 0)
+        burger_layout.setContentsMargins(12, 0, 12, 0)
 
-        self.burger_btn = QPushButton("☰")
-        self.burger_btn.setFixedSize(36, 36)
+        # ✅ Utiliser get_icon pour le bouton burger
+        self.burger_btn = QPushButton()
+        self.burger_btn.setFixedSize(50, 50)
         self.burger_btn.setCursor(Qt.PointingHandCursor)
-
+        self.burger_btn.setIcon(get_icon('menu', color='#94a3b8', size=20))
+        self.burger_btn.setIconSize(QSize(20, 20))
         self.burger_btn.setStyleSheet("""
-        QPushButton {
-            background: rgba(255,255,255,0.08);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 18px;
-        }
-        QPushButton:hover {
-            background: rgba(255,255,255,0.18);
-        }
-        QPushButton:pressed {
-            background: rgba(255,255,255,0.25);
-        }
+            QPushButton {
+                background: rgba(255,255,255,0.08);
+                border: none;
+                border-radius: 8px;
+                color: white;
+                margin: 0px;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: rgba(255,255,255,0.18);
+            }
+            QPushButton:pressed {
+                background: rgba(255,255,255,0.25);
+            }
         """)
 
         self.burger_btn.clicked.connect(self.toggle_sidebar)
@@ -1694,69 +1702,97 @@ class AnimatedSidebar(QFrame):
         layout.addWidget(burger_frame)
 
         # Logo
-        self.logo_label = QLabel("LOMETA")
-        self.logo_label.setAlignment(Qt.AlignCenter)
-
-        self.logo_label.setStyleSheet("""
-        color: white;
-        font-size: 20px;
-        font-weight: 700;
-        padding: 18px;
-        margin: 10px;
-        background: rgba(255,255,255,0.04);
-        border-radius: 14px;
-        letter-spacing: 1px;
+        self.logo_widget = QWidget()
+        self.logo_widget.setStyleSheet("""
+            background: rgba(255,255,255,0.04);
+            border: none;
+            border-radius: 0px;
         """)
-
-        layout.addWidget(self.logo_label)
+        self.logo_layout = QHBoxLayout(self.logo_widget)
+        self.logo_layout.setContentsMargins(12, 12, 12, 12)
+        self.logo_layout.setSpacing(8)
+        self.logo_layout.setAlignment(Qt.AlignCenter)
+        
+        # Icône voiture
+        self.logo_icon = QLabel()
+        self.logo_icon.setPixmap(get_icon_pixmap('car', color='white', size=24))
+        
+        # Texte LOMETA
+        self.logo_text = QLabel("LOMETA")
+        self.logo_text.setStyleSheet("""
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            background: transparent;
+            border: none;
+            letter-spacing: 1px;
+        """)
+        
+        self.logo_layout.addWidget(self.logo_icon)
+        self.logo_layout.addWidget(self.logo_text)
+        layout.addWidget(self.logo_widget)
+        
+        layout.addWidget(self.logo_widget)
 
         # Separator
         sep = QFrame()
         sep.setFixedHeight(1)
-        sep.setStyleSheet("background: rgba(255,255,255,0.1); margin: 10px 15px;")
+        sep.setStyleSheet("""
+            background: rgba(255,255,255,0.1);
+            margin: 0px 12px;
+            border: none;
+        """)
         layout.addWidget(sep)
 
         # Menu container
         self.menu_container = QVBoxLayout()
-        self.menu_container.setSpacing(6)
-        self.menu_container.setContentsMargins(10, 10, 10, 10)
+        self.menu_container.setSpacing(2)
+        self.menu_container.setContentsMargins(8, 8, 8, 8)
         self.menu_container.setAlignment(Qt.AlignTop)
 
         self.menu_widget = QWidget()
+        self.menu_widget.setStyleSheet("""
+            background: transparent;
+            border: none;
+            margin: 0px;
+            padding: 0px;
+        """)
         self.menu_widget.setLayout(self.menu_container)
         layout.addWidget(self.menu_widget)
 
         layout.addStretch()
 
-        # ========== USER CARD AMÉLIORÉE ==========
+        # ========== USER CARD ==========
         self.user_card = QFrame()
         self.user_card.setObjectName("UserCard")
-
         self.user_card.setStyleSheet("""
-        #UserCard {
-            background: rgba(255,255,255,0.08);
-            border-radius: 20px;
-            margin: 16px;
-            padding: 16px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
+            QFrame#UserCard {
+                background: rgba(255,255,255,0.08);
+                border-radius: 0px;
+                margin: 0px;
+                padding: 12px 16px;
+                border: none;
+                border-top: 1px solid rgba(255,255,255,0.08);
+            }
         """)
 
         user_layout = QVBoxLayout(self.user_card)
-        user_layout.setSpacing(12)
+        user_layout.setSpacing(8)
         user_layout.setContentsMargins(0, 0, 0, 0)
 
-        # ========== AVATAR AVEC STATUT ==========
+        # Avatar
         avatar_container = QWidget()
+        avatar_container.setStyleSheet("background: transparent; border: none;")
         avatar_layout = QVBoxLayout(avatar_container)
         avatar_layout.setAlignment(Qt.AlignCenter)
         avatar_layout.setSpacing(0)
+        avatar_layout.setContentsMargins(0, 0, 0, 0)
 
         self.user_avatar = QLabel("A")
         self.user_avatar.setAlignment(Qt.AlignCenter)
-        self.user_avatar.setFixedSize(56, 56)
+        self.user_avatar.setFixedSize(48, 48)
         self.user_avatar.setStyleSheet("""
-            font-size: 22px;
+            font-size: 20px;
             font-weight: bold;
             color: white;
             background: qlineargradient(
@@ -1764,56 +1800,61 @@ class AnimatedSidebar(QFrame):
                 stop:0 #3b82f6,
                 stop:1 #6366f1
             );
-            border-radius: 28px;
-        """)
-
-        # Badge de statut (cercle vert en bas à droite de l'avatar)
-        status_badge = QLabel()
-        status_badge.setFixedSize(14, 14)
-        status_badge.move(40, 40)
-        status_badge.setParent(self.user_avatar)
-        status_badge.setStyleSheet("""
-            background-color: #10b981;
-            border-radius: 7px;
-            border: 2px solid #0f172a;
+            border-radius: 24px;
+            border: none;
         """)
 
         avatar_layout.addWidget(self.user_avatar)
-
         user_layout.addWidget(avatar_container, 0, Qt.AlignCenter)
 
-        # ========== NOM UTILISATEUR ==========
+        # Nom utilisateur
         self.user_name = QLabel("Jean Dupont")
         self.user_name.setAlignment(Qt.AlignCenter)
         self.user_name.setStyleSheet("""
             color: white;
             font-weight: 700;
             font-size: 14px;
+            background: transparent;
+            border: none;
+            padding: 0px;
+            margin: 0px;
         """)
         user_layout.addWidget(self.user_name)
 
-        # ========== RÔLE ==========
+        # Rôle
         self.user_role = QLabel("Administrateur")
         self.user_role.setAlignment(Qt.AlignCenter)
         self.user_role.setStyleSheet("""
             color: rgba(255,255,255,0.6);
             font-size: 11px;
+            background: transparent;
+            border: none;
+            padding: 0px;
+            margin: 0px;
         """)
         user_layout.addWidget(self.user_role)
 
-        # ========== STATUT EN LIGNE (texte) ==========
+        # Statut en ligne
         status_container = QWidget()
+        status_container.setStyleSheet("background: transparent; border: none;")
         status_layout = QHBoxLayout(status_container)
         status_layout.setAlignment(Qt.AlignCenter)
         status_layout.setSpacing(6)
-        status_layout.setContentsMargins(0, 4, 0, 0)
+        status_layout.setContentsMargins(0, 0, 0, 0)
 
         self.status_indicator = QLabel()
         self.status_indicator.setFixedSize(8, 8)
-        self.status_indicator.setStyleSheet("background-color: #10b981; border-radius: 4px;")
+        self.status_indicator.setStyleSheet("background-color: #10b981; border-radius: 4px; border: none;")
 
         self.status_label = QLabel("En ligne")
-        self.status_label.setStyleSheet("color: rgba(255,255,255,0.7); font-size: 10px;")
+        self.status_label.setStyleSheet("""
+            color: rgba(255,255,255,0.7);
+            font-size: 10px;
+            background: transparent;
+            border: none;
+            padding: 0px;
+            margin: 0px;
+        """)
 
         status_layout.addWidget(self.status_indicator)
         status_layout.addWidget(self.status_label)
@@ -1823,26 +1864,26 @@ class AnimatedSidebar(QFrame):
         layout.addWidget(self.user_card)
 
         # Logout button
-        # ========== LOGOUT BUTTON AVEC ANIMATION ==========
-        self.logout_btn = QPushButton("🚪  Déconnexion")
+        self.logout_btn = QPushButton()
         self.logout_btn.setCursor(Qt.PointingHandCursor)
+        self.logout_btn.setIcon(get_icon('logout', color='#fca5a5', size=50))
         self.logout_btn.setStyleSheet("""
             QPushButton {
                 color: #fca5a5;
                 background: rgba(239, 68, 68, 0.1);
-                border: 1px solid rgba(239, 68, 68, 0.25);
-                border-radius: 14px;
-                padding: 12px;
-                font-size: 13px;
+                border: none;
+                border-radius: 0px;
+                padding: 12px 16px;
+                font-size: 50px;
                 font-weight: 600;
                 text-align: center;
-                margin: 12px 16px 20px 16px;
+                margin: 0px;
+                border-top: 1px solid rgba(255,255,255,0.05);
             }
             QPushButton:hover {
                 background: rgba(239, 68, 68, 0.2);
-                border-color: rgba(239, 68, 68, 0.5);
                 color: #fecaca;
-                padding-left: 16px;
+                padding-left: 20px;
             }
             QPushButton:pressed {
                 background: rgba(239, 68, 68, 0.3);
@@ -1852,84 +1893,344 @@ class AnimatedSidebar(QFrame):
         """)
         layout.addWidget(self.logout_btn)
 
-        # Animation au survol (optionnel)
-    
-    def animate_logout_button(event):
-        if event.type() == QEvent.Enter:
-            # Animation d'entrée
-            pass
-        elif event.type() == QEvent.Leave:
-            # Animation de sortie
-            pass
+    # def toggle_sidebar(self):
+    #     self.collapsed = not self.collapsed
+    #     target_width = self.collapsed_width if self.collapsed else self.expanded_width
+
+    #     # ✅ ANIMATION SUR LA LARGEUR FIXE
+    #     self.animation.setStartValue(self.width())
+    #     self.animation.setEndValue(target_width)
+    #     self.animation.start()
+        
+    #     # ✅ Mettre à jour la largeur fixe APRÈS l'animation
+    #     self.animation.finished.connect(lambda: self.setFixedWidth(target_width))
+
+    #     # ✅ Logo switch avec icône depuis icons
+        
+    #     if self.collapsed:
+    #         # Mode réduit : seulement l'icône voiture
+    #         self.logo_icon.setPixmap(get_icon_pixmap('car', color='white', size=36))
+    #         self.logo_icon.setVisible(True)
+    #         self.logo_text.setVisible(False)
+    #         self.logo_text.setStyleSheet("""
+    #             color: white;
+    #             padding: 16px 0px;
+    #             margin: 0px;
+    #             background: rgba(255,255,255,0.04);
+    #             border: none;
+    #             border-radius: 0px;
+    #         """)
+    #     else:
+    #         # Mode étendu : LOMETA + icône voiture (affichée via un QLabel séparé ou un layout)
+    #         # Option 1: Utiliser un layout horizontal pour le logo
+    #         # On va recréer le layout du logo pour avoir texte + icône
+            
+    #         # Nettoyer le layout existant du logo
+    #         if hasattr(self, 'logo_layout'):
+    #             # Supprimer l'ancien layout
+    #             while self.logo_layout.count():
+    #                 item = self.logo_layout.takeAt(0)
+    #                 if item.widget():
+    #                     item.widget().deleteLater()
+    #             # On garde le même widget
+    #         else:
+    #             # Créer un widget conteneur pour le logo
+    #             self.logo_widget = QWidget()
+    #             self.logo_layout = QHBoxLayout(self.logo_widget)
+    #             self.logo_layout.setContentsMargins(12, 8, 12, 8)
+    #             self.logo_layout.setSpacing(8)
+    #             self.logo_layout.setAlignment(Qt.AlignCenter)
+            
+    #         # Créer l'icône voiture
+    #         car_icon = QLabel()
+    #         car_icon.setPixmap(get_icon_pixmap('car', color='white', size=24))
+            
+    #         # Créer le texte
+    #         text_label = QLabel("LOMETA")
+    #         text_label.setStyleSheet("""
+    #             color: white;
+    #             font-size: 20px;
+    #             font-weight: 700;
+    #             background: transparent;
+    #             border: none;
+    #             letter-spacing: 1px;
+    #         """)
+            
+    #         # Ajouter au layout
+    #         self.logo_layout.addWidget(car_icon)
+    #         self.logo_layout.addWidget(text_label)
+            
+    #         # Remplacer le logo_text par logo_widget
+    #         # On doit d'abord trouver l'index du logo_text dans le layout parent
+    #         parent_layout = self.layout()
+    #         if parent_layout:
+    #             index = parent_layout.indexOf(self.logo_text)
+    #             if index != -1:
+    #                 # Supprimer l'ancien logo_label
+    #                 self.logo_text.deleteLater()
+    #                 # Insérer le nouveau widget
+    #                 parent_layout.insertWidget(index, self.logo_widget)
+    #                 self.logo_widget.setStyleSheet("""
+    #                     background: rgba(255,255,255,0.04);
+    #                     border: none;
+    #                     border-radius: 0px;
+    #                 """)
+
+    #     # Menu text - ne garder que l'icône quand réduit
+    #     for btn in self.menu_buttons:
+    #         if hasattr(btn, 'original_text'):
+    #             btn.setText(btn.icon_only if self.collapsed else btn.original_text)
+    #             # ✅ Centrer l'icône quand réduit
+    #             if self.collapsed:
+    #                 btn.setStyleSheet("""
+    #                     QPushButton#MenuBtn {
+    #                         color: #cbd5f5;
+    #                         background: transparent;
+    #                         border: none;
+    #                         border-radius: 0px;
+    #                         padding: 10px 0px;
+    #                         text-align: center;
+    #                         font-size: 18px;
+    #                         margin: 0px;
+    #                     }
+    #                     QPushButton#MenuBtn:hover {
+    #                         background: rgba(255,255,255,0.08);
+    #                         color: white;
+    #                         border-left: 3px solid #3b82f6;
+    #                         padding-left: 0px;
+    #                     }
+    #                     QPushButton#MenuBtn:checked {
+    #                         background: #3b82f6;
+    #                         color: white;
+    #                         border-left: 3px solid #2563eb;
+    #                         padding-left: 0px;
+    #                     }
+    #                 """)
+    #             else:
+    #                 btn.setStyleSheet("""
+    #                     QPushButton#MenuBtn {
+    #                         color: #cbd5f5;
+    #                         background: transparent;
+    #                         border: none;
+    #                         border-radius: 0px;
+    #                         padding: 10px 12px;
+    #                         text-align: left;
+    #                         font-size: 14px;
+    #                         margin: 0px;
+    #                     }
+    #                     QPushButton#MenuBtn:hover {
+    #                         background: rgba(255,255,255,0.08);
+    #                         color: white;
+    #                         border-left: 3px solid #3b82f6;
+    #                         padding-left: 9px;
+    #                     }
+    #                     QPushButton#MenuBtn:checked {
+    #                         background: #3b82f6;
+    #                         color: white;
+    #                         border-left: 3px solid #2563eb;
+    #                         padding-left: 9px;
+    #                     }
+    #                 """)
+
+    #     # Cacher/montrer les éléments quand réduit
+    #     self.user_name.setVisible(not self.collapsed)
+    #     self.user_role.setVisible(not self.collapsed)
+    #     self.status_label.setVisible(not self.collapsed)
+        
+    #     # ✅ Réduire l'avatar quand la sidebar est réduite
+    #     if self.collapsed:
+    #         self.user_avatar.setFixedSize(36, 36)
+    #         self.user_avatar.setStyleSheet("""
+    #             font-size: 16px;
+    #             font-weight: bold;
+    #             color: white;
+    #             background: qlineargradient(
+    #                 x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 #3b82f6,
+    #                 stop:1 #6366f1
+    #             );
+    #             border-radius: 18px;
+    #             border: none;
+    #         """)
+    #     else:
+    #         self.user_avatar.setFixedSize(48, 48)
+    #         self.user_avatar.setStyleSheet("""
+    #             font-size: 20px;
+    #             font-weight: bold;
+    #             color: white;
+    #             background: qlineargradient(
+    #                 x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 #3b82f6,
+    #                 stop:1 #6366f1
+    #             );
+    #             border-radius: 24px;
+    #             border: none;
+    #         """)
 
     def toggle_sidebar(self):
         self.collapsed = not self.collapsed
         target_width = self.collapsed_width if self.collapsed else self.expanded_width
 
+        # ✅ ANIMATION SUR LA LARGEUR FIXE
         self.animation.setStartValue(self.width())
         self.animation.setEndValue(target_width)
         self.animation.start()
+        
+        # ✅ Mettre à jour la largeur fixe APRÈS l'animation
+        self.animation.finished.connect(lambda: self.setFixedWidth(target_width))
 
-        # Logo switch
+        # ✅ Logo switch - Version simplifiée sans suppression de widgets
         if self.collapsed:
-            self.logo_label.setText("🚗")
-            self.logo_label.setStyleSheet("""
-                color: white;
-                font-size: 24px;
-                font-weight: 700;
-                padding: 18px;
-                margin: 10px;
-                background: rgba(255,255,255,0.04);
-                border-radius: 14px;
-            """)
+            # Mode réduit : seulement l'icône voiture (plus grande)
+            self.logo_icon.setPixmap(get_icon_pixmap('car', color='white', size=36))
+            self.logo_icon.setVisible(True)
+            self.logo_text.setVisible(False)
         else:
-            self.logo_label.setText("LOMETA")
-            self.logo_label.setStyleSheet("""
-                color: white;
-                font-size: 20px;
-                font-weight: 700;
-                padding: 18px;
-                margin: 10px;
-                background: rgba(255,255,255,0.04);
-                border-radius: 14px;
-                letter-spacing: 1px;
-            """)
+            # Mode étendu : LOMETA + icône voiture
+            self.logo_icon.setPixmap(get_icon_pixmap('car', color='white', size=24))
+            self.logo_icon.setVisible(True)
+            self.logo_text.setVisible(True)
 
-        # Menu text - utiliser menu_buttons au lieu de menu_container
+        # Menu text - ne garder que l'icône quand réduit
         for btn in self.menu_buttons:
             if hasattr(btn, 'original_text'):
                 btn.setText(btn.icon_only if self.collapsed else btn.original_text)
+                # ✅ Centrer l'icône quand réduit
+                if self.collapsed:
+                    btn.setStyleSheet("""
+                        QPushButton#MenuBtn {
+                            color: #cbd5f5;
+                            background: transparent;
+                            border: none;
+                            border-radius: 0px;
+                            padding: 10px 0px;
+                            text-align: center;
+                            font-size: 18px;
+                            margin: 0px;
+                        }
+                        QPushButton#MenuBtn:hover {
+                            background: rgba(255,255,255,0.08);
+                            color: white;
+                            border-left: 3px solid #3b82f6;
+                            padding-left: 0px;
+                        }
+                        QPushButton#MenuBtn:checked {
+                            background: #3b82f6;
+                            color: white;
+                            border-left: 3px solid #2563eb;
+                            padding-left: 0px;
+                        }
+                    """)
+                else:
+                    btn.setStyleSheet("""
+                        QPushButton#MenuBtn {
+                            color: #cbd5f5;
+                            background: transparent;
+                            border: none;
+                            border-radius: 0px;
+                            padding: 10px 12px;
+                            text-align: left;
+                            font-size: 14px;
+                            margin: 0px;
+                        }
+                        QPushButton#MenuBtn:hover {
+                            background: rgba(255,255,255,0.08);
+                            color: white;
+                            border-left: 3px solid #3b82f6;
+                            padding-left: 9px;
+                        }
+                        QPushButton#MenuBtn:checked {
+                            background: #3b82f6;
+                            color: white;
+                            border-left: 3px solid #2563eb;
+                            padding-left: 9px;
+                        }
+                    """)
 
+        # Cacher/montrer les éléments quand réduit
         self.user_name.setVisible(not self.collapsed)
+        self.user_role.setVisible(not self.collapsed)
+        self.status_label.setVisible(not self.collapsed)
+        
+        # ✅ Réduire l'avatar quand la sidebar est réduite
+        if self.collapsed:
+            self.user_avatar.setFixedSize(36, 36)
+            self.user_avatar.setStyleSheet("""
+                font-size: 16px;
+                font-weight: bold;
+                color: white;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #3b82f6,
+                    stop:1 #6366f1
+                );
+                border-radius: 18px;
+                border: none;
+            """)
+        else:
+            self.user_avatar.setFixedSize(48, 48)
+            self.user_avatar.setStyleSheet("""
+                font-size: 20px;
+                font-weight: bold;
+                color: white;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #3b82f6,
+                    stop:1 #6366f1
+                );
+                border-radius: 24px;
+                border: none;
+            """)
 
-    def add_menu_button(self, label, icon_char, widget=None):
-        btn = QPushButton(f"{icon_char}  {label}")
+    def add_menu_button(self, label, icon_name, widget=None):
+        """Ajoute un bouton de menu avec icône depuis le dossier icons"""
+        
+        btn = QPushButton()
         btn.setObjectName("MenuBtn")
         btn.setCursor(Qt.PointingHandCursor)
-
-        btn.original_text = f"{icon_char}  {label}"
-        btn.icon_only = icon_char
+        
+        # Stocker les informations pour le toggle
+        btn._label = label
+        btn._icon_name = icon_name
+        
+        # Définir l'icône
+        btn.setIcon(get_icon(icon_name, color='#cbd5f5', size=20))
+        btn.setIconSize(QSize(20, 20))
+        
+        # Texte selon l'état initial (étendu)
+        btn.setText(f"  {label}")
+        btn.setToolTip(label)
+        
+        # Stocker les versions textes pour le toggle
+        btn.original_text = f"  {label}"
+        btn.icon_only = ""  # Pas de texte quand réduit
+        
         btn.setCheckable(True)
         btn.setProperty("linked_widget", widget)
 
         btn.setStyleSheet("""
-        QPushButton {
-            color: #cbd5f5;
-            background: transparent;
-            border: none;
-            padding: 12px;
-            text-align: left;
-            border-radius: 10px;
-            font-size: 14px;
-        }
-        QPushButton:hover {
-            background: rgba(255,255,255,0.08);
-            color: white;
-        }
-        QPushButton:checked {
-            background: #3b82f6;
-            color: white;
-        }
+            QPushButton#MenuBtn {
+                color: #cbd5f5;
+                background: transparent;
+                border: none;
+                border-radius: 0px;
+                padding: 10px 12px;
+                text-align: left;
+                font-size: 14px;
+                margin: 0px;
+            }
+            QPushButton#MenuBtn:hover {
+                background: rgba(255,255,255,0.08);
+                color: white;
+                border-left: 3px solid #3b82f6;
+                padding-left: 9px;
+            }
+            QPushButton#MenuBtn:checked {
+                background: #3b82f6;
+                color: white;
+                border-left: 3px solid #2563eb;
+                padding-left: 9px;
+            }
         """)
 
         self.menu_container.addWidget(btn)
@@ -1961,7 +2262,7 @@ class AnimatedSidebar(QFrame):
         color = status_colors.get(status, "#10b981")
         text = status_texts.get(status, "En ligne")
         
-        self.status_indicator.setStyleSheet(f"background-color: {color}; border-radius: 4px;")
+        self.status_indicator.setStyleSheet(f"background-color: {color}; border-radius: 4px; border: none;")
         self.status_label.setText(text)
 
     def set_user_info(self, username, role="Utilisateur", email=""):
@@ -1973,7 +2274,6 @@ class AnimatedSidebar(QFrame):
         initials = username[0].upper() if username else "U"
         self.user_avatar.setText(initials)
         
-        # Tooltip avec email
         if email:
             self.user_card.setToolTip(f"📧 {email}")
 
@@ -1982,20 +2282,30 @@ class AnimatedSidebar(QFrame):
         initials = username[0].upper() if username else "U"
         self.user_avatar.setText(initials)
 
+
 class MainWindow(QMainWindow):
     logout_requested = Signal()
-    
+
     def __init__(self, user):
         super().__init__()
         self.user = user
         self.setWindowTitle("LOMETA - Tableau de Bord")
         self.resize(1280, 800)
         self.setMinimumSize(1200, 800)
-        self.setStyleSheet(STYLE_SHEET)
+        
+        # ✅ Appliquer le thème actif AVANT de configurer l'UI
+        # from icons.theme import theme_manager, ThemeType
+        # self.theme_manager = theme_manager
+        # self.current_theme = self.theme_manager.get_current_theme()
+        # self.setStyleSheet(self.theme_manager.get_stylesheet())
 
         self.setup_ui()
         self.loader = get_global_loader()
         self.loader.setParent(self)
+        
+        # ✅ Initialisation du ModuleDetector AVANT tout
+        self.module_detector = ModuleDetector()
+        
         self.init_modules()
         QTimer.singleShot(1000, self.show_certificate_status_in_statusbar)
         cache_stats = cache.get_stats()
@@ -2005,40 +2315,43 @@ class MainWindow(QMainWindow):
         self.session_token = self._get_user_session_token()
         print(f"🔑 Token de session récupéré: {self.session_token is not None}")
 
-        QTimer.singleShot(500, lambda: self._display_certificate_notification(self.loader.last_certificate_status))
-        QTimer.singleShot(1000, self.update_notification_badge)
-        
-        # NOUVEAU : Passer le token au ModuleChecker
-        self.module_checker = ModuleChecker(session_token=self.session_token)
-        self.update_manager = UpdateManager(self, session_token=self.session_token)
-        self.module_checker.modules_found.connect(self.show_update_dialog)
-
-        if hasattr(self, 'module_checker'):
-            self.module_checker.modules_found.connect(
-                self.show_update_dialog, 
-                Qt.QueuedConnection
-            )
-        QTimer.singleShot(2000, self.module_checker.check)
-
-        # ============================================================
-        # WATCHDOG - Version CORRIGÉE
-        # ============================================================
-        # Augmenter le timeout à 60 secondes pour éviter les faux positifs
-        self.watchdog = Watchdog(self, check_interval=10, timeout_seconds=60)
-        self.watchdog.application_frozen.connect(self.on_application_frozen)
-        self.watchdog.start()
-        
-        # Démarrer le heartbeat APRÈS le watchdog
-        self.heartbeat_timer = QTimer()
-        self.heartbeat_timer.timeout.connect(self.update_heartbeat)
-        self.heartbeat_timer.start(10000)  # Heartbeat toutes les 10 secondes au lieu de 5
-        
-        # Envoyer un premier heartbeat immédiatement
-        self.module_detector = ModuleDetector()
+        # ✅ Afficher les modules installés
         installed = self.module_detector.get_installed_modules()
         print(f"📦 {len(installed)} module(s) installé(s) détecté(s)")
         for mod_id, info in installed.items():
             print(f"   - {mod_id} v{info['version']}")
+
+        # ✅ Connexion au changement de thème
+        # self.theme_manager.theme_changed.connect(self.apply_theme)
+
+        QTimer.singleShot(500, lambda: self._display_certificate_notification(self.loader.last_certificate_status))
+        QTimer.singleShot(1000, self.update_notification_badge)
+        
+        # ✅ Initialisation du ModuleChecker avec le token
+        self.module_checker = ModuleChecker(session_token=self.session_token)
+        
+        # ✅ Initialisation de l'UpdateManager avec le token
+        self.update_manager = UpdateManager(self, session_token=self.session_token)
+        
+        # ✅ Connexion du signal
+        self.module_checker.modules_found.connect(self.show_update_dialog, Qt.QueuedConnection)
+        
+        # ✅ Vérification différée
+        QTimer.singleShot(2000, self.module_checker.check)
+
+        # ============================================================
+        # WATCHDOG
+        # ============================================================
+        self.watchdog = Watchdog(self, check_interval=10, timeout_seconds=60)
+        self.watchdog.application_frozen.connect(self.on_application_frozen)
+        self.watchdog.start()
+        
+        # Démarrer le heartbeat
+        self.heartbeat_timer = QTimer()
+        self.heartbeat_timer.timeout.connect(self.update_heartbeat)
+        self.heartbeat_timer.start(10000)
+        
+        # Premier heartbeat
         self.update_heartbeat()
 
     def update_heartbeat(self):
@@ -2046,6 +2359,30 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'watchdog'):
             self.watchdog.heartbeat()
 
+    def apply_theme(self, stylesheet: str):
+        """
+        Applique le stylesheet du thème à la fenêtre principale
+        """
+        self.setStyleSheet(stylesheet)
+        
+        # ✅ Mettre à jour le style de la sidebar si elle a des styles spécifiques
+        if hasattr(self, 'sidebar'):
+            # La sidebar utilise déjà le stylesheet global
+            # Mais on peut ajouter des ajustements si nécessaire
+            pass
+        
+        # ✅ Mettre à jour les autres composants si besoin
+        # Les widgets enfants héritent automatiquement du stylesheet parent
+
+    def toggle_theme(self):
+        """
+        Bascule entre les thèmes clair et sombre
+        (à connecter à un bouton ou un raccourci)
+        """
+        self.theme_manager.toggle_theme()
+        new_theme = self.theme_manager.get_current_theme()
+        self.statusBar().showMessage(f"🎨 Thème {new_theme.value} activé", 2000)
+    
     def manual_update_check(self):
         """Vérification manuelle des mises à jour"""
         # Afficher d'abord les modules installés
@@ -2175,26 +2512,275 @@ class MainWindow(QMainWindow):
         
         print("=" * 60)
 
+    # def setup_header(self):
+    #     self.header = QFrame()
+    #     self.header.setObjectName("Header")
+    #     self.header.setFixedHeight(70)
+    #     self.header.setStyleSheet("""
+    #         QFrame#Header {
+    #             background: #ffffff;
+    #             border: none;
+    #             border-radius: 0px;
+    #             margin: 0px;
+    #             padding: 0px;
+    #             border-bottom: 1px solid #e2e8f0;
+    #         }
+    #     """)
+        
+    #     header_layout = QHBoxLayout(self.header)
+    #     header_layout.setContentsMargins(16, 0, 16, 0)  # ✅ Marges internes réduites
+    #     header_layout.setSpacing(12)
+        
+    #     # ========== PARTIE GAUCHE ==========
+    #     # Bouton Home
+    #     self.home_btn = QPushButton("🏠")
+    #     self.home_btn.setFixedSize(36, 36)
+    #     self.home_btn.setCursor(Qt.PointingHandCursor)
+    #     self.home_btn.setToolTip("Accueil (Ctrl+D)")
+    #     self.home_btn.setStyleSheet("""
+    #         QPushButton {
+    #             background: transparent;
+    #             border: none;
+    #             border-radius: 8px;
+    #             font-size: 18px;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #         QPushButton:hover {
+    #             background: #f1f5f9;
+    #         }
+    #     """)
+    #     self.home_btn.clicked.connect(self.go_to_dashboard)
+    #     header_layout.addWidget(self.home_btn)
+        
+    #     # Titre de la page
+    #     self.page_title = QLabel("Tableau de Bord")
+    #     self.page_title.setObjectName("PageTitle")
+    #     self.page_title.setStyleSheet("""
+    #         QLabel#PageTitle {
+    #             font-size: 20px;
+    #             font-weight: 700;
+    #             color: #0f172a;
+    #             background: transparent;
+    #             border: none;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #     """)
+    #     header_layout.addWidget(self.page_title)
+        
+    #     header_layout.addStretch()
+        
+    #     # ========== PARTIE CENTRALE ==========
+    #     # Barre de recherche
+    #     self.search_bar = QLineEdit()
+    #     self.search_bar.setObjectName("SearchBar")
+    #     self.search_bar.setPlaceholderText("🔍 Rechercher un véhicule, client, contrat...")
+    #     self.search_bar.setMinimumWidth(350)
+    #     self.search_bar.setStyleSheet("""
+    #         QLineEdit#SearchBar {
+    #             background: #f1f5f9;
+    #             border: none;
+    #             border-radius: 8px;
+    #             padding: 8px 16px;
+    #             font-size: 13px;
+    #             margin: 0px;
+    #         }
+    #         QLineEdit#SearchBar:focus {
+    #             background: white;
+    #             border: 1px solid #3b82f6;
+    #         }
+    #     """)
+    #     self.search_bar.returnPressed.connect(self.handle_search)
+    #     header_layout.addWidget(self.search_bar)
+        
+    #     header_layout.addStretch()
+        
+    #     # ========== PARTIE DROITE ==========
+    #     # Bouton notifications
+    #     self.notif_btn = QPushButton("🔔")
+    #     self.notif_btn.setFixedSize(36, 36)
+    #     self.notif_btn.setCursor(Qt.PointingHandCursor)
+    #     self.notif_btn.setToolTip("Notifications")
+    #     self.notif_btn.setStyleSheet("""
+    #         QPushButton {
+    #             background: transparent;
+    #             border: none;
+    #             border-radius: 8px;
+    #             font-size: 18px;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #         QPushButton:hover {
+    #             background: #f1f5f9;
+    #         }
+    #     """)
+    #     self.notif_btn.clicked.connect(self.show_notifications)
+    #     header_layout.addWidget(self.notif_btn)
+
+    #     # Bouton certificats
+    #     self.certificate_btn = QPushButton("🔔")
+    #     self.certificate_btn.setFixedSize(40, 40)
+    #     self.certificate_btn.setCursor(Qt.PointingHandCursor)
+    #     self.certificate_btn.setToolTip("Notifications des certificats")
+    #     self.certificate_btn.setStyleSheet("""
+    #         QPushButton {
+    #             background: transparent;
+    #             border: none;
+    #             border-radius: 8px;
+    #             font-size: 20px;
+    #             margin: 0px;
+    #             padding: 0px;
+    #             position: relative;
+    #         }
+    #         QPushButton:hover {
+    #             background: rgba(0,0,0,0.05);
+    #         }
+    #     """)
+    #     self.certificate_btn.clicked.connect(self.show_certificate_notifications)
+    #     header_layout.addWidget(self.certificate_btn)
+
+    #     # Badge de notification
+    #     self.notif_badge = QLabel()
+    #     self.notif_badge.setFixedSize(20, 20)
+    #     self.notif_badge.setAlignment(Qt.AlignCenter)
+    #     self.notif_badge.setStyleSheet("""
+    #         QLabel {
+    #             background: #ef4444;
+    #             color: white;
+    #             border-radius: 10px;
+    #             font-size: 10px;
+    #             font-weight: 700;
+    #             border: 2px solid white;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #     """)
+    #     self.notif_badge.hide()
+        
+    #     # Positionner le badge sur le bouton
+    #     self.notif_badge.setParent(self.notif_btn)
+    #     self.notif_badge.move(22, -2)
+        
+    #     # Bouton aide
+    #     self.help_btn = QPushButton("❓")
+    #     self.help_btn.setFixedSize(36, 36)
+    #     self.help_btn.setCursor(Qt.PointingHandCursor)
+    #     self.help_btn.setToolTip("Aide (F1)")
+    #     self.help_btn.setStyleSheet("""
+    #         QPushButton {
+    #             background: transparent;
+    #             border: none;
+    #             border-radius: 8px;
+    #             font-size: 16px;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #         QPushButton:hover {
+    #             background: #f1f5f9;
+    #         }
+    #     """)
+    #     self.help_btn.clicked.connect(self.show_help)
+    #     header_layout.addWidget(self.help_btn)
+        
+    #     # Bouton plein écran
+    #     self.fullscreen_btn = QPushButton("⛶")
+    #     self.fullscreen_btn.setFixedSize(36, 36)
+    #     self.fullscreen_btn.setCursor(Qt.PointingHandCursor)
+    #     self.fullscreen_btn.setToolTip("Plein écran (F11)")
+    #     self.fullscreen_btn.setStyleSheet("""
+    #         QPushButton {
+    #             background: transparent;
+    #             border: none;
+    #             border-radius: 8px;
+    #             font-size: 16px;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #         QPushButton:hover {
+    #             background: #f1f5f9;
+    #         }
+    #     """)
+    #     self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
+    #     header_layout.addWidget(self.fullscreen_btn)
+        
+    #     # Avatar utilisateur
+    #     self.user_avatar = QLabel()
+    #     self.user_avatar.setFixedSize(36, 36)
+    #     self.user_avatar.setAlignment(Qt.AlignCenter)
+    #     self.user_avatar.setCursor(Qt.PointingHandCursor)
+    #     self.user_avatar.setToolTip("Profil utilisateur")
+    #     self.user_avatar.setStyleSheet("""
+    #         QLabel {
+    #             background: #3b82f6;
+    #             color: white;
+    #             font-weight: bold;
+    #             border-radius: 18px;
+    #             font-size: 14px;
+    #             border: none;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #     """)
+    #     self.user_avatar.mousePressEvent = self.show_user_menu
+    #     header_layout.addWidget(self.user_avatar)
+
+    #     # ✅ Bouton de changement de thème
+    #     self.theme_btn = QPushButton("🌓")
+    #     self.theme_btn.setFixedSize(36, 36)
+    #     self.theme_btn.setCursor(Qt.PointingHandCursor)
+    #     self.theme_btn.setToolTip("Changer de thème (Ctrl+T)")
+    #     self.theme_btn.setStyleSheet("""
+    #         QPushButton {
+    #             background: transparent;
+    #             border: none;
+    #             border-radius: 8px;
+    #             font-size: 16px;
+    #             margin: 0px;
+    #             padding: 0px;
+    #         }
+    #         QPushButton:hover {
+    #             background: #f1f5f9;
+    #         }
+    #     """)
+    #     self.theme_btn.clicked.connect(self.toggle_theme)
+    #     header_layout.addWidget(self.theme_btn)
+
     def setup_header(self):
+        
         self.header = QFrame()
         self.header.setObjectName("Header")
         self.header.setFixedHeight(70)
+        self.header.setStyleSheet("""
+            QFrame#Header {
+                background: #ffffff;
+                border: none;
+                border-radius: 0px;
+                margin: 0px;
+                padding: 0px;
+                border-bottom: 1px solid #e2e8f0;
+            }
+        """)
+        
         header_layout = QHBoxLayout(self.header)
-        header_layout.setContentsMargins(25, 0, 25, 0)
-        header_layout.setSpacing(15)
+        header_layout.setContentsMargins(16, 0, 16, 0)
+        header_layout.setSpacing(12)
         
         # ========== PARTIE GAUCHE ==========
         # Bouton Home
-        self.home_btn = QPushButton("🏠")
+        self.home_btn = QPushButton()
         self.home_btn.setFixedSize(36, 36)
         self.home_btn.setCursor(Qt.PointingHandCursor)
         self.home_btn.setToolTip("Accueil (Ctrl+D)")
+        self.home_btn.setIcon(get_icon('home', color='#64748b', size=20))
+        self.home_btn.setIconSize(QSize(20, 20))
         self.home_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                font-size: 18px;
-                border-radius: 10px;
+                border-radius: 8px;
+                margin: 0px;
+                padding: 0px;
             }
             QPushButton:hover {
                 background: #f1f5f9;
@@ -2206,6 +2792,17 @@ class MainWindow(QMainWindow):
         # Titre de la page
         self.page_title = QLabel("Tableau de Bord")
         self.page_title.setObjectName("PageTitle")
+        self.page_title.setStyleSheet("""
+            QLabel#PageTitle {
+                font-size: 20px;
+                font-weight: 700;
+                color: #0f172a;
+                background: transparent;
+                border: none;
+                margin: 0px;
+                padding: 0px;
+            }
+        """)
         header_layout.addWidget(self.page_title)
         
         header_layout.addStretch()
@@ -2217,14 +2814,15 @@ class MainWindow(QMainWindow):
         self.search_bar.setPlaceholderText("🔍 Rechercher un véhicule, client, contrat...")
         self.search_bar.setMinimumWidth(350)
         self.search_bar.setStyleSheet("""
-            QLineEdit {
+            QLineEdit#SearchBar {
                 background: #f1f5f9;
                 border: none;
-                border-radius: 20px;
+                border-radius: 8px;
                 padding: 8px 16px;
                 font-size: 13px;
+                margin: 0px;
             }
-            QLineEdit:focus {
+            QLineEdit#SearchBar:focus {
                 background: white;
                 border: 1px solid #3b82f6;
             }
@@ -2235,17 +2833,45 @@ class MainWindow(QMainWindow):
         header_layout.addStretch()
         
         # ========== PARTIE DROITE ==========
+        
+        # Bouton de changement de thème
+        self.theme_btn = QPushButton()
+        self.theme_btn.setFixedSize(36, 36)
+        self.theme_btn.setCursor(Qt.PointingHandCursor)
+        self.theme_btn.setToolTip("Changer de thème (Ctrl+T)")
+        self.theme_btn.setIconSize(QSize(20, 20))
+        self.theme_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                border-radius: 8px;
+                margin: 0px;
+                padding: 0px;
+            }
+            QPushButton:hover {
+                background: #f1f5f9;
+            }
+        """)
+        self.theme_btn.clicked.connect(self.toggle_theme)
+        
+        # Mettre à jour l'icône du thème
+        # self.update_theme_button_icon()
+        header_layout.addWidget(self.theme_btn)
+        
         # Bouton notifications
-        self.notif_btn = QPushButton("🔔")
+        self.notif_btn = QPushButton()
         self.notif_btn.setFixedSize(36, 36)
         self.notif_btn.setCursor(Qt.PointingHandCursor)
         self.notif_btn.setToolTip("Notifications")
+        self.notif_btn.setIcon(get_icon('bell', color='#64748b', size=20))
+        self.notif_btn.setIconSize(QSize(20, 20))
         self.notif_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                font-size: 18px;
-                border-radius: 10px;
+                border-radius: 8px;
+                margin: 0px;
+                padding: 0px;
             }
             QPushButton:hover {
                 background: #f1f5f9;
@@ -2254,17 +2880,20 @@ class MainWindow(QMainWindow):
         self.notif_btn.clicked.connect(self.show_notifications)
         header_layout.addWidget(self.notif_btn)
 
-        # ✅ Bouton notifications avec badge
-        self.certificate_btn = QPushButton("🔔")
-        self.certificate_btn.setFixedSize(40, 40)
+        # Bouton certificats
+        self.certificate_btn = QPushButton()
+        self.certificate_btn.setFixedSize(36, 36)
         self.certificate_btn.setCursor(Qt.PointingHandCursor)
         self.certificate_btn.setToolTip("Notifications des certificats")
+        self.certificate_btn.setIcon(get_icon('certificate', color='#64748b', size=20))
+        self.certificate_btn.setIconSize(QSize(20, 20))
         self.certificate_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                font-size: 20px;
-                border-radius: 12px;
+                border-radius: 8px;
+                margin: 0px;
+                padding: 0px;
                 position: relative;
             }
             QPushButton:hover {
@@ -2274,6 +2903,7 @@ class MainWindow(QMainWindow):
         self.certificate_btn.clicked.connect(self.show_certificate_notifications)
         header_layout.addWidget(self.certificate_btn)
 
+        # Badge de notification
         self.notif_badge = QLabel()
         self.notif_badge.setFixedSize(20, 20)
         self.notif_badge.setAlignment(Qt.AlignCenter)
@@ -2284,6 +2914,9 @@ class MainWindow(QMainWindow):
                 border-radius: 10px;
                 font-size: 10px;
                 font-weight: 700;
+                border: 2px solid white;
+                margin: 0px;
+                padding: 0px;
             }
         """)
         self.notif_badge.hide()
@@ -2293,16 +2926,19 @@ class MainWindow(QMainWindow):
         self.notif_badge.move(22, -2)
         
         # Bouton aide
-        self.help_btn = QPushButton("❓")
+        self.help_btn = QPushButton()
         self.help_btn.setFixedSize(36, 36)
         self.help_btn.setCursor(Qt.PointingHandCursor)
         self.help_btn.setToolTip("Aide (F1)")
+        self.help_btn.setIcon(get_icon('help', color='#64748b', size=20))
+        self.help_btn.setIconSize(QSize(20, 20))
         self.help_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                font-size: 16px;
-                border-radius: 10px;
+                border-radius: 8px;
+                margin: 0px;
+                padding: 0px;
             }
             QPushButton:hover {
                 background: #f1f5f9;
@@ -2312,16 +2948,19 @@ class MainWindow(QMainWindow):
         header_layout.addWidget(self.help_btn)
         
         # Bouton plein écran
-        self.fullscreen_btn = QPushButton("⛶")
+        self.fullscreen_btn = QPushButton()
         self.fullscreen_btn.setFixedSize(36, 36)
         self.fullscreen_btn.setCursor(Qt.PointingHandCursor)
         self.fullscreen_btn.setToolTip("Plein écran (F11)")
+        self.fullscreen_btn.setIcon(get_icon('fullscreen', color='#64748b', size=20))
+        self.fullscreen_btn.setIconSize(QSize(20, 20))
         self.fullscreen_btn.setStyleSheet("""
             QPushButton {
                 background: transparent;
                 border: none;
-                font-size: 16px;
-                border-radius: 10px;
+                border-radius: 8px;
+                margin: 0px;
+                padding: 0px;
             }
             QPushButton:hover {
                 background: #f1f5f9;
@@ -2343,11 +2982,14 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
                 border-radius: 18px;
                 font-size: 14px;
+                border: none;
+                margin: 0px;
+                padding: 0px;
             }
         """)
         self.user_avatar.mousePressEvent = self.show_user_menu
         header_layout.addWidget(self.user_avatar)
-    
+
     def setup_statusbar(self):
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
@@ -2364,93 +3006,26 @@ class MainWindow(QMainWindow):
     
     def update_clock(self):
         self.clock_label.setText(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
-    
-    # def show_certificate_notifications(self):
-    #     """Affiche le menu déroulant des notifications"""
-    #     if not hasattr(self, '_last_certificate_statuses') or not self._last_certificate_statuses:
-    #         QMessageBox.information(
-    #             self,
-    #             "🔔 Notifications",
-    #             "✅ Tous les certificats sont valides.\n\nAucune notification à afficher."
-    #         )
-    #         return
-        
-    #     # Créer un menu personnalisé
-    #     menu = QMenu(self)
-    #     menu.setStyleSheet("""
-    #         QMenu {
-    #             background: #1e293b;
-    #             border: 1px solid rgba(255,255,255,0.1);
-    #             border-radius: 16px;
-    #             padding: 8px;
-    #             min-width: 350px;
-    #         }
-    #         QMenu::item {
-    #             padding: 8px 16px;
-    #             border-radius: 8px;
-    #             color: #e2e8f0;
-    #         }
-    #         QMenu::item:selected {
-    #             background: rgba(255,255,255,0.08);
-    #         }
-    #         QMenu::separator {
-    #             height: 1px;
-    #             background: rgba(255,255,255,0.1);
-    #             margin: 4px 8px;
-    #         }
-    #     """)
-        
-    #     # Ajouter les éléments
-    #     statuses = self._last_certificate_statuses
-        
-    #     # En-tête
-    #     header_action = menu.addAction("📋 STATUT DES CERTIFICATS")
-    #     header_action.setEnabled(False)
-    #     font = QFont()
-    #     font.setBold(True)
-    #     font.setPointSize(10)
-    #     header_action.setFont(font)
-        
-    #     menu.addSeparator()
-        
-    #     # Liste des statuts
-    #     for status in statuses:
-    #         name = status.get('module_name', 'Inconnu')
-    #         status_type = status.get('status', 'unknown')
-            
-    #         if status_type == 'valid':
-    #             icon = "✅"
-    #             color = "#10b981"
-    #             detail = f"Valide"
-    #         elif status_type == 'expiring':
-    #             icon = "⚠️"
-    #             color = "#f59e0b"
-    #             days = status.get('remaining_days', 0)
-    #             detail = f"Expire dans {days} jours"
-    #         elif status_type == 'expired':
-    #             icon = "❌"
-    #             color = "#ef4444"
-    #             expiry = status.get('expiry_date', 'Date inconnue')
-    #             detail = f"Expiré le {expiry}"
-    #         else:
-    #             icon = "📭"
-    #             color = "#64748b"
-    #             detail = status.get('message', 'Sans certificat')
-            
-    #         action_text = f"{icon} {name}  —  {detail}"
-    #         action = menu.addAction(action_text)
-    #         action.setEnabled(False)
-    #         action.setStyleSheet(f"color: {color}; padding: 4px 8px;")
-        
-    #     menu.addSeparator()
-        
-    #     # Bouton "Tout voir"
-    #     view_all = menu.addAction("🔍 Voir tous les détails")
-    #     view_all.triggered.connect(self.show_certificate_details_dialog)
-        
-    #     # Afficher le menu
-    #     menu.exec(self.notif_btn.mapToGlobal(self.notif_btn.rect().bottomLeft()))
 
+    # def update_theme_button_icon(self):
+    #     """
+    #     Met à jour l'icône du bouton de thème en fonction du thème actuel
+    #     """
+        
+    #     current_theme = self.theme_manager.get_current_theme()
+        
+    #     if current_theme.value == "light":
+    #         # Thème clair -> icône lune pour passer en sombre
+    #         icon = get_icon('moon', color='#64748b', size=20)
+    #         self.theme_btn.setToolTip("Passer au thème sombre (Ctrl+T)")
+    #     else:
+    #         # Thème sombre -> icône soleil pour passer en clair
+    #         icon = get_icon('sun', color='#fbbf24', size=20)
+    #         self.theme_btn.setToolTip("Passer au thème clair (Ctrl+T)")
+        
+    #     self.theme_btn.setIcon(icon)
+    #     self.theme_btn.setIconSize(QSize(20, 20))
+    
     def show_certificate_notifications(self):
         """Affiche le menu déroulant des notifications"""
         if not hasattr(self, '_last_certificate_statuses') or not self._last_certificate_statuses:
@@ -2647,59 +3222,6 @@ class MainWindow(QMainWindow):
         
         about_action = help_menu.addAction("&À propos")
         about_action.triggered.connect(self.show_about)
-
-    # def show_certificate_details_dialog(self):
-    #     """Affiche une boîte de dialogue détaillée des certificats"""
-    #     if not hasattr(self, '_last_certificate_statuses'):
-    #         return
-        
-    #     statuses = self._last_certificate_statuses
-        
-    #     # Compter
-    #     valid = sum(1 for s in statuses if s.get('status') == 'valid')
-    #     expiring = sum(1 for s in statuses if s.get('status') == 'expiring')
-    #     expired = sum(1 for s in statuses if s.get('status') == 'expired')
-    #     no_cert = sum(1 for s in statuses if s.get('status') == 'no_certificate')
-        
-    #     # Construire le message
-    #     details = []
-    #     for status in statuses:
-    #         name = status.get('module_name', 'Inconnu')
-    #         status_type = status.get('status', 'unknown')
-            
-    #         if status_type == 'valid':
-    #             icon = "✅"
-    #             days = status.get('remaining_days', 0)
-    #             detail = f"Valide (reste {days} jours)"
-    #         elif status_type == 'expiring':
-    #             icon = "⚠️"
-    #             days = status.get('remaining_days', 0)
-    #             detail = f"Expire dans {days} jours"
-    #         elif status_type == 'expired':
-    #             icon = "❌"
-    #             expiry = status.get('expiry_date', 'Date inconnue')
-    #             detail = f"Expiré le {expiry}"
-    #         else:
-    #             icon = "📭"
-    #             detail = status.get('message', 'Sans certificat')
-            
-    #         details.append(f"{icon} {name} : {detail}")
-        
-    #     msg = (
-    #         f"📋 RÉSUMÉ DES CERTIFICATS\n\n"
-    #         f"✅ Valides : {valid}\n"
-    #         f"⚠️ Bientôt expirés : {expiring}\n"
-    #         f"❌ Expirés : {expired}\n"
-    #         f"📭 Sans certificat : {no_cert}\n\n"
-    #         f"{'─' * 40}\n\n"
-    #         + "\n".join(details)
-    #     )
-        
-    #     QMessageBox.information(
-    #         self,
-    #         "🔐 Certificats LOMETA",
-    #         msg
-    #     )
 
     def _display_certificate_notification(self, statuses):
         """
@@ -2907,8 +3429,7 @@ class MainWindow(QMainWindow):
             logger.info("Déconnexion")
             self.logout_requested.emit()
             self.close()
-            
-    
+              
     def closeEvent(self, event):
         """Fermeture"""
         if hasattr(self, 'watchdog'):
@@ -3012,21 +3533,11 @@ class MainWindow(QMainWindow):
         """Met à jour l'avatar utilisateur"""
         initials = self.user.username[0].upper() if self.user.username else "U"
         self.user_avatar.setText(initials)
-
-    # def check_for_updates(self):
-    #     """Vérifie les mises à jour sur le serveur"""
-    #     self.update_manager.check_for_updates_async()
-    
+ 
     def check_for_modules(self):
         """Lance la vérification"""
         self.module_checker.check()
     
-    # def show_update_dialog(self, modules):
-    #     """Affiche le dialogue des modules disponibles"""
-    #     print(f"📦 {len(modules)} module(s) disponible(s)")
-    #     dialog = UpdateWidget(modules, self)
-    #     dialog.exec()
-
     def _filter_installed_modules(self, modules):
         """
         Filtre la liste des modules pour ne garder que ceux qui sont installés
@@ -3070,77 +3581,6 @@ class MainWindow(QMainWindow):
         
         return filtered
 
-    # def show_update_dialog(self, modules):
-    #     """
-    #     Affiche le dialogue des modules disponibles.
-    #     Filtre pour ne montrer que les modules installés.
-    #     """
-    #     print(f"📦 {len(modules)} module(s) disponible(s) sur le serveur")
-        
-    #     # Si modules est un dictionnaire, le convertir en liste
-    #     if isinstance(modules, dict):
-    #         modules = list(modules.values())
-        
-    #     if not modules:
-    #         QMessageBox.information(self, "Mise à jour", "Aucun module disponible sur le serveur.")
-    #         return
-        
-    #     # ✅ Récupérer la liste des modules installés
-    #     installed_modules = self.module_detector.get_installed_modules()
-    #     installed_ids = set(installed_modules.keys())
-    #     print(f"📦 Modules installés détectés : {', '.join(installed_ids)}")
-        
-    #     # ✅ Filtrer : ne garder que les modules présents sur le serveur ET installés localement
-    #     filtered_modules = []
-        
-    #     for module in modules:
-    #         module_id = module.get('id')
-    #         if not module_id:
-    #             continue
-            
-    #         print(f"🔍 Vérification du module serveur : {module_id}")
-            
-    #         # Vérifier si le module est installé
-    #         if module_id in installed_ids:
-    #             installed_version = installed_modules[module_id]['version']
-    #             server_version = module.get('version', '0.0.0')
-                
-    #             # Ajouter la version actuelle
-    #             module['current_version'] = installed_version
-    #             module['is_installed'] = True
-                
-    #             # Vérifier si une mise à jour est disponible
-    #             if self._is_newer_version(server_version, installed_version):
-    #                 filtered_modules.append(module)
-    #                 print(f"   📌 Mise à jour disponible : {module_id} ({installed_version} → {server_version})")
-    #             else:
-    #                 print(f"   ✅ Module déjà à jour : {module_id} ({installed_version})")
-    #         else:
-    #             print(f"   ⏭️ Module non installé : {module_id}")
-        
-    #     if not filtered_modules:
-    #         # ✅ Afficher un message plus précis
-    #         QMessageBox.information(
-    #             self, 
-    #             "Mise à jour", 
-    #             "✅ Tous vos modules sont à jour.\n\n"
-    #             f"📦 {len(modules)} module(s) disponible(s) sur le serveur.\n"
-    #             f"📦 {len(installed_ids)} module(s) installé(s) sur votre poste.\n\n"
-    #             f"Aucun module installé ne nécessite de mise à jour."
-    #         )
-    #         return
-        
-    #     print(f"   ✅ {len(filtered_modules)} module(s) à mettre à jour")
-        
-    #     # Convertir en dictionnaire pour UpdateWidget
-    #     modules_dict = {}
-    #     for module in filtered_modules:
-    #         module_id = module.get('id')
-    #         modules_dict[module_id] = module
-        
-    #     dialog = UpdateWidget(modules_dict, self)
-    #     dialog.exec()
-    
     def _show_certificate_status(self, modules):
         """
         Affiche le statut des certificats pour chaque module chargé.
@@ -3163,83 +3603,6 @@ class MainWindow(QMainWindow):
         
         if statuses:
             self._display_certificate_notification(statuses)
-
-    # def _display_certificate_notification(self, statuses):
-    #     """
-    #     Affiche une notification sur les certificats.
-    #     """
-    #     # Compter les statuts
-    #     valid_count = 0
-    #     expiring_count = 0
-    #     expired_count = 0
-    #     no_cert_count = 0
-        
-    #     for status in statuses:
-    #         if status.get('status') == 'valid':
-    #             valid_count += 1
-    #         elif status.get('status') == 'expiring':
-    #             expiring_count += 1
-    #         elif status.get('status') == 'expired':
-    #             expired_count += 1
-    #         else:
-    #             no_cert_count += 1
-        
-    #     # Construire le message
-    #     messages = []
-        
-    #     if valid_count > 0:
-    #         messages.append(f"✅ {valid_count} certificat(s) valide(s)")
-        
-    #     if expiring_count > 0:
-    #         # Détail des modules qui expirent bientôt
-    #         expiring_details = []
-    #         for status in statuses:
-    #             if status.get('status') == 'expiring':
-    #                 days = status.get('remaining_days', 0)
-    #                 name = status.get('module_name', 'Inconnu')
-    #                 expiring_details.append(f"   • {name} (expire dans {days} jours)")
-            
-    #         expiring_msg = f"⚠️ {expiring_count} certificat(s) vont expirer bientôt :\n" + "\n".join(expiring_details)
-    #         messages.append(expiring_msg)
-        
-    #     if expired_count > 0:
-    #         expired_details = []
-    #         for status in statuses:
-    #             if status.get('status') == 'expired':
-    #                 expiry = status.get('expiry_date', 'Date inconnue')
-    #                 name = status.get('module_name', 'Inconnu')
-    #                 expired_details.append(f"   • {name} (expiré le {expiry})")
-            
-    #         expired_msg = f"❌ {expired_count} certificat(s) expiré(s) :\n" + "\n".join(expired_details)
-    #         messages.append(expired_msg)
-        
-    #     if no_cert_count > 0:
-    #         messages.append(f"⚠️ {no_cert_count} module(s) sans certificat")
-        
-    #     # Afficher la notification
-    #     if expired_count > 0:
-    #         # Critique : les modules ne seront pas chargés
-    #         QMessageBox.warning(
-    #             self,
-    #             "⚠️ Certificats expirés",
-    #             "Des modules n'ont pas pu être chargés car leurs certificats sont expirés.\n\n"
-    #             + "\n".join(messages)
-    #         )
-    #     elif expiring_count > 0:
-    #         # Avertissement : les modules expirent bientôt
-    #         QMessageBox.information(
-    #             self,
-    #             "🔔 Certificats bientôt expirés",
-    #             "Certains certificats vont expirer prochainement.\n\n"
-    #             + "\n".join(messages)
-    #             + "\n\nVeuillez contacter votre administrateur pour renouveler les certificats."
-    #         )
-    #     else:
-    #         # Tout est bon
-    #         self.statusBar().showMessage(
-    #             f"✅ {valid_count} module(s) chargé(s) - Certificats valides",
-    #             5000
-    #         )
 
     def _display_certificate_notification(self, statuses):
         """
@@ -3357,54 +3720,6 @@ class MainWindow(QMainWindow):
         except (ValueError, AttributeError):
             return server_version != local_version
     
-    # def show_update_dialog(self, modules):
-    #     """
-    #     Affiche le dialogue des modules disponibles.
-    #     Filtre pour ne montrer que les modules installés.
-    #     """
-    #     print(f"📦 {len(modules)} module(s) disponible(s) sur le serveur")
-        
-    #     # ✅ APPLIQUER LE FILTRE : ne garder que les modules installés
-    #     filtered_modules = self._filter_installed_modules(modules)
-        
-    #     if not filtered_modules:
-    #         QMessageBox.information(
-    #             self, 
-    #             "Mise à jour", 
-    #             "✅ Aucun module installé ne nécessite de mise à jour.\n\n"
-    #             f"📦 {len(modules)} module(s) disponible(s) sur le serveur, "
-    #             "mais aucun n'est installé sur votre poste."
-    #         )
-    #         return
-        
-    #     print(f"   ✅ {len(filtered_modules)} module(s) installé(s) avec mise à jour disponible")
-        
-    #     # Normaliser le format pour UpdateWidget
-    #     if isinstance(filtered_modules, list):
-    #         # Si c'est une liste, la convertir en dictionnaire pour UpdateWidget
-    #         modules_dict = {}
-    #         for module in filtered_modules:
-    #             module_id = module.get('id', module.get('name'))
-    #             modules_dict[module_id] = module
-    #         filtered_modules = modules_dict
-        
-    #     dialog = UpdateWidget(filtered_modules, self)
-    #     dialog.exec()
-
-    # def _is_newer_version(self, server_version, local_version):
-    #     """Compare deux versions sémantiques"""
-    #     try:
-    #         server_parts = [int(x) for x in str(server_version).split('.')]
-    #         local_parts = [int(x) for x in str(local_version).split('.')]
-            
-    #         while len(server_parts) < 3:
-    #             server_parts.append(0)
-    #         while len(local_parts) < 3:
-    #             local_parts.append(0)
-            
-    #         return server_parts > local_parts
-    #     except (ValueError, AttributeError):
-    #         return server_version != local_version
 
 class AppController:
     """Contrôleur principal"""

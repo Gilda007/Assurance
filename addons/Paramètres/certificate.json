@@ -4,16 +4,16 @@
     "module_name": "Gestion des Utilisateurs & S\u00e9curit\u00e9",
     "module_version": "0.0.1",
     "certified_by": "Fearless Cybertech",
-    "certified_date": "2026-08-19T18:39:33+02:00",
-    "expiry_date": "2026-08-23T18:39:33+02:00",
+    "certified_date": "2026-08-20T13:43:48Z",
+    "expiry_date": "2026-08-24T13:43:48Z",
     "certificate_id": "SerialNumber:",
     "serial_number": "SerialNumber:",
     "subject": "        CN=Gestion des Utilisateurs & S\u00c3\u00a9curit\u00c3\u00a9, O=Fearless Cybertech, OU=LOMETA Modules, C=CM, ST=Cameroon, L=Yaound\u00c3\u00a9, emailAddress=admin@lometa.com",
     "issuer": "        CN=LOMETA Developer CA, O=LOMETA Technologies, OU=Developer Tools, C=CM, ST=Cameroon, L=Yaound\u00c3\u00a9",
     "validity": {
-        "not_before": "2026-08-19T18:39:33+02:00",
-        "not_after": "2026-08-23T18:39:33+02:00",
-        "days": 4
+        "not_before": "2026-08-20T15:43:48+02:00",
+        "not_after": "2026-08-26T15:43:48+02:00",
+        "days": 5
     },
     "checksum_algorithm": "SHA-256",
     "checksums": {
@@ -21,7 +21,7 @@
         "controllers/login_controller.py": "e67fe90060538d1bfb5bc99a2828a11063ced59382fd6f4c3fe74ec473cf64a8",
         "controllers/module_controller.py": "2ab74aea94ffbe4df697ba5b48787b45ea046d9173a776a306b69ed29e979db6",
         "controllers/setup_controller.py": "3f1e76931f1b63c8ff430ba07f3adb35828fb33dd825d1c23070c2b5e9255e3d",
-        "main_ui.py": "d6a9992e901cdf8fd1f7fb91756eaae07834ba65f4f2f484b81e3011f027047e",
+        "main_ui.py": "7785361fb62e98e6a3801956d9a24cdcfbb519b2a7e024b2cf041ddedf79735d",
         "manifest.json": "062c61c5344e257d17c281f3b7d7e66c6512d9cbe1e8c3be83d74f9662f788c4",
         "models/models.py": "b0693d43cf2a084725dce63cbbf9f698e912569e90ee641421b726190309b391",
         "reports/audit_exporter.py": "6433e47782101db80dec15d0e92cfa65e998352d04f8dc8b0fdab854777ece67",
@@ -49,7 +49,7 @@
     },
     "metadata": {
         "certified_by": "Fearless Cybertech",
-        "certification_date": "2026-08-19T18:39:33+02:00"
+        "certification_date": "2026-08-21T13:43:48Z"
     },
     "signature_algorithm": "RSA-PSS-SHA256",
     "certificate_chain": []
