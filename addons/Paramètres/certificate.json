@@ -4,16 +4,16 @@
     "module_name": "Gestion des Utilisateurs & S\u00e9curit\u00e9",
     "module_version": "0.0.1",
     "certified_by": "Fearless Cybertech",
-    "certified_date": "2026-08-20T13:43:48Z",
-    "expiry_date": "2026-08-24T13:43:48Z",
+    "certified_date": "2026-08-27T10:12:14Z",
+    "expiry_date": "2026-09-26T10:12:14Z",
     "certificate_id": "SerialNumber:",
     "serial_number": "SerialNumber:",
     "subject": "        CN=Gestion des Utilisateurs & S\u00c3\u00a9curit\u00c3\u00a9, O=Fearless Cybertech, OU=LOMETA Modules, C=CM, ST=Cameroon, L=Yaound\u00c3\u00a9, emailAddress=admin@lometa.com",
     "issuer": "        CN=LOMETA Developer CA, O=LOMETA Technologies, OU=Developer Tools, C=CM, ST=Cameroon, L=Yaound\u00c3\u00a9",
     "validity": {
-        "not_before": "2026-08-20T15:43:48+02:00",
-        "not_after": "2026-08-26T15:43:48+02:00",
-        "days": 5
+        "not_before": "2026-08-27T12:12:14+02:00",
+        "not_after": "2026-09-26T12:12:14+02:00",
+        "days": 30
     },
     "checksum_algorithm": "SHA-256",
     "checksums": {
@@ -49,7 +49,7 @@
     },
     "metadata": {
         "certified_by": "Fearless Cybertech",
-        "certification_date": "2026-08-21T13:43:48Z"
+        "certification_date": "2026-08-27T10:12:14Z"
     },
     "signature_algorithm": "RSA-PSS-SHA256",
     "certificate_chain": []
