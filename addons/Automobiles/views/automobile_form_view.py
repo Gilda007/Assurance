@@ -24,6 +24,20 @@ from addons.Automobiles.controllers.compagnies_controller import CompagnieContro
 # Importer le style unifié
 from addons.Automobiles.views.style import Colors, Fonts, Spacing, create_shadow
 
+def _round_int(self, value):
+    """
+    Arrondit une valeur à l'entier le plus proche
+    
+    Args:
+        value: Valeur à arrondir (float, int, str)
+    
+    Returns:
+        int: Valeur arrondie
+    """
+    try:
+        return int(round(float(value)))
+    except (ValueError, TypeError):
+        return 0
 
 VEHICLE_BRANDS = [
     "ACURA", "ALFA ROMEO", "ALPINE", "ASTON MARTIN", "AUDI", "BENTLEY", "BMW",
@@ -800,7 +814,9 @@ class VehicleForm(QDialog):
             vignette = float(vignette_text.replace(" ", "")) if vignette_text else 0
             carte_rose = self.get_float_value(self.carte_rose)
             
-            pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
+            pttc = int(prime_nette + accessoires + asac + tva + vignette + carte_rose)
+
+
             
             self.pttc.setText(f"{pttc:,.0f}".replace(",", " "))
             return pttc

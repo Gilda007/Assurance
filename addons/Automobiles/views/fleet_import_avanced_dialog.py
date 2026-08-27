@@ -26,6 +26,13 @@ warnings.filterwarnings("ignore")
 from icons import get_icon, get_icon_pixmap, ICONS
 
 
+def round_int(value):
+    """Arrondit une valeur à l'entier le plus proche"""
+    try:
+        return int(round(float(value)))
+    except (ValueError, TypeError):
+        return 0
+
 class Icons:
     """Noms des icônes à utiliser depuis le fichier icons"""
     
@@ -93,6 +100,139 @@ class Icons:
     def get_icon(icon_name, color="#2563eb", size=16):
         """Récupère une icône"""
         return get_icon(icon_name, color=color, size=size)
+
+# ============================================================================
+# THREAD D'IMPORTATION
+# ============================================================================
+
+class ImportThread(QThread):
+    """Thread pour importer les véhicules en arrière-plan"""
+    
+    progress = Signal(int, int, str)  # current, total, message
+    finished = Signal(bool, str, int)  # success, message, imported_count
+    vehicle_imported = Signal(str)     # immatriculation
+    
+    def __init__(self, controller, vehicles_data, fleet_id, owner_id, compagny_id, current_user_id, date_debut, date_fin):
+        super().__init__()
+        self.controller = controller
+        self.vehicles_data = vehicles_data
+        self.fleet_id = fleet_id
+        self.owner_id = owner_id
+        self.compagny_id = compagny_id
+        self.current_user_id = current_user_id
+        self.date_debut = date_debut
+        self.date_fin = date_fin
+        self._is_cancelled = False
+    
+    def cancel(self):
+        self._is_cancelled = True
+    
+    def run(self):
+        imported = 0
+        errors = []
+        total = len(self.vehicles_data)
+        
+        for i, vehicle in enumerate(self.vehicles_data):
+            if self._is_cancelled:
+                self.finished.emit(False, "Importation annulée", imported)
+                return
+            
+            try:
+                # Préparer les données du véhicule
+                garanties = vehicle.get('garanties', {})
+                
+                chassis_value = vehicle.get('chassis', '')
+                if not chassis_value or chassis_value == '':
+                    chassis_value = f"CH-{vehicle['immatriculation']}"
+                
+                # Dates
+                if vehicle.get('date_debut'):
+                    debut = vehicle['date_debut']
+                    if isinstance(debut, datetime):
+                        debut = debut.date()
+                else:
+                    debut = self.date_debut
+                
+                if vehicle.get('date_fin'):
+                    fin = vehicle['date_fin']
+                    if isinstance(fin, datetime):
+                        fin = fin.date()
+                else:
+                    fin = self.date_fin
+                
+                jours = max(1, ((fin - debut).days)) + 1 if fin and debut else 365
+                
+                # Catégorie
+                categorie_value = vehicle.get('categorie', 'VP')
+                if not categorie_value:
+                    categorie_value = 'VP'
+                
+                # Calcul TVA
+                tva_rate = 0.1925
+                total_garanties = garanties.get('total', 0)
+                tva_amount = total_garanties * tva_rate
+                
+                # Récupérer les frais
+                accessoires = vehicle.get('accessoires', 0)
+                asac = vehicle.get('asac', 0)
+                carte_rose = vehicle.get('carte_rose', 0)
+                vignette = vehicle.get('vignette', 0)
+                
+                # Préparer les données du véhicule
+                vehicle_data = build_vehicle_import_payload(
+                    vehicle=vehicle,
+                    owner_id=self.owner_id,
+                    compagny_id=self.compagny_id,
+                    fleet_id=self.fleet_id,
+                    current_user_id=self.current_user_id,
+                    debut=debut,
+                    fin=fin,
+                    jours=jours,
+                    total_garanties=total_garanties,
+                    tva_amount=tva_amount,
+                    accessoires=accessoires,
+                    asac=asac,
+                    carte_rose=carte_rose,
+                    vignette=vignette,
+                )
+                
+                # Appel au contrôleur
+                result = self.controller.vehicles.create_vehicle(vehicle_data, self.current_user_id)
+                
+                if isinstance(result, tuple):
+                    if len(result) == 2:
+                        success, message = result
+                    elif len(result) == 3:
+                        success, _, message = result
+                    else:
+                        success = False
+                        message = "Format de retour inattendu"
+                else:
+                    success = bool(result)
+                    message = "Succès" if success else "Erreur"
+                
+                if success:
+                    imported += 1
+                    self.vehicle_imported.emit(vehicle['immatriculation'])
+                else:
+                    errors.append(f"{vehicle['immatriculation']}: {message}")
+                
+                # Émettre la progression
+                self.progress.emit(i + 1, total, f"{i+1}/{total} - {vehicle['immatriculation']}")
+                
+            except Exception as e:
+                errors.append(f"{vehicle['immatriculation']}: {str(e)}")
+                self.progress.emit(i + 1, total, f"❌ Erreur: {vehicle['immatriculation']}")
+                import traceback
+                traceback.print_exc()
+        
+        # Résultat final
+        if errors:
+            msg = f"{imported} importé(s), {len(errors)} erreur(s)"
+        else:
+            msg = f"{imported} véhicule(s) importé(s) avec succès"
+        
+        self.finished.emit(True, msg, imported)
 
 
 # ============================================================================
@@ -479,43 +619,7 @@ class MassReductionDialog(QDialog):
             cb.setChecked(checked)
         self.update_summary()
     
-    # def update_summary(self):
-    #     """Met Ã  jour le résumé"""
-    #     selected = [key for key, cb in self.garantie_checkboxes.items() if cb.isChecked()]
-    #     pct = self.get_reduction_percentage()
-        
-    #     # Mettre Ã  jour le texte du résumé
-    #     self.summary_text.setText(
-    #         Icons.label(f"{len(selected)} garantie{'s' if len(selected) > 1 else ''} sélectionnée{'s' if len(selected) > 1 else ''} · {pct:.1f}% de réduction", Icons.LIST)
-    #     )
-        
-    #     # Mettre Ã  jour l'aperÃ§u
-    #     self.preview_label.setText(Icons.label(f"{pct:.1f}% de réduction", Icons.INFO))
-        
-    #     # Compter les véhicules impactés
-    #     if self.parent() and hasattr(self.parent(), 'vehicles_data'):
-    #         vehicles = self.parent().vehicles_data
-    #         impacted = 0
-    #         for v in vehicles:
-    #             garanties = v.get('garanties', {})
-    #             for key in selected:
-    #                 if garanties.get(key, 0) > 0:
-    #                     impacted += 1
-    #                     break
-    #         self.summary_vehicles.setText(Icons.label(f"{impacted} véhicule{'s' if impacted > 1 else ''}", Icons.VEHICLE))
-            
-    #         # Calculer les économies totales
-    #         total_economies = 0
-    #         for v in vehicles:
-    #             garanties = v.get('garanties', {})
-    #             for key in selected:
-    #                 amount = garanties.get(key, 0)
-    #                 if amount > 0:
-    #                     total_economies += amount * (pct / 100)
-    #         self.preview_total.setText(Icons.label(f"{total_economies:,.0f}".replace(",", " ") + " FCFA économisés", Icons.MONEY))
-    #     else:
-    #         self.summary_vehicles.setText(Icons.label("Véhicules chargés", Icons.VEHICLE))
-    #         self.preview_total.setText(Icons.label("0 FCFA économisés", Icons.MONEY))
+
     
     def get_selected_garanties(self):
         """Retourne la liste des garanties sélectionnées"""
@@ -550,15 +654,15 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
     reductions = vehicle.get('reductions', 0)
 
     guarantee_amounts = {
-        'amt_rc': float(garanties.get('rc', 0) or 0),
-        'amt_dr': float(garanties.get('dr', 0) or 0),
-        'amt_vol': float(garanties.get('vol', 0) or 0),
-        'amt_vb': float(garanties.get('vb', 0) or 0),
-        'amt_in': float(garanties.get('incendie', garanties.get('in_garantie', 0)) or 0),
-        'amt_bris': float(garanties.get('bris_glace', 0) or 0),
-        'amt_ar': float(garanties.get('ar', 0) or 0),
-        'amt_dta': float(garanties.get('dta', 0) or 0),
-        'amt_ipt': float(garanties.get('ipt', 0) or 0),
+        'amt_rc': round_int(garanties.get('rc', 0) or 0),
+        'amt_dr': round_int(garanties.get('dr', 0) or 0),
+        'amt_vol': round_int(garanties.get('vol', 0) or 0),
+        'amt_vb': round_int(garanties.get('vb', 0) or 0),
+        'amt_in': round_int(garanties.get('incendie', garanties.get('in_garantie', 0)) or 0),
+        'amt_bris': round_int(garanties.get('bris_glace', 0) or 0),
+        'amt_ar': round_int(garanties.get('ar', 0) or 0),
+        'amt_dta': round_int(garanties.get('dta', 0) or 0),
+        'amt_ipt': round_int(garanties.get('ipt', 0) or 0),
     }
 
     guarantee_options = {
@@ -573,17 +677,32 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'check_ipt': guarantee_amounts['amt_ipt'] > 0,
     }
 
+    # --- GARANTIES FLOTTE (VehicleFleetGuarantee) ---
+    # ⚠️ IMPORTANT: Ces valeurs doivent être identiques aux garanties brutes
+    # pour que VehicleFleetGuarantee soit correctement remplie
+    fleet_guarantee_data = {
+        'amt_fleet_rc_val': guarantee_amounts['amt_rc'],
+        'amt_fleet_dr_val': guarantee_amounts['amt_dr'],
+        'amt_fleet_vol_val': guarantee_amounts['amt_vol'],
+        'amt_fleet_vb_val': guarantee_amounts['amt_vb'],
+        'amt_fleet_in_val': guarantee_amounts['amt_in'],
+        'amt_fleet_bris_val': guarantee_amounts['amt_bris'],
+        'amt_fleet_ar_val': guarantee_amounts['amt_ar'],
+        'amt_fleet_dta_val': guarantee_amounts['amt_dta'],
+        'amt_fleet_ipt_val': guarantee_amounts['amt_ipt'],
+    }
+
     #  Récupérer les réductions individuelles
     reductions_individuelles = {
-        'red_rc': float(garanties.get('red_rc', garanties.get('reduction_rc', 0)) or 0),
-        'red_dr': float(garanties.get('red_dr', garanties.get('reduction_dr', 0)) or 0),
-        'red_vol': float(garanties.get('red_vol', garanties.get('reduction_vol', 0)) or 0),
-        'red_vb': float(garanties.get('red_vb', garanties.get('reduction_vb', 0)) or 0),
-        'red_in': float(garanties.get('red_in', garanties.get('reduction_in', 0)) or 0),
-        'red_bris': float(garanties.get('red_bris', garanties.get('reduction_bris', 0)) or 0),
-        'red_ar': float(garanties.get('red_ar', garanties.get('reduction_ar', 0)) or 0),
-        'red_dta': float(garanties.get('red_dta', garanties.get('reduction_dta', 0)) or 0),
-        'red_ipt': float(garanties.get('red_ipt', garanties.get('reduction_ipt', 0)) or 0),
+        'red_rc': round_int(garanties.get('red_rc', garanties.get('reduction_rc', 0)) or 0),
+        'red_dr': round_int(garanties.get('red_dr', garanties.get('reduction_dr', 0)) or 0),
+        'red_vol': round_int(garanties.get('red_vol', garanties.get('reduction_vol', 0)) or 0),
+        'red_vb': round_int(garanties.get('red_vb', garanties.get('reduction_vb', 0)) or 0),
+        'red_in': round_int(garanties.get('red_in', garanties.get('reduction_in', 0)) or 0),
+        'red_bris': round_int(garanties.get('red_bris', garanties.get('reduction_bris', 0)) or 0),
+        'red_ar': round_int(garanties.get('red_ar', garanties.get('reduction_ar', 0)) or 0),
+        'red_dta': round_int(garanties.get('red_dta', garanties.get('reduction_dta', 0)) or 0),
+        'red_ipt': round_int(garanties.get('red_ipt', garanties.get('reduction_ipt', 0)) or 0),
     }
 
     #  Calcul de la TVA (sur la base de la prime nette)
@@ -591,7 +710,7 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
     # tva = base_tva * 0.1925
     tva_rate = 0.1925
     base_tva = prime_nette + accessoires + asac
-    tva_calculee = base_tva * tva_rate
+    tva_calculee = round_int(base_tva * tva_rate)
     
     #  Calcul du PTTC
     # pttc = prime_nette + accessoires + asac + tva + vignette + carte_rose
@@ -603,13 +722,13 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'marque': vehicle.get('marque', ''),
         'modele': vehicle.get('modele', ''),
         'annee': vehicle.get('annee', None),
-        'puissance_fiscale': vehicle.get('puissance', 0),
-        'places': vehicle.get('places', 5),
+        'puissance_fiscale': round_int(vehicle.get('puissance', 0)),
+        'places': round_int(vehicle.get('places', 5)),
         'cylindree': 0,
         'ptac': 0,
         'charge_utile': 0,
-        'valeur_neuf': vehicle.get('valeur_neuf', 0),
-        'valeur_venale': vehicle.get('valeur_venale', 0),
+        'valeur_neuf': round_int(vehicle.get('valeur_neuf', 0)),
+        'valeur_venale': round_int(vehicle.get('valeur_venale', 0)),
         'has_remorque': False,
         'remorque_inflammable': False,
         'remorque_immat': '',
@@ -622,16 +741,16 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'date_debut': debut,
         'date_fin': fin,
         'date_mise_circulation': vehicle.get('date_mise_circulation', None),
-        'nbr_jour': jours,
-        'prime_brute': prime_brute,  #  Prime brute du fichier
-        'reduction': reductions,      #  Réductions du fichier
-        'prime_nette': prime_nette,   #  Prime nette du fichier
-        'prime_emise': prime_nette,   #  Prime émise = prime nette
-        'accessoires': accessoires,
+        'nbr_jour': round_int(jours),
+        'prime_brute': prime_brute,
+        'reduction': reductions,
+        'prime_nette': prime_nette,
+        'prime_emise': prime_nette,
+        'accessoires': round_int(accessoires),
         'tva': tva_calculee,
-        'fichier_asac': asac,
-        'carte_rose': carte_rose,
-        'vignette': vignette,
+        'fichier_asac': round_int(asac),
+        'carte_rose': round_int(carte_rose),
+        'vignette': round_int(vignette),
         'pttc': pttc_calcule,
         'statut': 'ACTIF',
         'is_active': True,
@@ -652,6 +771,7 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         **guarantee_amounts,
         **guarantee_options,
         **reductions_individuelles,
+        **fleet_guarantee_data,
         'amt_val_red_rc': 0,
         'amt_val_red_dr': 0,
         'amt_val_red_vol': 0,
@@ -671,7 +791,7 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
         'amt_fleet_dta_val': 0,
         'amt_fleet_ipt_val': 0,
     }
-
+    
 class VehicleGarantieDialog(QDialog):
     """Dialogue de personnalisation complète d'un véhicule"""
     
@@ -1196,7 +1316,7 @@ class VehicleGarantieDialog(QDialog):
             if not widget or not widget.text():
                 return 0.0
             txt = widget.text().strip().replace(" ", "").replace(",", ".")
-            return float(txt) if txt else 0.0
+            return int(round(float(txt))) if txt else 0
         except:
             return 0.0
     
@@ -1209,11 +1329,11 @@ class VehicleGarantieDialog(QDialog):
             if inputs['checkbox'].isChecked():
                 try:
                     amount_text = inputs['amount'].text().replace(" ", "").replace(",", "")
-                    amount = float(amount_text) if amount_text else 0
+                    amount = int(round(float(amount_text))) if amount_text else 0
                     data[key] = amount
                     
                     reduction_text = inputs['reduction'].text().replace("%", "").strip()
-                    reduction = float(reduction_text) if reduction_text else 0
+                    reduction = int(round(float(reduction_text))) if reduction_text else 0
                     data[f'reduction_{key}'] = reduction
                 except:
                     data[key] = 0
@@ -4779,6 +4899,183 @@ class FleetImportAdvancedDialog(QDialog):
         vignette_item.setTextAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.vehicles_table.setItem(row, 28, vignette_item)
 
+    # def import_fleet(self):
+    #     """Importe la flotte dans la base de données"""
+    #     # Récupérer les véhicules sélectionnés
+    #     selected = []
+    #     for row in range(self.vehicles_table.rowCount()):
+    #         item = self.vehicles_table.item(row, 0)
+    #         if item and item.checkState() == Qt.Checked:
+    #             if row < len(self.vehicles_data):
+    #                 selected.append(self.vehicles_data[row])
+    #                 # self.apply_global_frais_to_selected()
+        
+    #     if not selected:
+    #         QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
+    #         return
+        
+    #     #  VéRIFIER QU'UNE COMPAGNIE EST SéLECTIONNéE
+    #     # Récupérer l'ID de la compagnie depuis la combo box
+    #     compagny_id = self.compagny_combo.currentData() if hasattr(self, 'compagny_combo') else None
+        
+    #     # Si la combo box n'existe pas ou n'est pas dans l'UI, on la crée
+    #     if not hasattr(self, 'compagny_combo'):
+    #         # Demander Ã  l'utilisateur de sélectionner une compagnie
+    #         compagny_id = self._ask_for_compagny()
+    #         if not compagny_id:
+    #             return
+    #     elif not compagny_id:
+    #         QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une compagnie d'assurance")
+    #         return
+        
+    #     try:
+    #         # Récupérer l'ID du propriétaire
+    #         owner_id = None
+    #         if hasattr(self.parent(), 'contact'):
+    #             owner_id = self.parent().contact.id
+            
+    #         if hasattr(self.controller, 'current_user_id'):
+    #             current_user_id = self.controller.current_user_id
+    #         else:
+    #             current_user_id = 1
+            
+    #         # Créer ou récupérer la flotte
+    #         fleet_id = None
+            
+    #         if self.mode_new.isChecked():
+    #             fleet_name = self.fleet_name.text().strip()
+    #             if not fleet_name:
+    #                 QMessageBox.warning(self, "Erreur", "Veuillez entrer un nom de flotte")
+    #                 return
+                
+    #             fleet_data = {
+    #                 'nom_flotte': fleet_name,
+    #                 'code_flotte': self.fleet_code.text().strip(),
+    #                 'owner_id': owner_id,
+    #                 'statut': 'Actif',
+    #                 'assureur': compagny_id,  #  Utiliser l'ID de la compagnie
+    #                 'date_debut': self.date_debut.date().toPython(),
+    #                 'date_fin': self.date_fin.date().toPython(),
+    #             }
+                
+    #             success, result = self.controller.fleets.create_fleet(fleet_data, current_user_id)
+    #             if not success:
+    #                 QMessageBox.critical(self, "Erreur", f"Erreur création flotte: {result}")
+    #                 return
+    #             fleet_id = result.id if hasattr(result, 'id') else result
+    #         else:
+    #             fleet_id = self.existing_fleet_combo.currentData()
+    #             if not fleet_id:
+    #                 QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une flotte")
+    #                 return
+            
+    #         #  IMPORTER LES VéHICULES
+    #         imported = 0
+    #         errors = []
+            
+    #         for vehicle in selected:
+    #             try:
+    #                 # Préparer les données du véhicule
+    #                 garanties = vehicle.get('garanties', {})
+                    
+    #                 chassis_value = vehicle.get('chassis', '')
+    #                 if not chassis_value or chassis_value == '':
+    #                     chassis_value = f"CH-{vehicle['immatriculation']}"
+                    
+    #                 # Dates
+    #                 if vehicle.get('date_debut'):
+    #                     debut = vehicle['date_debut']
+    #                     if isinstance(debut, datetime):
+    #                         debut = debut.date()
+    #                 else:
+    #                     debut = self.date_debut.date().toPython()
+                    
+    #                 if vehicle.get('date_fin'):
+    #                     fin = vehicle['date_fin']
+    #                     if isinstance(fin, datetime):
+    #                         fin = fin.date()
+    #                 else:
+    #                     fin = self.date_fin.date().toPython()
+                    
+    #                 jours = max(1, ((fin - debut).days))+1 if fin and debut else 365
+                    
+    #                 # Catégorie
+    #                 categorie_value = vehicle.get('categorie', 'VP')
+    #                 if not categorie_value:
+    #                     categorie_value = 'VP'
+                    
+    #                 # Calcul TVA
+    #                 tva_rate = 0.1925
+    #                 total_garanties = garanties.get('total', 0)
+    #                 tva_amount = total_garanties * tva_rate
+                    
+    #                 # Récupérer les frais
+    #                 accessoires = vehicle.get('accessoires', 0)
+    #                 asac = vehicle.get('asac', 0)
+    #                 carte_rose = vehicle.get('carte_rose', 0)
+    #                 vignette = vehicle.get('vignette', 0)
+                    
+    #                 #  PRéPARER LES DONNéES DU VéHICULE
+    #                 vehicle_data = build_vehicle_import_payload(
+    #                     vehicle=vehicle,
+    #                     owner_id=owner_id,
+    #                     compagny_id=compagny_id,
+    #                     fleet_id=fleet_id,
+    #                     current_user_id=current_user_id,
+    #                     debut=debut,
+    #                     fin=fin,
+    #                     jours=jours,
+    #                     total_garanties=total_garanties,
+    #                     tva_amount=tva_amount,
+    #                     accessoires=accessoires,
+    #                     asac=asac,
+    #                     carte_rose=carte_rose,
+    #                     vignette=vignette,
+    #                 )
+                    
+    #                 # print(vehicle_data)
+    #                 #  APPEL AU CONTROLLER
+    #                 result = self.controller.vehicles.create_vehicle(vehicle_data, current_user_id)
+                    
+    #                 if isinstance(result, tuple):
+    #                     if len(result) == 2:
+    #                         success, message = result
+    #                     elif len(result) == 3:
+    #                         success, _, message = result
+    #                     else:
+    #                         success = False
+    #                         message = "Format de retour inattendu"
+    #                 else:
+    #                     success = bool(result)
+    #                     message = "Succès" if success else "Erreur"
+                    
+    #                 if success:
+    #                     imported += 1
+    #                     # print(f" Véhicule {vehicle['immatriculation']} importé avec succès")
+    #                 else:
+    #                     errors.append(f"{vehicle['immatriculation']}: {message}")
+                        
+    #             except Exception as e:
+    #                 errors.append(f"{vehicle['immatriculation']}: {str(e)}")
+    #                 traceback.print_exc()
+            
+    #         #  AFFICHER LE RéSULTAT
+    #         if imported > 0:
+    #             msg = f" {imported} véhicule(s) importés avec succès"
+    #             if errors:
+    #                 msg += f"\n\nâš ï¸ {len(errors)} erreur(s):\n" + "\n".join(errors[:5])
+    #             QMessageBox.information(self, "Importation terminée", msg)
+                
+    #             #  émettre le signal pour rafraÃ®chir la vue parente
+    #             self.data_changed.emit()
+    #             self.accept()
+    #         else:
+    #             QMessageBox.critical(self, "Erreur", "\n".join(errors[:5]))
+                
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "Erreur", str(e))
+    #         traceback.print_exc()
+
     def import_fleet(self):
         """Importe la flotte dans la base de données"""
         # Récupérer les véhicules sélectionnés
@@ -4788,19 +5085,15 @@ class FleetImportAdvancedDialog(QDialog):
             if item and item.checkState() == Qt.Checked:
                 if row < len(self.vehicles_data):
                     selected.append(self.vehicles_data[row])
-                    # self.apply_global_frais_to_selected()
         
         if not selected:
             QMessageBox.warning(self, "Erreur", "Aucun véhicule sélectionné")
             return
         
-        #  VéRIFIER QU'UNE COMPAGNIE EST SéLECTIONNéE
-        # Récupérer l'ID de la compagnie depuis la combo box
+        # Vérifier qu'une compagnie est sélectionnée
         compagny_id = self.compagny_combo.currentData() if hasattr(self, 'compagny_combo') else None
         
-        # Si la combo box n'existe pas ou n'est pas dans l'UI, on la crée
         if not hasattr(self, 'compagny_combo'):
-            # Demander Ã  l'utilisateur de sélectionner une compagnie
             compagny_id = self._ask_for_compagny()
             if not compagny_id:
                 return
@@ -4833,7 +5126,7 @@ class FleetImportAdvancedDialog(QDialog):
                     'code_flotte': self.fleet_code.text().strip(),
                     'owner_id': owner_id,
                     'statut': 'Actif',
-                    'assureur': compagny_id,  #  Utiliser l'ID de la compagnie
+                    'assureur': compagny_id,
                     'date_debut': self.date_debut.date().toPython(),
                     'date_fin': self.date_fin.date().toPython(),
                 }
@@ -4849,112 +5142,112 @@ class FleetImportAdvancedDialog(QDialog):
                     QMessageBox.warning(self, "Erreur", "Veuillez sélectionner une flotte")
                     return
             
-            #  IMPORTER LES VéHICULES
-            imported = 0
-            errors = []
+            # ✅ Désactiver les boutons pendant l'importation
+            self.import_btn.setEnabled(False)
+            self.cancel_btn.setEnabled(False)
+            self.import_btn.setText("⏳ Importation en cours...")
             
-            for vehicle in selected:
-                try:
-                    # Préparer les données du véhicule
-                    garanties = vehicle.get('garanties', {})
-                    
-                    chassis_value = vehicle.get('chassis', '')
-                    if not chassis_value or chassis_value == '':
-                        chassis_value = f"CH-{vehicle['immatriculation']}"
-                    
-                    # Dates
-                    if vehicle.get('date_debut'):
-                        debut = vehicle['date_debut']
-                        if isinstance(debut, datetime):
-                            debut = debut.date()
-                    else:
-                        debut = self.date_debut.date().toPython()
-                    
-                    if vehicle.get('date_fin'):
-                        fin = vehicle['date_fin']
-                        if isinstance(fin, datetime):
-                            fin = fin.date()
-                    else:
-                        fin = self.date_fin.date().toPython()
-                    
-                    jours = max(1, ((fin - debut).days))+1 if fin and debut else 365
-                    
-                    # Catégorie
-                    categorie_value = vehicle.get('categorie', 'VP')
-                    if not categorie_value:
-                        categorie_value = 'VP'
-                    
-                    # Calcul TVA
-                    tva_rate = 0.1925
-                    total_garanties = garanties.get('total', 0)
-                    tva_amount = total_garanties * tva_rate
-                    
-                    # Récupérer les frais
-                    accessoires = vehicle.get('accessoires', 0)
-                    asac = vehicle.get('asac', 0)
-                    carte_rose = vehicle.get('carte_rose', 0)
-                    vignette = vehicle.get('vignette', 0)
-                    
-                    #  PRéPARER LES DONNéES DU VéHICULE
-                    vehicle_data = build_vehicle_import_payload(
-                        vehicle=vehicle,
-                        owner_id=owner_id,
-                        compagny_id=compagny_id,
-                        fleet_id=fleet_id,
-                        current_user_id=current_user_id,
-                        debut=debut,
-                        fin=fin,
-                        jours=jours,
-                        total_garanties=total_garanties,
-                        tva_amount=tva_amount,
-                        accessoires=accessoires,
-                        asac=asac,
-                        carte_rose=carte_rose,
-                        vignette=vignette,
-                    )
-                    
-                    # print(vehicle_data)
-                    #  APPEL AU CONTROLLER
-                    result = self.controller.vehicles.create_vehicle(vehicle_data, current_user_id)
-                    
-                    if isinstance(result, tuple):
-                        if len(result) == 2:
-                            success, message = result
-                        elif len(result) == 3:
-                            success, _, message = result
-                        else:
-                            success = False
-                            message = "Format de retour inattendu"
-                    else:
-                        success = bool(result)
-                        message = "Succès" if success else "Erreur"
-                    
-                    if success:
-                        imported += 1
-                        # print(f" Véhicule {vehicle['immatriculation']} importé avec succès")
-                    else:
-                        errors.append(f"{vehicle['immatriculation']}: {message}")
-                        
-                except Exception as e:
-                    errors.append(f"{vehicle['immatriculation']}: {str(e)}")
-                    traceback.print_exc()
+            # ✅ Afficher la barre de progression
+            self.progress_widget.setVisible(True)
+            self.progress_bar.setValue(0)
+            self.progress_label.setText("Préparation de l'importation...")
             
-            #  AFFICHER LE RéSULTAT
-            if imported > 0:
-                msg = f" {imported} véhicule(s) importés avec succès"
-                if errors:
-                    msg += f"\n\nâš ï¸ {len(errors)} erreur(s):\n" + "\n".join(errors[:5])
-                QMessageBox.information(self, "Importation terminée", msg)
-                
-                #  émettre le signal pour rafraÃ®chir la vue parente
-                self.data_changed.emit()
-                self.accept()
-            else:
-                QMessageBox.critical(self, "Erreur", "\n".join(errors[:5]))
-                
+            # ✅ Créer et démarrer le thread d'importation
+            self.import_thread = ImportThread(
+                controller=self.controller,
+                vehicles_data=selected,
+                fleet_id=fleet_id,
+                owner_id=owner_id,
+                compagny_id=compagny_id,
+                current_user_id=current_user_id,
+                date_debut=self.date_debut.date().toPython(),
+                date_fin=self.date_fin.date().toPython()
+            )
+            
+            # Connecter les signaux
+            self.import_thread.progress.connect(self._on_import_progress)
+            self.import_thread.vehicle_imported.connect(self._on_vehicle_imported)
+            self.import_thread.finished.connect(self._on_import_finished)
+            
+            # Démarrer le thread
+            self.import_thread.start()
+            
         except Exception as e:
             QMessageBox.critical(self, "Erreur", str(e))
             traceback.print_exc()
+            # Réactiver les boutons en cas d'erreur
+            self.import_btn.setEnabled(True)
+            self.cancel_btn.setEnabled(True)
+            self.import_btn.setText(" Importer la flotte")
+
+    def _on_import_progress(self, current, total, message):
+        """Met à jour la progression de l'importation"""
+        progress = int((current / total) * 100) if total > 0 else 0
+        self.progress_bar.setValue(progress)
+        self.progress_label.setText(message)
+        QApplication.processEvents()  # Forcer l'update UI
+
+    def _on_vehicle_imported(self, immatriculation):
+        """Signal émis quand un véhicule est importé avec succès"""
+        # Optionnel: mettre à jour l'affichage
+        pass
+
+    def _on_import_finished(self, success, message, imported_count):
+        """Termine l'importation"""
+        # Arrêter le timer de progression s'il existe
+        if hasattr(self, 'progress_timer') and self.progress_timer:
+            self.progress_timer.stop()
+        
+        # Cacher la barre de progression
+        self.progress_widget.setVisible(False)
+        
+        # Réactiver les boutons
+        self.import_btn.setEnabled(True)
+        self.cancel_btn.setEnabled(True)
+        self.import_btn.setText(" Importer la flotte")
+        
+        if success:
+            if imported_count > 0:
+                QMessageBox.information(
+                    self,
+                    "Importation terminée",
+                    f"✅ {imported_count} véhicule(s) importé(s) avec succès !\n\n{message}"
+                )
+                self.data_changed.emit()
+                self.accept()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "Importation terminée",
+                    f"Aucun véhicule importé.\n\n{message}"
+                )
+        else:
+            QMessageBox.critical(
+                self,
+                "Erreur d'importation",
+                f"❌ {message}\n\nVeuillez vérifier les données et réessayer."
+            )
+        
+        # Nettoyer le thread
+        self.import_thread = None
+
+    def closeEvent(self, event):
+        """Gère la fermeture de la fenêtre"""
+        if hasattr(self, 'import_thread') and self.import_thread and self.import_thread.isRunning():
+            reply = QMessageBox.question(
+                self,
+                "Importation en cours",
+                "L'importation est en cours. Voulez-vous l'annuler et quitter ?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if reply == QMessageBox.Yes:
+                self.import_thread.cancel()
+                self.import_thread.wait(3000)
+                event.accept()
+            else:
+                event.ignore()
+        else:
+            event.accept()
 
     def _ask_for_compagny(self):
         """Demande Ã  l'utilisateur de sélectionner une compagnie"""
@@ -5026,7 +5319,8 @@ class FleetImportAdvancedDialog(QDialog):
         layout.addWidget(info)
         
         return group
-    
+
+
 # ============================================================================
 # FONCTION PRINCIPALE D'EXPORT
 # ============================================================================

@@ -670,8 +670,7 @@ class ContactController:
             Contact.email.ilike(pattern) | 
             Contact.nature.ilike(pattern) |
             Contact.type_client.ilike(pattern) |  # ✅ Ajout du type_client
-            Contact.code_client.ilike(pattern) |   # ✅ Ajout du code_client
-            Contact.code_chauffeur.ilike(pattern)  # ✅ Ajout du code_chauffeur
+            Contact.code_client.ilike(pattern)   # ✅ Ajout du code_client
         ).limit(10).all()
 
     def search_drivers(self, search_text):

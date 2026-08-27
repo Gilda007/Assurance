@@ -584,15 +584,15 @@ class VehicleController:
         taxes = prime_pure * 0.1925  # TVA 19.25%
         
         # Frais optionnels
-        carte_rose = float(data.get('carte_rose', 25000))
-        vignette = float(data.get('vignette', 5000))
-        fichier_asac = float(data.get('fichier_asac', 2000))
-        timbre = float(data.get('timbre', 1000))
-        accessoires = float(data.get('accessoires', 0))
-        commission = float(data.get('commission_intermediaire', 0))
+        carte_rose = int(data.get('carte_rose', 25000))
+        vignette = int(data.get('vignette', 5000))
+        fichier_asac = int(data.get('fichier_asac', 2000))
+        timbre = int(data.get('timbre', 1000))
+        accessoires = int(data.get('accessoires', 0))
+        commission = int(data.get('commission_intermediaire', 0))
         
         # Total TTC
-        total_ttc = float(data.get('pttc', 0))
+        total_ttc = int(data.get('pttc', 0))
         print(f'le montant à payer est de {total_ttc} FCFA')
         
         return {
@@ -705,15 +705,14 @@ class VehicleController:
                     driver = self.session.query(Driver).filter(Driver.id == vehicle.driver_id).first()
                     if driver:
                         # ✅ Utiliser les noms de colonnes du modèle Driver
-                        driver.driver_name = driver_data.get('nom', driver.driver_name)
+                        driver.driver_name = driver_data.get('nom', driver.nom)
                         # Si le formulaire envoie 'prenom', on l'ajoute au nom
                         if driver_data.get('prenom'):
                             driver.driver_name = f"{driver_data.get('nom', '')} {driver_data.get('prenom', '')}".strip()
-                        driver.driver_birth_date = driver_data.get('date_naissance', driver.driver_birth_date)
-                        driver.driver_licence_number = driver_data.get('num_permis', driver.driver_licence_number)
-                        driver.driver_licence_category = driver_data.get('categorie_permis', driver.driver_licence_category)
-                        driver.driver_licence_issued_at = driver_data.get('date_permis', driver.driver_licence_issued_at)
-                        driver.driver_licence_issued_by = driver_data.get('autorite_delivrance', driver.driver_licence_issued_by)
+                        driver.driver_birth_date = driver_data.get('date_naissance', driver.date_naissance)
+                        driver.driver_licence_number = driver_data.get('num_permis', driver.num_permis)
+                        driver.driver_licence_category = driver_data.get('categorie_permis', driver.cat_permis)
+                        driver.driver_licence_issued_at = driver_data.get('date_permis', driver.date_permis)
                         driver.updated_at = datetime.now()
                         print(f"✓ Conducteur mis à jour: {driver.id}")
                 else:
@@ -2479,11 +2478,10 @@ class VehicleController:
             if vehicle.driver:
                 driver = vehicle.driver
                 driver_name = getattr(driver, 'driver_name', 'N/A')
-                driver_birth = driver.driver_birth_date.strftime('%Y/%m/%d') if driver.driver_birth_date else "N/A"
-                driver_licence = getattr(driver, 'driver_licence_number', 'N/A')
-                driver_category = getattr(driver, 'driver_licence_category', 'N/A')
-                driver_issued_at = driver.driver_licence_issued_at.strftime('%Y/%m/%d') if driver.driver_licence_issued_at else "N/A"
-                driver_issued_by = getattr(driver, 'driver_licence_issued_by', 'N/A')
+                driver_birth = driver.date_naissance.strftime('%Y/%m/%d') if driver.date_naissance else "N/A"
+                driver_licence = getattr(driver, 'num_permis', 'N/A')
+                driver_category = getattr(driver, 'cat_permis', 'N/A')
+                driver_issued_at = driver.date_permis.strftime('%Y/%m/%d') if driver.date_permis else "N/A"
 
             # ============================================================
             # 6. CLASSIFICATION ASAC

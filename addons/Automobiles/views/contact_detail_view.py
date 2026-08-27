@@ -1173,37 +1173,6 @@ class ContactDetailView(QDialog):
             import traceback
             traceback.print_exc()
 
-    # def refresh_all_data(self):
-    #     """
-    #     Rafraîchit toutes les données de la page (contrats, véhicules, flottes, cartes)
-    #     """
-    #     # Désactiver le bouton pendant l'actualisation
-    #     self.btn_refresh.setEnabled(False)
-    #     self.btn_refresh.setText("⏳ Actualisation...")
-        
-    #     # Forcer le rafraîchissement des données
-    #     # 1. Contrats
-    #     self.load_contrats()
-        
-    #     # 2. Véhicules
-    #     self.load_vehicules()
-        
-    #     # 3. Flottes
-    #     self.load_flottes()
-        
-    #     # 4. Mettre à jour les cartes de résumé
-    #     self._update_summary_cards()
-        
-    #     # 5. Mettre à jour l'en-tête avec les dernières infos
-    #     self._update_header_info()
-        
-    #     # Réactiver le bouton
-    #     self.btn_refresh.setEnabled(True)
-    #     self.btn_refresh.setText("🔄 Actualiser")
-        
-    #     # Notification
-    #     QMessageBox.information(self, "Actualisation", "✅ Toutes les données ont été actualisées avec succès.")
-
     def refresh_all_data(self):
         """
         Rafraîchit toutes les données de la page (contrats, véhicules, flottes, cartes)

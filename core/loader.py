@@ -827,3 +827,6 @@ class AddonLoader:
             logger.error(f"  [ERREUR] Échec du chargement de {folder_name} : {str(e)}")
             logger.error(traceback.format_exc())
             return None
+
+
+            

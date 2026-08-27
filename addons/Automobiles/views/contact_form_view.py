@@ -1145,6 +1145,8 @@ class ContactForm(QDialog):
     def _load_data(self):
         """Charge les données existantes"""
         if not self.contact_data:
+            if self.type_client.currentIndex() == 0:
+                self._generate_and_set_client_code()
             return
         
         # ✅ Déterminer si c'est un chauffeur ou un souscripteur
@@ -1234,7 +1236,22 @@ class ContactForm(QDialog):
         if not is_driver:
             # ✅ Souscripteur
             if hasattr(self, 'subscriber_code'):
-                self.subscriber_code.setText(getattr(self.contact_data, 'code_client', ''))
+                existing_code = getattr(self.contact_data, 'code_client', '')
+                if existing_code:
+                    self.subscriber_code.setText(existing_code)
+                    self.subscriber_code.setStyleSheet("""
+                        QLineEdit#readonly {
+                            background: #f1f5f9;
+                            color: #2563eb;
+                            font-weight: bold;
+                            border: 2px solid #2563eb;
+                            border-radius: 8px;
+                            padding: 9px 14px;
+                        }
+                    """)
+                else:
+                    # Si le contact n'a pas de code, en générer un
+                    self._generate_and_set_client_code()
             
             if hasattr(self, 'profession'):
                 profession = getattr(self.contact_data, 'profession', '')
@@ -1418,23 +1435,42 @@ class ContactForm(QDialog):
         self.status_label.setText("Photo effacée")
         self.status_label.setStyleSheet("color: #64748b; font-size: 11px;")
 
+    # def _on_type_changed(self, index):
+    #     """Gère le changement de type de client"""
+    #     self.specific_stack.setCurrentIndex(index)
+    #     self._update_visibility()
+        
+    #     # ✅ Recharger les souscripteurs quand on passe en mode Chauffeur
+    #     if index == 1:  # Chauffeur
+    #         self._load_subscribers()
+        
+    #     # Mettre à jour le placeholder
+    #     if index == 0:  # Souscripteur
+    #         self.nom.setPlaceholderText("Nom / Raison sociale")
+    #         self.nom.setVisible(True)
+    #     else:  # Chauffeur
+    #         self.nom.setPlaceholderText("Nom complet du chauffeur")
+    #         self.nom.setVisible(True)
+    
     def _on_type_changed(self, index):
         """Gère le changement de type de client"""
         self.specific_stack.setCurrentIndex(index)
         self._update_visibility()
         
-        # ✅ Recharger les souscripteurs quand on passe en mode Chauffeur
         if index == 1:  # Chauffeur
             self._load_subscribers()
+            # ✅ Générer le code chauffeur automatiquement
+            self._generate_and_set_driver_code()
+        else:  # Souscripteur
+            # ✅ Générer le code client automatiquement
+            self._generate_and_set_client_code()
         
         # Mettre à jour le placeholder
-        if index == 0:  # Souscripteur
+        if index == 0:
             self.nom.setPlaceholderText("Nom / Raison sociale")
-            self.nom.setVisible(True)
-        else:  # Chauffeur
+        else:
             self.nom.setPlaceholderText("Nom complet du chauffeur")
-            self.nom.setVisible(True)
-            
+        self.nom.setVisible(True)
     # ============================================================
     # GESTION DE LA FENÊTRE
     # ============================================================
@@ -1466,6 +1502,53 @@ class ContactForm(QDialog):
     # VALIDATION ET SAUVEGARDE
     # ============================================================
 
+    # def validate_and_save(self):
+    #     """Valide et sauvegarde"""
+    #     errors = self._validate()
+        
+    #     if errors:
+    #         QMessageBox.warning(self, "⚠️ Champs obligatoires",
+    #             f"Veuillez corriger les erreurs suivantes :\n\n" + "\n".join(errors))
+    #         return
+        
+    #     try:
+    #         data = self._get_data()
+            
+    #         # ✅ Déterminer la table de destination en fonction du type
+    #         if self.type_client.currentText() == "Chauffeur":
+    #             # ✅ Sauvegarder dans Driver
+    #             if self.mode == "edit" and self.contact_data:
+    #                 # Pour l'édition d'un chauffeur
+    #                 if hasattr(self.controller, 'drivers'):
+    #                     result = self.controller.drivers.update_driver(self.contact_data.id, data)
+    #                 else:
+    #                     result = self.controller.contacts.update_driver(self.contact_data.id, data)
+    #             else:
+    #                 # Création d'un nouveau chauffeur
+    #                 if hasattr(self.controller, 'drivers'):
+    #                     result = self.controller.drivers.create_driver(data)
+    #                 else:
+    #                     result = self.controller.contacts.create_driver(data)
+    #         else:
+    #             # ✅ Sauvegarder dans Contact (Souscripteur)
+    #             if self.mode == "edit" and self.contact_data:
+    #                 result = self.controller.contacts.update_contact(self.contact_data.id, data)
+    #             else:
+    #                 result = self.controller.contacts.create_contact(data)
+            
+    #         # ✅ Vérifier le résultat (objet, success, message)
+    #         if result and result[1]:  # (objet, success, message)
+    #             self.contact_saved.emit(result[0])
+    #             QMessageBox.information(self, "✅ Succès", result[2])
+    #             self.accept()
+    #         else:
+    #             QMessageBox.critical(self, "❌ Erreur", result[2] if result else "Erreur inconnue")
+                    
+    #     except Exception as e:
+    #         QMessageBox.critical(self, "❌ Erreur", f"Erreur : {str(e)}")
+    #         import traceback
+    #         traceback.print_exc()
+
     def validate_and_save(self):
         """Valide et sauvegarde"""
         errors = self._validate()
@@ -1480,6 +1563,16 @@ class ContactForm(QDialog):
             
             # ✅ Déterminer la table de destination en fonction du type
             if self.type_client.currentText() == "Chauffeur":
+                # ✅ Générer un code chauffeur si absent ou placeholder
+                code_chauffeur = data.get('code_chauffeur', '')
+                if not code_chauffeur or code_chauffeur == "Généré automatiquement":
+                    # Récupérer le code du champ si déjà généré
+                    if hasattr(self, 'driver_code') and self.driver_code.text() and self.driver_code.text() != "Généré automatiquement":
+                        data['code_chauffeur'] = self.driver_code.text()
+                    else:
+                        # Générer un nouveau code chauffeur
+                        data['code_chauffeur'] = self._generate_driver_code()
+                
                 # ✅ Sauvegarder dans Driver
                 if self.mode == "edit" and self.contact_data:
                     # Pour l'édition d'un chauffeur
@@ -1494,6 +1587,16 @@ class ContactForm(QDialog):
                     else:
                         result = self.controller.contacts.create_driver(data)
             else:
+                # ✅ Souscripteur - Générer un code client si absent ou placeholder
+                code_client = data.get('code_client', '')
+                if not code_client or code_client == "Généré automatiquement":
+                    # Récupérer le code du champ si déjà généré
+                    if hasattr(self, 'subscriber_code') and self.subscriber_code.text():
+                        data['code_client'] = self.subscriber_code.text()
+                    else:
+                        # Générer un nouveau code client
+                        data['code_client'] = self._generate_client_code()
+                
                 # ✅ Sauvegarder dans Contact (Souscripteur)
                 if self.mode == "edit" and self.contact_data:
                     result = self.controller.contacts.update_contact(self.contact_data.id, data)
@@ -1527,63 +1630,6 @@ class ContactForm(QDialog):
                 errors.append("❌ N° de permis obligatoire pour un chauffeur")
         
         return errors
-
-    # def _get_data(self):
-    #     """Récupère les données du formulaire"""
-    #     is_driver = self.type_client.currentText() == "Chauffeur"
-        
-    #     # ✅ Données communes à tous les types
-    #     data = {
-    #         # --- SECTION 1: TYPE DE CLIENT ---
-    #         "type_client": self.type_client.currentText(),
-            
-    #         # --- SECTION 2: ADMINISTRATION ---
-    #         "statut": self.statut.currentText(),
-    #         "nature": self.nature.currentText(),
-    #         "charge_clientele": self.charge_client.text().strip(),
-            
-    #         # --- SECTION 3: IDENTITÉ ---
-    #         "civilite": self.civilite.currentText(),
-    #         "nom": self.nom.text().strip().upper(),
-    #         "prenom": self.prenom.text().strip().title() if self.prenom.isVisible() else "",
-    #         "date_naissance": self.date_naiss.date().toPython() if self.date_naiss.isVisible() else None,
-    #         "nationalite": self.nationalite.currentText().strip(),
-    #         "num_contribuable": self.num_contribuable.text().strip(),
-            
-    #         # --- SECTION 5: COORDONNÉES ---
-    #         "telephone": self.tel.text().strip(),
-    #         "fax": self.fax.text().strip(),
-    #         "email": self.email.text().strip().lower(),
-    #         "adresse": self.adresse.text().strip(),
-    #         "ville": self.ville.currentText().strip(),
-            
-    #         # --- SECTION 6: PERMIS (commun) ---
-    #         "cat_permis": self.cat_permis.currentText() if self.cat_permis.isVisible() else "",
-    #         "num_permis": self.num_permis.text().strip() if self.num_permis.isVisible() else "",
-    #         "date_permis": self.date_permis.date().toPython() if self.date_permis.isVisible() else None,
-            
-    #         # --- SECTION 7: NOTES ---
-    #         "notes": self.notes.text().strip(),
-    #     }
-        
-    #     # ✅ SECTION 4: INFORMATIONS SPÉCIFIQUES
-    #     if not is_driver:
-    #         # Souscripteur
-    #         data.update({
-    #             "code_client": self.subscriber_code.text().strip() if hasattr(self, 'subscriber_code') else "",
-    #             "profession": self.profession.currentText() if hasattr(self, 'profession') and self.profession.isVisible() else "",
-    #             "cat_socio_prof": self.cat_socio_prof.currentText() if hasattr(self, 'cat_socio_prof') and self.cat_socio_prof.isVisible() else "",
-    #         })
-    #     else:
-    #         # Chauffeur
-    #         data.update({
-    #             "code_chauffeur": self.driver_code.text().strip() if hasattr(self, 'driver_code') else "",
-    #             "specialite": self.driver_specialite.currentText() if hasattr(self, 'driver_specialite') else "",
-    #             "annees_experience": int(self.driver_experience.currentText()) if hasattr(self, 'driver_experience') and self.driver_experience.currentText().isdigit() else 0,
-    #             "subscriber_id": self.driver_subscriber_link.currentData() if hasattr(self, 'driver_subscriber_link') else None
-    #         })
-        
-    #     return data
 
     def _get_data(self):
         """Récupère les données du formulaire"""
@@ -1671,3 +1717,71 @@ class ContactForm(QDialog):
             self.timer.stop()
         
         event.accept()
+
+    def _generate_client_code(self):
+        """
+        Génère un code client unique
+        
+        Format: CL-{PREMIERES_LETTRES_NOM}-{UUID_COURT}
+        Exemple: CL-DUP-7F3A2B1C
+        """
+        import uuid
+        
+        # Récupérer les premières lettres du nom si disponible
+        nom = self.nom.text().strip().upper() if hasattr(self, 'nom') and self.nom.text().strip() else "CLT"
+        prefix = nom[:3] if len(nom) >= 3 else nom + "XX"
+        
+        # Générer un UUID court (8 premiers caractères)
+        short_uuid = uuid.uuid4().hex[:8].upper()
+        
+        return f"CL-{prefix}-{short_uuid}"
+
+    def _generate_driver_code(self):
+        """
+        Génère un code chauffeur unique
+        
+        Format: DRV-{PREMIERES_LETTRES_NOM}-{UUID_COURT}
+        Exemple: DRV-DUP-7F3A2B1C
+        """
+        import uuid
+        
+        # Récupérer les premières lettres du nom si disponible
+        nom = self.nom.text().strip().upper() if hasattr(self, 'nom') and self.nom.text().strip() else "DRV"
+        prefix = nom[:3] if len(nom) >= 3 else nom + "XX"
+        
+        # Générer un UUID court (8 premiers caractères)
+        short_uuid = uuid.uuid4().hex[:8].upper()
+        
+        return f"DRV-{prefix}-{short_uuid}"
+
+    def _generate_and_set_client_code(self):
+        """Génère et affiche le code client dans le champ dédié"""
+        if hasattr(self, 'subscriber_code'):
+            code = self._generate_client_code()
+            self.subscriber_code.setText(code)
+            self.subscriber_code.setStyleSheet("""
+                QLineEdit#readonly {
+                    background: #f1f5f9;
+                    color: #2563eb;
+                    font-weight: bold;
+                    border: 2px solid #2563eb;
+                    border-radius: 8px;
+                    padding: 9px 14px;
+                }
+            """)
+
+    def _generate_and_set_driver_code(self):
+        """Génère et affiche le code chauffeur dans le champ dédié"""
+        if hasattr(self, 'driver_code'):
+            code = self._generate_driver_code()
+            self.driver_code.setText(code)
+            self.driver_code.setStyleSheet("""
+                QLineEdit#readonly {
+                    background: #f1f5f9;
+                    color: #2563eb;
+                    font-weight: bold;
+                    border: 2px solid #2563eb;
+                    border-radius: 8px;
+                    padding: 9px 14px;
+                }
+            """)

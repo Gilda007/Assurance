@@ -301,6 +301,7 @@ class VehicleDetailView(QWidget):
     def __init__(self, vehicle_data, controller=None, db_session=None):
         super().__init__()
         self.data = vehicle_data
+        print(f"voici les informations sur le véhicule : {self.data}")
         self.controller = controller
         self.db_session = db_session
         print(self.db_session)  # Debug: vérifier que la session est bien passée
@@ -428,6 +429,7 @@ class VehicleDetailView(QWidget):
             
             # Chercher le contrat par véhicule
             contrat = self.contract_ctrl.get_contract_by_vehicle(vehicle_id)
+            vehicle = self.controller.vehicles.get_vehicles_by_id(vehicle_id)
             
             if contrat:
                 print(f"✓ Contrat trouvé: {contrat.id}")
@@ -435,7 +437,7 @@ class VehicleDetailView(QWidget):
                 # Construire contract_data
                 self.contract_data = {
                     'amounts': {
-                        'prime_totale_ttc': contrat.prime_totale_ttc,
+                        'prime_totale_ttc': vehicle.pttc,
                         'prime_pure': contrat.prime_pure,
                         'discount': 0,
                     },
@@ -1508,8 +1510,8 @@ class VehicleDetailView(QWidget):
         main_layout.addLayout(title_layout)
         
         # ========== LIGNE 2: MONTANT PRINCIPAL ==========
-        prime_nette = float(self.data.get('prime_nette', ''))
-        prime_brute = float(self.data.get('prime_brute', ''))
+        prime_nette = int(self.data.get('prime_nette', ''))
+        prime_brute = int(self.data.get('prime_brute', ''))
         reduction = prime_brute - prime_nette
         reduction_percent = (reduction / prime_brute * 100) if prime_brute > 0 else 0
         
@@ -1527,7 +1529,7 @@ class VehicleDetailView(QWidget):
             letter-spacing: 1px;
             background: transparent;
         """)
-        amount_lbl = QLabel(f"{prime_nette:,.0f}".replace(",", " "))
+        amount_lbl = QLabel(f"{pttc:,.0f}".replace(",", " "))
         amount_lbl.setStyleSheet("""
             color: white;
             font-size: 42px;
@@ -1590,11 +1592,11 @@ class VehicleDetailView(QWidget):
         frais_grid.setContentsMargins(0, 5, 0, 5)
         
         # Récupération des frais
-        carte_rose = float(self.data.get('carte_rose', 0))
-        accessoires = float(self.data.get('accessoires', 0))
-        tva = float(self.data.get('tva', 0))
-        asac = float(self.data.get('fichier_asac', 0))
-        vignette = float(self.data.get('vignette', 0))
+        carte_rose = int(self.data.get('carte_rose', 0))
+        accessoires = int(self.data.get('accessoires', 0))
+        tva = int(self.data.get('tva', 0))
+        asac = int(self.data.get('fichier_asac', 0))
+        vignette = int(self.data.get('vignette', 0))
         
         frais_items = [
             ("📄 Carte Rose", carte_rose),
@@ -1611,7 +1613,7 @@ class VehicleDetailView(QWidget):
         main_layout.addLayout(frais_grid)
         
         # ========== LIGNE 4: PTTC (Total TTC) ==========
-        pttc = float(self.data.get('pttc', prime_nette + carte_rose + accessoires + tva + asac + vignette))
+        pttc = int(self.data.get('pttc', 0))
         
         pttc_layout = QHBoxLayout()
         pttc_layout.setContentsMargins(0, 15, 0, 0)
@@ -5118,6 +5120,7 @@ class VehicleDetailView(QWidget):
         pttc_label.setStyleSheet("color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 600; background: transparent;")
         
         total_ttc = amounts.get('prime_totale_ttc', amounts.get('total_ttc', 0))
+        print(f"voici les montants : {amounts}")
         pttc_value = QLabel(f"{total_ttc:,.0f}".replace(",", " "))
         pttc_value.setStyleSheet("color: #fbbf24; font-size: 28px; font-weight: 800; background: transparent;")
         
@@ -5648,6 +5651,120 @@ class VehicleDetailView(QWidget):
         except (ValueError, AttributeError):
             return 0.0
          
+    # def _validate_payment(self):
+    #     """Valide un paiement avec attribution du numéro de police si nécessaire"""
+    #     montant_verse = self._get_montant_verse_value()
+        
+    #     if montant_verse <= 0:
+    #         QMessageBox.warning(self, "Erreur", "Veuillez saisir un montant valide")
+    #         return
+        
+    #     if not self.payment_ctrl:
+    #         QMessageBox.warning(self, "Erreur", "Contrôleur de paiement non disponible")
+    #         return
+        
+    #     # Récupérer l'ID du véhicule
+    #     vehicle_id = self.data.get('id')
+    #     if not vehicle_id and hasattr(self.data, 'id'):
+    #         vehicle_id = self.data.id
+        
+    #     if not vehicle_id:
+    #         QMessageBox.warning(self, "Erreur", "ID du véhicule non trouvé")
+    #         return
+        
+    #     # Récupérer le contrat via le contrôleur
+    #     contrat = self.contract_ctrl.get_contract_by_vehicle(vehicle_id)
+        
+    #     # Si le contrat n'existe pas encore (premier paiement), le créer
+    #     if not contrat:
+    #         # Récupérer l'ID de la compagnie
+    #         compagnie_id = self.data.get('compagny_id') or self.data.get('company_id')
+    #         if not compagnie_id:
+    #             QMessageBox.warning(self, "Erreur", "Compagnie d'assurance non trouvée")
+    #             return
+            
+    #         # Vérifier les numéros disponibles
+    #         from addons.Automobiles.controllers.compagnies_controller import CompagnieController
+    #         compagnie_ctrl = CompagnieController(self.db_session, self._get_current_user_id())
+            
+    #         available, total, used = compagnie_ctrl.get_available_numbers(compagnie_id)
+            
+    #         if not available:
+    #             QMessageBox.warning(
+    #                 self,
+    #                 "Plus de numéros disponibles",
+    #                 f"⚠️ La plage de numéros de cette compagnie est épuisée !\n\n"
+    #                 f"📊 Statistiques:\n"
+    #                 f"   • Total: {total} numéros\n"
+    #                 f"   • Utilisés: {used}\n"
+    #                 f"   • Restants: 0\n\n"
+    #                 f"💡 Solution: Contactez l'administrateur pour étendre la plage\n"
+    #                 f"   en modifiant les champs 'num_debut' et 'num_fin' de la compagnie."
+    #             )
+    #             return
+            
+    #         # Ouvrir le sélecteur de numéro de police
+    #         from addons.Automobiles.views.police_number_selector import PoliceNumberSelector
+    #         selector = PoliceNumberSelector(self.controller, compagnie_id, self)
+    #         selector.number_selected.connect(
+    #             lambda num, police_num: self._create_contract_and_payment(
+    #                 vehicle_id, compagnie_id, num, police_num, montant_verse
+    #             )
+    #         )
+    #         selector.exec()
+    #         return
+        
+    #     # Contrat existant - procéder normalement
+    #     reste_a_payer = contrat.prime_totale_ttc - contrat.montant_paye
+        
+    #     if montant_verse > reste_a_payer + 0.01:
+    #         reply = QMessageBox.question(
+    #             self,
+    #             "Montant excessif",
+    #             f"Le montant versé ({montant_verse:,.0f} FCFA) dépasse le solde restant ({reste_a_payer:,.0f} FCFA).\n\nSouhaitez-vous continuer ?",
+    #             QMessageBox.Yes | QMessageBox.No
+    #         )
+    #         if reply == QMessageBox.No:
+    #             return
+        
+    #     # Mode de paiement
+    #     mode_text = self.payment_mode.currentText()
+    #     mode_mapping = {
+    #         "Espèces": "CASH",
+    #         "Carte bancaire": "CARD",
+    #         "Virement": "TRANSFER",
+    #         "Chèque": "CHECK",
+    #         "Orange Money": "ORANGE_MONEY",
+    #         "MTN Mobile Money": "MTN_MONEY",
+    #     }
+    #     mode = mode_mapping.get(mode_text, "CASH")
+        
+    #     # Appeler le contrôleur
+    #     success, payment, message = self.payment_ctrl.create_payment(
+    #         data={
+    #             'contrat_id': contrat.id,
+    #             'montant': montant_verse,
+    #             'mode_paiement': mode,
+    #             'notes': f"Paiement effectué via {mode_text}"
+    #         },
+    #         user_id=self._get_current_user_id(),
+    #         ip=self._get_local_ip()
+    #     )
+        
+    #     if success:
+    #         QMessageBox.information(
+    #             self,
+    #             "Paiement validé",
+    #             f"Paiement de {montant_verse:,.0f} FCFA effectué par {mode_text}\n\n"
+    #             f"Reçu: {payment.numero_recu}\n\n"
+    #             f"Solde restant : {max(0, reste_a_payer - montant_verse):,.0f} FCFA"
+    #         )
+    #         self.montant_verse.clear()
+    #         self._load_contract_data()
+    #         self.refresh_financial_data()
+    #     else:
+    #         QMessageBox.warning(self, "Erreur", f"Erreur: {message}")
+
     def _validate_payment(self):
         """Valide un paiement avec attribution du numéro de police si nécessaire"""
         montant_verse = self._get_montant_verse_value()
@@ -5711,18 +5828,8 @@ class VehicleDetailView(QWidget):
             selector.exec()
             return
         
-        # Contrat existant - procéder normalement
-        reste_a_payer = contrat.prime_totale_ttc - contrat.montant_paye
-        
-        if montant_verse > reste_a_payer + 0.01:
-            reply = QMessageBox.question(
-                self,
-                "Montant excessif",
-                f"Le montant versé ({montant_verse:,.0f} FCFA) dépasse le solde restant ({reste_a_payer:,.0f} FCFA).\n\nSouhaitez-vous continuer ?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if reply == QMessageBox.No:
-                return
+        # ✅ SUPPRESSION DE LA CONDITION DE MONTANT EXCESSIF
+        # Le paiement est autorisé quel que soit le montant versé
         
         # Mode de paiement
         mode_text = self.payment_mode.currentText()
@@ -5749,12 +5856,13 @@ class VehicleDetailView(QWidget):
         )
         
         if success:
+            reste_a_payer = contrat.prime_totale_ttc - contrat.montant_paye - montant_verse
             QMessageBox.information(
                 self,
                 "Paiement validé",
                 f"Paiement de {montant_verse:,.0f} FCFA effectué par {mode_text}\n\n"
                 f"Reçu: {payment.numero_recu}\n\n"
-                f"Solde restant : {max(0, reste_a_payer - montant_verse):,.0f} FCFA"
+                f"Solde restant : {max(0, reste_a_payer):,.0f} FCFA"
             )
             self.montant_verse.clear()
             self._load_contract_data()
@@ -5762,12 +5870,105 @@ class VehicleDetailView(QWidget):
         else:
             QMessageBox.warning(self, "Erreur", f"Erreur: {message}")
 
+    # def _create_contract_and_payment(self, vehicle_id, compagnie_id, police_number_attribue, police_number_complet, montant_verse):
+    #     """Crée le contrat puis valide le paiement"""
+        
+    #     # Récupérer les données du véhicule
+    #     prime_nette = int(self.data.get('prime_nette', 0))
+    #     pttc = int(self.data.get('pttc', 0))
+    #     print(f"voici le montant à  payer : {pttc}")
+    #     prime_brute = float(self.data.get('prime_brute', 0))
+    #     user_id = self._get_current_user_id()
+        
+    #     # Créer le contrat via le contrôleur
+    #     contract_data = {
+    #         'vehicle_id': vehicle_id,
+    #         'company_id': compagnie_id,
+    #         'owner_id': user_id,
+    #         'updated_by': user_id,
+    #         'created_by': user_id,
+    #         'numero_police': police_number_complet,
+    #         'numero_police_attribue': police_number_attribue,
+    #         'prime_pure': prime_nette,
+    #         'prime_totale_ttc': pttc,
+    #         'montant_paye': 0,
+    #         'statut_paiement': 'NON_PAYE',
+    #         'type_contrat': 'VEHICULE',
+    #         'date_proformat': datetime.now(),
+    #     }
+        
+    #     # Utiliser le contract_ctrl pour créer le contrat
+    #     if hasattr(self.contract_ctrl, 'create_contract'):
+    #         success, contrat, message = self.contract_ctrl.create_contract(
+    #             contract_data,
+    #             user_id=self._get_current_user_id(),
+    #             # ip=self._get_local_ip()
+    #         )
+    #     else:
+    #         # Méthode alternative
+    #         try:
+    #             from addons.Automobiles.models.contract_models import Contrat
+    #             contrat = Contrat(**contract_data)
+    #             self.db_session.add(contrat)
+    #             self.db_session.commit()
+    #             success, contrat, message = True, contrat, "Contrat créé"
+    #         except Exception as e:
+    #             success, contrat, message = False, None, str(e)
+    #             self.db_session.rollback()
+        
+    #     if not success:
+    #         QMessageBox.warning(self, "Erreur", f"Impossible de créer le contrat: {message}")
+    #         return
+        
+    #     # Maintenant valider le paiement
+    #     mode_text = self.payment_mode.currentText()
+    #     mode_mapping = {
+    #         "Espèces": "CASH",
+    #         "Carte bancaire": "CARD",
+    #         "Virement": "TRANSFER",
+    #         "Chèque": "CHECK",
+    #         "Orange Money": "ORANGE_MONEY",
+    #         "MTN Mobile Money": "MTN_MONEY",
+    #     }
+    #     mode = mode_mapping.get(mode_text, "CASH")
+        
+    #     success, payment, message = self.payment_ctrl.create_payment(
+    #         data={
+    #             'contrat_id': contrat.id,
+    #             'montant': montant_verse,
+    #             'mode_paiement': mode,
+    #             'notes': f"Premier paiement - Police {police_number_complet}"
+    #         },
+    #         user_id=self._get_current_user_id(),
+    #         ip=self._get_local_ip()
+    #     )
+        
+    #     if success:
+    #         QMessageBox.information(
+    #             self,
+    #             "Contrat et paiement validés",
+    #             f"✅ Contrat créé avec le numéro: {police_number_complet}\n\n"
+    #             f"💰 Paiement de {montant_verse:,.0f} FCFA effectué par {mode_text}\n\n"
+    #             f"Reçu: {payment.numero_recu}\n\n"
+    #             f"📄 Document: Une copie du contrat vous sera envoyée par email."
+    #         )
+    #         self.montant_verse.clear()
+    #         self._load_contract_data()
+    #         self.refresh_financial_data()
+            
+    #         # Émettre un signal pour rafraîchir la vue parente
+    #         if hasattr(self, 'contract_created'):
+    #             self.contract_created.emit(contrat.id)
+    #     else:
+    #         QMessageBox.warning(self, "Erreur", f"Erreur lors du paiement: {message}")
 
     def _create_contract_and_payment(self, vehicle_id, compagnie_id, police_number_attribue, police_number_complet, montant_verse):
         """Crée le contrat puis valide le paiement"""
         
         # Récupérer les données du véhicule
-        prime_nette = float(self.data.get('prime_nette', 0))
+        prime_nette = int(self.data.get('prime_nette', 0))
+        pttc = int(self.data.get('pttc', 0))
+        print(f"voici le montant à payer : {pttc}")
         prime_brute = float(self.data.get('prime_brute', 0))
         user_id = self._get_current_user_id()
         
@@ -5781,7 +5982,7 @@ class VehicleDetailView(QWidget):
             'numero_police': police_number_complet,
             'numero_police_attribue': police_number_attribue,
             'prime_pure': prime_nette,
-            'prime_totale_ttc': prime_nette,
+            'prime_totale_ttc': pttc,
             'montant_paye': 0,
             'statut_paiement': 'NON_PAYE',
             'type_contrat': 'VEHICULE',
@@ -5793,7 +5994,6 @@ class VehicleDetailView(QWidget):
             success, contrat, message = self.contract_ctrl.create_contract(
                 contract_data,
                 user_id=self._get_current_user_id(),
-                # ip=self._get_local_ip()
             )
         else:
             # Méthode alternative
@@ -5811,7 +6011,10 @@ class VehicleDetailView(QWidget):
             QMessageBox.warning(self, "Erreur", f"Impossible de créer le contrat: {message}")
             return
         
-        # Maintenant valider le paiement
+        # ✅ Supprimer toute vérification de montant excessif ici aussi
+        # Le paiement est enregistré tel quel
+        
+        # Valider le paiement
         mode_text = self.payment_mode.currentText()
         mode_mapping = {
             "Espèces": "CASH",
@@ -5876,9 +6079,9 @@ class VehicleDetailView(QWidget):
         return {
             'prime_pure': float(self.data.get('prime_nette', 0)),
             'gross_premium': float(self.data.get('prime_brute', 0)),
-            'prime_totale_ttc': float(self.data.get('prime_nette', 0)),
-            'total_ttc': float(self.data.get('prime_nette', 0)),
-            'discount': float(self.data.get('prime_brute', 0)) - float(self.data.get('prime_nette', 0)),
+            'prime_totale_ttc': float(self.data.get('pttc', 0)),
+            'total_ttc': float(self.data.get('pttc', 0)),
+            'discount': float(self.data.get('reduction', 0)) - float(self.data.get('prime_nette', 0)),
             'discount_percent': 0,
             'frais': {
                 'carte_rose': float(self.data.get('carte_rose', 0)),
@@ -5891,7 +6094,7 @@ class VehicleDetailView(QWidget):
 
     def _get_default_payment(self):
         """Retourne des informations de paiement par défaut"""
-        prime = float(self.data.get('prime_nette', 0))
+        prime = float(self.data.get('pttc', 0))
         return {
             'montant_paye': 0,
             'reste_a_payer': prime,
