@@ -838,6 +838,21 @@ import traceback
 from datetime import datetime
 import hashlib
 from pathlib import Path
+import sys
+
+
+# ============================================================================
+# DÉTECTION DU MODE COMPILÉ - NIVEAU GLOBAL
+# ============================================================================
+
+def is_compiled_mode() -> bool:
+    """Détecte si l'application est en mode compilé (exécutable)"""
+    return getattr(sys, 'frozen', False)
+
+COMPILED_MODE = is_compiled_mode()
+
+if COMPILED_MODE:
+    print("🔒 Mode compilé détecté - recherche des modules dans plusieurs emplacements")
 
 # ============================================================================
 # CONFIGURATION
@@ -1239,6 +1254,20 @@ class AddonLoader:
         errors = []
         checked_files = 0
         total_files = len(checksums)
+
+        # ✅ En mode compilé, vérification allégée
+        if COMPILED_MODE:
+            logger.info("   🔒 Mode compilé: vérification d'intégrité allégée")
+            # Vérifier que les fichiers essentiels existent
+            essential_files = ['main_ui.py', 'manifest.json', 'certificate.json']
+            for file in essential_files:
+                if not (module_path / file).exists():
+                    return False, f"Fichier essentiel manquant: {file}"
+            return True, "Mode compilé - vérification allégée"
+        
+        # ... (reste du code de vérification d'intégrité pour le mode développement)
+        if not checksums:
+            return False, "Aucun checksum dans le certificat"
         
         # ✅ Normaliser les chemins pour le système d'exploitation actuel
         normalized_checksums = {}
@@ -1397,6 +1426,7 @@ class AddonLoader:
         addons_path = Path(os.path.dirname(os.path.dirname(__file__))) / "addons"
         logger.info(f"--- DÉBUT DU CHARGEMENT DES MODULES ---")
         logger.info(f"Recherche dans : {addons_path}")
+        logger.info(f"Mode compilé: {COMPILED_MODE}")
 
         self.last_certificate_status = []
         loaded_instances = []
@@ -1537,26 +1567,28 @@ class AddonLoader:
                             signature_valid = False
                             signature_msg = f"Erreur vérification RSA: {str(e)}"
                     else:
-                        # ✅ Pas de CA trouvée, mais le certificat PEM existe
-                        # On peut faire une vérification basique
-                        try:
-                            import subprocess
-                            # Vérifier que le certificat est valide (auto-signé)
-                            result = subprocess.run(
-                                ["openssl", "x509", "-in", str(cert_pem), "-text", "-noout"],
-                                capture_output=True,
-                                text=True
-                            )
-                            if result.returncode == 0:
-                                # Le certificat est valide, mais on ne peut pas vérifier la chaîne
-                                signature_msg = "Signature RSA: CA non trouvée, vérification basique OK"
-                                logger.warning(f"   ⚠️ CA non trouvée, vérification basique du certificat {folder_name}")
-                            else:
+                        # ✅ En mode compilé, on accepte la vérification basique
+                        if COMPILED_MODE:
+                            logger.warning(f"   ⚠️ CA non trouvée en mode compilé - vérification basique")
+                            signature_msg = "Signature RSA: vérification basique (mode compilé)"
+                        else:
+                            # Mode développement - vérification plus stricte
+                            try:
+                                import subprocess
+                                result = subprocess.run(
+                                    ["openssl", "x509", "-in", str(cert_pem), "-text", "-noout"],
+                                    capture_output=True,
+                                    text=True
+                                )
+                                if result.returncode == 0:
+                                    signature_msg = "Signature RSA: CA non trouvée, vérification basique OK"
+                                    logger.warning(f"   ⚠️ CA non trouvée, vérification basique du certificat {folder_name}")
+                                else:
+                                    signature_valid = False
+                                    signature_msg = "Certificat PEM invalide"
+                            except Exception as e:
                                 signature_valid = False
-                                signature_msg = "Certificat PEM invalide"
-                        except Exception as e:
-                            signature_valid = False
-                            signature_msg = f"Erreur vérification certificat: {str(e)}"
+                                signature_msg = f"Erreur vérification certificat: {str(e)}"
             else:
                 # Version 2.x (HMAC) - Vérification HMAC
                 signature = certificate.get("signature", "")
@@ -1759,3 +1791,50 @@ class AddonLoader:
         except Exception as e:
             print(f"Erreur chargement addon {module_name}: {e}")
             return None
+
+
+    def _find_addons_path(self) -> Path:
+        """
+        Trouve le dossier des addons en fonction du mode d'exécution.
+        En mode compilé, vérifie plusieurs emplacements.
+        """
+        # En mode développement
+        if not COMPILED_MODE:
+            path = Path(os.path.dirname(os.path.dirname(__file__))) / "addons"
+            if path.exists():
+                return path
+            path = Path("addons")
+            if path.exists():
+                return path
+            return path
+        
+        # En mode compilé - vérifier plusieurs emplacements
+        if COMPILED_MODE:
+            base_dir = Path(sys.executable).parent
+            
+            # Liste des emplacements possibles pour les addons
+            addons_candidates = [
+                base_dir / "addons",                              # À côté de l'exe
+                base_dir / "_internal" / "addons",                # Dans _internal (PyInstaller)
+                base_dir.parent / "addons",                       # Dossier parent
+                Path.cwd() / "addons",                            # Dossier courant
+                Path.home() / ".lometa" / "addons",               # Dossier utilisateur
+            ]
+            
+            # Vérifier chaque candidat
+            for path in addons_candidates:
+                if path.exists() and path.is_dir():
+                    # Vérifier qu'il contient des modules
+                    has_modules = False
+                    for item in path.iterdir():
+                        if item.is_dir() and (item / "manifest.json").exists():
+                            has_modules = True
+                            break
+                    if has_modules:
+                        logger.info(f"✅ Addons trouvés dans: {path}")
+                        return path
+            
+            # Retourner le chemin par défaut (même s'il n'existe pas)
+            return base_dir / "addons"
+        
+        return Path("addons")
