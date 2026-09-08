@@ -7,10 +7,10 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QGridLayout, QProgressBar, QLabel, QLineEdit, 
     QComboBox, QPushButton, QFrame, QGraphicsDropShadowEffect, 
     QWidget, QScrollArea, QTextEdit, QDateEdit, QMessageBox, 
-    QApplication, QGroupBox, QSplitter, QTabWidget, QFormLayout,
+    QApplication, QGroupBox, QSplitter, QTabWidget, QFormLayout, QStackedWidget,
     QSpinBox, QDoubleSpinBox, QButtonGroup, QRadioButton, QSizePolicy
 )
-from PySide6.QtCore import Qt, QPoint, QDate, QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtCore import QSize, Qt, Signal, QDate, QPropertyAnimation, QEasingCurve, QTimer
 from PySide6.QtGui import QColor, QPixmap, QFont, QLinearGradient, QBrush
 
 import socket
@@ -23,6 +23,9 @@ from addons.Automobiles.controllers.compagnies_controller import CompagnieContro
 
 # Importer le style unifié
 from addons.Automobiles.views.style import Colors, Fonts, Spacing, create_shadow
+from addons.Automobiles.views.automobile_slidebar_menu_form_view import SlideMenu
+from icons.icons import get_icon, get_icon_pixmap, ICON_COLORS
+
 
 def _round_int(self, value):
     """
@@ -51,6 +54,7 @@ VEHICLE_BRANDS = [
     "SKODA", "SMART", "SSANGYONG", "SUBARU", "SUZUKI", "TESLA", "TOYOTA",
     "VOLKSWAGEN", "VOLVO", "YUCHAI", "ZX"
 ]
+
 
 class VehicleForm(QDialog):
     """
@@ -188,12 +192,13 @@ class VehicleForm(QDialog):
         "ST11": "VRP (Vendeur, Représentant et Placer)",
         "ST12": "Autre profession"
     }
-    
+
     def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
         super().__init__()
-      
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        # ✅ Fenêtre normale avec header système
+        self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint)
+        self.setAttribute(Qt.WA_DeleteOnClose)
         
         self.controller = controller
         self.contacts = contacts_list or []
@@ -203,12 +208,8 @@ class VehicleForm(QDialog):
         self.vehicle_to_edit = vehicle_to_edit
         self.vehicle_id = vehicle_to_edit.id if hasattr(vehicle_to_edit, 'id') else None
         self.selected_cie_id = None
-        self.old_pos = None
-        self.is_maximized = False
-        self.normal_geometry = None
         self.preselected_owner_id = data.get('owner_id') if data else None
         
-        # Dictionnaire pour stocker les champs de garanties
         self.garanties_widgets = {}
         
         self.setup_ui()
@@ -222,7 +223,6 @@ class VehicleForm(QDialog):
         if self.mode == "view":
             self.freeze_ui()
             
-        # Connecter les signaux pour les calculs automatiques
         self._connect_signals()
 
     def _connect_signals(self):
@@ -357,7 +357,7 @@ class VehicleForm(QDialog):
         """
         
         # Groupe: Classification ASAC
-        group_class = QGroupBox("📊 Classification ASAC")
+        group_class = QGroupBox("Classification ASAC")
         group_class.setStyleSheet(group_style)
         
         class_layout = QGridLayout(group_class)
@@ -365,7 +365,7 @@ class VehicleForm(QDialog):
         class_layout.setContentsMargins(25, 25, 25, 25)
         
         # Catégorie
-        class_layout.addWidget(self._create_label("🏷️", "Catégorie *"), 0, 0)
+        class_layout.addWidget(self._create_label("category", "Catégorie *"), 0, 0)
         self.asac_combo_cat = QComboBox()
         self.asac_combo_cat.setStyleSheet(field_style)
         self.asac_combo_cat.setEditable(True)
@@ -376,7 +376,7 @@ class VehicleForm(QDialog):
         class_layout.addWidget(self.asac_combo_cat, 1, 0)
         
         # Genre
-        class_layout.addWidget(self._create_label("🚗", "Genre *"), 0, 1)
+        class_layout.addWidget(self._create_label("genre", "Genre *"), 0, 1)
         self.combo_genre = QComboBox()
         self.combo_genre.setStyleSheet(field_style)
         self.combo_genre.addItem("", "")
@@ -385,7 +385,7 @@ class VehicleForm(QDialog):
         class_layout.addWidget(self.combo_genre, 1, 1)
         
         # Type
-        class_layout.addWidget(self._create_label("📱", "Type *"), 2, 0)
+        class_layout.addWidget(self._create_label("model", "Type *"), 2, 0)
         self.combo_type = QComboBox()
         self.combo_type.setStyleSheet(field_style)
         self.combo_type.addItem("", "")
@@ -394,7 +394,7 @@ class VehicleForm(QDialog):
         class_layout.addWidget(self.combo_type, 3, 0)
         
         # Usage
-        class_layout.addWidget(self._create_label("📊", "Usage *"), 2, 1)
+        class_layout.addWidget(self._create_label("usage", "Usage *"), 2, 1)
         self.combo_usage = QComboBox()
         self.combo_usage.setStyleSheet(field_style)
         self.combo_usage.addItem("", "")
@@ -404,7 +404,7 @@ class VehicleForm(QDialog):
         class_layout.addWidget(self.combo_usage, 3, 1)
         
         # Énergie
-        class_layout.addWidget(self._create_label("⛽", "Énergie *"), 4, 0)
+        class_layout.addWidget(self._create_label("energy", "Énergie *"), 4, 0)
         self.combo_energie = QComboBox()
         self.combo_energie.setStyleSheet(field_style)
         self.combo_energie.addItem("", "")
@@ -413,7 +413,7 @@ class VehicleForm(QDialog):
         class_layout.addWidget(self.combo_energie, 5, 0)
         
         # Zone de circulation
-        class_layout.addWidget(self._create_label("🗺️", "Zone de circulation *"), 4, 1)
+        class_layout.addWidget(self._create_label("zone", "Zone de circulation *"), 4, 1)
         self.combo_zone = QComboBox()
         self.combo_zone.setStyleSheet(field_style)
         self.combo_zone.addItem("", "")
@@ -425,7 +425,7 @@ class VehicleForm(QDialog):
         content_layout.addWidget(group_class)
         
         # Groupe: Options et compléments
-        group_options = QGroupBox("⚙️ Options et compléments")
+        group_options = QGroupBox("Options et compléments")
         group_options.setStyleSheet(group_style)
         
         options_layout = QGridLayout(group_options)
@@ -433,7 +433,9 @@ class VehicleForm(QDialog):
         options_layout.setContentsMargins(25, 25, 25, 25)
         
         # Remorque
-        self.check_remorque = QCheckBox("🚛 Véhicule avec Remorque")
+        self.check_remorque = QCheckBox(" Véhicule avec Remorque")
+        self.check_remorque.setIcon(get_icon('trailer', color='#4a5568', size=18))
+        self.check_remorque.setIconSize(QSize(18, 18))
         self.check_remorque.setStyleSheet("""
             QCheckBox {
                 font-size: 13px;
@@ -456,7 +458,7 @@ class VehicleForm(QDialog):
         options_layout.addWidget(self.check_remorque, 0, 0)
         
         # Immatriculation remorque
-        options_layout.addWidget(self._create_label("🔢", "Immatriculation Remorque"), 1, 0)
+        options_layout.addWidget(self._create_label("immatriculation", "Immatriculation Remorque"), 1, 0)
         self.remorque_immat = QLineEdit()
         self.remorque_immat.setPlaceholderText("Immatriculation de la remorque")
         self.remorque_immat.setStyleSheet(field_style)
@@ -464,7 +466,9 @@ class VehicleForm(QDialog):
         options_layout.addWidget(self.remorque_immat, 2, 0)
         
         # Matières inflammables
-        self.check_inflammable = QCheckBox("🔥 Remorque transportant des matières inflammables")
+        self.check_inflammable = QCheckBox(" Remorque transportant des matières inflammables")
+        self.check_inflammable.setIcon(get_icon('flammable', color='#4a5568', size=18))
+        self.check_inflammable.setIconSize(QSize(18, 18))
         self.check_inflammable.setStyleSheet("""
             QCheckBox {
                 font-size: 13px;
@@ -487,7 +491,9 @@ class VehicleForm(QDialog):
         options_layout.addWidget(self.check_inflammable, 0, 1)
         
         # Double commande (auto-école)
-        self.check_double_commande = QCheckBox("🎓 Double commande (Auto-école)")
+        self.check_double_commande = QCheckBox("Double commande (Auto-école)")
+        self.check_double_commande.setIcon(get_icon('double-command', color='#4a5568', size=18))
+        self.check_double_commande.setIconSize(QSize(18, 18))
         self.check_double_commande.setStyleSheet("""
             QCheckBox {
                 font-size: 13px;
@@ -509,7 +515,8 @@ class VehicleForm(QDialog):
         options_layout.addWidget(self.check_double_commande, 1, 1)
         
         # RC élèves (auto-école)
-        self.check_rc_eleves = QCheckBox("👨‍🎓 Garantie RC élèves (Auto-école)")
+        self.check_rc_eleves = QCheckBox(" Garantie RC élèves (Auto-école)")
+        self.check_rc_eleves.setIcon(get_icon('rc_students', color='#4a5568', size=18))
         self.check_rc_eleves.setStyleSheet("""
             QCheckBox {
                 font-size: 13px;
@@ -531,7 +538,9 @@ class VehicleForm(QDialog):
         options_layout.addWidget(self.check_rc_eleves, 2, 1)
         
         # Engin portuaire
-        self.check_engin_portuaire = QCheckBox("⚓ Engin portuaire")
+        self.check_engin_portuaire = QCheckBox("  Engin portuaire")
+        self.check_engin_portuaire.setIcon(get_icon('port_equipment', color='#4a5568', size=18))
+        self.check_engin_portuaire.setIconSize(QSize(18, 18))
         self.check_engin_portuaire.setStyleSheet("""
             QCheckBox {
                 font-size: 13px;
@@ -584,160 +593,129 @@ class VehicleForm(QDialog):
             return 1
 
     def setup_ui(self):
-        """Configure l'interface utilisateur avec style unifié"""
-        self.resize(1100, 900)
-        self.setMinimumSize(1000, 800)
+        """Configure l'interface utilisateur - header géré par le système"""
+        self.resize(1200, 900)
+        self.setMinimumSize(1100, 800)
+        
+        # ✅ Titre de la fenêtre (géré par le système)
+        mode_text = "MODIFICATION" if self.mode == "edit" else "NOUVEAU"
+        self.setWindowTitle(f"FICHE VÉHICULE - {mode_text}")
         
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setContentsMargins(16, 16, 16, 16)
         main_layout.setSpacing(0)
 
         # Carte principale
         self.card = QFrame()
         self.card.setObjectName("MainCard")
-        self.card.setStyleSheet(f"""
-            QFrame#MainCard {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 {Colors.WHITE}, stop:1 {Colors.GRAY_50});
-                border-radius: 24px;
-                border: 1px solid rgba(0,0,0,0.08);
-            }}
-        """)
+        # self.card.setStyleSheet("""
+        #     QFrame#MainCard {
+        #         background: #ffffff;
+        #         border-radius: 20px;
+        #         border: 1px solid rgba(0,0,0,0.06);
+        #     }
+        # """)
         
-        shadow = create_shadow(blur=40, offset_y=10, color=QColor(0, 0, 0, 40))
+        shadow = create_shadow(blur=50, offset_y=12, color=QColor(0, 0, 0, 60))
         self.card.setGraphicsEffect(shadow)
         
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(0, 0, 0, 0)
         card_layout.setSpacing(0)
 
-        # --- HEADER GRADIENT ---
-        self._setup_header(card_layout)
+        # ---- CORPS AVEC MENU LATÉRAL ----
+        body_widget = QWidget()
+        body_widget.setStyleSheet("QWidget { background: #0f172a; }")
+        body_layout = QHBoxLayout(body_widget)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(0)
         
-        # --- BANNIÈRE D'ALERTE ---
-        # self._setup_alert_banner(card_layout)
+        # Menu latéral
+        self.slide_menu = SlideMenu(self)
+        self.slide_menu.section_changed.connect(self._on_section_changed)
+        self.slide_menu.save_clicked.connect(self.validate_and_save)
+        self.slide_menu.cancel_clicked.connect(self.reject)
+        body_layout.addWidget(self.slide_menu)
         
-        # --- CONTENU AVEC ONGLETS ---
-        self.tab_widget = QTabWidget()
-        self.tab_widget.setStyleSheet(f"""
-            QTabWidget::pane {{
-                border: none;
-                background: transparent;
-            }}
-            QTabBar::tab {{
-                padding: 10px 20px;
-                font-weight: 600;
-                font-size: 13px;
-                border-radius: 10px 10px 0 0;
-                margin-right: 4px;
-                color: {Colors.TEXT_SECONDARY};
-            }}
-            QTabBar::tab:selected {{
-                background: {Colors.PRIMARY};
-                color: {Colors.WHITE};
-            }}
-            QTabBar::tab:hover:!selected {{
-                background: {Colors.GRAY_200};
-                color: {Colors.TEXT_PRIMARY};
-            }}
+        # Stacked Widget
+        self.stack_widget = QStackedWidget()
+        self.stack_widget.setStyleSheet("""
+            QStackedWidget {
+                background: white;
+                border-radius: 0 0 16px 0;
+            }
         """)
         
-        # Créer les onglets
-        self.tab_widget.addTab(self._create_identification_tab(), "🔍 Identification")
-        self.tab_widget.addTab(self._create_classification_tab(), "🏷️ Classification")
-        self.tab_widget.addTab(self._create_technical_tab(), "⚙️ Caractéristiques")
-        self.tab_widget.addTab(self._create_owner_tab(), "👤 Propriétaire")
-        self.tab_widget.addTab(self._create_guarantees_tab(), "🛡️ Garanties")
-        self.tab_widget.addTab(self._create_financial_tab(), "💰 Financier")
+        self._create_pages()
+        body_layout.addWidget(self.stack_widget, 1)
         
-        card_layout.addWidget(self.tab_widget)
-        
-        # --- FOOTER ---
-        self._setup_footer(card_layout)
+        card_layout.addWidget(body_widget)
         
         main_layout.addWidget(self.card)
 
-    def _setup_header(self, parent_layout):
-        """Configure l'en-tête du formulaire"""
-        header_widget = QFrame()
-        header_widget.setStyleSheet(f"""
-            QFrame {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {Colors.PRIMARY}, stop:1 {Colors.PRIMARY_DARK});
-                border-top-left-radius: 24px;
-                border-top-right-radius: 24px;
-            }}
-        """)
-        header_widget.setFixedHeight(80)
+    def _create_pages(self):
+        """Crée les pages du stacked widget et les ajoute au menu"""
+        # Définir les sections
+        sections = [
+            ("Identification", self._create_identification_tab, 'card-account-details'),
+            ("Classification", self._create_classification_tab, 'tag'),
+            ("Caractéristiques", self._create_technical_tab, 'engine'),
+            ("Propriétaire", self._create_owner_tab, 'account'),
+            ("Garanties", self._create_guarantees_tab, 'shield'),
+            ("Financier", self._create_financial_tab, 'currency-usd'),
+        ]
         
-        header_layout = QHBoxLayout(header_widget)
-        header_layout.setContentsMargins(30, 0, 20, 0)
-        
-        # Titre avec icône
-        mode_text = "MODIFICATION" if self.mode == "edit" else "NOUVEAU"
-        title_text = QLabel(f"🚗 FICHE VÉHICULE - {mode_text}")
-        title_text.setStyleSheet(f"""
-            font-size: 20px;
-            font-weight: 800;
-            color: {Colors.WHITE};
-            font-family: 'Segoe UI', 'Arial';
-            letter-spacing: 0.5px;
-        """)
-        
-        # Boutons de contrôle
-        btn_style = f"""
-            QPushButton {{
-                background: rgba(255,255,255,0.2);
-                border: none;
-                border-radius: 8px;
-                color: {Colors.WHITE};
-                font-size: 16px;
-                padding: 8px 12px;
-                font-weight: bold;
-            }}
-            QPushButton:hover {{
-                background: rgba(255,255,255,0.3);
-            }}
-            QPushButton#closeBtn:hover {{
-                background: {Colors.DANGER};
-            }}
+        for label, create_func, icon_name in sections:
+            page = create_func()
+            page.setStyleSheet("background: white; padding: 20px 24px;")
+            self.stack_widget.addWidget(page)
+            # self.slide_menu.add_section(label, page, icon_name)
+        # self.slide_menu.update_progress()
+
+    def _create_label(self, icon_name, text):
         """
+        Crée un label avec icône QtAwesome
         
-        self.btn_minimize = QPushButton("─")
-        self.btn_minimize.setFixedSize(32, 32)
-        self.btn_minimize.setStyleSheet(btn_style)
-        self.btn_minimize.clicked.connect(self.showMinimized)
-        
-        self.btn_maximize = QPushButton("□")
-        self.btn_maximize.setFixedSize(32, 32)
-        self.btn_maximize.setStyleSheet(btn_style)
-        self.btn_maximize.clicked.connect(self.toggle_maximize)
-        
-        self.btn_close = QPushButton("✕")
-        self.btn_close.setObjectName("closeBtn")
-        self.btn_close.setFixedSize(32, 32)
-        self.btn_close.setStyleSheet(btn_style)
-        self.btn_close.clicked.connect(self.reject)
-        
-        header_layout.addWidget(title_text)
-        header_layout.addStretch()
-        header_layout.addWidget(self.btn_minimize)
-        header_layout.addWidget(self.btn_maximize)
-        header_layout.addWidget(self.btn_close)
-        
-        parent_layout.addWidget(header_widget)
+        Args:
+            icon_name: Nom de l'icône dans ICONS
+            text: Texte du label
+        """
+        # Gérer l'icône passée soit comme nom (str) soit comme QPixmap
+        from PySide6.QtGui import QPixmap
+        from PySide6.QtWidgets import QWidget, QHBoxLayout
 
+        if isinstance(icon_name, QPixmap):
+            icon_pix = icon_name
+        else:
+            icon_pix = get_icon_pixmap(icon_name, color=ICON_COLORS['gray'], size=35)
 
-    def _create_label(self, icon, text):
-        """Crée un label avec icône"""
-        label = QLabel(f"{icon} {text}")
-        label.setStyleSheet(f"""
+        container = QWidget()
+        hl = QHBoxLayout(container)
+        hl.setContentsMargins(0, 0, 0, 0)
+        hl.setSpacing(8)
+
+        icon_lbl = QLabel()
+        if icon_pix is not None:
+            icon_lbl.setPixmap(icon_pix)
+            try:
+                icon_lbl.setFixedSize(icon_pix.size())
+            except Exception:
+                pass
+        icon_lbl.setStyleSheet("background: transparent;")
+
+        text_lbl = QLabel(text)
+        text_lbl.setStyleSheet(f"""
             font-size: 12px;
             font-weight: 600;
             color: {Colors.TEXT_SECONDARY};
             margin-bottom: 4px;
         """)
-        return label
+
+        hl.addWidget(icon_lbl)
+        hl.addWidget(text_lbl)
+        hl.addStretch()
+
+        return container
 
     def _get_field_style(self):
         """Retourne le style unifié pour les champs"""
@@ -862,12 +840,519 @@ class VehicleForm(QDialog):
         except (ValueError, AttributeError):
             return 0.0
     
+    def _validate_section(self, index):
+        """Valide une section et met à jour la barre de progression"""
+        sections_validators = {
+            0: self._validate_identification,
+            1: self._validate_classification,
+            2: self._validate_technical,
+            3: self._validate_owner,
+            4: self._validate_guarantees,
+            5: self._validate_financial,
+        }
+        
+        validator = sections_validators.get(index)
+        if validator:
+            is_valid = validator()
+            # self.slide_menu.mark_section_completed(index, is_valid)
+    
+    def _validate_identification(self):
+        """Valide la section identification"""
+        has_immat = bool(self.immat_input.text().strip())
+        has_chassis = bool(self.chassis_input.text().strip())
+        has_marque = bool(self.marque_input.currentText().strip())
+        has_modele = bool(self.modele_input.text().strip())
+        return has_immat and has_chassis and has_marque and has_modele
+
+    def _validate_classification(self):
+        """Valide la section classification"""
+        has_cat = bool(self.asac_combo_cat.currentText().strip())
+        has_genre = bool(self.combo_genre.currentText().strip())
+        has_type = bool(self.combo_type.currentText().strip())
+        has_usage = bool(self.combo_usage.currentText().strip())
+        has_energie = bool(self.combo_energie.currentText().strip())
+        has_zone = bool(self.combo_zone.currentText().strip())
+        return has_cat and has_genre and has_type and has_usage and has_energie and has_zone
+
+    def _validate_technical(self):
+        """Valide la section caractéristiques"""
+        has_power = bool(self.usage_input.text().strip())
+        has_places = bool(self.places_input.text().strip())
+        has_val_neuf = bool(self.val_neuf.text().strip())
+        has_val_venale = bool(self.val_venale.text().strip())
+        return has_power and has_places and has_val_neuf and has_val_venale
+
+    def _validate_owner(self):
+        """Valide la section propriétaire"""
+        has_customer = self.customer_list.currentItem() is not None
+        has_company = self.company_list.currentItem() is not None
+        return has_customer and has_company
+
+    def _validate_guarantees(self):
+        """Valide la section garanties"""
+        # Vérifier qu'au moins une garantie est sélectionnée
+        for key, garantie in self.garanties_widgets.items():
+            if garantie['checkbox'].isChecked():
+                return True
+        return False
+
+    def _validate_financial(self):
+        """Valide la section financière"""
+        has_amount = bool(self.prime_nette.text().strip() and float(self.prime_nette.text().replace(" ", "").replace(",", ".")) > 0)
+        has_date_debut = self.date_debut.date().isValid()
+        has_date_fin = self.date_fin.date().isValid()
+        return has_amount and has_date_debut and has_date_fin
+
     # ============================================================
     # ONGLET PROPRIÉTAIRE AVEC SCROLLAREA
     # ============================================================
     
+    # def _create_owner_tab(self):
+    #     """Crée l'onglet des propriétaires avec ScrollArea"""
+    #     tab = QWidget()
+    #     layout = QVBoxLayout(tab)
+    #     layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     # ScrollArea pour tout le contenu
+    #     scroll = QScrollArea()
+    #     scroll.setWidgetResizable(True)
+    #     scroll.setFrameShape(QScrollArea.NoFrame)
+    #     scroll.setStyleSheet(f"""
+    #         QScrollArea {{
+    #             border: none;
+    #             background: transparent;
+    #         }}
+    #         QScrollBar:vertical {{
+    #             border: none;
+    #             background: {Colors.GRAY_100};
+    #             width: 8px;
+    #             border-radius: 4px;
+    #         }}
+    #         QScrollBar::handle:vertical {{
+    #             background: {Colors.GRAY_400};
+    #             border-radius: 4px;
+    #             min-height: 20px;
+    #         }}
+    #         QScrollBar::handle:vertical:hover {{
+    #             background: {Colors.PRIMARY};
+    #         }}
+    #     """)
+        
+    #     content_widget = QWidget()
+    #     content_layout = QVBoxLayout(content_widget)
+    #     content_layout.setSpacing(20)
+    #     content_layout.setContentsMargins(25, 25, 25, 25)
+        
+    #     field_style = self._get_field_style()
+    #     group_style = self._get_group_style()
+        
+    #     # ====== SOUSCRIPTEUR ======
+    #     group_customer = QGroupBox("Souscripteur *")
+    #     group_customer.setStyleSheet(group_style)
+    #     customer_layout = QVBoxLayout(group_customer)
+    #     customer_layout.setSpacing(12)
+    #     customer_layout.setContentsMargins(20, 20, 20, 20)
+        
+    #     # Barre de recherche
+    #     search_layout = QHBoxLayout()
+    #     search_layout.setSpacing(10)
+        
+    #     self.search_customer = QLineEdit()
+    #     self.search_customer.setPlaceholderText("Rechercher un souscripteur (nom, téléphone, code)...")
+    #     self.search_customer.setStyleSheet(field_style)
+    #     self.search_customer.textChanged.connect(self.filter_customers)
+    #     search_layout.addWidget(self.search_customer, 1)
+        
+    #     new_customer_btn = QPushButton(f"Nouveau")
+    #     new_customer_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background: {Colors.SUCCESS};
+    #             color: {Colors.WHITE};
+    #             border-radius: 8px;
+    #             padding: 8px 16px;
+    #             font-weight: 600;
+    #             font-size: 12px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background: {Colors.SUCCESS}cc;
+    #         }}
+    #     """)
+    #     new_customer_btn.clicked.connect(self._open_new_contact_dialog)
+    #     search_layout.addWidget(new_customer_btn)
+        
+    #     customer_layout.addLayout(search_layout)
+        
+    #     # Séparateur
+    #     sep = QFrame()
+    #     sep.setFrameShape(QFrame.HLine)
+    #     sep.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+    #     customer_layout.addWidget(sep)
+        
+    #     # Contenu principal : Liste + Détails
+    #     customer_content = QHBoxLayout()
+    #     customer_content.setSpacing(15)
+        
+    #     # Liste
+    #     self.customer_list = QListWidget()
+    #     self.customer_list.setFixedWidth(280)
+    #     self.customer_list.setMinimumHeight(150)
+    #     self.customer_list.setStyleSheet(f"""
+    #         QListWidget {{
+    #             border: 2px solid {Colors.BORDER};
+    #             border-radius: 10px;
+    #             background: {Colors.WHITE};
+    #             outline: none;
+    #             padding: 4px;
+    #         }}
+    #         QListWidget::item {{
+    #             padding: 10px 12px;
+    #             border-radius: 6px;
+    #             margin: 1px;
+    #             font-size: 12px;
+    #         }}
+    #         QListWidget::item:hover {{
+    #             background: {Colors.GRAY_100};
+    #         }}
+    #         QListWidget::item:selected {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+    #                 stop:0 {Colors.PRIMARY}, stop:1 {Colors.PRIMARY_DARK});
+    #             color: {Colors.WHITE};
+    #         }}
+    #     """)
+    #     self.customer_list.currentRowChanged.connect(self.display_customer_details)
+    #     customer_content.addWidget(self.customer_list)
+        
+    #     # Carte de détails
+    #     self.customer_card = QFrame()
+    #     self.customer_card.setObjectName("CustomerCard")
+    #     self.customer_card.setStyleSheet(f"""
+    #         QFrame#CustomerCard {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+    #                 border-radius: 12px;
+    #                 border: 2px solid {Colors.BORDER};
+    #                 padding: 16px;
+    #             }}
+    #     """)
+    #     customer_card_layout = QHBoxLayout(self.customer_card)
+    #     customer_card_layout.setSpacing(15)
+        
+    #     # Avatar
+    #     avatar_container = QFrame()
+    #     avatar_container.setFixedSize(70, 70)
+    #     avatar_container.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {Colors.PRIMARY};
+    #             border-radius: 35px;
+    #             border: 3px solid {Colors.WHITE};
+    #         }}
+    #     """)
+    #     avatar_layout = QVBoxLayout(avatar_container)
+    #     avatar_layout.setAlignment(Qt.AlignCenter)
+    #     avatar_layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.customer_photo = QLabel()
+    #     pix = get_icon_pixmap('owner', color='white', size=28)
+    #     if pix is not None:
+    #         self.customer_photo.setPixmap(pix)
+    #     self.customer_photo.setStyleSheet(f"""
+    #         font-size: 28px;
+    #         color: {Colors.WHITE};
+    #         background: transparent;
+    #     """)
+    #     self.customer_photo.setAlignment(Qt.AlignCenter)
+    #     avatar_layout.addWidget(self.customer_photo)
+    #     customer_card_layout.addWidget(avatar_container)
+        
+    #     # Informations
+    #     info_widget = QWidget()
+    #     info_layout = QVBoxLayout(info_widget)
+    #     info_layout.setSpacing(6)
+    #     info_layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.lbl_customer_name = QLabel("Aucun souscripteur sélectionné")
+    #     self.lbl_customer_name.setStyleSheet(f"""
+    #         font-size: 15px;
+    #         font-weight: 700;
+    #         color: {Colors.TEXT_PRIMARY};
+    #     """)
+        
+    #     self.lbl_customer_info = QLabel("Sélectionnez un souscripteur dans la liste")
+    #     self.lbl_customer_info.setStyleSheet(f"""
+    #         font-size: 12px;
+    #         color: {Colors.TEXT_MUTED};
+    #         line-height: 1.6;
+    #     """)
+    #     self.lbl_customer_info.setWordWrap(True)
+        
+    #     info_layout.addWidget(self.lbl_customer_name)
+    #     info_layout.addWidget(self.lbl_customer_info)
+    #     info_layout.addStretch()
+        
+    #     customer_card_layout.addWidget(info_widget, 1)
+    #     customer_content.addWidget(self.customer_card, 1)
+        
+    #     customer_layout.addLayout(customer_content)
+    #     content_layout.addWidget(group_customer)
+        
+    #     # ====== CHAUFFEUR (avec liste et recherche) ======
+    #     group_driver = QGroupBox("Chauffeur")
+    #     group_driver.setStyleSheet(group_style)
+    #     driver_layout = QVBoxLayout(group_driver)
+    #     driver_layout.setSpacing(12)
+    #     driver_layout.setContentsMargins(20, 20, 20, 20)
+        
+    #     # ✅ Barre de recherche pour chauffeurs
+    #     search_driver_layout = QHBoxLayout()
+    #     search_driver_layout.setSpacing(10)
+        
+    #     self.search_driver = QLineEdit()
+    #     self.search_driver.setPlaceholderText("Rechercher un chauffeur (nom, permis)...")
+    #     self.search_driver.setStyleSheet(field_style)
+    #     self.search_driver.textChanged.connect(self.filter_drivers)
+    #     search_driver_layout.addWidget(self.search_driver, 1)
+        
+    #     new_driver_btn = QPushButton("Nouveau")
+    #     new_driver_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background: {Colors.SUCCESS};
+    #             color: {Colors.WHITE};
+    #             border-radius: 8px;
+    #             padding: 8px 16px;
+    #             font-weight: 600;
+    #             font-size: 12px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background: {Colors.SUCCESS}cc;
+    #         }}
+    #     """)
+    #     new_driver_btn.clicked.connect(self._open_new_driver_dialog)
+    #     search_driver_layout.addWidget(new_driver_btn)
+        
+    #     driver_layout.addLayout(search_driver_layout)
+        
+    #     # Séparateur
+    #     sep2 = QFrame()
+    #     sep2.setFrameShape(QFrame.HLine)
+    #     sep2.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+    #     driver_layout.addWidget(sep2)
+        
+    #     # Contenu principal : Liste + Détails du chauffeur
+    #     driver_content = QHBoxLayout()
+    #     driver_content.setSpacing(15)
+        
+    #     # ✅ Liste des chauffeurs
+    #     self.driver_list = QListWidget()
+    #     self.driver_list.setFixedWidth(280)
+    #     self.driver_list.setMinimumHeight(150)
+    #     self.driver_list.setStyleSheet(self.customer_list.styleSheet())
+    #     self.driver_list.currentRowChanged.connect(self.display_driver_details)
+    #     driver_content.addWidget(self.driver_list)
+        
+    #     # Carte de détails du chauffeur
+    #     self.driver_card = QFrame()
+    #     self.driver_card.setObjectName("DriverCard")
+    #     self.driver_card.setStyleSheet(f"""
+    #         QFrame#DriverCard {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+    #             border-radius: 12px;
+    #             border: 2px solid {Colors.BORDER};
+    #             padding: 16px;
+    #         }}
+    #     """)
+    #     driver_card_layout = QHBoxLayout(self.driver_card)
+    #     driver_card_layout.setSpacing(15)
+        
+    #     # Avatar du chauffeur
+    #     avatar_container2 = QFrame()
+    #     avatar_container2.setFixedSize(70, 70)
+    #     avatar_container2.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {Colors.WARNING};
+    #             border-radius: 35px;
+    #             border: 3px solid {Colors.WHITE};
+    #         }}
+    #     """)
+    #     avatar_layout2 = QVBoxLayout(avatar_container2)
+    #     avatar_layout2.setAlignment(Qt.AlignCenter)
+    #     avatar_layout2.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.driver_photo = QLabel()
+    #     pix = get_icon_pixmap('driver', color='white', size=28)
+    #     if pix is not None:
+    #         self.driver_photo.setPixmap(pix)
+    #     self.driver_photo.setStyleSheet(f"""
+    #         font-size: 28px;
+    #         color: {Colors.WHITE};
+    #         background: transparent;
+    #     """)
+    #     self.driver_photo.setAlignment(Qt.AlignCenter)
+    #     avatar_layout2.addWidget(self.driver_photo)
+    #     driver_card_layout.addWidget(avatar_container2)
+        
+    #     # Informations du chauffeur
+    #     info_widget2 = QWidget()
+    #     info_layout2 = QVBoxLayout(info_widget2)
+    #     info_layout2.setSpacing(6)
+    #     info_layout2.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.lbl_driver_name = QLabel("Aucun chauffeur sélectionné")
+    #     self.lbl_driver_name.setStyleSheet(f"""
+    #         font-size: 15px;
+    #         font-weight: 700;
+    #         color: {Colors.TEXT_PRIMARY};
+    #     """)
+        
+    #     self.lbl_driver_info = QLabel("Sélectionnez un chauffeur dans la liste ou créez-en un")
+    #     self.lbl_driver_info.setStyleSheet(f"""
+    #         font-size: 12px;
+    #         color: {Colors.TEXT_MUTED};
+    #         line-height: 1.6;
+    #     """)
+    #     self.lbl_driver_info.setWordWrap(True)
+        
+    #     info_layout2.addWidget(self.lbl_driver_name)
+    #     info_layout2.addWidget(self.lbl_driver_info)
+    #     info_layout2.addStretch()
+        
+    #     driver_card_layout.addWidget(info_widget2, 1)
+    #     driver_content.addWidget(self.driver_card, 1)
+        
+    #     driver_layout.addLayout(driver_content)
+    #     content_layout.addWidget(group_driver)
+    #     # ====== COMPAGNIE ======
+    #     group_company = QGroupBox("Compagnie d'assurance  *")
+    #     group_company.setStyleSheet(group_style)
+    #     company_layout = QVBoxLayout(group_company)
+    #     company_layout.setSpacing(12)
+    #     company_layout.setContentsMargins(20, 20, 20, 20)
+        
+    #     # Barre de recherche avec bouton
+    #     search_layout3 = QHBoxLayout()
+    #     search_layout3.setSpacing(10)
+        
+    #     self.search_company = QLineEdit()
+    #     self.search_company.setPlaceholderText("Rechercher une compagnie...")
+    #     self.search_company.setStyleSheet(field_style)
+    #     self.search_company.textChanged.connect(self.filter_companies)
+    #     search_layout3.addWidget(self.search_company, 1)
+        
+    #     new_company_btn = QPushButton("Nouveau")
+    #     new_company_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background: {Colors.INFO};
+    #             color: {Colors.WHITE};
+    #             border-radius: 8px;
+    #             padding: 8px 16px;
+    #             font-weight: 600;
+    #             font-size: 12px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background: {Colors.INFO}cc;
+    #         }}
+    #     """)
+    #     new_company_btn.clicked.connect(self._open_new_company_dialog)
+    #     search_layout3.addWidget(new_company_btn)
+        
+    #     company_layout.addLayout(search_layout3)
+        
+    #     sep3 = QFrame()
+    #     sep3.setFrameShape(QFrame.HLine)
+    #     sep3.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+    #     company_layout.addWidget(sep3)
+        
+    #     # Contenu principal
+    #     company_content = QHBoxLayout()
+    #     company_content.setSpacing(15)
+        
+    #     self.company_list = QListWidget()
+    #     self.company_list.setFixedWidth(280)
+    #     self.company_list.setMinimumHeight(120)
+    #     self.company_list.setStyleSheet(self.customer_list.styleSheet())
+    #     self.company_list.currentRowChanged.connect(self.display_company_details)
+    #     company_content.addWidget(self.company_list)
+        
+    #     self.company_card = QFrame()
+    #     self.company_card.setObjectName("CompanyCard")
+    #     self.company_card.setStyleSheet(f"""
+    #         QFrame#CompanyCard {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+    #                 border-radius: 12px;
+    #                 border: 2px solid {Colors.BORDER};
+    #                 padding: 16px;
+    #             }}
+    #     """)
+    #     company_card_layout = QHBoxLayout(self.company_card)
+    #     company_card_layout.setSpacing(15)
+        
+    #     avatar_container3 = QFrame()
+    #     avatar_container3.setFixedSize(70, 70)
+    #     avatar_container3.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {Colors.INFO};
+    #             border-radius: 35px;
+    #             border: 3px solid {Colors.WHITE};
+    #         }}
+    #     """)
+    #     avatar_layout3 = QVBoxLayout(avatar_container3)
+    #     avatar_layout3.setAlignment(Qt.AlignCenter)
+    #     avatar_layout3.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.company_photo = QLabel()
+    #     pix = get_icon_pixmap('companies', color='white', size=28)
+    #     if pix is not None:
+    #         self.company_photo.setPixmap(pix)
+    #     self.company_photo.setStyleSheet(f"""
+    #         font-size: 28px;
+    #         color: {Colors.WHITE};
+    #         background: transparent;
+    #     """)
+    #     self.company_photo.setAlignment(Qt.AlignCenter)
+    #     avatar_layout3.addWidget(self.company_photo)
+    #     company_card_layout.addWidget(avatar_container3)
+        
+    #     info_widget3 = QWidget()
+    #     info_layout3 = QVBoxLayout(info_widget3)
+    #     info_layout3.setSpacing(6)
+    #     info_layout3.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.lbl_company_name = QLabel("Aucune compagnie sélectionnée")
+    #     self.lbl_company_name.setStyleSheet(f"""
+    #         font-size: 15px;
+    #         font-weight: 700;
+    #         color: {Colors.TEXT_PRIMARY};
+    #     """)
+        
+    #     self.lbl_company_info = QLabel("Sélectionnez une compagnie dans la liste")
+    #     self.lbl_company_info.setStyleSheet(f"""
+    #         font-size: 12px;
+    #         color: {Colors.TEXT_MUTED};
+    #         line-height: 1.6;
+    #     """)
+    #     self.lbl_company_info.setWordWrap(True)
+        
+    #     info_layout3.addWidget(self.lbl_company_name)
+    #     info_layout3.addWidget(self.lbl_company_info)
+    #     info_layout3.addStretch()
+        
+    #     company_card_layout.addWidget(info_widget3, 1)
+    #     company_content.addWidget(self.company_card, 1)
+        
+    #     company_layout.addLayout(company_content)
+    #     content_layout.addWidget(group_company)
+        
+    #     content_layout.addStretch()
+        
+    #     # Assigner le contenu à la ScrollArea
+    #     scroll.setWidget(content_widget)
+    #     layout.addWidget(scroll)
+        
+    #     return tab
+
     def _create_owner_tab(self):
-        """Crée l'onglet des propriétaires avec ScrollArea"""
+        """Crée l'onglet des propriétaires avec ScrollArea - Style AutoAssure"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -876,25 +1361,25 @@ class VehicleForm(QDialog):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.NoFrame)
-        scroll.setStyleSheet(f"""
-            QScrollArea {{
+        scroll.setStyleSheet("""
+            QScrollArea {
                 border: none;
                 background: transparent;
-            }}
-            QScrollBar:vertical {{
+            }
+            QScrollBar:vertical {
                 border: none;
-                background: {Colors.GRAY_100};
+                background: #f1f2f6;
                 width: 8px;
                 border-radius: 4px;
-            }}
-            QScrollBar::handle:vertical {{
-                background: {Colors.GRAY_400};
+            }
+            QScrollBar::handle:vertical {
+                background: #cbd5e0;
                 border-radius: 4px;
                 min-height: 20px;
-            }}
-            QScrollBar::handle:vertical:hover {{
-                background: {Colors.PRIMARY};
-            }}
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #3498db;
+            }
         """)
         
         content_widget = QWidget()
@@ -902,11 +1387,48 @@ class VehicleForm(QDialog):
         content_layout.setSpacing(20)
         content_layout.setContentsMargins(25, 25, 25, 25)
         
-        field_style = self._get_field_style()
-        group_style = self._get_group_style()
+        field_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                color: #2d3748;
+                font-family: 'Segoe UI';
+            }
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border-color: #3498db;
+                background-color: #f0f9ff;
+            }
+            QLabel {
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+        """
+        
+        group_style = """
+            QGroupBox {
+                font-size: 13px;
+                font-weight: bold;
+                border: 2px solid #e2e8f0;
+                border-radius: 14px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 10px 0 10px;
+                color: #2c3e50;
+            }
+        """
         
         # ====== SOUSCRIPTEUR ======
-        group_customer = QGroupBox("👤 Souscripteur *")
+        group_customer = QGroupBox("Souscripteur *")
         group_customer.setStyleSheet(group_style)
         customer_layout = QVBoxLayout(group_customer)
         customer_layout.setSpacing(12)
@@ -917,24 +1439,25 @@ class VehicleForm(QDialog):
         search_layout.setSpacing(10)
         
         self.search_customer = QLineEdit()
-        self.search_customer.setPlaceholderText("🔍 Rechercher un souscripteur (nom, téléphone, code)...")
+        self.search_customer.setPlaceholderText("Rechercher un souscripteur (nom, téléphone, code)...")
         self.search_customer.setStyleSheet(field_style)
         self.search_customer.textChanged.connect(self.filter_customers)
         search_layout.addWidget(self.search_customer, 1)
         
-        new_customer_btn = QPushButton("➕ Nouveau")
-        new_customer_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {Colors.SUCCESS};
-                color: {Colors.WHITE};
+        new_customer_btn = QPushButton("Nouveau")
+        new_customer_btn.setStyleSheet("""
+            QPushButton {
+                background: #10b981;
+                color: white;
+                border: none;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 600;
                 font-size: 12px;
-            }}
-            QPushButton:hover {{
-                background: {Colors.SUCCESS}cc;
-            }}
+            }
+            QPushButton:hover {
+                background: #059669;
+            }
         """)
         new_customer_btn.clicked.connect(self._open_new_contact_dialog)
         search_layout.addWidget(new_customer_btn)
@@ -944,7 +1467,7 @@ class VehicleForm(QDialog):
         # Séparateur
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
-        sep.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+        sep.setStyleSheet("background: #e2e8f0; margin: 4px 0;")
         customer_layout.addWidget(sep)
         
         # Contenu principal : Liste + Détails
@@ -955,28 +1478,27 @@ class VehicleForm(QDialog):
         self.customer_list = QListWidget()
         self.customer_list.setFixedWidth(280)
         self.customer_list.setMinimumHeight(150)
-        self.customer_list.setStyleSheet(f"""
-            QListWidget {{
-                border: 2px solid {Colors.BORDER};
+        self.customer_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #e2e8f0;
                 border-radius: 10px;
-                background: {Colors.WHITE};
+                background: white;
                 outline: none;
                 padding: 4px;
-            }}
-            QListWidget::item {{
+            }
+            QListWidget::item {
                 padding: 10px 12px;
                 border-radius: 6px;
                 margin: 1px;
                 font-size: 12px;
-            }}
-            QListWidget::item:hover {{
-                background: {Colors.GRAY_100};
-            }}
-            QListWidget::item:selected {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {Colors.PRIMARY}, stop:1 {Colors.PRIMARY_DARK});
-                color: {Colors.WHITE};
-            }}
+            }
+            QListWidget::item:hover {
+                background: #f1f5f9;
+            }
+            QListWidget::item:selected {
+                background: #3b82f6;
+                color: white;
+            }
         """)
         self.customer_list.currentRowChanged.connect(self.display_customer_details)
         customer_content.addWidget(self.customer_list)
@@ -984,36 +1506,36 @@ class VehicleForm(QDialog):
         # Carte de détails
         self.customer_card = QFrame()
         self.customer_card.setObjectName("CustomerCard")
-        self.customer_card.setStyleSheet(f"""
-            QFrame#CustomerCard {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
-                    border-radius: 12px;
-                    border: 2px solid {Colors.BORDER};
-                    padding: 16px;
-                }}
+        self.customer_card.setStyleSheet("""
+            QFrame#CustomerCard {
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 2px solid #e2e8f0;
+                padding: 16px;
+            }
         """)
         customer_card_layout = QHBoxLayout(self.customer_card)
         customer_card_layout.setSpacing(15)
         
         # Avatar
         avatar_container = QFrame()
-        avatar_container.setFixedSize(70, 70)
-        avatar_container.setStyleSheet(f"""
-            QFrame {{
-                background: {Colors.PRIMARY};
-                border-radius: 35px;
-                border: 3px solid {Colors.WHITE};
-            }}
+        avatar_container.setFixedSize(60, 60)
+        avatar_container.setStyleSheet("""
+            QFrame {
+                background: #3b82f6;
+                border-radius: 30px;
+                border: 3px solid white;
+            }
         """)
         avatar_layout = QVBoxLayout(avatar_container)
         avatar_layout.setAlignment(Qt.AlignCenter)
         avatar_layout.setContentsMargins(0, 0, 0, 0)
         
-        self.customer_photo = QLabel("👤")
-        self.customer_photo.setStyleSheet(f"""
+        self.customer_photo = QLabel()
+        self.customer_photo.setText("👤")
+        self.customer_photo.setStyleSheet("""
             font-size: 28px;
-            color: {Colors.WHITE};
+            color: white;
             background: transparent;
         """)
         self.customer_photo.setAlignment(Qt.AlignCenter)
@@ -1027,16 +1549,16 @@ class VehicleForm(QDialog):
         info_layout.setContentsMargins(0, 0, 0, 0)
         
         self.lbl_customer_name = QLabel("Aucun souscripteur sélectionné")
-        self.lbl_customer_name.setStyleSheet(f"""
+        self.lbl_customer_name.setStyleSheet("""
             font-size: 15px;
             font-weight: 700;
-            color: {Colors.TEXT_PRIMARY};
+            color: #0f172a;
         """)
         
-        self.lbl_customer_info = QLabel("Sélectionnez un souscripteur dans la liste")
-        self.lbl_customer_info.setStyleSheet(f"""
+        self.lbl_customer_info = QLabel("Sélectionnez un souscripteur dans la liste ou créez-en un nouveau.")
+        self.lbl_customer_info.setStyleSheet("""
             font-size: 12px;
-            color: {Colors.TEXT_MUTED};
+            color: #64748b;
             line-height: 1.6;
         """)
         self.lbl_customer_info.setWordWrap(True)
@@ -1051,36 +1573,37 @@ class VehicleForm(QDialog):
         customer_layout.addLayout(customer_content)
         content_layout.addWidget(group_customer)
         
-        # ====== CHAUFFEUR (avec liste et recherche) ======
-        group_driver = QGroupBox("🚗 Chauffeur")
+        # ====== CHAUFFEUR ======
+        group_driver = QGroupBox("Chauffeur")
         group_driver.setStyleSheet(group_style)
         driver_layout = QVBoxLayout(group_driver)
         driver_layout.setSpacing(12)
         driver_layout.setContentsMargins(20, 20, 20, 20)
         
-        # ✅ Barre de recherche pour chauffeurs
+        # Barre de recherche
         search_driver_layout = QHBoxLayout()
         search_driver_layout.setSpacing(10)
         
         self.search_driver = QLineEdit()
-        self.search_driver.setPlaceholderText("🔍 Rechercher un chauffeur (nom, permis)...")
+        self.search_driver.setPlaceholderText("Rechercher un chauffeur (nom, permis)...")
         self.search_driver.setStyleSheet(field_style)
         self.search_driver.textChanged.connect(self.filter_drivers)
         search_driver_layout.addWidget(self.search_driver, 1)
         
-        new_driver_btn = QPushButton("➕ Nouveau")
-        new_driver_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {Colors.SUCCESS};
-                color: {Colors.WHITE};
+        new_driver_btn = QPushButton("Nouveau")
+        new_driver_btn.setStyleSheet("""
+            QPushButton {
+                background: #10b981;
+                color: white;
+                border: none;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 600;
                 font-size: 12px;
-            }}
-            QPushButton:hover {{
-                background: {Colors.SUCCESS}cc;
-            }}
+            }
+            QPushButton:hover {
+                background: #059669;
+            }
         """)
         new_driver_btn.clicked.connect(self._open_new_driver_dialog)
         search_driver_layout.addWidget(new_driver_btn)
@@ -1090,54 +1613,75 @@ class VehicleForm(QDialog):
         # Séparateur
         sep2 = QFrame()
         sep2.setFrameShape(QFrame.HLine)
-        sep2.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+        sep2.setStyleSheet("background: #e2e8f0; margin: 4px 0;")
         driver_layout.addWidget(sep2)
         
-        # Contenu principal : Liste + Détails du chauffeur
+        # Contenu principal : Liste + Détails
         driver_content = QHBoxLayout()
         driver_content.setSpacing(15)
         
-        # ✅ Liste des chauffeurs
+        # Liste des chauffeurs
         self.driver_list = QListWidget()
         self.driver_list.setFixedWidth(280)
         self.driver_list.setMinimumHeight(150)
-        self.driver_list.setStyleSheet(self.customer_list.styleSheet())
+        self.driver_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                background: white;
+                outline: none;
+                padding: 4px;
+            }
+            QListWidget::item {
+                padding: 10px 12px;
+                border-radius: 6px;
+                margin: 1px;
+                font-size: 12px;
+            }
+            QListWidget::item:hover {
+                background: #f1f5f9;
+            }
+            QListWidget::item:selected {
+                background: #3b82f6;
+                color: white;
+            }
+        """)
         self.driver_list.currentRowChanged.connect(self.display_driver_details)
         driver_content.addWidget(self.driver_list)
         
         # Carte de détails du chauffeur
         self.driver_card = QFrame()
         self.driver_card.setObjectName("DriverCard")
-        self.driver_card.setStyleSheet(f"""
-            QFrame#DriverCard {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+        self.driver_card.setStyleSheet("""
+            QFrame#DriverCard {
+                background: #f8fafc;
                 border-radius: 12px;
-                border: 2px solid {Colors.BORDER};
+                border: 2px solid #e2e8f0;
                 padding: 16px;
-            }}
+            }
         """)
         driver_card_layout = QHBoxLayout(self.driver_card)
         driver_card_layout.setSpacing(15)
         
         # Avatar du chauffeur
         avatar_container2 = QFrame()
-        avatar_container2.setFixedSize(70, 70)
-        avatar_container2.setStyleSheet(f"""
-            QFrame {{
-                background: {Colors.WARNING};
-                border-radius: 35px;
-                border: 3px solid {Colors.WHITE};
-            }}
+        avatar_container2.setFixedSize(60, 60)
+        avatar_container2.setStyleSheet("""
+            QFrame {
+                background: #f59e0b;
+                border-radius: 30px;
+                border: 3px solid white;
+            }
         """)
         avatar_layout2 = QVBoxLayout(avatar_container2)
         avatar_layout2.setAlignment(Qt.AlignCenter)
         avatar_layout2.setContentsMargins(0, 0, 0, 0)
         
-        self.driver_photo = QLabel("🚗")
-        self.driver_photo.setStyleSheet(f"""
+        self.driver_photo = QLabel()
+        self.driver_photo.setText("🚗")
+        self.driver_photo.setStyleSheet("""
             font-size: 28px;
-            color: {Colors.WHITE};
+            color: white;
             background: transparent;
         """)
         self.driver_photo.setAlignment(Qt.AlignCenter)
@@ -1151,16 +1695,16 @@ class VehicleForm(QDialog):
         info_layout2.setContentsMargins(0, 0, 0, 0)
         
         self.lbl_driver_name = QLabel("Aucun chauffeur sélectionné")
-        self.lbl_driver_name.setStyleSheet(f"""
+        self.lbl_driver_name.setStyleSheet("""
             font-size: 15px;
             font-weight: 700;
-            color: {Colors.TEXT_PRIMARY};
+            color: #0f172a;
         """)
         
-        self.lbl_driver_info = QLabel("Sélectionnez un chauffeur dans la liste ou créez-en un")
-        self.lbl_driver_info.setStyleSheet(f"""
+        self.lbl_driver_info = QLabel("Sélectionnez un chauffeur dans la liste ou créez-en un.")
+        self.lbl_driver_info.setStyleSheet("""
             font-size: 12px;
-            color: {Colors.TEXT_MUTED};
+            color: #64748b;
             line-height: 1.6;
         """)
         self.lbl_driver_info.setWordWrap(True)
@@ -1174,45 +1718,48 @@ class VehicleForm(QDialog):
         
         driver_layout.addLayout(driver_content)
         content_layout.addWidget(group_driver)
+        
         # ====== COMPAGNIE ======
-        group_company = QGroupBox("🏢 Compagnie d'assurance *")
+        group_company = QGroupBox("Compagnie d'assurance  *")
         group_company.setStyleSheet(group_style)
         company_layout = QVBoxLayout(group_company)
         company_layout.setSpacing(12)
         company_layout.setContentsMargins(20, 20, 20, 20)
         
-        # Barre de recherche avec bouton
+        # Barre de recherche
         search_layout3 = QHBoxLayout()
         search_layout3.setSpacing(10)
         
         self.search_company = QLineEdit()
-        self.search_company.setPlaceholderText("🔍 Rechercher une compagnie...")
+        self.search_company.setPlaceholderText("Rechercher une compagnie...")
         self.search_company.setStyleSheet(field_style)
         self.search_company.textChanged.connect(self.filter_companies)
         search_layout3.addWidget(self.search_company, 1)
         
-        new_company_btn = QPushButton("➕ Nouveau")
-        new_company_btn.setStyleSheet(f"""
-            QPushButton {{
-                background: {Colors.INFO};
-                color: {Colors.WHITE};
+        new_company_btn = QPushButton("Nouveau")
+        new_company_btn.setStyleSheet("""
+            QPushButton {
+                background: #3b82f6;
+                color: white;
+                border: none;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 600;
                 font-size: 12px;
-            }}
-            QPushButton:hover {{
-                background: {Colors.INFO}cc;
-            }}
+            }
+            QPushButton:hover {
+                background: #2563eb;
+            }
         """)
         new_company_btn.clicked.connect(self._open_new_company_dialog)
         search_layout3.addWidget(new_company_btn)
         
         company_layout.addLayout(search_layout3)
         
+        # Séparateur
         sep3 = QFrame()
         sep3.setFrameShape(QFrame.HLine)
-        sep3.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+        sep3.setStyleSheet("background: #e2e8f0; margin: 4px 0;")
         company_layout.addWidget(sep3)
         
         # Contenu principal
@@ -1222,41 +1769,63 @@ class VehicleForm(QDialog):
         self.company_list = QListWidget()
         self.company_list.setFixedWidth(280)
         self.company_list.setMinimumHeight(120)
-        self.company_list.setStyleSheet(self.customer_list.styleSheet())
+        self.company_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                background: white;
+                outline: none;
+                padding: 4px;
+            }
+            QListWidget::item {
+                padding: 10px 12px;
+                border-radius: 6px;
+                margin: 1px;
+                font-size: 12px;
+            }
+            QListWidget::item:hover {
+                background: #f1f5f9;
+            }
+            QListWidget::item:selected {
+                background: #3b82f6;
+                color: white;
+            }
+        """)
         self.company_list.currentRowChanged.connect(self.display_company_details)
         company_content.addWidget(self.company_list)
         
         self.company_card = QFrame()
         self.company_card.setObjectName("CompanyCard")
-        self.company_card.setStyleSheet(f"""
-            QFrame#CompanyCard {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
-                    border-radius: 12px;
-                    border: 2px solid {Colors.BORDER};
-                    padding: 16px;
-                }}
+        self.company_card.setStyleSheet("""
+            QFrame#CompanyCard {
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 2px solid #e2e8f0;
+                padding: 16px;
+            }
         """)
         company_card_layout = QHBoxLayout(self.company_card)
         company_card_layout.setSpacing(15)
         
+        # Avatar compagnie
         avatar_container3 = QFrame()
-        avatar_container3.setFixedSize(70, 70)
-        avatar_container3.setStyleSheet(f"""
-            QFrame {{
-                background: {Colors.INFO};
-                border-radius: 35px;
-                border: 3px solid {Colors.WHITE};
-            }}
+        avatar_container3.setFixedSize(60, 60)
+        avatar_container3.setStyleSheet("""
+            QFrame {
+                background: #3b82f6;
+                border-radius: 30px;
+                border: 3px solid white;
+            }
         """)
         avatar_layout3 = QVBoxLayout(avatar_container3)
         avatar_layout3.setAlignment(Qt.AlignCenter)
         avatar_layout3.setContentsMargins(0, 0, 0, 0)
         
-        self.company_photo = QLabel("🏢")
-        self.company_photo.setStyleSheet(f"""
+        self.company_photo = QLabel()
+        self.company_photo.setText("🏢")
+        self.company_photo.setStyleSheet("""
             font-size: 28px;
-            color: {Colors.WHITE};
+            color: white;
             background: transparent;
         """)
         self.company_photo.setAlignment(Qt.AlignCenter)
@@ -1269,16 +1838,16 @@ class VehicleForm(QDialog):
         info_layout3.setContentsMargins(0, 0, 0, 0)
         
         self.lbl_company_name = QLabel("Aucune compagnie sélectionnée")
-        self.lbl_company_name.setStyleSheet(f"""
+        self.lbl_company_name.setStyleSheet("""
             font-size: 15px;
             font-weight: 700;
-            color: {Colors.TEXT_PRIMARY};
+            color: #0f172a;
         """)
         
-        self.lbl_company_info = QLabel("Sélectionnez une compagnie dans la liste")
-        self.lbl_company_info.setStyleSheet(f"""
+        self.lbl_company_info = QLabel("Sélectionnez une compagnie dans la liste.")
+        self.lbl_company_info.setStyleSheet("""
             font-size: 12px;
-            color: {Colors.TEXT_MUTED};
+            color: #64748b;
             line-height: 1.6;
         """)
         self.lbl_company_info.setWordWrap(True)
@@ -1295,7 +1864,6 @@ class VehicleForm(QDialog):
         
         content_layout.addStretch()
         
-        # Assigner le contenu à la ScrollArea
         scroll.setWidget(content_widget)
         layout.addWidget(scroll)
         
@@ -1343,7 +1911,7 @@ class VehicleForm(QDialog):
         """Filtre les souscripteurs selon la recherche"""
         self.customer_list.clear()
         if len(text) < 2:
-            item = QListWidgetItem("🔍 Saisissez au moins 2 caractères")
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.customer_list.addItem(item)
             return
@@ -1371,7 +1939,7 @@ class VehicleForm(QDialog):
         """Filtre les assurés selon la recherche"""
         self.driver_list.clear()
         if len(text) < 2:
-            item = QListWidgetItem("🔍 Saisissez au moins 2 caractères")
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.driver_list.addItem(item)
             return
@@ -1399,7 +1967,7 @@ class VehicleForm(QDialog):
         """Filtre les compagnies selon la recherche"""
         self.company_list.clear()
         if len(text) < 2:
-            item = QListWidgetItem("🔍 Saisissez au moins 2 caractères")
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.company_list.addItem(item)
             return
@@ -1437,7 +2005,7 @@ class VehicleForm(QDialog):
         """Filtre les chauffeurs selon la recherche"""
         self.driver_list.clear()
         if len(text) < 2:
-            item = QListWidgetItem("🔍 Saisissez au moins 2 caractères")
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
             item.setFlags(Qt.ItemFlag.NoItemFlags)
             self.driver_list.addItem(item)
             return
@@ -1515,7 +2083,6 @@ class VehicleForm(QDialog):
                 QMessageBox.information(self, "Succès", "Chauffeur créé avec succès")
         except Exception as e:
             QMessageBox.warning(self, "Erreur", f"Erreur lors de la création: {str(e)}")
-
 
     def display_customer_details(self, row):
         """Affiche les détails du souscripteur sélectionné"""
@@ -1708,38 +2275,50 @@ class VehicleForm(QDialog):
     # AUTRES MÉTHODES UTILITAIRES
     # ============================================================
 
-    def toggle_maximize(self):
-        """Bascule entre mode normal et plein écran"""
-        if self.is_maximized:
-            if self.normal_geometry:
-                self.setGeometry(self.normal_geometry)
-            self.btn_maximize.setText("□")
-        else:
-            self.normal_geometry = self.geometry()
-            screen_geometry = self.screen().availableGeometry()
-            self.setGeometry(screen_geometry)
-            self.btn_maximize.setText("❐")
-        self.is_maximized = not self.is_maximized
+    def _on_field_changed(self):
+        """Déclenché quand un champ change - met à jour la validation"""
+        current_index = self.stack_widget.currentIndex()
+        self._validate_section(current_index)
 
-    def mousePressEvent(self, event):
-        """Gère le déplacement de la fenêtre"""
-        if event.button() == Qt.LeftButton and not self.is_maximized:
-            child = self.childAt(event.pos())
-            if not isinstance(child, (QPushButton, QLineEdit, QComboBox, QTextEdit, QListWidget, QCheckBox, QTabWidget)):
-                self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-                event.accept()
-
-    def mouseMoveEvent(self, event):
-        """Déplace la fenêtre"""
-        if event.buttons() == Qt.LeftButton and hasattr(self, 'drag_position') and not self.is_maximized:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
-            event.accept()
-
-    def mouseReleaseEvent(self, event):
-        """Libère le déplacement"""
-        if hasattr(self, 'drag_position'):
-            delattr(self, 'drag_position')
-
+    def _connect_signals(self):
+        """Connecte les signaux pour les calculs automatiques et la validation"""
+        # Signaux existants...
+        if hasattr(self, 'combo_zone'):
+            self.combo_zone.currentTextChanged.connect(self.on_zone_changed)
+        if hasattr(self, 'combo_cat'):
+            self.combo_cat.currentTextChanged.connect(self.on_category_changed)
+        if hasattr(self, 'combo_usage'):
+            self.combo_usage.currentTextChanged.connect(self.on_usage_changed)
+        if hasattr(self, 'usage_input'):
+            self.usage_input.textChanged.connect(self.on_power_changed)
+        if hasattr(self, 'date_debut'):
+            self.date_debut.dateChanged.connect(self.on_date_changed)
+        if hasattr(self, 'date_fin'):
+            self.date_fin.dateChanged.connect(self.on_date_changed)
+        
+        # ✅ Validation automatique pour la ProgressBar
+        # Connecter uniquement les champs de saisie
+        for widget in self.findChildren(QLineEdit):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QComboBox):
+            widget.currentTextChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QDateEdit):
+            widget.dateChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QTextEdit):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QSpinBox):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QDoubleSpinBox):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QCheckBox):
+            widget.stateChanged.connect(self._on_field_changed)
+    
     def fill_form(self, data):
         """Pré-remplit le formulaire"""
         if not data:
@@ -2044,7 +2623,6 @@ class VehicleForm(QDialog):
             import traceback
             traceback.print_exc()
 
-
     def _load_guarantee_values(self, guarantees):
         """
         Charge les valeurs des garanties dans le formulaire.
@@ -2190,7 +2768,6 @@ class VehicleForm(QDialog):
             import traceback
             traceback.print_exc()
 
-
     def _make_brut_editable(self, widget, key):
         """
         Transforme un QLabel en QLineEdit modifiable pour le montant brut.
@@ -2256,7 +2833,6 @@ class VehicleForm(QDialog):
             import traceback
             traceback.print_exc()
 
-
     def _make_brut_readonly(self, widget):
         """
         Transforme un widget en QLabel en lecture seule pour le montant brut.
@@ -2298,7 +2874,6 @@ class VehicleForm(QDialog):
             traceback.print_exc()
         return widget
 
-
     def _on_ipt_brut_changed(self, key, text):
         """
         Gère le changement du montant brut pour l'IPT.
@@ -2333,7 +2908,6 @@ class VehicleForm(QDialog):
                 
         except ValueError as e:
             print(f"⚠️ Valeur invalide pour l'IPT: {e}")
-
 
     def update_net_amount(self, key):
         """
@@ -2407,10 +2981,10 @@ class VehicleForm(QDialog):
                 self.lbl_company_name.setText(compagny.nom.upper())
             
             if hasattr(self, 'lbl_company_info'):
-                info = f"""📌 Code: {compagny.code or 'N/A'}
-    📞 Tél: {compagny.telephone or 'N/A'}
-    📧 Email: {compagny.email or 'N/A'}
-    📍 Adresse: {compagny.adresse or 'N/A'}"""
+                info = f"""{get_icon_pixmap('qrcode', color='white', size=24)} Code: {compagny.code or 'N/A'}
+    {get_icon_pixmap('phone', color='white', size=24)} Tél: {compagny.telephone or 'N/A'}
+    {get_icon_pixmap('email', color='white', size=24)} Email: {compagny.email or 'N/A'}
+    {get_icon_pixmap('address', color='white', size=24)} Adresse: {compagny.adresse or 'N/A'}"""
                 self.lbl_company_info.setText(info)
             
             # Charger les tarifs de la compagnie
@@ -2429,66 +3003,7 @@ class VehicleForm(QDialog):
             self.btn_save.setEnabled(False)
         self.setWindowTitle("Consultation du véhicule")
 
-    def _setup_footer(self, parent_layout):
-        """Configure le pied de page"""
-        footer = QHBoxLayout()
-        footer.setContentsMargins(30, 20, 30, 30)
-        
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setStyleSheet(f"""
-            QProgressBar {{
-                border: none;
-                border-radius: 6px;
-                background-color: {Colors.GRAY_100};
-                height: 8px;
-                text-align: center;
-                font-size: 10px;
-                font-weight: 500;
-                color: {Colors.TEXT_PRIMARY};
-            }}
-            QProgressBar::chunk {{
-                background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {Colors.PRIMARY}, stop:1 {Colors.PRIMARY_DARK});
-                border-radius: 6px;
-            }}
-        """)
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setVisible(False)
-        
-        self.btn_save = QPushButton("💾 ENREGISTRER LE VÉHICULE")
-        self.btn_save.setCursor(Qt.PointingHandCursor)
-        self.btn_save.setStyleSheet(f"""
-            QPushButton {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {Colors.PRIMARY}, stop:1 {Colors.PRIMARY_DARK});
-                color: {Colors.WHITE};
-                font-size: 15px;
-                font-weight: bold;
-                border-radius: 16px;
-                padding: 14px 32px;
-                font-family: 'Segoe UI';
-                letter-spacing: 1px;
-            }}
-            QPushButton:hover {{
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 {Colors.PRIMARY_HOVER}, stop:1 {Colors.PRIMARY});
-            }}
-            QPushButton:pressed {{
-                padding-top: 15px;
-                padding-bottom: 13px;
-            }}
-        """)
-        self.btn_save.clicked.connect(self.validate_and_save)
-        
-        footer.addStretch()
-        footer.addWidget(self.progress_bar)
-        footer.addStretch()
-        footer.addWidget(self.btn_save)
-        footer.addStretch()
-        
-        parent_layout.addLayout(footer)
-
+    #     parent_layout.addLayout(footer)
     # ============================================================
     # MÉTHODES DE SAUVEGARDE (simplifiées)
     # ============================================================
@@ -2876,7 +3391,7 @@ class VehicleForm(QDialog):
         Valide et sauvegarde le véhicule avec toutes les données du formulaire
         Conforme aux spécifications API ASAC
         """
-        print("🔍 validate_and_save() appelée")
+        print(f" {get_icon_pixmap('check', color='white', size=24)} validate_and_save() appelée")
         
         # ============================================================
         # 1. VALIDATION DES CHAMPS OBLIGATOIRES
@@ -2986,7 +3501,7 @@ class VehicleForm(QDialog):
             # ============================================================
             # 7. SAUVEGARDE
             # ============================================================
-            self.progress_bar.setValue(30)
+            # self.progress_bar.setValue(30)
             
             def save_vehicle():
                 from addons.Automobiles.controllers.automobile_controller import VehicleController
@@ -3033,24 +3548,28 @@ class VehicleForm(QDialog):
     def _prepare_save_ui(self):
         """Prépare l'interface avant la sauvegarde"""
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        self.btn_save.setEnabled(False)
-        self.btn_save.setText("⏳ Traitement en cours...")
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(10)
+        
+        # ✅ Afficher la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(10)
+        
         QApplication.processEvents()
 
     def _reset_save_ui(self):
         """Réinitialise l'interface après la sauvegarde"""
         QApplication.restoreOverrideCursor()
-        self.btn_save.setEnabled(True)
-        self.btn_save.setText("💾 ENREGISTRER LE VÉHICULE")
-        self.progress_bar.setVisible(False)
-        self.progress_bar.setValue(0)
+        
+        # ✅ Cacher la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(0)
 
     def _on_save_finished(self, result):
         """Callback en cas de succès de la sauvegarde"""
         QApplication.restoreOverrideCursor()
-        self.progress_bar.setValue(100)
+        
+        # ✅ Mettre à jour la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(100)
         
         if not isinstance(result, (tuple, list)) or len(result) == 0:
             self._reset_save_ui()
@@ -3071,6 +3590,11 @@ class VehicleForm(QDialog):
     def _on_save_error(self, error):
         """Callback en cas d'erreur de sauvegarde"""
         self._reset_save_ui()
+        
+        # ✅ Cacher la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(0)
+        
         QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {error}")
 
     # ============================================================
@@ -3155,7 +3679,7 @@ class VehicleForm(QDialog):
         """
         
         # Groupe: Immatriculation et identification
-        group_id = QGroupBox("🔑 Identification du véhicule")
+        group_id = QGroupBox("Identification du véhicule")
         group_id.setStyleSheet(group_style)
         
         id_layout = QGridLayout(group_id)
@@ -3163,8 +3687,8 @@ class VehicleForm(QDialog):
         id_layout.setContentsMargins(25, 25, 25, 25)
         
         # Ligne 1: Immatriculation et Châssis
-        id_layout.addWidget(self._create_label("🔢", "Immatriculation *"), 0, 0)
-        id_layout.addWidget(self._create_label("🔧", "N° Châssis *"), 0, 1)
+        id_layout.addWidget(self._create_label("immatriculation", "Immatriculation *"), 0, 0)
+        id_layout.addWidget(self._create_label("chassis", "N° Châssis *"), 0, 1)
         
         self.immat_input = QLineEdit()
         self.immat_input.setPlaceholderText("EX: LS-123-AB")
@@ -3178,9 +3702,9 @@ class VehicleForm(QDialog):
         id_layout.addWidget(self.chassis_input, 1, 1)
         
         # Ligne 2: Marque, Modèle, Année
-        id_layout.addWidget(self._create_label("🏭", "Marque *"), 2, 0)
-        id_layout.addWidget(self._create_label("📱", "Modèle *"), 2, 1)
-        id_layout.addWidget(self._create_label("📅", "Année"), 2, 2)
+        id_layout.addWidget(self._create_label(get_icon_pixmap('brand', color='white', size=50), "Marque *"), 2, 0)
+        id_layout.addWidget(self._create_label(get_icon_pixmap('model', color='white', size=50), "Modèle *"), 2, 1)
+        id_layout.addWidget(self._create_label(get_icon_pixmap('year', color='white', size=50), "Année"), 2, 2)
         
         self.marque_input = QComboBox()
         self.marque_input.setStyleSheet(field_style)
@@ -3201,7 +3725,7 @@ class VehicleForm(QDialog):
         id_layout.addWidget(self.annee_input, 3, 2)
         
         # Ligne 3: Date première mise en circulation
-        id_layout.addWidget(self._create_label("📅", "1ère mise en circulation"), 4, 0)
+        id_layout.addWidget(self._create_label(get_icon_pixmap('calendar', color='white', size=24), "1ère mise en circulation"), 4, 0)
         
         self.date_mise_circulation = QDateEdit()
         self.date_mise_circulation.setDisplayFormat("dd/MM/yyyy")
@@ -3223,6 +3747,25 @@ class VehicleForm(QDialog):
         """Charge les catégories liées au code tarif"""
         if code and self.selected_cie_id:
             self.load_tarif_categories_by_code_async(code)
+
+    def _on_section_changed(self, index):
+        """Gère le changement de section et valide la section précédente"""
+        # ✅ Valider la section précédente
+        # if hasattr(self, 'slide_menu') and self.slide_menu:
+        #     previous_index = self.slide_menu._current_index if hasattr(self.slide_menu, '_current_index') else 0
+        #     if 0 <= previous_index < len(self.slide_menu._buttons):
+        #         self._validate_section(previous_index)
+        
+        self.stack_widget.setCurrentIndex(index)
+        
+        # Valider la nouvelle section immédiatement
+        self._validate_section(index)
+
+    def _update_section_title(self, title):
+        """Met à jour le titre de la section dans le header"""
+        # Si vous avez un label dans le header pour le titre de la section
+        # Vous pouvez l'ajouter dans _setup_header
+        pass
 
     def _create_technical_tab(self):
         """Crée l'onglet des caractéristiques techniques avec ScrollArea"""
@@ -3301,7 +3844,7 @@ class VehicleForm(QDialog):
         """
         
         # Groupe: Caractéristiques techniques
-        group_tech = QGroupBox("⚙️ Caractéristiques techniques")
+        group_tech = QGroupBox(f"Caractéristiques techniques")
         group_tech.setStyleSheet(group_style)
         
         tech_layout = QGridLayout(group_tech)
@@ -3309,7 +3852,7 @@ class VehicleForm(QDialog):
         tech_layout.setContentsMargins(25, 25, 25, 25)
         
         # Puissance fiscale
-        tech_layout.addWidget(self._create_label("⚡", "Puissance fiscale (CV) *"), 0, 0)
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('bolt', color='white', size=24), "Puissance fiscale (CV) *"), 0, 0)
         self.usage_input = QLineEdit()
         self.usage_input.setPlaceholderText("Ex: 7")
         self.usage_input.setStyleSheet(field_style)
@@ -3317,28 +3860,28 @@ class VehicleForm(QDialog):
         tech_layout.addWidget(self.usage_input, 1, 0)
         
         # Nombre de places
-        tech_layout.addWidget(self._create_label("👥", "Nombre de places *"), 0, 1)
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('flash', color='white', size=24), "Nombre de places *"), 0, 1)
         self.places_input = QLineEdit()
         self.places_input.setPlaceholderText("5")
         self.places_input.setStyleSheet(field_style)
         tech_layout.addWidget(self.places_input, 1, 1)
         
         # Cylindrée
-        tech_layout.addWidget(self._create_label("🔧", "Cylindrée (cm³)"), 2, 0)
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('settings', color='white', size=24), "Cylindrée (cm³)"), 2, 0)
         self.cylindree_input = QLineEdit()
         self.cylindree_input.setPlaceholderText("Ex: 1600")
         self.cylindree_input.setStyleSheet(field_style)
         tech_layout.addWidget(self.cylindree_input, 3, 0)
         
         # PTAC
-        tech_layout.addWidget(self._create_label("📊", "PTAC (kg)"), 2, 1)
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('reports', color='white', size=24), "PTAC (kg)"), 2, 1)
         self.ptac_input = QLineEdit()
         self.ptac_input.setPlaceholderText("Poids total autorisé en charge")
         self.ptac_input.setStyleSheet(field_style)
         tech_layout.addWidget(self.ptac_input, 3, 1)
         
         # Charge utile
-        tech_layout.addWidget(self._create_label("📦", "Charge utile (kg)"), 4, 0)
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('ptac', color='white', size=24), "Charge utile (kg)"), 4, 0)
         self.charge_utile_input = QLineEdit()
         self.charge_utile_input.setPlaceholderText("Capacité de charge")
         self.charge_utile_input.setStyleSheet(field_style)
@@ -3347,7 +3890,7 @@ class VehicleForm(QDialog):
         content_layout.addWidget(group_tech)
         
         # Groupe: Valeurs
-        group_values = QGroupBox("💰 Valeurs")
+        group_values = QGroupBox("Valeurs")
         group_values.setStyleSheet(group_style)
         
         values_layout = QGridLayout(group_values)
@@ -3355,7 +3898,7 @@ class VehicleForm(QDialog):
         values_layout.setContentsMargins(25, 25, 25, 25)
         
         # Valeur à neuf
-        values_layout.addWidget(self._create_label("💎", "Valeur à neuf (FCFA) *"), 0, 0)
+        values_layout.addWidget(self._create_label(get_icon_pixmap('gem', color='white', size=24), "Valeur à neuf (FCFA) *"), 0, 0)
         self.val_neuf = QLineEdit()
         self.val_neuf.setPlaceholderText("0")
         self.val_neuf.setStyleSheet(field_style)
@@ -3363,7 +3906,7 @@ class VehicleForm(QDialog):
         values_layout.addWidget(self.val_neuf, 1, 0)
         
         # Valeur vénale
-        values_layout.addWidget(self._create_label("📉", "Valeur vénale (FCFA) *"), 0, 1)
+        values_layout.addWidget(self._create_label(get_icon_pixmap('reports', color='white', size=24), "Valeur vénale (FCFA) *"), 0, 1)
         self.val_venale = QLineEdit()
         self.val_venale.setPlaceholderText("0")
         self.val_venale.setStyleSheet(field_style)
@@ -3744,7 +4287,7 @@ class VehicleForm(QDialog):
         # ============================================================
         # GROUPE: INFORMATIONS TARIFAIRES
         # ============================================================
-        group_tarif = QGroupBox("📋 Informations tarifaires")
+        group_tarif = QGroupBox(" Informations tarifaires")
         group_tarif.setStyleSheet(group_style)
         
         tarif_layout = QGridLayout(group_tarif)
@@ -3752,7 +4295,7 @@ class VehicleForm(QDialog):
         tarif_layout.setContentsMargins(25, 25, 25, 25)
         
         # Code tarif
-        tarif_layout.addWidget(self._create_label("📋", "Code Tarif"), 0, 0)
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('code', color='white', size=24), "Code Tarif"), 0, 0)
         self.code_tarif = QComboBox()
         self.code_tarif.setStyleSheet(field_style)
         self.code_tarif.setEditable(True)
@@ -3761,7 +4304,7 @@ class VehicleForm(QDialog):
         tarif_layout.addWidget(self.code_tarif, 1, 0)
         
         # Libellé tarif
-        tarif_layout.addWidget(self._create_label("📝", "Libellé Tarif"), 0, 1)
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('text', color='white', size=24), "Libellé Tarif"), 0, 1)
         self.combo_fleet = QComboBox()
         self.combo_fleet.setStyleSheet(field_style)
         self.combo_fleet.setEditable(True)
@@ -3770,7 +4313,7 @@ class VehicleForm(QDialog):
         tarif_layout.addWidget(self.combo_fleet, 1, 1)
         
         # Catégorie
-        tarif_layout.addWidget(self._create_label("🏷️", "Catégorie *"), 2, 0)
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('tag', color='white', size=24), "Catégorie *"), 2, 0)
         self.combo_cat = QComboBox()
         self.combo_cat.setStyleSheet(field_style)
         self.combo_cat.setEditable(True)
@@ -3781,7 +4324,7 @@ class VehicleForm(QDialog):
         tarif_layout.addWidget(self.combo_cat, 3, 0)
         
         # Code assuré
-        tarif_layout.addWidget(self._create_label("🏷️", "Code Assuré"), 2, 1)
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('tag', color='white', size=24), "Code Assuré"), 2, 1)
         self.code_assure = QLineEdit()
         self.code_assure.setPlaceholderText("Code interne de l'assuré")
         self.code_assure.setStyleSheet(field_style)
@@ -3792,7 +4335,7 @@ class VehicleForm(QDialog):
         # ============================================================
         # GROUPE: GARANTIES
         # ============================================================
-        group_garanties = QGroupBox("🛡️ Garanties & Cotisations")
+        group_garanties = QGroupBox("Garanties & Cotisations")
         group_garanties.setStyleSheet(group_style)
         
         garanties_layout = QGridLayout(group_garanties)
@@ -3990,7 +4533,7 @@ class VehicleForm(QDialog):
             return 0
 
     def _create_financial_tab(self):
-        """Crée l'onglet financier avec ScrollArea"""
+        """Crée l'onglet financier - Style AutoAssure"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -4025,26 +4568,8 @@ class VehicleForm(QDialog):
         content_layout.setSpacing(20)
         content_layout.setContentsMargins(25, 25, 25, 25)
         
-        group_style = """
-            QGroupBox {
-                font-size: 14px;
-                font-weight: bold;
-                border: 2px solid #e2e8f0;
-                border-radius: 16px;
-                margin-top: 12px;
-                padding-top: 12px;
-                background: white;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 20px;
-                padding: 0 12px 0 12px;
-                color: #2c3e50;
-            }
-        """
-        
         field_style = """
-            QLineEdit, QComboBox {
+            QLineEdit, QComboBox, QDateEdit {
                 border: 2px solid #e2e8f0;
                 border-radius: 12px;
                 padding: 10px 14px;
@@ -4053,7 +4578,7 @@ class VehicleForm(QDialog):
                 color: #2d3748;
                 font-family: 'Segoe UI';
             }
-            QLineEdit:focus, QComboBox:focus {
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
                 border-color: #3498db;
                 background-color: #f0f9ff;
             }
@@ -4065,115 +4590,223 @@ class VehicleForm(QDialog):
             }
         """
         
-        # Styles spécifiques
-        style_primary = """
-            QLineEdit {
-                background-color: #eff6ff;
-                color: #1e40af;
+        group_style = """
+            QGroupBox {
+                font-size: 13px;
                 font-weight: bold;
-                border: 2px solid #bfdbfe;
-                border-radius: 12px;
-                padding: 12px;
-                font-size: 16px;
+                border: 2px solid #e2e8f0;
+                border-radius: 14px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 10px 0 10px;
+                color: #2c3e50;
             }
         """
         
-        style_success = """
-            QLineEdit {
-                background-color: #f0fdf4;
-                color: #166534;
-                font-weight: bold;
-                border: 2px solid #bbf7d0;
-                border-radius: 12px;
-                padding: 12px;
-                font-size: 18px;
-            }
-        """
-        
-        style_warning = """
-            QLineEdit {
-                background-color: #fffbeb;
-                color: #b45309;
-                font-weight: bold;
-                border: 2px solid #fde68a;
-                border-radius: 12px;
-                padding: 12px;
-                font-size: 14px;
-            }
-        """
-        
-        # Groupe: Récapitulatif
-        group_recap = QGroupBox("🧮 Récapitulatif financier")
+        # ============================================================
+        # GROUPE: RÉCAPITULATIF FINANCIER
+        # ============================================================
+        group_recap = QGroupBox("Récapitulatif financier")
         group_recap.setStyleSheet(group_style)
         
-        recap_layout = QGridLayout(group_recap)
-        recap_layout.setSpacing(15)
+        recap_layout = QVBoxLayout(group_recap)
+        recap_layout.setSpacing(12)
         recap_layout.setContentsMargins(25, 25, 25, 25)
         
+        # Description
+        desc_label = QLabel("Vérifiez et validez les montants de la prime avant d'enregistrer le contrat.")
+        desc_label.setStyleSheet("""
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 400;
+            margin-bottom: 8px;
+        """)
+        recap_layout.addWidget(desc_label)
+        
+        # Ligne 1: Prime Brute et Réduction
+        recap_row1 = QHBoxLayout()
+        recap_row1.setSpacing(30)
+        
         # Prime brute
-        recap_layout.addWidget(self._create_label("📊", "Prime brute (FCFA)"), 0, 0)
+        brute_layout = QVBoxLayout()
+        brute_layout.setSpacing(4)
+        brute_label = QLabel("PRIME BRUTE (FCFA)")
+        brute_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        brute_layout.addWidget(brute_label)
+        
         self.prime_brute = QLineEdit("0")
         self.prime_brute.setReadOnly(True)
-        self.prime_brute.setStyleSheet(style_primary)
+        self.prime_brute.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 16px;
+                font-weight: 700;
+                color: #1e293b;
+                max-width: 180px;
+            }
+        """)
         self.prime_brute.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.prime_brute, 1, 0)
+        brute_layout.addWidget(self.prime_brute)
+        recap_row1.addLayout(brute_layout)
         
         # Réduction
-        recap_layout.addWidget(self._create_label("📉", "Réduction (FCFA)"), 0, 1)
+        reduction_layout = QVBoxLayout()
+        reduction_layout.setSpacing(4)
+        reduction_label = QLabel("RÉDUCTION (FCFA)")
+        reduction_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        reduction_layout.addWidget(reduction_label)
+        
         self.reduction = QLineEdit("0")
         self.reduction.setReadOnly(True)
-        self.reduction.setStyleSheet(style_warning)
+        self.reduction.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 16px;
+                font-weight: 700;
+                color: #1e293b;
+                max-width: 180px;
+            }
+        """)
         self.reduction.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.reduction, 1, 1)
+        reduction_layout.addWidget(self.reduction)
+        recap_row1.addLayout(reduction_layout)
         
         # Prime nette
-        recap_layout.addWidget(self._create_label("✅", "Prime nette (FCFA)"), 0, 2)
+        nette_layout = QVBoxLayout()
+        nette_layout.setSpacing(4)
+        nette_label = QLabel("PRIME NETTE (FCFA)")
+        nette_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        nette_layout.addWidget(nette_label)
+        
         self.prime_nette = QLineEdit("0")
         self.prime_nette.setReadOnly(True)
-        self.prime_nette.setStyleSheet(style_success)
+        self.prime_nette.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #10b981;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f0fdf4;
+                font-size: 16px;
+                font-weight: 700;
+                color: #065f46;
+                max-width: 180px;
+            }
+        """)
         self.prime_nette.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.prime_nette, 1, 2)
+        nette_layout.addWidget(self.prime_nette)
+        recap_row1.addLayout(nette_layout)
         
-        # Séparateur
-        sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
-        sep.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
-        recap_layout.addWidget(sep, 2, 0, 1, 3)
+        recap_row1.addStretch()
+        recap_layout.addLayout(recap_row1)
         
-        # Taxe et accessoires
-        recap_layout.addWidget(self._create_label("📋", "Accessoires (FCFA)"), 3, 0)
+        # Ligne 2: Accessoires, ASAC, TVA
+        recap_row2 = QHBoxLayout()
+        recap_row2.setSpacing(30)
+        
+        # Accessoires
+        accessoires_layout = QVBoxLayout()
+        accessoires_layout.setSpacing(4)
+        accessoires_label = QLabel("Accessoires (FCFA)")
+        accessoires_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        accessoires_layout.addWidget(accessoires_label)
+        
         self.accessoire = QLineEdit("0")
-        self.accessoire.setStyleSheet(field_style)
+        self.accessoire.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 14px;
+                max-width: 180px;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
         self.accessoire.setAlignment(Qt.AlignRight)
         self.accessoire.textChanged.connect(self.calculate_tva)
         self.accessoire.textChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.accessoire, 4, 0)
+        accessoires_layout.addWidget(self.accessoire)
+        recap_row2.addLayout(accessoires_layout)
         
-        recap_layout.addWidget(self._create_label("📋", "Fichier ASAC (FCFA)"), 3, 1)
+        # Fichier ASAC
+        asac_layout = QVBoxLayout()
+        asac_layout.setSpacing(4)
+        asac_label = QLabel("Fichier ASAC (FCFA)")
+        asac_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        asac_layout.addWidget(asac_label)
+        
         self.asac = QLineEdit("0")
-        self.asac.setStyleSheet(field_style)
+        self.asac.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 14px;
+                max-width: 180px;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
         self.asac.setAlignment(Qt.AlignRight)
         self.asac.textChanged.connect(self.calculate_tva)
         self.asac.textChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.asac, 4, 1)
+        asac_layout.addWidget(self.asac)
+        recap_row2.addLayout(asac_layout)
         
-        recap_layout.addWidget(self._create_label("📋", "TVA (19.25%)"), 3, 2)
+        # TVA
+        tva_layout = QVBoxLayout()
+        tva_layout.setSpacing(4)
+        tva_label = QLabel("TVA (19.25%)")
+        tva_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        tva_layout.addWidget(tva_label)
+        
         self.tva = QLineEdit("0")
         self.tva.setReadOnly(True)
-        self.tva.setStyleSheet(field_style)
+        self.tva.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 14px;
+                font-weight: 600;
+                color: #1e293b;
+                max-width: 180px;
+            }
+        """)
         self.tva.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.tva, 4, 2)
+        tva_layout.addWidget(self.tva)
+        recap_row2.addLayout(tva_layout)
         
-        # Séparateur
-        sep2 = QFrame()
-        sep2.setFrameShape(QFrame.HLine)
-        sep2.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
-        recap_layout.addWidget(sep2, 5, 0, 1, 3)
+        recap_row2.addStretch()
+        recap_layout.addLayout(recap_row2)
         
-        # ============================================================
-        # NOUVEAU : Exonéré de DTA
-        # ============================================================
-        recap_layout.addWidget(self._create_label("🛡️", "Exonéré de DTA"), 6, 0)
+        # Ligne 3: Exonéré DTA, Vignette, Carte Rose
+        recap_row3 = QHBoxLayout()
+        recap_row3.setSpacing(30)
+        
+        # Exonéré de DTA
+        exonere_layout = QVBoxLayout()
+        exonere_layout.setSpacing(4)
+        exonere_label = QLabel("Exonéré de DTA")
+        exonere_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        exonere_layout.addWidget(exonere_label)
+        
         self.check_exonere_dta = QCheckBox("Exonéré de DTA")
         self.check_exonere_dta.setStyleSheet("""
             QCheckBox {
@@ -4194,84 +4827,220 @@ class VehicleForm(QDialog):
             }
         """)
         self.check_exonere_dta.stateChanged.connect(self.on_exonere_dta_changed)
-        recap_layout.addWidget(self.check_exonere_dta, 7, 0)
+        exonere_layout.addWidget(self.check_exonere_dta)
+        recap_row3.addLayout(exonere_layout)
         
-        # Vignette (ComboBox)
-        recap_layout.addWidget(self._create_label("🏷️", "Vignette"), 6, 1)
+        # Vignette
+        vignette_layout = QVBoxLayout()
+        vignette_layout.setSpacing(4)
+        vignette_label = QLabel("Vignette")
+        vignette_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        vignette_layout.addWidget(vignette_label)
+        
         self.vignette = QComboBox()
-        self.vignette.setStyleSheet(field_style)
+        self.vignette.setStyleSheet("""
+            QComboBox {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 8px 14px;
+                background-color: white;
+                font-size: 13px;
+                max-width: 180px;
+            }
+            QComboBox:focus {
+                border-color: #3498db;
+            }
+        """)
         self.vignette.setEditable(False)
         self.vignette.addItems(["0", "30000", "50000", "75000", "200000"])
         self.vignette.setCurrentIndex(0)
-        self.vignette.setVisible(False)  # Caché par défaut
+        self.vignette.setVisible(False)
         self.vignette.currentTextChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.vignette, 7, 1)
+        vignette_layout.addWidget(self.vignette)
+        recap_row3.addLayout(vignette_layout)
         
         # Carte Rose
-        recap_layout.addWidget(self._create_label("📋", "Carte Rose (FCFA)"), 6, 2)
+        carte_layout = QVBoxLayout()
+        carte_layout.setSpacing(4)
+        carte_label = QLabel("Carte Rose (FCFA)")
+        carte_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        carte_layout.addWidget(carte_label)
+        
         self.carte_rose = QLineEdit("0")
-        self.carte_rose.setStyleSheet(field_style)
+        self.carte_rose.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 14px;
+                max-width: 180px;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
         self.carte_rose.setAlignment(Qt.AlignRight)
         self.carte_rose.textChanged.connect(self.calculate_pttc)
-        recap_layout.addWidget(self.carte_rose, 7, 2)
+        carte_layout.addWidget(self.carte_rose)
+        recap_row3.addLayout(carte_layout)
         
-        # Séparateur
-        sep3 = QFrame()
-        sep3.setFrameShape(QFrame.HLine)
-        sep3.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
-        recap_layout.addWidget(sep3, 8, 0, 1, 3)
+        recap_row3.addStretch()
+        recap_layout.addLayout(recap_row3)
         
-        # PTTC
-        recap_layout.addWidget(self._create_label("💰", "PTTC (FCFA)"), 9, 0)
+        # Ligne 4: PTTC
+        recap_row4 = QHBoxLayout()
+        recap_row4.setSpacing(30)
+        recap_row4.setContentsMargins(0, 8, 0, 0)
+        
+        pttc_layout = QVBoxLayout()
+        pttc_layout.setSpacing(4)
+        
+        pttc_header = QHBoxLayout()
+        pttc_header.setSpacing(8)
+        
+        pttc_label = QLabel("PTTC (FCFA) - PRIME TOTALE TOUTES TAXES COMPRISES")
+        pttc_label.setStyleSheet("""
+            font-size: 11px;
+            font-weight: 700;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        """)
+        pttc_header.addWidget(pttc_label)
+        
+        pttc_sub = QLabel("Montant à payer par le client")
+        pttc_sub.setStyleSheet("""
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-left: 4px;
+        """)
+        pttc_header.addWidget(pttc_sub)
+        pttc_header.addStretch()
+        
+        pttc_layout.addLayout(pttc_header)
+        
         self.pttc = QLineEdit("0")
         self.pttc.setReadOnly(True)
         self.pttc.setStyleSheet("""
             QLineEdit {
-                background-color: #fef3c7;
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #fef3c7,
+                    stop:1 #fde68a
+                );
                 color: #b45309;
-                font-weight: bold;
-                border: 2px solid #fde68a;
+                font-weight: 800;
+                border: 2px solid #f59e0b;
                 border-radius: 12px;
-                padding: 12px;
-                font-size: 18px;
+                padding: 14px 20px;
+                font-size: 24px;
+                max-width: 300px;
             }
         """)
         self.pttc.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.pttc, 10, 0, 1, 3)
+        pttc_layout.addWidget(self.pttc)
         
-        # Séparateur
-        sep4 = QFrame()
-        sep4.setFrameShape(QFrame.HLine)
-        sep4.setStyleSheet("background: #e2e8f0; margin: 10px 0;")
-        recap_layout.addWidget(sep4, 11, 0, 1, 3)
+        recap_row4.addLayout(pttc_layout)
+        recap_row4.addStretch()
+        recap_layout.addLayout(recap_row4)
         
-        # Dates
-        recap_layout.addWidget(self._create_label("📅", "Date début"), 12, 0)
+        content_layout.addWidget(group_recap)
+        
+        # ============================================================
+        # GROUPE: PÉRIODE DE GARANTIE
+        # ============================================================
+        group_dates = QGroupBox("Période de garantie")
+        group_dates.setStyleSheet(group_style)
+        
+        dates_layout = QHBoxLayout(group_dates)
+        dates_layout.setContentsMargins(25, 20, 25, 20)
+        dates_layout.setSpacing(30)
+        
+        # Date début
+        date_debut_layout = QVBoxLayout()
+        date_debut_layout.setSpacing(4)
+        date_debut_label = QLabel("Date début")
+        date_debut_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        date_debut_layout.addWidget(date_debut_label)
+        
         self.date_debut = QDateEdit()
         self.date_debut.setDisplayFormat("dd/MM/yyyy")
         self.date_debut.setCalendarPopup(True)
         self.date_debut.setDate(QDate.currentDate())
-        self.date_debut.setStyleSheet(field_style)
+        self.date_debut.setStyleSheet("""
+            QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                max-width: 150px;
+            }
+            QDateEdit:focus {
+                border-color: #3498db;
+            }
+        """)
         self.date_debut.dateChanged.connect(self.on_date_changed)
-        recap_layout.addWidget(self.date_debut, 13, 0)
+        date_debut_layout.addWidget(self.date_debut)
+        dates_layout.addLayout(date_debut_layout)
         
-        recap_layout.addWidget(self._create_label("📅", "Date fin"), 12, 1)
+        # Date fin
+        date_fin_layout = QVBoxLayout()
+        date_fin_layout.setSpacing(4)
+        date_fin_label = QLabel("Date fin")
+        date_fin_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        date_fin_layout.addWidget(date_fin_label)
+        
         self.date_fin = QDateEdit()
         self.date_fin.setDisplayFormat("dd/MM/yyyy")
         self.date_fin.setCalendarPopup(True)
         self.date_fin.setDate(QDate.currentDate().addYears(1))
-        self.date_fin.setStyleSheet(field_style)
+        self.date_fin.setStyleSheet("""
+            QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                max-width: 150px;
+            }
+            QDateEdit:focus {
+                border-color: #3498db;
+            }
+        """)
         self.date_fin.dateChanged.connect(self.on_date_changed)
-        recap_layout.addWidget(self.date_fin, 13, 1)
+        date_fin_layout.addWidget(self.date_fin)
+        dates_layout.addLayout(date_fin_layout)
         
-        recap_layout.addWidget(self._create_label("📊", "Jours"), 12, 2)
+        # Jours
+        jours_layout = QVBoxLayout()
+        jours_layout.setSpacing(4)
+        jours_label = QLabel("Jours")
+        jours_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        jours_layout.addWidget(jours_label)
+        
         self.nbr_jour = QLineEdit("0")
         self.nbr_jour.setReadOnly(True)
-        self.nbr_jour.setStyleSheet(field_style)
+        self.nbr_jour.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 13px;
+                font-weight: 600;
+                color: #1e293b;
+                max-width: 100px;
+            }
+        """)
         self.nbr_jour.setAlignment(Qt.AlignRight)
-        recap_layout.addWidget(self.nbr_jour, 13, 2)
+        jours_layout.addWidget(self.nbr_jour)
+        dates_layout.addLayout(jours_layout)
         
-        content_layout.addWidget(group_recap)
+        dates_layout.addStretch()
+        content_layout.addWidget(group_dates)
+        
         content_layout.addStretch()
         
         scroll.setWidget(content_widget)
@@ -4338,4 +5107,4 @@ class VehicleForm(QDialog):
         if current_value:
             self.combo_cat.setCurrentText(current_value)
 
-    
+  

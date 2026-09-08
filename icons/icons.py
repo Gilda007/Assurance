@@ -530,6 +530,202 @@ ICONS = {
     'lightbulb_off': 'mdi.lightbulb-off',
     'flashlight': 'mdi.flashlight',
     'flashlight_off': 'mdi.flashlight-off',
+
+
+    # ============================================================
+    # AJOUTS POUR LE FORMULAIRE VÉHICULE
+    # ============================================================
+    # Identification
+    'identification': 'mdi.card-account-details',
+    'immatriculation': 'mdi.car', 
+    'chassis': 'mdi.cog',
+    'brand': 'mdi.factory',
+    'model': 'mdi.shape',
+    'year': 'mdi.calendar',
+    'first_circulation': 'mdi.calendar-start',
+    
+    # Classification ASAC
+    'classification': 'mdi.tag',
+    'category': 'mdi.tag-text',
+    'genre': 'mdi.truck',
+    'vehicle_type': 'mdi.car-hatchback',
+    'usage': 'mdi.road',
+    'energy': 'mdi.gas-station',
+    'zone': 'mdi.map-marker-radius',
+    
+    # Technical characteristics
+    'technical': 'mdi.engine',
+    'power': 'mdi.gauge',
+    'seats': 'mdi.seat',
+    'cylinder': 'mdi.engine',
+    'ptac': 'mdi.weight',
+    'payload': 'mdi.weight-kilogram',
+    'value_new': 'mdi.cash',
+    'value_used': 'mdi.cash-remove',
+    
+    # Options
+    'options': 'mdi.cog-box',
+    'trailer': 'mdi.caravan', 
+    'trailer_plate': 'mdi.car',
+    'flammable': 'mdi.fire',
+    'dual_control': 'mdi.steering',
+    'rc_students': 'mdi.school',
+    'port_equipment': 'mdi.anchor',
+    
+    # Owner
+    'owner': 'mdi.account',
+    'account': 'mdi.account',
+    'subscriber': 'mdi.account-check',
+    'driver': 'mdi.account-tie',
+    'company': 'mdi.bank',
+    'search': 'mdi.magnify',
+    'new_contact': 'mdi.account-plus',
+    'new_driver': 'mdi.account-plus',
+    'new_company': 'mdi.bank-plus',
+    'code_client': 'mdi.barcode',
+    'profession': 'mdi.briefcase',
+    'socio_professional': 'mdi.office-building',
+    'specialty': 'mdi.star',
+    'experience': 'mdi.timer',
+    'associated_subscriber': 'mdi.account-link',
+    
+    # Guarantees
+    'guarantees': 'mdi.shield',
+    'tariff': 'mdi.tag',
+    'tariff_code': 'mdi.barcode',
+    'tariff_label': 'mdi.tag-text',
+    'insured_code': 'mdi.barcode',
+    'rc': 'mdi.shield-car',
+    'dr': 'mdi.shield-account',
+    'vol': 'mdi.shield-lock',
+    'vb': 'mdi.shield-lock',
+    'inc': 'mdi.fire',
+    'bris': 'mdi.glass',
+    'ar': 'mdi.wrench',
+    'dta': 'mdi.shield-check',
+    'ipt': 'mdi.account-group',
+    'amount_brut': 'mdi.cash',
+    'rate': 'mdi.percent',
+    'reduction': 'mdi.cash-remove',
+    'amount_net': 'mdi.cash-check',
+    
+    # Financial
+    'financial': 'mdi.currency-usd',
+    'premium_brut': 'mdi.cash',
+    'premium_net': 'mdi.cash-check',
+    'discount': 'mdi.percent-outline',
+    'accessories': 'mdi.cog',
+    'asac_fee': 'mdi.file-export',
+    'tva': 'mdi.receipt',
+    'exoneration': 'mdi.shield-check',
+    'sticker': 'mdi.sticker',
+    'carte_rose': 'mdi.card',
+    'pttc': 'mdi.cash-multiple',
+    'start_date': 'mdi.calendar-start',
+    'end_date': 'mdi.calendar-end',
+    'days': 'mdi.calendar-clock',
+
+    # ============================================================
+    # OPTIONS ET PARAMÈTRES
+    # ============================================================
+    'options': 'mdi.cog-box',           # Icône pour Options
+    'settings': 'mdi.cog',               # Icône pour Paramètres
+    'tools': 'mdi.tools',                # Icône pour Outils
+    'wrench': 'mdi.wrench',              # Icône pour Clé à molette
+    'engine': 'mdi.engine',              # Icône pour Moteur
+    'cog': 'mdi.cog',                    # Icône pour Engrenage
+    'cog_box': 'mdi.cog-box',            # Icône pour Boîte d'engrenage
+    'cog_transfer': 'mdi.cog-transfer',  # Icône pour Transfert d'engrenage
+    'settings_box': 'mdi.cog-box',       # Icône pour Boîte de paramètres
+
+    # ============================================================
+    # ONGLETS DU FORMULAIRE VÉHICULE
+    # ============================================================
+    'tab_identification': 'mdi.card-account-details',  # Identification
+    'tab_classification': 'mdi.tag',                   # Classification
+    'tab_technical': 'mdi.engine',                     # Caractéristiques
+    'tab_owner': 'mdi.account',                        # Propriétaire
+    'tab_guarantees': 'mdi.shield',                    # Garanties
+    'tab_financial': 'mdi.currency-usd', 
+    
+
+    # ============================================================
+    # TITRES DU FORMULAIRE
+    # ============================================================
+    'vehicle_form': 'mdi.car',           # Icône pour Fiche Véhicule
+    'vehicle_new': 'mdi.car-plus',       # Icône pour Nouveau Véhicule
+    'vehicle_edit': 'mdi.car-edit',      # Icône pour Modification Véhicule              # Financier
+
+    
+    # ============================================================
+    # ICÔNES SUPPLÉMENTAIRES
+    # ============================================================
+    'bolt': 'mdi.lightning-bolt',           # ⚡ Éclair / Bolt
+    'lightning': 'mdi.lightning-bolt',      # ⚡ Éclair (alias)
+    'lightning_bolt': 'mdi.lightning-bolt', # ⚡ Éclair (alias)
+    
+    'people': 'mdi.account-multiple',       # 👥 Personnes / Groupe
+    'people_group': 'mdi.account-multiple', # 👥 Groupe de personnes (alias)
+    'group': 'mdi.account-multiple',        # 👥 Groupe (alias)
+    'users': 'mdi.account-multiple',        # 👥 Utilisateurs (alias)
+    
+    # ============================================================
+    # VARIANTES DE L'ICÔNE BOLT
+    # ============================================================
+    'bolt_outline': 'mdi.lightning-bolt-outline',  # ⚡ Éclair contour
+    'flash': 'mdi.flash',                          # ⚡ Flash
+    'flash_outline': 'mdi.flash-outline',          # ⚡ Flash contour
+    'flash_alert': 'mdi.flash-alert',              # ⚡ Flash alerte
+    'flash_off': 'mdi.flash-off',                  # ⚡ Flash désactivé
+    'lightning_circle': 'mdi.lightning-circle',    # ⚡ Éclair dans cercle
+    
+    # ============================================================
+    # VARIANTES DE L'ICÔNE PEOPLE
+    # ============================================================
+    'people_outline': 'mdi.account-multiple-outline',  # 👥 Personnes contour
+    'people_plus': 'mdi.account-multiple-plus',        # 👥 Ajouter des personnes
+    'people_minus': 'mdi.account-multiple-minus',      # 👥 Retirer des personnes
+    'people_check': 'mdi.account-multiple-check',      # 👥 Personnes vérifiées
+    'people_remove': 'mdi.account-multiple-remove',    # 👥 Retirer des personnes
+    'people_alert': 'mdi.account-multiple-alert',      # 👥 Alerte personnes
+    'people_question': 'mdi.account-multiple-question',# 👥 Question personnes
+
+
+    # ============================================================
+    # ICÔNES DIAMANT
+    # ============================================================
+    'diamond': 'mdi.diamond',                         # 💎 Diamant
+    'diamond_outline': 'mdi.diamond-outline',         # 💎 Diamant contour
+    'diamond_stone': 'mdi.diamond-stone',             # 💎 Pierre de diamant
+    'diamond_stone_outline': 'mdi.diamond-stone-outline', # 💎 Pierre de diamant contour
+    
+    # ============================================================
+    # VARIANTES DE DIAMANT
+    # ============================================================
+    'gem': 'mdi.gem',                                 # 💎 Gemme
+    'gem_outline': 'mdi.gem-outline',                 # 💎 Gemme contour
+    'crystal': 'mdi.crystal',                         # 🔮 Cristal
+    'jewel': 'mdi.jewel',                             # 💎 Bijou
+    'jewelry': 'mdi.jewelry',                         # 💎 Bijouterie
+    'ring': 'mdi.ring',                               # 💍 Bague
+    
+    # ============================================================
+    # SHAPES & FORMES
+    # ============================================================
+    'shape': 'mdi.shape',                             # ⬛ Forme
+    'shape_outline': 'mdi.shape-outline',             # ⬛ Forme contour
+    'shape_plus': 'mdi.shape-plus',                   # ⬛ Ajouter une forme
+    'polygon': 'mdi.polygon',                         # ⬛ Polygone
+    'triangle': 'mdi.triangle',                       # 🔺 Triangle
+    'triangle_outline': 'mdi.triangle-outline',       # 🔺 Triangle contour
+    'square': 'mdi.square',                           # ⬛ Carré
+    'square_outline': 'mdi.square-outline',           # ⬛ Carré contour
+    'circle': 'mdi.circle',                           # ⭕ Cercle
+    'circle_outline': 'mdi.circle-outline',           # ⭕ Cercle contour
+    'hexagon': 'mdi.hexagon',                         # ⬡ Hexagone
+    'hexagon_outline': 'mdi.hexagon-outline',         # ⬡ Hexagone contour
+    'octagon': 'mdi.octagon',                         # ⬡ Octogone
+    'octagon_outline': 'mdi.octagon-outline',         # ⬡ Octogone contour
 }
 
 
@@ -551,12 +747,22 @@ def get_icon(icon_name: str, color: str = None, size: int = 24) -> QIcon:
     """
     if icon_name not in ICONS:
         print(f"⚠️ Icône inconnue: {icon_name}")
-        return qta.icon('mdi.help-circle', color=color)
-    
+        try:
+            return qta.icon('mdi.help-circle', color=color)
+        except Exception:
+            return QIcon()
+
     icon_path = ICONS[icon_name]
-    if color:
-        return qta.icon(icon_path, color=color)
-    return qta.icon(icon_path)
+    try:
+        if color:
+            return qta.icon(icon_path, color=color)
+        return qta.icon(icon_path)
+    except Exception as e:
+        print(f"⚠️ Erreur récupération icône {icon_path}: {e}")
+        try:
+            return qta.icon('mdi.help-circle', color=color)
+        except Exception:
+            return QIcon()
 
 
 def get_icon_pixmap(icon_name: str, color: str = None, size: int = 24):

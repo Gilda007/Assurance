@@ -609,14 +609,20 @@ class VehiculeModuleView(QWidget):
         
         # Réactiver le bouton après un court délai (les chargements sont asynchrones)
         def reenable_button():
-            self.btn_refresh.setEnabled(True)
-            self.btn_refresh = QPushButton(" Actualiser")
-            self.btn_refresh.setIcon(get_icon('refresh', color='#2d3748', size=16))
-            self.btn_refresh.setIconSize(QSize(16, 16))
-            self.btn_refresh.setText(" Actualisation...")
-            self.btn_refresh.setText(" Actualiser")
-            self.status_label.setText(" Données actualisées")
-            self.last_update_label.setText(f"Dernière mise à jour: {datetime.now().strftime('%H:%M:%S')}")
+            # Ne pas recréer le bouton (remplacer l'instance casse les connexions et l'affichage)
+            try:
+                self.btn_refresh.setEnabled(True)
+                self.btn_refresh.setText(" Actualiser")
+            except Exception as e:
+                logger.exception("Erreur lors de la réactivation du bouton refresh: %s", e)
+
+            # Mettre à jour les labels de statut
+            try:
+                self.status_label.setText("✅ Données actualisées")
+                self.last_update_label.setText(f"Dernière mise à jour: {datetime.now().strftime('%H:%M:%S')}")
+            except Exception:
+                # Labels peuvent ne pas exister dans certains contextes; ignorer silencieusement
+                pass
         
         # Utiliser un timer pour réactiver le bouton (les requêtes asynchrones sont rapides)
         QTimer.singleShot(1500, reenable_button)

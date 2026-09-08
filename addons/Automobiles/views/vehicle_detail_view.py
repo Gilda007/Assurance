@@ -9,6 +9,7 @@ from io import BytesIO
 from PySide6.QtGui import QFont, QColor, QPixmap
 from addons.Automobiles.controllers.contract_controller import ContractController
 from addons.Automobiles.controllers.paiement_controller import PaymentController
+from core.workers.database_worker import async_query
 
 MODERN_STYLE = """
     /* Global */
@@ -486,6 +487,97 @@ class VehicleDetailView(QWidget):
             self.payment_history = []
             self.payment_schedule = []
 
+    def load_contract_data_async(self):
+        """Charge les données du contrat hors du thread UI et met à jour UI au callback."""
+        # Récupérer l'ID du véhicule comme dans la version sync
+        vehicle_id = None
+        if isinstance(self.data, dict):
+            vehicle_id = self.data.get('id') or self.data.get('vehicle_id') or self.data.get('vehicule_id') or self.data.get('vehiculeId') or self.data.get('id_vehicule')
+        elif hasattr(self.data, 'id'):
+            vehicle_id = getattr(self.data, 'id')
+
+        if not vehicle_id:
+            return
+
+        def worker():
+            # Exécuter uniquement du code thread-safe (nouvelle session via controllers)
+            try:
+                contract_ctrl = ContractController()
+                payment_ctrl = PaymentController()
+                # Vehicle controller uses the same session
+                from addons.Automobiles.controllers.automobile_controller import VehicleController
+                vehicle_ctrl = VehicleController(contract_ctrl.db)
+
+                contrat = contract_ctrl.get_contract_by_vehicle(vehicle_id)
+                vehicle = vehicle_ctrl.get_vehicles_by_id(vehicle_id, load_relations=True)
+
+                contract_data = None
+                payment_history = []
+                payment_schedule = []
+
+                if contrat:
+                    prime_totale = getattr(vehicle, 'pttc', 0) if vehicle else 0
+                    contract_data = {
+                        'amounts': {
+                            'prime_totale_ttc': prime_totale,
+                            'prime_pure': getattr(contrat, 'prime_pure', 0),
+                            'discount': 0,
+                        },
+                        'payment': {
+                            'montant_paye': getattr(contrat, 'montant_paye', 0),
+                            'reste_a_payer': (getattr(contrat, 'prime_totale_ttc', 0) - getattr(contrat, 'montant_paye', 0)),
+                            'statut': getattr(contrat, 'statut_paiement', None),
+                            'statut_label': self._get_payment_status_label(getattr(contrat, 'statut_paiement', None))
+                        },
+                        'contract': {
+                            'id': getattr(contrat, 'id', None),
+                            'numero_police': getattr(contrat, 'numero_police', None),
+                            'statut': getattr(contrat, 'statut', 'ACTIF')
+                        }
+                    }
+
+                    # Récupérer paiements et échéances via payment_ctrl si disponible
+                    try:
+                        if hasattr(payment_ctrl, 'get_payments_by_contract'):
+                            payment_history = payment_ctrl.get_payments_by_contract(contrat.id) or []
+                    except Exception:
+                        payment_history = []
+
+                    try:
+                        if hasattr(payment_ctrl, 'get_payment_schedule'):
+                            payment_schedule = payment_ctrl.get_payment_schedule(contrat.id) or []
+                    except Exception:
+                        payment_schedule = []
+
+                return {
+                    'contract_data': contract_data,
+                    'payment_history': payment_history,
+                    'payment_schedule': payment_schedule
+                }
+            finally:
+                try:
+                    contract_ctrl.db.close()
+                except Exception:
+                    pass
+
+        def on_finished(result):
+            try:
+                self.contract_data = result.get('contract_data')
+                self.payment_history = result.get('payment_history', [])
+                self.payment_schedule = result.get('payment_schedule', [])
+            except Exception as e:
+                print(f"Erreur on_finished apply data: {e}")
+            # Mettre à jour l'UI en place
+            try:
+                self._refresh_finances_ui()
+            except Exception as e:
+                print(f"Erreur mise à jour UI finances: {e}")
+
+        def on_error(error):
+            print(f"Erreur chargement asynchrone contrat: {error}")
+
+        async_query.execute(worker, on_finished=on_finished, on_error=on_error, show_loader=False)
+
     def _get_payment_status_label(self, status):
         """Retourne le libellé du statut de paiement"""
         labels = {
@@ -506,17 +598,140 @@ class VehicleDetailView(QWidget):
 
     def refresh_financial_data(self):
         """Rafraîchit les données financières et met à jour l'affichage"""
-        self._load_contract_data()
+        # Lancer la version asynchrone pour ne pas bloquer l'UI
+        try:
+            self.load_contract_data_async()
+            return
+        except Exception:
+            # Si l'async échoue, retomber en synchro
+            self._load_contract_data()
         
         # Reconstruire l'onglet finances si nécessaire
         if hasattr(self, 'tab_widget'):
-            # Mettre à jour l'onglet existant
-            self.finances_tab = self.create_finances_tab()
-            index = self.tab_widget.indexOf(self.finances_tab)
-            if index >= 0:
-                self.tab_widget.removeTab(index)
-            
-            self.tab_widget.insertTab(2, self.finances_tab, "💰 Finances")
+            # Actualiser le contenu de l'onglet finances en place
+            old_tab = getattr(self, 'finances_tab', None)
+            if old_tab is not None:
+                old_index = self.tab_widget.indexOf(old_tab)
+                if old_index >= 0:
+                    current_index = self.tab_widget.currentIndex()
+
+                    # Créer un nouveau widget finances temporaire pour récupérer
+                    # le layout mis à jour sans modifier la sélection de l'onglet
+                    new_finances = self.create_finances_tab()
+                    new_layout = new_finances.layout()
+                    # Détacher le layout du widget temporaire (si possible)
+                    try:
+                        if new_layout is not None:
+                            new_finances.setLayout(None)
+                    except Exception:
+                        new_layout = None
+
+                    # Supprimer les widgets existants dans l'ancien layout
+                    old_layout = old_tab.layout()
+                    if old_layout is not None:
+                        while old_layout.count():
+                            item = old_layout.takeAt(0)
+                            w = item.widget()
+                            if w is not None:
+                                w.setParent(None)
+                                w.deleteLater()
+
+                    # Si on a un layout prêt, l'affecter à l'onglet existant
+                    if new_layout is not None:
+                        old_tab.setLayout(new_layout)
+                    else:
+                        # Sécurisé : si on n'a pas pu transférer le layout,
+                        # remplacer le widget du tab au même index (dernier recours)
+                        self.tab_widget.removeTab(old_index)
+                        self.finances_tab = new_finances
+                        self.tab_widget.insertTab(old_index, self.finances_tab, "💰 Finances")
+
+                    # Restaurer l'onglet actif pour l'utilisateur
+                    if current_index == old_index:
+                        self.tab_widget.setCurrentIndex(old_index)
+                    else:
+                        max_index = max(0, self.tab_widget.count() - 1)
+                        self.tab_widget.setCurrentIndex(min(current_index, max_index))
+            else:
+                # Aucun onglet connu : créer et insérer à la position 2
+                self.finances_tab = self.create_finances_tab()
+                self.tab_widget.insertTab(2, self.finances_tab, "💰 Finances")
+
+    def _refresh_finances_ui(self):
+        """Met à jour les widgets de l'onglet finances en utilisant les données chargées."""
+        try:
+            if not hasattr(self, 'finances_tab') or self.finances_tab is None:
+                return
+
+            tab = self.finances_tab
+
+            # Supprimer l'ancien layout si présent
+            old_layout = tab.layout()
+            if old_layout is not None:
+                while old_layout.count():
+                    item = old_layout.takeAt(0)
+                    w = item.widget()
+                    if w is not None:
+                        w.setParent(None)
+                        w.deleteLater()
+
+            # Reconstruire le contenu à partir des données actuelles
+            new_widget = self.create_finances_tab()
+            new_layout = new_widget.layout()
+
+            if new_layout is not None:
+                # Créer un layout propre sur l'onglet et y reparenter les widgets
+                target_layout = QVBoxLayout(tab)
+                try:
+                    while new_layout.count():
+                        item = new_layout.takeAt(0)
+                        # widget
+                        child_w = item.widget()
+                        if child_w is not None:
+                            child_w.setParent(tab)
+                            target_layout.addWidget(child_w)
+                            continue
+
+                        # nested layout
+                        child_l = item.layout()
+                        if child_l is not None:
+                            target_layout.addLayout(child_l)
+                            continue
+
+                        # spacer or other
+                        spacer = item.spacerItem()
+                        if spacer is not None:
+                            target_layout.addItem(spacer)
+                            continue
+                except Exception:
+                    # en cas d'erreur, retomber au remplacement complet
+                    try:
+                        idx = self.tab_widget.indexOf(tab)
+                        if idx >= 0:
+                            self.tab_widget.removeTab(idx)
+                            self.finances_tab = new_widget
+                            self.tab_widget.insertTab(idx, self.finances_tab, "💰 Finances")
+                    except Exception:
+                        pass
+                finally:
+                    try:
+                        new_widget.setParent(None)
+                        new_widget.deleteLater()
+                    except Exception:
+                        pass
+            else:
+                # Repli : remplacer complètement le widget dans le QTabWidget
+                idx = self.tab_widget.indexOf(tab)
+                if idx >= 0:
+                    self.tab_widget.removeTab(idx)
+                    self.finances_tab = new_widget
+                    self.tab_widget.insertTab(idx, self.finances_tab, "💰 Finances")
+
+            # Forcer une mise à jour visuelle
+            tab.update()
+            tab.repaint()
+        except Exception as e:
+            print(f"Erreur _refresh_finances_ui: {e}")
 
     def setup_ui(self):
         main_layout = QVBoxLayout(self)
@@ -558,7 +773,8 @@ class VehicleDetailView(QWidget):
         self.tab_widget.addTab(self.create_garanties_tab(), "🛡️ Garanties")
 
         # Onglet 3: Finances & Paiement
-        self.tab_widget.addTab(self.create_finances_tab(), "💰 Finances")
+        self.finances_tab = self.create_finances_tab()
+        self.tab_widget.addTab(self.finances_tab, "💰 Finances")
 
         # Onglet 4: Statistiques & Performance
         self.tab_widget.addTab(self.create_stats_tab(), "📊 Statistiques")

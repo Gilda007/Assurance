@@ -1,0 +1,1 @@
+"""Vues du module."""

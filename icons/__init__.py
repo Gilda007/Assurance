@@ -3,7 +3,7 @@
 Package des icônes et thèmes LOMETA
 """
 
-from .icons import ICONS, ICON_CATEGORIES, get_icon, get_icon_pixmap, get_icon_names, COLORS
+from .icons import ICONS, ICON_CATEGORIES, get_icon, get_icon_pixmap, get_icon_names, COLORS, ICON_COLORS
 from .theme import ThemeManager, ThemeType
 
 __all__ = [
@@ -14,5 +14,6 @@ __all__ = [
     'get_icon_names',
     'ThemeManager',
     'ThemeType',
-    'COLORS'
+    'COLORS',
+    'ICON_COLORS'
 ]

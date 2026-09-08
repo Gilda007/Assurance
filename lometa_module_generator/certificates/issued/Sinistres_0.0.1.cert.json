@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "module_name": "Sinistres",
+  "module_version": "0.0.1",
+  "certified_by": "Fearless Cybertech",
+  "certified_date": "2026-09-02T17:04:56.030505",
+  "expiry_date": "2026-10-02T17:04:56.035730",
+  "certificate_id": "685E14C89BAA5743",
+  "checksums": {
+    "README.md": "d682d246083d384cb0b160b795f5f4abc9745213a6c92172352b56e57a2941a4",
+    "__init__.py": "749afe8740ad2ef82ca2597e4c4d054367735e8e2341dcf73742f3a48aa7752e",
+    "controllers/__init__.py": "8a2e4b2c4f54635a79f2e088756f31a62fcff24b6fa48e2dd260b99590a1d9e4",
+    "main_ui.py": "173b0b2c5b136d87b936fba3aac9449b5aaf881421cbabf50db176c6becb6a2a",
+    "manifest.json": "24d05b2ca13011a5b1b1f2c400656b4a895fdc762fe91dd416ec947f90159dbc",
+    "migrations/__init__.py": "c3d1309cb26c320bdffb9c1d97d5e7e12cde5002ee04012edb74d61ad78174e9",
+    "models/__init__.py": "7ce939e32286332b2cee98ca9eb03f2b28ba396717e3100d8d2d7550babcab5e",
+    "tests/__init__.py": "a575db3fce9e72927863795a96e1433c1ce420301f0fa32e77b686340eba94d7",
+    "views/__init__.py": "c4af039b1b5873cec44d3da9b62c91acc96ad052d73c7941416f51b05154f740",
+    "views/view.py": "1bd1893c65e46b2c271d9a29d30082d467ec205e02eb3bedafccc90037ef0525"
+  },
+  "signature": "6c8523c0b11dd01895e96ee1deaaa34ca656c507649e36b3d2637b036c1bc97b",
+  "public_key": "a28e49a364d44a50af3d2cf040de67cc68cb6288fc95f9641f4c87bf63bf94a4",
+  "signature_algorithm": "HMAC-SHA256",
+  "certificate_chain": [],
+  "metadata": {},
+  "validity_days": 30,
+  "machine_id": "5D951CB4860A142F"
+}

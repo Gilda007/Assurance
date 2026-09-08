@@ -1,7 +1,7 @@
 
 # core/database.py - Version optimisée avec pool de connexions
 import os
-from sqlalchemy import create_engine, event
+from sqlalchemy import Boolean, Integer, create_engine, event, Column, DateTime, String, Boolean, UUID
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import configure_mappers, sessionmaker, scoped_session
 from sqlalchemy.engine import URL
@@ -155,6 +155,7 @@ def init_db():
         # Importer les modèles (forcer leur enregistrement)
         from addons.Paramètres.models.models import User
         from addons.Automobiles import models as automobiles_models
+        from addons.sinistres import models as sinistres_models
         # Ajoutez vos autres modèles ici si besoin
         
         # Configurer les mappers
@@ -350,6 +351,15 @@ class RobustSession:
     def refresh(self, obj):
         self.session.refresh(obj)
 
+
+class AuditableMixin:
+    """Mixin pour ajouter les champs d'audit à tous les modèles"""
+    
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_by = Column(Integer, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
+    updated_by = Column(Integer, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
 
 def get_robust_db():
     """Obtient une session DB robuste avec retry"""

@@ -4,15 +4,15 @@
     "module_name": "Gestion d'Assurance Automobile",
     "module_version": "0.0.1",
     "certified_by": "Fearless Cybertech",
-    "certified_date": "2026-08-27T08:56:13Z",
-    "expiry_date": "2026-09-26T08:56:13Z",
+    "certified_date": "2026-08-31T09:44:47Z",
+    "expiry_date": "2026-09-30T09:44:47Z",
     "certificate_id": "SerialNumber:",
     "serial_number": "SerialNumber:",
     "subject": "        CN=Gestion dAssurance Automobile, O=Fearless Cybertech, OU=LOMETA Modules, C=CM, ST=Cameroon, L=Yaound\u00c3\u00a9, emailAddress=admin@lometa.com",
     "issuer": "        CN=LOMETA Developer CA, O=LOMETA Technologies, OU=Developer Tools, C=CM, ST=Cameroon, L=Yaound\u00c3\u00a9",
     "validity": {
-        "not_before": "2026-08-27T10:56:13+02:00",
-        "not_after": "2026-09-26T10:56:13+02:00",
+        "not_before": "2026-08-31T11:44:47+02:00",
+        "not_after": "2026-09-30T11:44:47+02:00",
         "days": 30
     },
     "checksum_algorithm": "SHA-256",
@@ -112,8 +112,8 @@
         "views/attestation_print.py": "1c80339412993ab07b868aa7ca05428be528223a27f23027fb8b2332581e7f67",
         "views/audit_auto_view.py": "1286bf828bf1c22ddce752a8e6f5396c8520061b992f431d526b848aeb68a7aa",
         "views/automobile_form_view_old.py": "71f7d3af0c3d755c8a9a4620be3879c54f607edb1361eb764b98417820fcc34c",
-        "views/automobile_form_view.py": "aa5730dca5a330b8035771fea20f9b0746559989b603834a721ad15705d6cded",
-        "views/automobile_view.py": "b9a964cfe82c04083d0c38d1a5b26c174b980f1b0deae569980a83ad2840e52d",
+        "views/automobile_form_view.py": "f1336120d57a14a14ab13a47d0322497777972f99f1282836722e2bd5d8f3772",
+        "views/automobile_view.py": "b22c69a7f908bdbe23fa40435739d9d7acfbe722c56c135d22cf08bd1bea6c27",
         "views/batch_print_dialog.py": "0bddd94f44514573e4390236544614ce8d3f5980149f674647edd93b8ea49846",
         "views/batch_print_manager.py": "8d443cc543d6129b5c36777a570796214c64644c53605a14f18c62c0ed28c3c7",
         "views/batch_print_thread.py": "3feecfc456122c07eef97b7ea80ea91ab9355605f99d2ebc57debef8c6894562",
@@ -157,14 +157,14 @@
         "views/tarif_form_view.py": "e48fe4a3f66c5f61dedb477e030c72393fcc7092f3cda7665aee96e10192df84",
         "views/tarif_view.py": "201bc2e49202d786d27bfb82010adc5b534d6951494959df9e02064d52b7443b",
         "views/test.py": "1d608affac047068f10cbcfa6fff4360a072214dd29263db1665879b90c3da45",
-        "views/vehicle_detail_view.py": "ea585b5abf7d978da7b9c7604a4701e541394090a7bb1b6dfa4638b882a32871",
+        "views/vehicle_detail_view.py": "6c446f837fe4ed7ec5f422f71b8be5a6dedd179ec18789fd855d97f3b597938a",
         "views/view.py": "99f90f705a5351d430958e9994ae19ed367d477ffa4e896b456c0662e77e7229",
         "views/vignette_printer.py": "526e0b76edfe042e66655de255677d1224fc58ba2a38435a15eedaa6cab8fc11",
         "views/widgets/modern_card.py": "54e7189425d162090e6696a339035de86f04a4006953470e26b5a5f89a1f15c3"
     },
     "metadata": {
         "certified_by": "Fearless Cybertech",
-        "certification_date": "2026-08-27T08:56:13Z"
+        "certification_date": "2026-08-31T09:44:47Z"
     },
     "signature_algorithm": "RSA-PSS-SHA256",
     "certificate_chain": []
