@@ -1,10 +1,11 @@
 """
-Widget de sélection de contrat
+Widget de sélection de véhicule sinistré (flottes)
 Disposition horizontale : gauche = recherche + liste, droite = détails
 """
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QPushButton,
-    QFrame, QListWidget, QListWidgetItem, QGroupBox, QMessageBox
+    QFrame, QListWidget, QListWidgetItem, QGroupBox, QMessageBox,
+    QGridLayout, QSizePolicy
 )
 from PySide6.QtCore import Qt, Signal
 from typing import Optional, List, Dict
@@ -94,7 +95,7 @@ STYLE_LIST = """
 """
 
 STYLE_DETAILS_FRAME = """
-    QFrame#ContractDetails {
+    QFrame#VehicleDetails {
         background-color: #f8fafc;
         border: 1px solid #e2e8f0;
         border-radius: 8px;
@@ -132,50 +133,23 @@ STYLE_BANNER_EMPTY = """
     }
 """
 
-STYLE_BADGE_ACTIF = """
-    color: #166534;
-    background-color: #dcfce7;
-    font-size: 10px;
-    font-weight: bold;
-"""
-
-STYLE_BADGE_INACTIF = """
-    color: #991b1b;
-    background-color: #fee2e2;
-    font-size: 10px;
-    font-weight: bold;
-"""
-
-STYLE_BADGE_FLOTTE = """
-    color: #1e40af;
-    background-color: #dbeafe;
-    font-size: 10px;
-    font-weight: bold;
-"""
-
 
 # ============================================================
 # WIDGET
 # ============================================================
 
-class ContractSelectorWidget(QWidget):
-    """Sélecteur horizontal de contrat avec recherche, liste et détails"""
+class VehicleSelectorWidget(QWidget):
+    """Sélecteur horizontal de véhicule sinistré (flottes)"""
     
-    contract_selected = Signal(dict)
     vehicle_selected = Signal(dict)
     
     def __init__(self, controller, parent=None):
         super().__init__(parent)
         self.controller = controller
-        self._current_client_id = None
-        self._contrats = []
-        self._contrats_filtres = []
-        self._selected_contract = None
-        
-        # Sous-widget véhicule (affiché si le contrat est une flotte)
-        from addons.sinistres.views.vehicle_selector_widget import VehicleSelectorWidget
-        self.vehicle_selector = VehicleSelectorWidget(controller)
-        self.vehicle_selector.vehicle_selected.connect(self._on_vehicle_changed)
+        self._current_contract_id = None
+        self._vehicules = []
+        self._vehicules_filtres = []
+        self._selected_vehicle = None
         
         self._setup_ui()
     
@@ -189,7 +163,7 @@ class ContractSelectorWidget(QWidget):
         root.setSpacing(8)
         
         # ---------- Carte principale ----------
-        self.group = QGroupBox("📄 Contrat")
+        self.group = QGroupBox("🚛 Véhicule sinistré")
         self.group.setStyleSheet(STYLE_GROUP)
         
         group_layout = QVBoxLayout(self.group)
@@ -210,39 +184,40 @@ class ContractSelectorWidget(QWidget):
         search_row.setSpacing(8)
         
         self.input_search = QLineEdit()
-        self.input_search.setPlaceholderText("🔎 Rechercher par n° police, type...")
+        self.input_search.setPlaceholderText("🔎 Rechercher...")
         self.input_search.setStyleSheet(STYLE_SEARCH)
-        self.input_search.textChanged.connect(self._filtrer_contrats)
+        self.input_search.textChanged.connect(self._filtrer_vehicules)
         search_row.addWidget(self.input_search, 1)
         
         self.btn_refresh = QPushButton("🔄")
-        self.btn_refresh.setToolTip("Recharger la liste des contrats")
+        self.btn_refresh.setToolTip("Recharger la liste des véhicules")
         self.btn_refresh.setFixedSize(38, 38)
         self.btn_refresh.setStyleSheet(STYLE_BTN_REFRESH)
-        self.btn_refresh.clicked.connect(self._recharger_contrats)
+        self.btn_refresh.clicked.connect(self._recharger_vehicules)
         search_row.addWidget(self.btn_refresh)
         
         left_col.addLayout(search_row)
         
         # Compteur
-        self.lbl_count = QLabel("0 contrat(s)")
+        self.lbl_count = QLabel("0 véhicule(s)")
         self.lbl_count.setStyleSheet(STYLE_COUNT)
         left_col.addWidget(self.lbl_count)
         
         # Liste
-        self.list_contrats = QListWidget()
-        self.list_contrats.setStyleSheet(STYLE_LIST)
-        self.list_contrats.setMinimumHeight(180)
-        self.list_contrats.currentItemChanged.connect(self._on_contract_clicked)
-        left_col.addWidget(self.list_contrats, 1)
+        self.list_vehicules = QListWidget()
+        self.list_vehicules.setStyleSheet(STYLE_LIST)
+        self.list_vehicules.setMinimumHeight(180)
+        self.list_vehicules.currentItemChanged.connect(self._on_vehicle_clicked)
+        left_col.addWidget(self.list_vehicules, 1)
         
         # État vide
-        self.lbl_empty = QLabel("Sélectionnez d'abord un client")
+        self.lbl_empty = QLabel("Aucun véhicule disponible")
         self.lbl_empty.setStyleSheet(STYLE_EMPTY)
         self.lbl_empty.setAlignment(Qt.AlignCenter)
-        self.lbl_empty.show()
+        self.lbl_empty.hide()
         left_col.addWidget(self.lbl_empty)
         
+        # Ajout de la colonne gauche (2/3 de la largeur)
         body.addLayout(left_col, 2)
         
         # ==============================
@@ -252,7 +227,7 @@ class ContractSelectorWidget(QWidget):
         right_col.setSpacing(8)
         
         self.details_frame = QFrame()
-        self.details_frame.setObjectName("ContractDetails")
+        self.details_frame.setObjectName("VehicleDetails")
         self.details_frame.setStyleSheet(STYLE_DETAILS_FRAME)
         self.details_frame.setMinimumWidth(280)
         
@@ -260,26 +235,31 @@ class ContractSelectorWidget(QWidget):
         details_layout.setContentsMargins(14, 12, 14, 12)
         details_layout.setSpacing(10)
         
-        details_title = QLabel("📋 Détails du contrat")
+        details_title = QLabel("📋 Détails du véhicule")
         details_title.setStyleSheet("color: #1e293b; font-size: 12px; font-weight: bold;")
         details_layout.addWidget(details_title)
         
+        # Séparateur
         sep = QFrame()
         sep.setFrameShape(QFrame.HLine)
         sep.setStyleSheet("background-color: #e2e8f0; max-height: 1px; border: none;")
         details_layout.addWidget(sep)
         
+        # Conteneur dynamique pour les détails
         self.details_content = QVBoxLayout()
         self.details_content.setSpacing(6)
         details_layout.addLayout(self.details_content)
         details_layout.addStretch()
         
-        self.lbl_no_selection = QLabel("👈 Sélectionnez un contrat\ndans la liste")
+        # Message quand rien n'est sélectionné
+        self.lbl_no_selection = QLabel("👈 Sélectionnez un véhicule\ndans la liste")
         self.lbl_no_selection.setStyleSheet(STYLE_EMPTY)
         self.lbl_no_selection.setAlignment(Qt.AlignCenter)
         details_layout.addWidget(self.lbl_no_selection)
         
         right_col.addWidget(self.details_frame, 1)
+        
+        # Ajout de la colonne droite (1/3 de la largeur)
         body.addLayout(right_col, 1)
         
         group_layout.addLayout(body)
@@ -290,184 +270,153 @@ class ContractSelectorWidget(QWidget):
         banner_layout = QHBoxLayout(self.banner)
         banner_layout.setContentsMargins(10, 6, 10, 6)
         
-        self.lbl_banner = QLabel("⚠️ Aucun contrat sélectionné")
+        self.lbl_banner = QLabel("⚠️ Aucun véhicule sélectionné")
         banner_layout.addWidget(self.lbl_banner)
         
         group_layout.addWidget(self.banner)
         
         root.addWidget(self.group)
-        
-        # ---------- Sous-widget véhicule (masqué par défaut) ----------
-        self.vehicle_selector.hide()
-        root.addWidget(self.vehicle_selector)
     
     # ============================================================
     # API PUBLIQUE
     # ============================================================
     
-    def set_client(self, client_id: int):
-        """Définit le client et charge ses contrats"""
-        self._current_client_id = client_id
-        self._recharger_contrats()
+    def set_contract(self, contract_id: int):
+        """Définit le contrat et charge ses véhicules"""
+        self._current_contract_id = contract_id
+        self._recharger_vehicules()
     
-    def clear_selection(self):
-        """Réinitialise tout"""
-        self._current_client_id = None
-        self._contrats = []
-        self._contrats_filtres = []
-        self._selected_contract = None
-        self.list_contrats.clear()
+    def clear(self):
+        """Réinitialise le widget"""
+        self._current_contract_id = None
+        self._vehicules = []
+        self._vehicules_filtres = []
+        self._selected_vehicle = None
+        self.list_vehicules.clear()
         self.input_search.clear()
         self._clear_details()
+        self.lbl_count.setText("0 véhicule(s)")
+        self.lbl_empty.hide()
         self._update_banner(None)
-        self.lbl_count.setText("0 contrat(s)")
-        self.lbl_empty.setText("Sélectionnez d'abord un client")
-        self.lbl_empty.show()
-        self.list_contrats.hide()
-        self.vehicle_selector.clear()
-        self.vehicle_selector.hide()
-    
-    def get_selected_contract(self) -> Optional[dict]:
-        return self._selected_contract
-    
-    def get_selected_contract_id(self) -> Optional[int]:
-        return self._selected_contract.get('id') if self._selected_contract else None
     
     def get_selected_vehicle(self) -> Optional[dict]:
-        return self.vehicle_selector.get_selected_vehicle()
+        return self._selected_vehicle
     
     def get_selected_vehicle_id(self) -> Optional[int]:
-        return self.vehicle_selector.get_selected_vehicle_id()
+        return self._selected_vehicle.get('id') if self._selected_vehicle else None
     
-    def has_contract(self) -> bool:
-        return self._selected_contract is not None
-    
-    def _is_flotte(self, contract: dict) -> bool:
-        """Détermine si un contrat est une flotte (préfixe FLT)"""
-        if not contract:
-            return False
-        numero = contract.get('numero_police', '') or ''
-        return numero.upper().startswith('FLT')
+    def has_selection(self) -> bool:
+        return self._selected_vehicle is not None
     
     # ============================================================
     # CHARGEMENT
     # ============================================================
     
-    def _recharger_contrats(self):
-        """Recharge la liste des contrats pour le client courant"""
-        if not self._current_client_id:
-            self._contrats = []
-            self._contrats_filtres = []
-            self.lbl_empty.setText("Sélectionnez d'abord un client")
+    def _recharger_vehicules(self):
+        """Recharge la liste des véhicules depuis le backend"""
+        if not self._current_contract_id:
+            self._vehicules = []
+            self._vehicules_filtres = []
             self._refresh_list()
             return
         
         try:
-            self._contrats = self.controller.get_contrats_by_client(self._current_client_id) or []
-            self._contrats_filtres = list(self._contrats)
+            self._vehicules = self.controller.get_vehicules_by_contrat(self._current_contract_id) or []
+            self._vehicules_filtres = list(self._vehicules)
             self.input_search.clear()
             self._refresh_list()
         except Exception as e:
-            QMessageBox.critical(self, "Erreur", f"Erreur chargement contrats: {str(e)}")
-            self._contrats = []
-            self._contrats_filtres = []
+            QMessageBox.critical(self, "Erreur", f"Erreur chargement véhicules: {str(e)}")
+            self._vehicules = []
+            self._vehicules_filtres = []
             self._refresh_list()
     
-    def _filtrer_contrats(self):
-        """Filtre localement selon la recherche"""
+    def _filtrer_vehicules(self):
+        """Filtre la liste selon la recherche"""
         text = self.input_search.text().strip().lower()
         
         if not text:
-            self._contrats_filtres = list(self._contrats)
+            self._vehicules_filtres = list(self._vehicules)
         else:
-            self._contrats_filtres = [
-                c for c in self._contrats
-                if (text in (c.get('numero_police') or '').lower()
-                    or text in (c.get('type_contrat') or '').lower()
-                    or text in (c.get('statut') or '').lower())
+            self._vehicules_filtres = [
+                v for v in self._vehicules
+                if (text in (v.get('immatriculation') or '').lower()
+                    or text in (v.get('marque') or '').lower()
+                    or text in (v.get('modele') or '').lower()
+                    or text in (v.get('chassis') or '').lower())
             ]
         
         self._refresh_list()
     
     def _refresh_list(self):
         """Reconstruit la liste affichée"""
-        self.list_contrats.blockSignals(True)
-        self.list_contrats.clear()
+        self.list_vehicules.blockSignals(True)
+        self.list_vehicules.clear()
         
-        if not self._current_client_id:
-            self.list_contrats.hide()
+        if not self._vehicules_filtres:
+            self.list_vehicules.hide()
             self.lbl_empty.show()
-            self.lbl_empty.setText("Sélectionnez d'abord un client")
-        elif not self._contrats_filtres:
-            self.list_contrats.hide()
-            self.lbl_empty.show()
-            if not self._contrats:
-                self.lbl_empty.setText("Aucun contrat pour ce client")
+            if not self._vehicules:
+                self.lbl_empty.setText("Aucun véhicule dans cette flotte")
             else:
-                self.lbl_empty.setText("Aucun contrat ne correspond à la recherche")
+                self.lbl_empty.setText("Aucun véhicule ne correspond à la recherche")
         else:
             self.lbl_empty.hide()
-            self.list_contrats.show()
+            self.list_vehicules.show()
             
-            for c in self._contrats_filtres:
-                item = QListWidgetItem(self._format_contract_line(c))
-                item.setData(Qt.UserRole, c)
-                self.list_contrats.addItem(item)
+            for v in self._vehicules_filtres:
+                item = QListWidgetItem(self._format_vehicle_line(v))
+                item.setData(Qt.UserRole, v)
+                self.list_vehicules.addItem(item)
             
             # Resélectionner si déjà choisi
-            if self._selected_contract:
-                for i in range(self.list_contrats.count()):
-                    item = self.list_contrats.item(i)
+            if self._selected_vehicle:
+                for i in range(self.list_vehicules.count()):
+                    item = self.list_vehicules.item(i)
                     data = item.data(Qt.UserRole)
-                    if data and data.get('id') == self._selected_contract.get('id'):
-                        self.list_contrats.setCurrentItem(item)
+                    if data and data.get('id') == self._selected_vehicle.get('id'):
+                        self.list_vehicules.setCurrentItem(item)
                         break
         
-        self.lbl_count.setText(f"{len(self._contrats_filtres)} contrat(s)")
-        self.list_contrats.blockSignals(False)
+        self.lbl_count.setText(f"{len(self._vehicules_filtres)} véhicule(s)")
+        self.list_vehicules.blockSignals(False)
     
-    def _format_contract_line(self, c: dict) -> str:
+    def _format_vehicle_line(self, v: dict) -> str:
         """Formate une ligne de la liste"""
-        police = c.get('numero_police', 'N/A')
-        statut = str(c.get('statut', '')).upper()
+        immat = v.get('immatriculation', 'N/A')
+        marque = v.get('marque', '') or ''
+        modele = v.get('modele', '') or ''
+        annee = v.get('annee', '')
         
-        # Icône selon flotte ou non
-        if police.upper().startswith('FLT'):
-            prefix = "🚛"
-        else:
-            prefix = "📄"
+        parts = [f"🚗 {immat}"]
+        mm = f"{marque} {modele}".strip()
+        if mm:
+            parts.append(mm)
+        if annee:
+            parts.append(f"({annee})")
         
-        return f"{prefix} {police}  [{statut}]"
+        return "  |  ".join(parts)
     
     # ============================================================
     # SÉLECTION / DÉTAILS
     # ============================================================
     
-    def _on_contract_clicked(self, current: QListWidgetItem, previous: QListWidgetItem):
-        """Gère la sélection d'un contrat"""
+    def _on_vehicle_clicked(self, current: QListWidgetItem, previous: QListWidgetItem):
+        """Gère la sélection d'un véhicule"""
         if not current:
-            self._selected_contract = None
+            self._selected_vehicle = None
             self._clear_details()
             self._update_banner(None)
-            self.vehicle_selector.hide()
             return
         
-        c = current.data(Qt.UserRole)
-        if not c:
+        v = current.data(Qt.UserRole)
+        if not v:
             return
         
-        self._selected_contract = c
-        self._afficher_details(c)
-        self._update_banner(c)
-        self.contract_selected.emit(c)
-        
-        # ✅ Si flotte → afficher le sélecteur de véhicule
-        if self._is_flotte(c):
-            self.vehicle_selector.set_contract(c.get('id'))
-            self.vehicle_selector.show()
-        else:
-            self.vehicle_selector.hide()
-            self.vehicle_selector.clear()
+        self._selected_vehicle = v
+        self._afficher_details(v)
+        self._update_banner(v)
+        self.vehicle_selected.emit(v)
     
     def _clear_details(self):
         """Vide la zone des détails"""
@@ -489,29 +438,26 @@ class ContractSelectorWidget(QWidget):
             elif item.layout():
                 self._clear_layout(item.layout())
     
-    def _afficher_details(self, c: dict):
-        """Affiche les détails d'un contrat"""
+    def _afficher_details(self, v: dict):
+        """Affiche les détails en disposition verticale (clé/valeur)"""
         self._clear_details()
         self.lbl_no_selection.hide()
         
-        # Infos véhicule si dispo
-        vehicle_info = ""
-        if c.get('vehicle_id'):
-            vehicle_info = f"Véhicule ID: {c.get('vehicle_id')}"
-        
+        # Champs à afficher
         champs = [
-            ("N° Police", c.get('numero_police')),
-            ("Statut", str(c.get('statut', '')).upper() if c.get('statut') else None),
-            ("Type contrat", c.get('type_contrat')),
-            ("Date début", self._format_date(c.get('date_debut'))),
-            ("Date fin", self._format_date(c.get('date_fin'))),
-            ("Prime TTC", self._format_montant(c.get('prime_totale_ttc'))),
-            ("Montant payé", self._format_montant(c.get('montant_paye'))),
-            ("Véhicule ID", c.get('vehicle_id')),
+            ("Immatriculation", v.get('immatriculation')),
+            ("Châssis", v.get('chassis')),
+            ("Marque", v.get('marque')),
+            ("Modèle", v.get('modele')),
+            ("Année", v.get('annee')),
+            ("Puissance", f"{v.get('puissance_fiscale')} CV" if v.get('puissance_fiscale') else None),
+            ("Places", v.get('places')),
+            ("Valeur neuve", self._format_montant(v.get('valeur_neuf'))),
+            ("Valeur vénale", self._format_montant(v.get('valeur_venale'))),
         ]
         
         for key, val in champs:
-            if val in (None, '', 'N/A', 'NONE'):
+            if val in (None, '', 'N/A'):
                 continue
             
             row = QHBoxLayout()
@@ -530,35 +476,6 @@ class ContractSelectorWidget(QWidget):
             container = QWidget()
             container.setLayout(row)
             self.details_content.addWidget(container)
-        
-        # Bandeau spécial si flotte
-        if self._is_flotte(c):
-            banner = QLabel("🚛 Contrat FLOTTE - Sélection du véhicule requise ci-dessous")
-            banner.setStyleSheet("""
-                color: #1e40af;
-                background-color: #dbeafe;
-                border-radius: 6px;
-                padding: 8px;
-                font-size: 11px;
-                font-weight: bold;
-            """)
-            banner.setWordWrap(True)
-            self.details_content.addWidget(banner)
-    
-    def _format_date(self, date_val) -> Optional[str]:
-        """Formate une date ISO en jj/mm/aaaa"""
-        if not date_val:
-            return None
-        try:
-            s = str(date_val)
-            if 'T' in s:
-                s = s.split('T')[0]
-            parts = s.split('-')
-            if len(parts) == 3:
-                return f"{parts[2]}/{parts[1]}/{parts[0]}"
-            return s
-        except Exception:
-            return str(date_val)
     
     def _format_montant(self, montant) -> Optional[str]:
         """Formate un montant en FCFA"""
@@ -569,22 +486,18 @@ class ContractSelectorWidget(QWidget):
         except (ValueError, TypeError):
             return str(montant)
     
-    def _update_banner(self, c: Optional[dict]):
+    def _update_banner(self, v: Optional[dict]):
         """Met à jour le bandeau de confirmation"""
-        if c:
-            police = c.get('numero_police', 'N/A')
-            statut = str(c.get('statut', '')).upper()
-            texte = f"✅ Contrat sélectionné : {police} - {statut}"
+        if v:
+            immat = v.get('immatriculation', 'N/A')
+            marque = v.get('marque', '') or ''
+            modele = v.get('modele', '') or ''
+            mm = f"{marque} {modele}".strip()
+            texte = f"✅ Véhicule sélectionné : {immat}"
+            if mm:
+                texte += f" - {mm}"
             self.lbl_banner.setText(texte)
             self.banner.setStyleSheet(STYLE_BANNER_OK)
         else:
-            self.lbl_banner.setText("⚠️ Aucun contrat sélectionné")
+            self.lbl_banner.setText("⚠️ Aucun véhicule sélectionné")
             self.banner.setStyleSheet(STYLE_BANNER_EMPTY)
-    
-    # ============================================================
-    # RELAIS SIGNAL VÉHICULE
-    # ============================================================
-    
-    def _on_vehicle_changed(self, vehicule: dict):
-        """Relaye le signal vehicle_selected du sous-widget"""
-        self.vehicle_selected.emit(vehicule)

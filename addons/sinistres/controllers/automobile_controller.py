@@ -15,6 +15,7 @@ class AutomobileController(BaseController):
     contacts_loaded = Signal(list)
     contrats_loaded = Signal(list)
     contact_selected = Signal(dict)
+    vehicules_loaded = Signal(list)
     
     def __init__(self):
         super().__init__()
@@ -96,40 +97,22 @@ class AutomobileController(BaseController):
         except Exception as e:
             self.handle_error(e)
             return []
-    
+
+    def is_contrat_flotte(self, contrat: dict) -> bool:
+        """Vérifie si un contrat est une flotte"""
+        return self.service.is_contrat_fleet(contrat)
+
+    def get_vehicules_by_contrat(self, contrat_id: int) -> List[dict]:
+        """Récupère les véhicules d'un contrat flotte"""
+        try:
+            return self.service.get_vehicules_by_contrat(contrat_id)
+        except Exception as e:
+            self.handle_error(e)
+            return []
     # ============================================================
     # CONTRATS
     # ============================================================
     
-    # def get_contrats_by_client(self, client_id: int, statut: str = None) -> List[dict]:
-    #     """Récupère les contrats d'un client"""
-    #     try:
-    #         contrats = self.service.get_contrats_by_client(client_id, statut)
-    #         result = [
-    #             {
-    #                 'id': c.id,
-    #                 'numero_police': c.numero_police,
-    #                 'statut': c.statut.value if hasattr(c.statut, 'value') else str(c.statut),
-    #                 'date_debut': c.date_debut.isoformat() if c.date_debut else None,
-    #                 'date_fin': c.date_fin.isoformat() if c.date_fin else None,
-    #                 'prime_totale_ttc': c.prime_totale_ttc,
-    #                 'montant_paye': c.montant_paye,
-    #                 'type_contrat': c.type_contrat,
-    #                 'vehicle_id': c.vehicle_id,
-    #                 'display': self.service.format_contrat_display(c)
-    #             }
-    #             for c in contrats
-    #         ]
-
-    #         print(f"Contrats récupérés pour le client {client_id}: {result.numero_police} - {result.statut}")
-    #         self._contrats_cache = result
-    #         self.contrats_loaded.emit(result)
-    #         return result
-    #     except Exception as e:
-    #         self.handle_error(e)
-    #         return []
-    
-
     def get_contrats_by_client(self, client_id: int, statut: str = None) -> List[dict]:
         """Récupère les contrats d'un client"""
         try:

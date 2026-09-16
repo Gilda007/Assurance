@@ -103,6 +103,36 @@ class ReferentielsPage(QWidget):
         """)
         self.btn_creer.clicked.connect(self.ajouter_referentiel)
         btn_layout.addWidget(self.btn_creer)
+
+        # Modifier
+        self.btn_modifier = QPushButton("✏️ Modifier")
+        self.btn_modifier.setStyleSheet("""
+            QPushButton {
+                background-color: #f59e0b;
+                color: white;
+                padding: 8px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #d97706; }
+        """)
+        self.btn_modifier.clicked.connect(self.modifier_referentiel)
+        btn_layout.addWidget(self.btn_modifier)
+
+        # Désactiver (REF-003)
+        self.btn_desactiver = QPushButton("🚫 Désactiver")
+        self.btn_desactiver.setStyleSheet("""
+            QPushButton {
+                background-color: #ef4444;
+                color: white;
+                padding: 8px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover { background-color: #dc2626; }
+        """)
+        self.btn_desactiver.clicked.connect(self.desactiver_referentiel)
+        btn_layout.addWidget(self.btn_desactiver)
         
         self.btn_importer = QPushButton("📥 Importer")
         self.btn_importer.setStyleSheet("padding: 8px 20px; border-radius: 8px;")
@@ -156,8 +186,21 @@ class ReferentielsPage(QWidget):
             QMessageBox.critical(self, "Erreur", f"Erreur chargement référentiels: {str(e)}")
     
     def ajouter_referentiel(self):
-        """Ajoute un nouveau référentiel"""
-        QMessageBox.information(self, "Ajout", "Dialogue d'ajout de référentiel (à implémenter)")
+        """Ouvre le dialogue d'ajout de référentiel"""
+        from addons.sinistres.views.referentiel_dialog import ReferentielDialog
+        
+        famille = self.famille_combo.currentData()
+        
+        dialog = ReferentielDialog(
+            controller=self.controller,
+            user=self.user,
+            referentiel_data=None,
+            famille=famille,
+            parent=self
+        )
+        
+        dialog.referentiel_saved.connect(self._on_referentiel_saved)
+        dialog.exec()
     
     def _importer_donnees(self):
         """Importe les données initiales des référentiels"""
@@ -189,6 +232,85 @@ class ReferentielsPage(QWidget):
         if referentiel_id:
             self.selected_referentiel_id = referentiel_id
         self.table_referentiels.selectRow(row)
+
+    def modifier_referentiel(self):
+        """Ouvre le dialogue de modification"""
+        row = self.table_referentiels.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner un référentiel")
+            return
+        
+        code = self.table_referentiels.item(row, 0).text()
+        famille = self.famille_combo.currentData()
+        
+        # Récupérer le référentiel complet
+        referentiel = self.controller.service.get_referentiel_by_code(famille, code)
+        if not referentiel:
+            QMessageBox.warning(self, "Erreur", "Référentiel introuvable")
+            return
+        
+        # Convertir en dict
+        data = {
+            'id': referentiel.id,
+            'famille': referentiel.famille,
+            'code': referentiel.code,
+            'libelle': referentiel.libelle,
+            'description': referentiel.description,
+            'valeur': referentiel.valeur,
+            'date_effet': referentiel.date_effet.isoformat() if referentiel.date_effet else None,
+            'date_fin': referentiel.date_fin.isoformat() if referentiel.date_fin else None,
+            'societe': referentiel.societe,
+            'branche': referentiel.branche,
+            'est_actif': referentiel.est_actif,
+            'donnees_supplementaires': referentiel.donnees_supplementaires,
+        }
+        
+        from addons.sinistres.views.referentiel_dialog import ReferentielDialog
+        dialog = ReferentielDialog(
+            controller=self.controller,
+            user=self.user,
+            referentiel_data=data,
+            parent=self
+        )
+        dialog.referentiel_saved.connect(self._on_referentiel_saved)
+        dialog.exec()
+
+
+    def desactiver_referentiel(self):
+        """Désactive un référentiel (REF-003)"""
+        row = self.table_referentiels.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner un référentiel")
+            return
+        
+        code = self.table_referentiels.item(row, 0).text()
+        famille = self.famille_combo.currentData()
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirmation",
+            f"Voulez-vous désactiver le référentiel {code} ?\n\n"
+            f"ℹ️ Règle REF-003 : la suppression physique est interdite.\n"
+            f"Le référentiel ne sera plus proposé dans les listes déroulantes.",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply != QMessageBox.Yes:
+            return
+        
+        referentiel = self.controller.service.get_referentiel_by_code(famille, code)
+        if not referentiel:
+            QMessageBox.warning(self, "Erreur", "Référentiel introuvable")
+            return
+        
+        if self.controller.desactiver_referentiel(referentiel.id):
+            QMessageBox.information(self, "Succès", f"Référentiel {code} désactivé")
+            self.load_referentiels(famille)
+
+
+    def _on_referentiel_saved(self, data: dict):
+        """Rafraîchit après enregistrement"""
+        self.load_referentiels(self.famille_combo.currentData())
 
     def get_selected_referentiel_id(self) -> Optional[int]:
         """Retourne l'ID du référentiel sélectionné"""

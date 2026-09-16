@@ -408,3 +408,26 @@ class EvaluationService(BaseService):
         except Exception as e:
             self.session.rollback()
             raise e
+
+    def get_all_evaluations(self) -> List['LometaEvaluation']:
+        """Récupère toutes les évaluations (tous sinistres)"""
+        try:
+            from addons.sinistres.models.expertise import LometaEvaluation
+            return self.session.query(LometaEvaluation).filter(
+                LometaEvaluation.is_active == True
+            ).order_by(LometaEvaluation.created_at.desc()).all()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def get_all_provisions(self) -> List['LometaProvision']:
+        """Récupère toutes les provisions (tous sinistres)"""
+        try:
+            from addons.sinistres.models.expertise import LometaProvision
+            return self.session.query(LometaProvision).filter(
+                LometaProvision.is_active == True
+            ).order_by(LometaProvision.created_at.desc()).all()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+

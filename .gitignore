@@ -304,3 +304,8 @@ coverage.xml
 # ✅ Les clés publiques de développement (si nécessaires)
 !developer_public_key.pem.example
 !lometa_ca.pem.example
+
+
+# Uploads utilisateurs
+uploads/
+!uploads/.gitkeep

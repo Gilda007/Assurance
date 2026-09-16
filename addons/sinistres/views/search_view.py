@@ -224,12 +224,6 @@ class RecherchePage(QWidget):
             
             # Stocker l'ID pour l'ouverture du dossier 360°
             self.table_resultats.item(i, 0).setData(Qt.UserRole, s.get('id'))
-    
-    def _on_row_double_clicked(self, index):
-        """Ouvre le détail de la mission sélectionnée"""
-        row = index.row()
-        if row >= 0:
-            self.open_mission_detail(row)
 
     def open_dossier_360(self, sinistre_id: int):
         """Ouvre la vue Dossier 360°"""
@@ -260,24 +254,12 @@ class RecherchePage(QWidget):
         if self.filter_branche.count() <= 1:
             self._load_branches()
 
-    def get_selected_mission_id(self) -> Optional[int]:
-        """Retourne l'ID de la mission sélectionnée"""
-        row = self.table.currentRow()
-        if row >= 0:
-            mission_numero = self.table.item(row, 0).text()
-            try:
-                mission_data = self.controller.get_mission_by_numero(mission_numero)
-                if mission_data:
-                    return mission_data.get('id')
-            except:
-                pass
-        return None
-
     def _on_row_double_clicked(self, index):
         """Ouvre le Dossier 360° du sinistre sélectionné"""
         row = index.row()
         if row >= 0:
             sinistre_id = self.table_resultats.item(row, 0).data(Qt.UserRole)
+            self.open_mission_detail(row)
             if sinistre_id:
                 self.open_dossier_360(sinistre_id)
 

@@ -5,6 +5,7 @@ from PySide6.QtCore import Signal
 from typing import Optional, List, Dict, Any
 
 from addons.sinistres.controllers.controleur_base import BaseController
+from addons.sinistres.models.sinistre import LometaSinistre
 from addons.sinistres.services.expertise_service import ExpertiseService
 
 
@@ -54,6 +55,15 @@ class ExpertiseController(BaseController):
         except Exception as e:
             self.handle_error(e)
             return None
+
+    def get_all_missions(self) -> List[dict]:
+        """Récupère toutes les missions d'expertise (tous sinistres)"""
+        try:
+            missions = self.service.get_all_missions()
+            return [self._serialize_mission(m) for m in missions]
+        except Exception as e:
+            self.handle_error(e)
+            return []
     
     def get_missions_by_sinistre(self, sinistre_id: int) -> List[dict]:
         """Récupère toutes les missions d'un sinistre"""
@@ -183,6 +193,14 @@ class ExpertiseController(BaseController):
     
     def _serialize_mission(self, mission) -> dict:
         """Sérialise une mission en dictionnaire"""
+
+        # ✅ Récupérer le numéro du sinistre
+        sinistre_numero = None
+        if mission.sinistre_id:
+            sinistre = self.service.get_sinistre(mission.sinistre_id)
+            if sinistre:
+                sinistre_numero = sinistre.numero_sinistre
+
         # Récupérer le nom de l'expert
         expert_nom = None
         if mission.expert_id:
@@ -190,10 +208,12 @@ class ExpertiseController(BaseController):
             if expert:
                 expert_nom = expert.full_name or expert.username
         
+        
         return {
             'id': mission.id,
             'numero_mission': mission.numero_mission,
             'sinistre_id': mission.sinistre_id,
+            'sinistre_numero': sinistre_numero,
             'expert_id': mission.expert_id,
             'expert_nom': expert_nom or mission.expert_nom,
             'type_expertise': mission.type_expertise,
@@ -241,3 +261,15 @@ class ExpertiseController(BaseController):
         except Exception as e:
             self.handle_error(e)
             return {}
+
+    def get_sinistre(self, sinistre_id: int) -> Optional[LometaSinistre]:
+        """Récupère un sinistre par son ID"""
+        try:
+            from addons.sinistres.models.sinistre import LometaSinistre
+            return self.session.query(LometaSinistre).filter(
+                LometaSinistre.id == sinistre_id,
+                LometaSinistre.is_active == True
+            ).first()
+        except Exception as e:
+            self.session.rollback()
+            raise e

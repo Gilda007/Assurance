@@ -4,6 +4,11 @@ Modèles LOMETA - Tous les modèles SQLAlchemy
 """
 from core.database import Base, AuditableMixin
 
+from addons.Automobiles.models.automobile_models import Vehicle
+from addons.Automobiles.models.flottes_models import Fleet
+from addons.Automobiles.models.contract_models import Contrat
+from addons.Automobiles.models.contact_models import Contact
+
 # Sinistres
 from addons.sinistres.models.sinistre import (
     LometaSinistre, LometaDommage, LometaTiers, LometaCommentaireSinistre, LometaHistoriqueSinistre

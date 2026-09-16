@@ -368,7 +368,15 @@ class LometaSinistresMainView(QWidget):
         self.container.setGraphicsEffect(shadow)
         
         # ✅ Création des pages avec TOUS les contrôleurs
-        self.dashboard_page = DashboardPage(self.sinistre_controller, self.user)
+        self.dashboard_page = DashboardPage(
+            controller=self.sinistre_controller,
+            user=self.user,
+            referentiel_controller=self.referentiel_controller,
+            expertise_controller=self.expertise_controller,
+            evaluation_controller=self.evaluation_controller,
+            reglement_controller=self.reglement_controller,
+            recours_controller=self.recours_controller,
+        )
         self.nouveau_page = NouveauSinistrePage(self.sinistre_controller, self.referentiel_controller, self.user)
         self.recherche_page = RecherchePage(
             self.sinistre_controller,

@@ -262,3 +262,36 @@ class EvaluationController(BaseController):
         except Exception as e:
             self.handle_error(e)
             return {}
+
+    def get_all_evaluations(self) -> List[dict]:
+        """Récupère toutes les évaluations (tous sinistres)"""
+        try:
+            evaluations = self.service.get_all_evaluations()
+            return [self._serialize_evaluation(e) for e in evaluations]
+        except Exception as e:
+            self.handle_error(e)
+            return []
+
+    def get_all_provisions(self) -> List[dict]:
+        """Récupère toutes les provisions (tous sinistres)"""
+        try:
+            provisions = self.service.get_all_provisions()
+            return [
+                {
+                    'id': p.id,
+                    'numero_provision': p.numero_provision,
+                    'type_provision': p.type_provision,
+                    'categorie': p.categorie,
+                    'montant': p.montant,
+                    'est_active': p.est_active,
+                    'est_comptabilisee': p.est_comptabilisee,
+                    'date_creation': p.date_creation.isoformat() if p.date_creation else None,
+                    'motif': p.motif
+                }
+                for p in provisions
+            ]
+        except Exception as e:
+            self.handle_error(e)
+            return []
+
+    

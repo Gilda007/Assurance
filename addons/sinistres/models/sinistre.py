@@ -1,7 +1,7 @@
 """
 Modèles du dossier sinistre (Tome 3 du CDC)
 """
-from sqlalchemy import Column, String, DateTime, Float, ForeignKey, Text, Boolean, Integer, Enum
+from sqlalchemy import Column, String, DateTime, Float, ForeignKey, Text, Boolean, Integer, Enum, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -48,6 +48,14 @@ class LometaSinistre(Base, AuditableMixin):
     circonstance_principale = Column(String(100), nullable=False)
     circonstance_secondaire = Column(String(100), nullable=True)
     description = Column(Text, nullable=True)
+    est_flotte = Column(
+        Boolean, 
+        nullable=False, 
+        default=False, 
+        index=True,
+        comment="Indique si le sinistre concerne un contrat flotte"
+    )
+    
     
     # --- Dates importantes ---
     date_cloture = Column(DateTime, nullable=True)
@@ -55,6 +63,22 @@ class LometaSinistre(Base, AuditableMixin):
     date_derniere_modification = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # --- Responsable ---
+
+    vehicule_sinistre_id = Column(
+        Integer, 
+        ForeignKey("vehicles.id", ondelete="SET NULL"), 
+        nullable=True, 
+        index=True,
+        comment="Véhicule sinistré (obligatoire si est_flotte=True)"
+    )
+    
+    flotte_id = Column(
+        Integer, 
+        ForeignKey("fleets.id", ondelete="SET NULL"), 
+        nullable=True, 
+        index=True,
+        comment="Flotte associée au sinistre"
+    )
     responsable_id = Column(Integer, ForeignKey("utilisateurs.id"), nullable=True, index=True)  # Gestionnaire actuel
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     created_by = Column(Integer, ForeignKey("utilisateurs.id"), nullable=False)
@@ -67,6 +91,17 @@ class LometaSinistre(Base, AuditableMixin):
         "LometaDommage", 
         back_populates="sinistre", 
         cascade="all, delete-orphan"
+    )
+    vehicule_sinistre = relationship(
+        "Vehicle",
+        foreign_keys=[vehicule_sinistre_id],
+        lazy="joined"
+    )
+    
+    flotte = relationship(
+        "Fleet",
+        foreign_keys=[flotte_id],
+        lazy="joined"
     )
     tiers = relationship(
         "LometaTiers", 
@@ -129,6 +164,7 @@ class LometaDommage(Base, AuditableMixin):
     
     # Description
     description = Column(Text, nullable=True)
+    photos = Column(JSON, nullable=True)
     
     # Évaluation
     montant_estime = Column(Float, default=0.0)

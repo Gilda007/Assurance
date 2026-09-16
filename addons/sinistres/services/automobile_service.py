@@ -7,6 +7,8 @@ from typing import Optional, List, Dict, Any
 from addons.sinistres.services.base_service import BaseService
 from addons.Automobiles.models.contact_models import Contact
 from addons.Automobiles.models.contract_models import Contrat
+from addons.Automobiles.models.flottes_models import Fleet
+from addons.Automobiles.models.automobile_models import Vehicle
 
 
 class AutomobileService(BaseService):
@@ -79,30 +81,124 @@ class AutomobileService(BaseService):
         
         info_str = f" - {' | '.join(infos)}" if infos else ""
         return f"{code} - {nom_complet}{info_str}"
-    
+
+    def is_contrat_fleet(self, contrat: Contrat) -> bool:
+        """Vérifie si un contrat est associé à une flotte"""
+        if not contrat or not contrat.numero_police:
+            return False
+        return contrat.numero_police.startswith("FLT")
+
+    def get_fleet_by_contrat(self, contrat_id: int) -> Optional[Fleet]:
+        """Récupère la flotte associée à un contrat"""
+        try:
+            contrat = self.session.query(Contrat).filter(Contrat.id == contrat_id).first()
+            if not contrat:
+                return None
+
+            # Relation Contrat -> Flotte via le numéro de police
+            #Sin Contrat a un Fleet_id ou une relation directe:
+            if hasattr(contrat, 'fleet') and contrat.fleet:
+                return contrat.fleet
+            # Sinon, rechercher la flotte par le numéro de police
+            return self.session.query(Fleet).filter(Fleet.contract_id == contrat_id).first()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def get_vehicules_by_flotte(self, fleet_id: int) -> List[Vehicle]:
+        """Récupère les véhicules associés à une flotte"""
+        try:
+            return self.session.query(Vehicle).filter(
+                Vehicle.fleet_id == fleet_id,
+                Vehicle.is_active == True
+            ).order_by(Vehicle.immatriculation) .all()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def format_vehicule_display(self, vehicule) -> str:
+        """Formate l'affichage d'un véhicule"""
+        immat = vehicule.immatriculation or "N/A"
+        marque = vehicule.marque or "N/A"
+        modele = vehicule.modele or "N/A"
+        annee = vehicule.annee or "N/A"
+        return f"{immat} - {marque} {modele} ({annee})"
+
+    def is_contrat_flotte(self, contrat) -> bool:
+        """Détermine si un contrat est une flotte (préfixe FLT)"""
+        if not contrat or not contrat.numero_police:
+            return False
+        return contrat.numero_police.upper().startswith("FLT")
+
+
+    def get_vehicules_by_contrat(self, contrat_id: int) -> List[dict]:
+        """Récupère les véhicules d'un contrat flotte"""
+        try:
+            contrat = self.get_contrat_by_id(contrat_id)
+            if not contrat:
+                return []
+            
+            if not self.is_contrat_flotte(contrat):
+                return []
+            
+            # Récupérer la flotte associée au contrat
+            flotte = None
+            if hasattr(contrat, 'fleet') and contrat.fleet:
+                flotte = contrat.fleet
+            else:
+                flotte = self.session.query(Fleet).filter(
+                    Fleet.contract_id == contrat_id
+                ).first()
+            
+            if not flotte:
+                return []
+            
+            # Récupérer les véhicules de la flotte
+            vehicules = self.session.query(Vehicle).filter(
+                Vehicle.fleet_id == flotte.id,
+                Vehicle.is_active == True
+            ).order_by(Vehicle.immatriculation).all()
+            
+            return [
+                {
+                    'id': v.id,
+                    'immatriculation': getattr(v, 'immatriculation', None),
+                    'marque': getattr(v, 'marque', None),
+                    'modele': getattr(v, 'modele', None),
+                    'numero_chassis': getattr(v, 'numero_chassis', None),
+                    'display': f"{v.immatriculation} - {v.marque or ''} {v.modele or ''}".strip(' -')
+                }
+                for v in vehicules
+            ]
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
     # ============================================================
     # CONTRATS
     # ============================================================
-    
-    # def get_contrats_by_client(self, client_id: int) -> List[Contrat]:
-    #     """Récupère les contrats d'un client"""
-    #     try:
-    #         query = self.session.query(Contrat).filter(
-    #             Contrat.owner_id == client_id
-    #         )
-    #         # if statut:
-    #         #     query = query.filter(Contrat.statut == statut)
-    #         # else:
-    #         #     # Par défaut, contrats actifs et proformats
-    #         #     query = query.filter(
-    #         #         Contrat.statut.in_(["actif", "proformat"])
-    #         #     )
-            
-    #         return query.order_by(Contrat.date_debut.desc()).all()
-            
-    #     except Exception as e:
-    #         self.session.rollback()
-    #         raise e
+
+    def get_vehicle(self, vehicle_id: int) -> Optional[dict]:
+        """Récupère un véhicule par son ID"""
+        try:
+            from addons.Automobiles.models.automobile_models import Vehicle
+            v = self.session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+            if not v:
+                return None
+            return {
+                'id': v.id,
+                'immatriculation': v.immatriculation,
+                'marque': v.marque,
+                'modele': v.modele,
+                'annee': getattr(v, 'annee', None),
+                'puissance_fiscale': getattr(v, 'puissance_fiscale', None),
+                'valeur_neuf': getattr(v, 'valeur_neuf', None),
+                'valeur_venale': getattr(v, 'valeur_venale', None),
+                'chassis': getattr(v, 'chassis', None),
+            }
+        except Exception as e:
+            self.session.rollback()
+            raise e
     
     def get_contrats_by_client(self, client_id: int, statut: str = None) -> List[Contrat]:
         """Récupère les contrats d'un client - Version avec débogage"""

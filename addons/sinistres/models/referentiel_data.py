@@ -40,6 +40,7 @@ REFERENTIELS_INITIAUX = {
         {"code": "RESP_75", "libelle": "Partagé 75%", "valeur": 0.75},
         {"code": "RESP_33", "libelle": "Partagé 33%", "valeur": 0.33},
         {"code": "RESP_66", "libelle": "Partagé 66%", "valeur": 0.66},
+        {"code": "RESP_99", "libelle": "Non déterminée", "valeur": 0.0},
     ],
     
     "dommages": [
@@ -323,5 +324,92 @@ REFERENTIELS_INITIAUX = {
         {"code": "HAUTE", "libelle": "Haute", "valeur": 2},
         {"code": "URGENTE", "libelle": "Urgente", "valeur": 3},
         {"code": "CRITIQUE", "libelle": "Critique", "valeur": 4},
+    ],
+
+    # ============================================================
+    # RÉFÉRENTIELS MANQUANTS (à ajouter au dictionnaire existant)
+    # ============================================================
+
+    "types_tiers": [
+        {"code": "CONDUCTEUR", "libelle": "Conducteur", "description": "Conducteur impliqué"},
+        {"code": "PASSAGER", "libelle": "Passager", "description": "Passager du véhicule"},
+        {"code": "VICTIME", "libelle": "Victime", "description": "Victime du sinistre"},
+        {"code": "TEMOIN", "libelle": "Témoin", "description": "Témoin de l'accident"},
+        {"code": "AUTRE_CONDUCTEUR", "libelle": "Autre conducteur", "description": "Conducteur tiers"},
+        {"code": "ASSUREUR_ADVERSE", "libelle": "Assureur adverse", "description": "Compagnie adverse"},
+        {"code": "PIETON", "libelle": "Piéton", "description": "Piéton impliqué"},
+        {"code": "PROPRIETAIRE", "libelle": "Propriétaire", "description": "Propriétaire du bien"},
+    ],
+
+    "civilites": [
+        {"code": "M", "libelle": "M."},
+        {"code": "MME", "libelle": "Mme"},
+        {"code": "MLLE", "libelle": "Mlle"},
+    ],
+
+    "types_recours": [
+        {"code": "RESPONSABLE", "libelle": "Tiers responsable", "description": "Recours contre le responsable"},
+        {"code": "ASSUREUR_ADVERSE", "libelle": "Assureur adverse", "description": "Recours contre l'assureur adverse"},
+        {"code": "COASSUREUR", "libelle": "Coassureur", "description": "Recours contre un coassureur"},
+        {"code": "REASSUREUR", "libelle": "Réassureur", "description": "Recours contre le réassureur"},
+        {"code": "CONDUCTEUR", "libelle": "Conducteur tiers", "description": "Recours contre un conducteur"},
+        {"code": "TRANSPORTEUR", "libelle": "Transporteur", "description": "Recours contre un transporteur"},
+        {"code": "ENTREPRISE", "libelle": "Entreprise", "description": "Recours contre une entreprise"},
+        {"code": "PARTICULIER", "libelle": "Particulier", "description": "Recours contre un particulier"},
+    ],
+
+    "statuts_evaluation": [
+        {"code": "BROUILLON", "libelle": "Brouillon", "description": "Évaluation en brouillon"},
+        {"code": "A_VALIDER", "libelle": "À valider", "description": "En attente de validation"},
+        {"code": "VALIDEE", "libelle": "Validée", "description": "Évaluation validée"},
+        {"code": "REJETEE", "libelle": "Rejetée", "description": "Évaluation rejetée"},
+        {"code": "ANNULEE", "libelle": "Annulée", "description": "Évaluation annulée"},
+    ],
+
+    "statuts_dommage": [
+        {"code": "DECLARE", "libelle": "Déclaré", "description": "Dommage déclaré"},
+        {"code": "EN_EXPERTISE", "libelle": "En expertise", "description": "En cours d'expertise"},
+        {"code": "EVALUE", "libelle": "Évalué", "description": "Dommage évalué"},
+        {"code": "VALIDE", "libelle": "Validé", "description": "Dommage validé"},
+        {"code": "REJETE", "libelle": "Rejeté", "description": "Dommage rejeté"},
+    ],
+
+    "statuts_tiers": [
+        {"code": "EN_ATTENTE", "libelle": "En attente", "description": "En attente de contact"},
+        {"code": "CONTACTE", "libelle": "Contacté", "description": "Tiers contacté"},
+        {"code": "INFO_MANQUANTE", "libelle": "Info manquante", "description": "Informations incomplètes"},
+        {"code": "A_RELANCER", "libelle": "À relancer", "description": "À relancer"},
+        {"code": "CLOTURE", "libelle": "Clôturé", "description": "Tiers clôturé"},
+    ],
+
+    "types_rapport": [
+        {"code": "EXPERTISE", "libelle": "Rapport d'expertise", "description": "Rapport d'expert"},
+        {"code": "EVALUATION", "libelle": "Rapport d'évaluation", "description": "Rapport d'évaluation"},
+        {"code": "MEDICAL", "libelle": "Rapport médical", "description": "Rapport médical"},
+        {"code": "JUDICIAIRE", "libelle": "Rapport judiciaire", "description": "Rapport judiciaire"},
+        {"code": "CONSTAT", "libelle": "Constat amiable", "description": "Constat amiable"},
+    ],
+
+    "priorites_sinistre": [
+        {"code": "BASSE", "libelle": "Basse", "valeur": 0, "description": "Priorité basse"},
+        {"code": "NORMALE", "libelle": "Normale", "valeur": 1, "description": "Priorité normale"},
+        {"code": "HAUTE", "libelle": "Haute", "valeur": 2, "description": "Priorité haute"},
+        {"code": "URGENTE", "libelle": "Urgente", "valeur": 3, "description": "Priorité urgente"},
+        {"code": "CRITIQUE", "libelle": "Critique", "valeur": 4, "description": "Priorité critique"},
+    ],
+
+    "canaux_notification": [
+        {"code": "EMAIL", "libelle": "Email", "description": "Notification par email"},
+        {"code": "SMS", "libelle": "SMS", "description": "Notification par SMS"},
+        {"code": "APP", "libelle": "Notification applicative", "description": "Notification dans l'application"},
+        {"code": "WHATSAPP", "libelle": "WhatsApp", "description": "Notification par WhatsApp"},
+        {"code": "TEAMS", "libelle": "Microsoft Teams", "description": "Notification Teams"},
+    ],
+
+    "types_provision": [
+        {"code": "INITIALE", "libelle": "Provision initiale", "description": "Créée dès la première estimation"},
+        {"code": "COMPLEMENTAIRE", "libelle": "Provision complémentaire", "description": "Ajoutée après expertise"},
+        {"code": "REVISEE", "libelle": "Provision révisée", "description": "Modification d'une provision"},
+        {"code": "FINALE", "libelle": "Provision finale", "description": "Provision définitive avant règlement"},
     ],
 }

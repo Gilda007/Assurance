@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QProgressBar, QToolBar, QMenu, QCheckBox, QRadioButton
 )
 from PySide6.QtCore import Qt, QSize, Signal, Slot, QDate
-from PySide6.QtGui import QColor, QIcon, QFont
+from PySide6.QtGui import QColor, QIcon, QFont, QAction
 
 from datetime import datetime, timedelta
 from typing import Optional, List
@@ -140,6 +140,8 @@ class EvaluationsPage(QWidget):
                 border-bottom: 1px solid #e2e8f0;
             }
         """)
+        self.table_evaluations.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table_evaluations.customContextMenuRequested.connect(self._show_evaluation_context_menu)
         self.table_evaluations.doubleClicked.connect(self._on_evaluation_double_clicked)
         eval_layout.addWidget(self.table_evaluations)
         
@@ -242,6 +244,9 @@ class EvaluationsPage(QWidget):
         """Charge les sinistres"""
         try:
             self.sinistre_combo.clear()
+            # ✅ Ajouter l'option "Tous les sinistres"
+            self.sinistre_combo.addItem("📋 Tous les sinistres", None)
+            
             sinistres = self.controller.get_sinistres_recents()
             for s in sinistres:
                 self.sinistre_combo.addItem(
@@ -253,39 +258,30 @@ class EvaluationsPage(QWidget):
     
     def on_sinistre_changed(self, index):
         """Charge les données du sinistre sélectionné"""
-        if index > 0:
-            sinistre_id = self.sinistre_combo.currentData()
-            if sinistre_id:
-                self.current_sinistre_id = sinistre_id
-                self.load_evaluations(sinistre_id)
-                self.load_provisions(sinistre_id)
+        sinistre_id = self.sinistre_combo.currentData()
+        self.current_sinistre_id = sinistre_id
+        
+        if sinistre_id is None:
+            # ✅ Tous les sinistres
+            self.load_all_evaluations()
+            self.load_all_provisions()
+        else:
+            self.load_evaluations(sinistre_id)
+            self.load_provisions(sinistre_id)
     
     def load_evaluations(self, sinistre_id: int):
         """Charge les évaluations d'un sinistre"""
         try:
             evaluations = self.controller.get_evaluations_by_sinistre(sinistre_id)
-            self.table_evaluations.setRowCount(len(evaluations))
+            self._update_evaluations_table(evaluations)
             
             total = 0
             validees = 0
             
-            for i, eval_ in enumerate(evaluations):
-                self.table_evaluations.setItem(i, 0, QTableWidgetItem(eval_.get('numero_evaluation', '')))
-                self.table_evaluations.setItem(i, 1, QTableWidgetItem(eval_.get('type_evaluation', '')))
-                self.table_evaluations.setItem(i, 2, QTableWidgetItem(f"{eval_.get('montant_brut', 0):,.0f}"))
-                self.table_evaluations.setItem(i, 3, QTableWidgetItem(f"{eval_.get('franchise', 0):,.0f}"))
-                self.table_evaluations.setItem(i, 4, QTableWidgetItem(f"{eval_.get('taux_responsabilite', 1) * 100:.0f}%"))
-                
-                montant_net = eval_.get('montant_net', 0)
-                total += montant_net
+            for eval_ in evaluations:
+                total += eval_.get('montant_net', 0)
                 if eval_.get('est_validee'):
                     validees += 1
-                
-                self.table_evaluations.setItem(i, 5, QTableWidgetItem(f"{montant_net:,.0f}"))
-                
-                validee_item = QTableWidgetItem("✅" if eval_.get('est_validee') else "❌")
-                validee_item.setForeground(QColor("#22c55e" if eval_.get('est_validee') else "#ef4444"))
-                self.table_evaluations.setItem(i, 6, validee_item)
             
             self.lbl_total.setText(f"Total évalué: {total:,.0f} FCFA")
             self.lbl_validees.setText(f"✅ Validées: {validees}")
@@ -293,7 +289,7 @@ class EvaluationsPage(QWidget):
             
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Erreur chargement évaluations: {str(e)}")
-    
+
     def load_provisions(self, sinistre_id: int):
         """Charge les provisions d'un sinistre"""
         try:
@@ -315,13 +311,6 @@ class EvaluationsPage(QWidget):
                 
         except Exception as e:
             print(f"Erreur chargement provisions: {e}")
-    
-    # def creer_evaluation(self):
-    #     """Crée une nouvelle évaluation"""
-    #     if not self.current_sinistre_id:
-    #         QMessageBox.warning(self, "Attention", "Veuillez sélectionner un sinistre")
-    #         return
-    #     QMessageBox.information(self, "Création", "Dialogue de création d'évaluation (à implémenter)")
 
     def creer_evaluation(self):
         """Crée une nouvelle évaluation"""
@@ -425,35 +414,6 @@ class EvaluationsPage(QWidget):
             f"✅ Évaluation révisée avec succès !\n"
             f"💰 Nouveau montant: {data.get('nouveau_net', 0):,.0f} FCFA"
         )
-
-    # def _on_evaluation_double_clicked(self, index):
-    #     """Affiche l'historique des révisions d'une évaluation"""
-    #     row = index.row()
-    #     if row < 0:
-    #         return
-        
-    #     eval_numero = self.table_evaluations.item(row, 0).text()
-        
-    #     try:
-    #         eval_data = self.controller.get_evaluation_by_numero(eval_numero)
-    #         if not eval_data:
-    #             return
-            
-    #         revisions = self.controller.get_revisions_by_evaluation(eval_data.get('id'))
-            
-    #         if not revisions:
-    #             QMessageBox.information(
-    #                 self,
-    #                 "Historique",
-    #                 f"Aucune révision pour l'évaluation {eval_numero}"
-    #             )
-    #             return
-            
-    #         # Afficher l'historique des révisions
-    #         self._show_revisions_history(eval_numero, revisions)
-            
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Erreur", f"Erreur: {str(e)}")
 
     def _on_evaluation_double_clicked(self, index):
         """Affiche l'historique des révisions"""
@@ -579,3 +539,216 @@ class EvaluationsPage(QWidget):
                     
             except Exception as e:
                 QMessageBox.critical(self, "Erreur", str(e))
+
+    def load_all_evaluations(self):
+        """Charge toutes les évaluations (tous sinistres)"""
+        try:
+            evaluations = self.controller.get_all_evaluations()
+            self._update_evaluations_table(evaluations)
+            
+            total = 0
+            validees = 0
+            
+            for eval_ in evaluations:
+                total += eval_.get('montant_net', 0)
+                if eval_.get('est_validee'):
+                    validees += 1
+            
+            self.lbl_total.setText(f"Total évalué: {total:,.0f} FCFA")
+            self.lbl_validees.setText(f"✅ Validées: {validees}")
+            self.lbl_non_validees.setText(f"❌ Non validées: {len(evaluations) - validees}")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Erreur chargement évaluations: {str(e)}")
+
+    def load_all_provisions(self):
+        """Charge toutes les provisions (tous sinistres)"""
+        try:
+            provisions = self.controller.get_all_provisions()
+            self.table_provisions.setRowCount(len(provisions))
+            
+            for i, prov in enumerate(provisions):
+                self.table_provisions.setItem(i, 0, QTableWidgetItem(prov.get('numero_provision', '')))
+                self.table_provisions.setItem(i, 1, QTableWidgetItem(prov.get('type_provision', '')))
+                self.table_provisions.setItem(i, 2, QTableWidgetItem(f"{prov.get('montant', 0):,.0f}"))
+                
+                active_item = QTableWidgetItem("✅" if prov.get('est_active') else "❌")
+                active_item.setForeground(QColor("#22c55e" if prov.get('est_active') else "#ef4444"))
+                self.table_provisions.setItem(i, 3, active_item)
+                
+                comptabilisee_item = QTableWidgetItem("✅" if prov.get('est_comptabilisee') else "❌")
+                comptabilisee_item.setForeground(QColor("#22c55e" if prov.get('est_comptabilisee') else "#ef4444"))
+                self.table_provisions.setItem(i, 4, comptabilisee_item)
+                
+        except Exception as e:
+            print(f"Erreur chargement provisions: {e}")
+
+    def _update_evaluations_table(self, evaluations: List[dict]):
+        """Met à jour le tableau des évaluations"""
+        self.table_evaluations.setRowCount(len(evaluations))
+        
+        for i, eval_ in enumerate(evaluations):
+            self.table_evaluations.setItem(i, 0, QTableWidgetItem(eval_.get('numero_evaluation', '')))
+            self.table_evaluations.setItem(i, 1, QTableWidgetItem(eval_.get('type_evaluation', '')))
+            self.table_evaluations.setItem(i, 2, QTableWidgetItem(f"{eval_.get('montant_brut', 0):,.0f}"))
+            self.table_evaluations.setItem(i, 3, QTableWidgetItem(f"{eval_.get('franchise', 0):,.0f}"))
+            self.table_evaluations.setItem(i, 4, QTableWidgetItem(f"{eval_.get('taux_responsabilite', 1) * 100:.0f}%"))
+            
+            montant_net = eval_.get('montant_net', 0)
+            self.table_evaluations.setItem(i, 5, QTableWidgetItem(f"{montant_net:,.0f}"))
+            
+            validee_item = QTableWidgetItem("✅" if eval_.get('est_validee') else "❌")
+            validee_item.setForeground(QColor("#22c55e" if eval_.get('est_validee') else "#ef4444"))
+            self.table_evaluations.setItem(i, 6, validee_item)
+            
+            # ✅ Stocker les données pour le menu contextuel
+            self.table_evaluations.item(i, 0).setData(Qt.UserRole, eval_)
+
+    def _show_evaluation_context_menu(self, position):
+        """Affiche le menu contextuel sur clic droit"""
+        row = self.table_evaluations.currentRow()
+        if row < 0:
+            return
+        
+        # Récupérer les données de l'évaluation
+        eval_data = self.table_evaluations.item(row, 0).data(Qt.UserRole)
+        if not eval_data:
+            return
+        
+        eval_numero = eval_data.get('numero_evaluation', 'N/A')
+        est_validee = eval_data.get('est_validee', False)
+        
+        # Créer le menu
+        menu = QMenu(self)
+
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 6px;
+            }
+            QMenu::item {
+                background-color: transparent;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-size: 13px;
+                color: #1e293b;
+                font-weight: 500;
+            }
+            QMenu::item:selected {
+                background-color: #f1f5f9;
+                color: #1a73e8;
+            }
+            QMenu::item:disabled {
+                color: #94a3b8;
+            }
+            QMenu::separator {
+                height: 1px;
+                background-color: #e2e8f0;
+                margin: 4px 8px;
+            }
+        """)
+         
+        
+        # ✅ Action: Détail
+        action_detail = QAction("👁️ Détail", self)
+        action_detail.triggered.connect(lambda: self._show_evaluation_detail(eval_data))
+        menu.addAction(action_detail)
+        
+        menu.addSeparator()
+        
+        # ✅ Action: Réviser (uniquement si non validée)
+        action_reviser = QAction("✏️ Réviser", self)
+        action_reviser.setEnabled(not est_validee)
+        action_reviser.triggered.connect(lambda: self._reviser_from_menu(eval_data))
+        menu.addAction(action_reviser)
+        
+        # ✅ Action: Valider (uniquement si non validée)
+        action_valider = QAction("✅ Valider", self)
+        action_valider.setEnabled(not est_validee)
+        action_valider.triggered.connect(lambda: self._valider_from_menu(eval_data))
+        menu.addAction(action_valider)
+        
+        menu.addSeparator()
+        
+        # ✅ Action: Supprimer (uniquement si non validée)
+        action_supprimer = QAction("🗑️ Supprimer", self)
+        action_supprimer.setEnabled(not est_validee)
+        action_supprimer.triggered.connect(lambda: self._supprimer_from_menu(eval_data))
+        menu.addAction(action_supprimer)
+        
+        # Afficher le menu
+        menu.exec(self.table_evaluations.viewport().mapToGlobal(position))
+
+    def _show_evaluation_detail(self, data: dict):
+        """Affiche le détail d'une évaluation"""
+        eval_numero = data.get('numero_evaluation', 'N/A')
+        QMessageBox.information(
+            self,
+            "Détail de l'évaluation",
+            f"📋 Évaluation: {eval_numero}\n"
+            f"📌 Type: {data.get('type_evaluation', 'N/A')}\n"
+            f"💰 Brut: {data.get('montant_brut', 0):,.0f} FCFA\n"
+            f"📉 Franchise: {data.get('franchise', 0):,.0f} FCFA\n"
+            f"📊 Taux: {data.get('taux_responsabilite', 1) * 100:.0f}%\n"
+            f"✅ Net: {data.get('montant_net', 0):,.0f} FCFA\n"
+            f"📌 Statut: {'✅ Validée' if data.get('est_validee') else '⏳ Non validée'}"
+        )
+
+    def _reviser_from_menu(self, data: dict):
+        """Révisé l'évaluation depuis le menu contextuel"""
+        eval_id = data.get('id')
+        if not eval_id:
+            QMessageBox.warning(self, "Erreur", "Évaluation non trouvée")
+            return
+        
+        # Sélectionner la ligne correspondante
+        for row in range(self.table_evaluations.rowCount()):
+            if self.table_evaluations.item(row, 0).data(Qt.UserRole).get('id') == eval_id:
+                self.table_evaluations.selectRow(row)
+                break
+        
+        self.reviser_evaluation()
+
+    def _valider_from_menu(self, data: dict):
+        """Valide l'évaluation depuis le menu contextuel"""
+        eval_id = data.get('id')
+        eval_numero = data.get('numero_evaluation')
+        
+        if not eval_id:
+            QMessageBox.warning(self, "Erreur", "Évaluation non trouvée")
+            return
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirmation",
+            f"Voulez-vous valider l'évaluation {eval_numero} ?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                result = self.controller.valider_evaluation(eval_id)
+                if result:
+                    QMessageBox.information(self, "Succès", "Évaluation validée avec succès")
+                    self.load_evaluations(self.current_sinistre_id)
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur", str(e))
+
+    def _supprimer_from_menu(self, data: dict):
+        """Supprime l'évaluation depuis le menu contextuel"""
+        eval_numero = data.get('numero_evaluation')
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirmation",
+            f"Voulez-vous supprimer l'évaluation {eval_numero} ?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            QMessageBox.information(self, "Suppression", f"Évaluation {eval_numero} supprimée (à implémenter)")
+
+
+

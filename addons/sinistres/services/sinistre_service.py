@@ -33,6 +33,7 @@ class SinistreService(BaseService):
                 user = self.get_user(data['created_by'])
                 if not user:
                     raise ValueError(f"Utilisateur {data['created_by']} inexistant")
+                    
             
             # Générer le numéro unique
             numero = self.generate_numero("SIN", LometaSinistre, 'numero_sinistre')
@@ -74,7 +75,7 @@ class SinistreService(BaseService):
             raise e
 
     def get_sinistre(self, sinistre_id: int) -> Optional[LometaSinistre]:
-        """Récupère un sinistre par son ID"""
+        """Récupère un sinistre (objet SQLAlchemy non sérialisé)"""
         try:
             return self.session.query(LometaSinistre).filter(
                 LometaSinistre.id == sinistre_id,
@@ -83,7 +84,7 @@ class SinistreService(BaseService):
         except Exception as e:
             self.session.rollback()
             raise e
-    
+
     def get_sinistre_by_numero(self, numero: str) -> Optional[LometaSinistre]:
         """Récupère un sinistre par son numéro"""
         try:
@@ -380,6 +381,68 @@ class SinistreService(BaseService):
     # GESTION DES TIERS
     # ============================================================
     
+    def get_options(
+        self,
+        famille: str,
+        include_inactive: bool = False,
+        add_empty: bool = False,
+        empty_label: str = "— Sélectionner —"
+    ) -> List[Dict[str, str]]:
+        """
+        Retourne les options d'un référentiel pour les combos
+        
+        Returns:
+            [{"code": "...", "libelle": "...", "valeur": ...}, ...]
+        """
+        try:
+            from addons.sinistres.models.referentiel import LometaReferentiel
+            
+            query = self.session.query(LometaReferentiel).filter(
+                LometaReferentiel.famille == famille,
+                LometaReferentiel.is_active == True
+            )
+            
+            if not include_inactive:
+                query = query.filter(LometaReferentiel.est_actif == True)
+            
+            resultats = query.order_by(LometaReferentiel.libelle).all()
+            
+            options = [
+                {
+                    'code': r.code,
+                    'libelle': r.libelle,
+                    'description': r.description,
+                    'valeur': r.valeur,
+                }
+                for r in resultats
+            ]
+            
+            if add_empty:
+                options.insert(0, {'code': None, 'libelle': empty_label, 'valeur': None})
+            
+            return options
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+
+    def get_libelle(self, famille: str, code: str) -> Optional[str]:
+        """Retourne le libellé d'un code dans une famille"""
+        try:
+            ref = self.get_referentiel_by_code(famille, code)
+            return ref.libelle if ref else None
+        except Exception:
+            return None
+
+
+    def get_libelles_map(self, famille: str) -> Dict[str, str]:
+        """Retourne un mapping code → libellé pour une famille"""
+        try:
+            options = self.get_options(famille)
+            return {o['code']: o['libelle'] for o in options if o['code']}
+        except Exception:
+            return {}
+
     def ajouter_tiers(self, sinistre_id: int, data: Dict[str, Any]) -> LometaTiers:
         """Ajoute un tiers à un sinistre"""
         try:
@@ -503,6 +566,36 @@ class SinistreService(BaseService):
         except Exception as e:
             self.session.rollback()
             raise e
+
+    def get_historique_sinistre(self, sinistre_id: int) -> List[dict]:
+        """Récupère l'historique d'un sinistre trié par date décroissante"""
+        from addons.sinistres.models.sinistre import LometaHistoriqueSinistre
+        
+        try:
+            historique = self.session.query(LometaHistoriqueSinistre).filter(
+                LometaHistoriqueSinistre.sinistre_id == sinistre_id
+            ).order_by(LometaHistoriqueSinistre.date_action.desc()).all()
+            
+            return [
+                {
+                    'id': h.id,
+                    'date_action': h.date_action.isoformat() if h.date_action else None,
+                    'utilisateur_id': h.utilisateur_id,
+                    'utilisateur_nom': h.utilisateur_nom or f"User #{h.utilisateur_id}",
+                    'action': h.action,
+                    'entite': h.entite,
+                    'entite_id': h.entite_id,
+                    'champ_modifie': h.champ_modifie,
+                    'ancienne_valeur': h.ancienne_valeur,
+                    'nouvelle_valeur': h.nouvelle_valeur,
+                    'commentaire': h.commentaire,
+                    'ip_adresse': h.ip_adresse,
+                }
+                for h in historique
+            ]
+        except Exception as e:
+            self.session.rollback()
+            raise e
     
     # ============================================================
     # INDICATEURS ET STATISTIQUES
@@ -539,6 +632,68 @@ class SinistreService(BaseService):
                 'par_statut': par_statut,
                 'delai_moyen_cloture': round(delai_moyen, 1) if delai_moyen else None
             }
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def update_tiers(self, tiers_id: int, data: Dict[str, Any]) -> Optional[LometaTiers]:
+        """Met à jour un tiers"""
+        try:
+            tiers = self.session.query(LometaTiers).filter(
+                LometaTiers.id == tiers_id,
+                LometaTiers.is_active == True
+            ).first()
+            
+            if not tiers:
+                return None
+            
+            # Historiser les changements
+            for key, value in data.items():
+                if hasattr(tiers, key) and getattr(tiers, key) != value:
+                    self.log_audit(
+                        utilisateur_id=data.get('updated_by'),
+                        action="MODIFICATION",
+                        entite="Tiers",
+                        entite_id=tiers.id,
+                        champ_modifie=key,
+                        ancienne_valeur=str(getattr(tiers, key)),
+                        nouvelle_valeur=str(value)
+                    )
+                    setattr(tiers, key, value)
+            
+            tiers.updated_at = datetime.utcnow()
+            tiers.updated_by = data.get('updated_by')
+            
+            self.session.commit()
+            return tiers
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def supprimer_tiers(self, tiers_id: int, utilisateur_id: int) -> bool:
+        """Suppression logique (soft delete) d'un tiers"""
+        try:
+            tiers = self.session.query(LometaTiers).filter(
+                LometaTiers.id == tiers_id
+            ).first()
+            
+            if not tiers:
+                return False
+            
+            tiers.is_active = False
+            tiers.updated_at = datetime.utcnow()
+            tiers.updated_by = utilisateur_id
+            
+            self.log_audit(
+                utilisateur_id=utilisateur_id,
+                action="SUPPRESSION",
+                entite="Tiers",
+                entite_id=tiers.id,
+                commentaire=f"Suppression logique du tiers {tiers.nom}"
+            )
+            
+            self.session.commit()
+            return True
         except Exception as e:
             self.session.rollback()
             raise e

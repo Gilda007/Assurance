@@ -13,10 +13,11 @@ from PySide6.QtWidgets import (
     QProgressBar, QToolBar, QMenu, QCheckBox, QRadioButton
 )
 from PySide6.QtCore import Qt, QSize, Signal, Slot, QDate
-from PySide6.QtGui import QColor, QIcon, QFont
+from PySide6.QtGui import QFont, QColor, QPalette, QAction
 
 from datetime import datetime, timedelta
 from typing import Optional, List
+from addons.sinistres.models.sinistre import LometaSinistre
 from addons.sinistres.views.tableau_base import TableauActions
 
 
@@ -134,8 +135,8 @@ class ExpertisesPage(QWidget):
             }
         """)
         self.table.setSortingEnabled(True)
-        # self.table.cellClicked.connect(self.on_cell_clicked)
-        # self.table.doubleClicked.connect(self.on_row_double_clicked)
+        self.table.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._show_context_menu)
         layout.addWidget(self.table)
         
         # Boutons d'action
@@ -207,17 +208,201 @@ class ExpertisesPage(QWidget):
         return colors.get(statut)
 
     def _on_cell_clicked(self, row: int, col: int):
-        """Gère le clic sur une ligne pour la sélection"""
-        # Récupérer l'ID de la mission
-        mission_numero = self.table.item(row, 0).text()
-        try:
-            mission_data = self.controller.get_mission_by_numero(mission_numero)
-            if mission_data:
-                self.selected_mission_id = mission_data.get('id')
-        except:
-            pass
-        # Mettre en surbrillance la ligne
+        """Gère le clic sur une ligne"""
         self.table.selectRow(row)
+
+    def _show_context_menu(self, position):
+        """Affiche le menu contextuel sur clic droit avec un design moderne"""
+        # Récupérer la ligne sélectionnée
+        row = self.table.currentRow()
+        if row < 0:
+            return
+        
+        # Récupérer les données de la mission
+        mission_data = self.table.get_selected_data()
+        if not mission_data:
+            return
+        
+        mission_numero = mission_data.get('numero_mission', 'N/A')
+        mission_statut = mission_data.get('statut', '')
+        
+        # Créer le menu
+        menu = QMenu(self)
+        
+        # 🎨 Style moderne QSS pour le menu contextuel
+        menu.setStyleSheet("""
+            QMenu {
+                background-color: #ffffff;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 6px;
+            }
+            QMenu::item {
+                background-color: transparent;
+                padding: 8px 16px;
+                border-radius: 5px;
+                font-size: 13px;
+                color: #1e293b;
+                font-weight: 500;
+            }
+            QMenu::item:selected {
+                background-color: #f1f5f9;
+                color: #1a73e8;
+            }
+            QMenu::item:disabled {
+                color: #94a3b8;
+            }
+            QMenu::separator {
+                height: 1px;
+                background-color: #e2e8f0;
+                margin: 4px 8px;
+            }
+        """)
+        
+        # ✅ Action: Détail
+        action_detail = QAction("👁️  Détail", self)
+        action_detail.triggered.connect(lambda: self.open_mission_detail_by_numero(mission_numero))
+        menu.addAction(action_detail)
+        
+        menu.addSeparator()
+        
+        # ✅ Action: Modifier
+        action_modifier = QAction("✏️  Modifier", self)
+        action_modifier.triggered.connect(lambda: self._on_modifier_mission(mission_data))
+        menu.addAction(action_modifier)
+        
+        # ✅ Action: Supprimer
+        action_supprimer = QAction("🗑️  Supprimer", self)
+        action_supprimer.triggered.connect(lambda: self._on_supprimer_mission(mission_data))
+        menu.addAction(action_supprimer)
+        
+        menu.addSeparator()
+        
+        # ✅ Action: Affecter expert (uniquement si statut CREEE ou AFFECTEE)
+        action_affecter = QAction("👤  Affecter expert", self)
+        action_affecter.setEnabled(mission_statut in ["CREEE", "AFFECTEE"])
+        action_affecter.triggered.connect(lambda: self._affecter_expert_from_menu(mission_data))
+        menu.addAction(action_affecter)
+        
+        # ✅ Action: Démarrer (uniquement si statut AFFECTEE)
+        action_demarrer = QAction("▶️  Démarrer", self)
+        action_demarrer.setEnabled(mission_statut == "AFFECTEE")
+        action_demarrer.triggered.connect(lambda: self._demarrer_mission_from_menu(mission_data))
+        menu.addAction(action_demarrer)
+        
+        # ✅ Action: Déposer rapport (uniquement si statut EN_COURS ou RAPPORT_REÇU)
+        action_rapport = QAction("📄  Déposer rapport", self)
+        action_rapport.setEnabled(mission_statut in ["EN_COURS", "RAPPORT_REÇU"])
+        action_rapport.triggered.connect(lambda: self._deposer_rapport_from_menu(mission_data))
+        menu.addAction(action_rapport)
+        
+        # ✅ Action: Valider (uniquement si statut RAPPORT_REÇU)
+        action_valider = QAction("✅  Valider", self)
+        action_valider.setEnabled(mission_statut == "RAPPORT_REÇU")
+        action_valider.triggered.connect(lambda: self._valider_mission_from_menu(mission_data))
+        menu.addAction(action_valider)
+        
+        # Afficher le menu avec ombre portée sous Qt
+        menu.exec(self.table.viewport().mapToGlobal(position))
+
+    # ============================================================
+    # ✅ ACTIONS DU MENU CONTEXTUEL
+    # ============================================================
+    
+    def _affecter_expert_from_menu(self, data: dict):
+        """Affecte un expert à la mission (depuis le menu contextuel)"""
+        mission_id = data.get('id')
+        mission_numero = data.get('numero_mission')
+        
+        if not mission_id:
+            QMessageBox.warning(self, "Erreur", "Mission non trouvée")
+            return
+        
+        # Récupérer les infos de la mission
+        mission_info = self.controller.get_mission(mission_id)
+        
+        from addons.sinistres.views.affecter_expert_dialog import AffecterExpertDialog
+        dialog = AffecterExpertDialog(
+            mission_id=mission_id,
+            mission_info=mission_info,
+            expertise_controller=self.controller,
+            user=self.user,
+            parent=self
+        )
+        dialog.expert_affected.connect(self._on_expert_affected)
+        dialog.exec()
+    
+    def _demarrer_mission_from_menu(self, data: dict):
+        """Démarre une mission (depuis le menu contextuel)"""
+        mission_id = data.get('id')
+        mission_numero = data.get('numero_mission')
+        
+        if not mission_id:
+            QMessageBox.warning(self, "Erreur", "Mission non trouvée")
+            return
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirmation",
+            f"Voulez-vous démarrer la mission {mission_numero} ?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                result = self.controller.demarrer_mission(mission_id)
+                if result:
+                    QMessageBox.information(self, "Succès", "Mission démarrée avec succès")
+                    self.load_expertises(self.current_sinistre_id)
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur", str(e))
+    
+    def _deposer_rapport_from_menu(self, data: dict):
+        """Dépose un rapport (depuis le menu contextuel)"""
+        mission_id = data.get('id')
+        mission_numero = data.get('numero_mission')
+        
+        if not mission_id:
+            QMessageBox.warning(self, "Erreur", "Mission non trouvée")
+            return
+        
+        mission_info = self.controller.get_mission(mission_id)
+        
+        from addons.sinistres.views.deposer_rapport_dialog import DeposerRapportDialog
+        dialog = DeposerRapportDialog(
+            mission_id=mission_id,
+            mission_info=mission_info,
+            expertise_controller=self.controller,
+            user=self.user,
+            parent=self
+        )
+        dialog.rapport_depose.connect(self._on_rapport_depose)
+        dialog.exec()
+    
+    def _valider_mission_from_menu(self, data: dict):
+        """Valide une mission (depuis le menu contextuel)"""
+        mission_id = data.get('id')
+        mission_numero = data.get('numero_mission')
+        
+        if not mission_id:
+            QMessageBox.warning(self, "Erreur", "Mission non trouvée")
+            return
+        
+        reply = QMessageBox.question(
+            self,
+            "Confirmation",
+            f"Voulez-vous valider la mission {mission_numero} ?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        
+        if reply == QMessageBox.Yes:
+            try:
+                result = self.controller.valider_mission(mission_id)
+                if result:
+                    QMessageBox.information(self, "Succès", "Mission validée avec succès")
+                    self.load_expertises(self.current_sinistre_id)
+            except Exception as e:
+                QMessageBox.critical(self, "Erreur", str(e))
 
     def demarrer_mission(self):
         """Démarre une mission (passage en EN_COURS)"""
@@ -264,101 +449,21 @@ class ExpertisesPage(QWidget):
 
     def on_sinistre_changed(self, index):
         """Charge les expertises du sinistre sélectionné"""
-        if index > 0:
-            sinistre_id = self.sinistre_combo.currentData()
-            if sinistre_id:
-                self.current_sinistre_id = sinistre_id
-                self.load_expertises(sinistre_id)
-            if sinistre_id is None:
-                # ✅ Tous les sinistres
-                self.load_all_expertises()
+        sinistre_id = self.sinistre_combo.currentData()
+        self.current_sinistre_id = sinistre_id
+        
+        if sinistre_id is None:
+            # ✅ Tous les sinistres
+            self.load_all_expertises()
         else:
-            self.table.setRowCount(0)
-    
-    # def load_expertises(self, sinistre_id: int):
-    #     """Charge les expertises d'un sinistre"""
-    #     try:
-    #         expertises = self.controller.get_missions_by_sinistre(sinistre_id)
-    #         self.update_table(expertises)
-            
-    #         # Mettre à jour les stats
-    #         total = len(expertises)
-    #         en_cours = sum(1 for e in expertises if e.get('statut') in ['CREEE', 'AFFECTEE', 'EN_COURS', 'RAPPORT_REÇU'])
-    #         termine = sum(1 for e in expertises if e.get('statut') in ['VALIDE'])
-            
-    #         self.lbl_total.setText(f"Total: {total}")
-    #         self.lbl_encours.setText(f"🟣 En cours: {en_cours}")
-    #         self.lbl_termine.setText(f"✅ Terminées: {termine}")
-            
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Erreur", f"Erreur chargement expertises: {str(e)}")
-    
-    # def update_table(self, expertises: List[dict]):
-    #     """Met à jour le tableau des expertises"""
-    #     self.table.setRowCount(len(expertises))
-        
-    #     statut_colors = {
-    #         'CREEE': '#f59e0b',
-    #         'AFFECTEE': '#3b82f6',
-    #         'EN_COURS': '#8b5cf6',
-    #         'RAPPORT_REÇU': '#06b6d4',
-    #         'VALIDE': '#22c55e',
-    #         'ANNULE': '#ef4444'
-    #     }
-        
-    #     statut_labels = {
-    #         'CREEE': 'Créée',
-    #         'AFFECTEE': 'Affectée',
-    #         'EN_COURS': 'En cours',
-    #         'RAPPORT_REÇU': 'Rapport reçu',
-    #         'VALIDE': 'Validée',
-    #         'ANNULE': 'Annulée'
-    #     }
-        
-    #     for i, exp in enumerate(expertises):
-    #         self.table.setItem(i, 0, QTableWidgetItem(exp.get('numero_mission', '')))
-    #         self.table.setItem(i, 1, QTableWidgetItem(exp.get('expert_nom', 'Non affecté')))
-    #         self.table.setItem(i, 2, QTableWidgetItem(exp.get('type_expertise', '')))
-    #         self.table.setItem(i, 3, QTableWidgetItem(exp.get('date_mission', '')[:10] if exp.get('date_mission') else ''))
-    #         self.table.setItem(i, 4, QTableWidgetItem(exp.get('date_echeance', '')[:10] if exp.get('date_echeance') else ''))
-            
-    #         statut = exp.get('statut', '')
-    #         statut_item = QTableWidgetItem(statut_labels.get(statut, statut))
-    #         color = statut_colors.get(statut, '#64748b')
-    #         statut_item.setBackground(QColor(color))
-    #         statut_item.setForeground(QColor('white'))
-    #         self.table.setItem(i, 5, statut_item)
-            
-    #         # Bouton d'action
-    #         btn = QPushButton("👁️ Voir")
-    #         btn.setStyleSheet("padding: 4px 10px; border-radius: 4px;")
-    #         btn.clicked.connect(lambda checked, row=i: self.open_mission_detail(row))
-    #         self.table.setCellWidget(i, 6, btn)
-
-    # def load_expertises(self, sinistre_id: int):
-    #     """Charge les expertises d'un sinistre"""
-    #     try:
-    #         expertises = self.controller.get_missions_by_sinistre(sinistre_id)
-    #         self.update_table(expertises)
-            
-    #         # Mettre à jour les stats
-    #         total = len(expertises)
-    #         en_cours = sum(1 for e in expertises if e.get('statut') in ['CREEE', 'AFFECTEE', 'EN_COURS', 'RAPPORT_REÇU'])
-    #         termine = sum(1 for e in expertises if e.get('statut') in ['VALIDE'])
-            
-    #         self.lbl_total.setText(f"Total: {total}")
-    #         self.lbl_encours.setText(f"🟣 En cours: {en_cours}")
-    #         self.lbl_termine.setText(f"✅ Terminées: {termine}")
-            
-    #     except Exception as e:
-    #         QMessageBox.critical(self, "Erreur", f"Erreur chargement expertises: {str(e)}")
+            self.load_expertises(sinistre_id)
     
     def load_all_expertises(self):
         """Charge toutes les expertises (tous sinistres)"""
         try:
             # Récupérer toutes les expertises
             all_expertises = self.controller.get_all_missions()
-            self.update_table(all_expertises)
+            self._update_table_with_actions(all_expertises)
             
             # Mettre à jour les stats
             total = len(all_expertises)
@@ -376,7 +481,7 @@ class ExpertisesPage(QWidget):
         """Charge les expertises et remplit le tableau"""
         try:
             expertises = self.controller.get_missions_by_sinistre(sinistre_id)
-            self.update_table(expertises)
+            self._update_table_with_actions(expertises)
             
             # Mettre à jour les stats
             total = len(expertises)
@@ -397,6 +502,7 @@ class ExpertisesPage(QWidget):
         """Retourne la configuration des colonnes"""
         return [
             {'key': 'numero_mission', 'label': 'N° Mission', 'width': 120},
+            {'key': 'sinistre_numero', 'label': 'N° Sinistre', 'width': 120, 'format': lambda x: x or 'N/A'},
             {'key': 'expert_nom', 'label': 'Expert', 'width': 150, 'format': lambda x: x or 'Non affecté'},
             {'key': 'type_expertise', 'label': 'Type', 'width': 120},
             {'key': 'date_mission', 'label': 'Date', 'width': 100, 'format': lambda x: x[:10] if x else ''},
@@ -414,15 +520,15 @@ class ExpertisesPage(QWidget):
     
     def _on_mission_selected(self, row: int, data: dict):
         """Gère la sélection d'une mission"""
-        print(f"Mission sélectionnée: {data.get('numero_mission')}")
+        self.selected_mission_id = data.get('id')
     
     def _on_mission_double_clicked(self, row: int, data: dict):
         """Gère le double-clic sur une mission"""
-        self.open_mission_detail_from_data(data)
+        self.open_mission_detail_by_numero(data.get('numero_mission'))
     
     def _on_voir_mission(self, data: dict):
         """Ouvre le détail d'une mission"""
-        QMessageBox.information(self, "Détail", f"Mission {data.get('numero_mission')}")
+        self.open_mission_detail_by_numero(data.get('numero_mission'))
     
     def _on_modifier_mission(self, data: dict):
         """Modifie une mission"""
@@ -438,63 +544,23 @@ class ExpertisesPage(QWidget):
         if reply == QMessageBox.Yes:
             QMessageBox.information(self, "Suppression", "Mission supprimée (à implémenter)")
 
-    def update_table(self, expertises: List[dict]):
-        """Met à jour le tableau des expertises"""
-        self.table.setRowCount(len(expertises))
-        
-        statut_colors = {
-            'CREEE': '#f59e0b',
-            'AFFECTEE': '#3b82f6',
-            'EN_COURS': '#8b5cf6',
-            'RAPPORT_REÇU': '#06b6d4',
-            'VALIDE': '#22c55e',
-            'ANNULE': '#ef4444'
-        }
-        
-        # ✅ Statuts d'affichage en français
-        statut_labels = {
-            'CREEE': 'Créée',
-            'AFFECTEE': 'Affectée',
-            'EN_COURS': 'En cours',
-            'RAPPORT_REÇU': 'Rapport reçu',
-            'VALIDE': 'Validée',
-            'ANNULE': 'Annulée'
-        }
-        
-        for i, exp in enumerate(expertises):
-            self.table.setItem(i, 0, QTableWidgetItem(exp.get('numero_mission', '')))
-            self.table.setItem(i, 1, QTableWidgetItem(exp.get('expert_nom', 'Non affecté')))
-            self.table.setItem(i, 2, QTableWidgetItem(exp.get('type_expertise', '')))
-            self.table.setItem(i, 3, QTableWidgetItem(exp.get('date_mission', '')[:10] if exp.get('date_mission') else ''))
-            self.table.setItem(i, 4, QTableWidgetItem(exp.get('date_echeance', '')[:10] if exp.get('date_echeance') else ''))
-            
-            statut = exp.get('statut', '')
-            statut_item = QTableWidgetItem(statut_labels.get(statut, statut))
-            color = statut_colors.get(statut, '#64748b')
-            statut_item.setBackground(QColor(color))
-            statut_item.setForeground(QColor('white'))
-            self.table.setItem(i, 5, statut_item)
-            
-            # ✅ Stocker le statut réel dans les données de la ligne
-            self.table.item(i, 5).setData(Qt.UserRole, statut)
-            
-            # Bouton d'action
-            btn = QPushButton("👁️ Voir")
-            btn.setStyleSheet("padding: 4px 10px; border-radius: 4px;")
-            btn.clicked.connect(lambda checked, row=i: self.open_mission_detail(row))
-            self.table.setCellWidget(i, 6, btn)
-
-    def open_mission_detail(self, row: int):
-        """Ouvre le détail d'une mission"""
-        numero = self.table.item(row, 0).text()
-        QMessageBox.information(self, "Détail", f"Détail de la mission {numero}\n(Fonctionnalité à venir)")
-    
-    def on_row_double_clicked(self, index):
-        """Ouvre le détail de la mission sélectionnée"""
-        row = index.row()
+    def get_selected_mission_id(self) -> Optional[int]:
+        """Retourne l'ID de la mission sélectionnée"""
+        row = self.table.currentRow()
         if row >= 0:
-            self.open_mission_detail(row)
-    
+            mission_numero = self.table.item(row, 0).text()
+            try:
+                mission_data = self.controller.get_mission_by_numero(mission_numero)
+                if mission_data:
+                    return mission_data.get('id')
+            except:
+                pass
+        return None
+
+    def _update_table_with_actions(self, expertises: List[dict]):
+        """Met à jour le tableau avec TableauActions"""
+        self.table.set_data(expertises, self._get_columns(), self._get_actions())
+
     # ============================================================
     # ✅ CRÉATION DE MISSION (version finale)
     # ============================================================
@@ -743,3 +809,6 @@ class ExpertisesPage(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Erreur: {str(e)}")
 
+    
+
+        

@@ -142,6 +142,16 @@ class ExpertiseService(BaseService):
         except Exception as e:
             self.session.rollback()
             raise e
+
+    def get_all_missions(self) -> List[LometaExpertise]:
+        """Récupère toutes les missions d'expertise (tous sinistres)"""
+        try:
+            return self.session.query(LometaExpertise).filter(
+                LometaExpertise.is_active == True
+            ).order_by(LometaExpertise.created_at.desc()).all()
+        except Exception as e:
+            self.session.rollback()
+            raise e
     
     def get_mission_by_numero(self, numero: str) -> Optional[LometaExpertise]:
         """Récupère une mission par son numéro"""
@@ -452,6 +462,17 @@ class ExpertiseService(BaseService):
                 LometaDocumentExpertise.expertise_id == expertise_id,
                 LometaDocumentExpertise.is_active == True
             ).all()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def get_sinistre(self, sinistre_id: int) -> Optional[LometaSinistre]:
+        """Récupère un sinistre par son ID"""
+        try:
+            return self.session.query(LometaSinistre).filter(
+                LometaSinistre.id == sinistre_id,
+                LometaSinistre.is_active == True
+            ).first()
         except Exception as e:
             self.session.rollback()
             raise e

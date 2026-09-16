@@ -32,8 +32,8 @@ class TableauActions(QTableWidget):
         # Connexion des signaux
         self.cellClicked.connect(self._on_cell_clicked)
         self.cellDoubleClicked.connect(self._on_cell_double_clicked)
-        self.customContextMenuRequested.connect(self._on_context_menu)
-        self.setContextMenuPolicy(Qt.CustomContextMenu)
+        # self.customContextMenuRequested.connect(self._on_context_menu)
+        # self.setContextMenuPolicy(Qt.CustomContextMenu)
     
     def _on_cell_clicked(self, row: int, col: int):
         """Gère le clic sur une cellule"""
