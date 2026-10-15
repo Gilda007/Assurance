@@ -1,118 +1,867 @@
-from socket import socket
 
+from socket import socket
 import requests
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_
 from addons.Automobiles.controllers.automobile_controller import VehicleController
 from addons.Automobiles.models.automobile_models import AuditVehicleLog, Vehicle
 from addons.Automobiles.models.contact_models import Contact
-from addons.Automobiles.models.flottes_models import Fleet, AuditFlotteLog
+from addons.Automobiles.models.flottes_models import Fleet
 from datetime import date, datetime, timezone
 import json
+import os
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib import colors
+from reportlab.lib.units import cm, mm
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from reportlab.pdfgen import canvas
+
 
 class FleetController:
     def __init__(self, session: Session, current_user_id):
         self.session = session
         self.current_user_id = current_user_id
-
         self.vehicle_service = VehicleController(session)
 
+    # ==================== CRÉATION DE FLOTTE ====================
+    
     def create_fleet(self, data, user_id):
+        """
+        Crée une nouvelle flotte en incluant les totaux financiers 
+        issus de la dernière ligne du tableau et gère l'audit.
+        """
         try:
             local_ip, public_ip = self.get_network_info()
 
-            data['created_by'] = user_id
-            data['created_ip'] = public_ip
-            data['last_ip'] = local_ip # On peut stocker la locale ici pour savoir quel PC a touché en dernier
-            # On utilise les clés du dictionnaire 'data' pour remplir le modèle 'Fleet'
+            def to_f(key):
+                val = data.get(key)
+                try:
+                    return float(val) if val is not None else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+
             new_fleet = Fleet(
-                nom_flotte=data.get('nom_flotte'), # <-- CORRECTION ICI
-                code_flotte=data.get('code_flotte'),
+                nom_flotte=data.get('nom_flotte'),
+                code_flotte=str(data.get('code_flotte', '')).strip().upper(),
                 owner_id=data.get('owner_id'),
                 assureur=data.get('assureur'),
                 type_gestion=data.get('type_gestion'),
-                remise_flotte=data.get('remise_flotte'),
-                statut=data.get('statut'),
-                is_active=data.get('is_active'),
+                remise_flotte=to_f('remise_flotte'),
+                
+                # Totaux des garanties
+                total_rc=to_f('total_rc'),
+                total_dr=to_f('total_dr'),
+                total_vol=to_f('total_vol'),
+                total_vb=to_f('total_vb'),
+                total_in=to_f('total_in'),
+                total_bris=to_f('total_bris'),
+                total_ar=to_f('total_ar'),
+                total_dta=to_f('total_dta'),
+                total_ipt=to_f('total_ipt'),
+                total_pttc=to_f('total_pttc'),
+                total_prime_nette=to_f('total_prime_nette'),
+                
+                statut=data.get('statut', 'Actif'),
+                is_active=data.get('is_active', True),
                 date_debut=data.get('date_debut'),
                 date_fin=data.get('date_fin'),
-                observations=data.get('observations')
+                observations=data.get('observations'),
+                created_by=user_id,
+                created_ip=public_ip,
+                last_ip=local_ip
             )
+
             self.session.add(new_fleet)
             self.session.flush()
+
+            # Audit
+            serializable_data = data.copy()
+            for key, value in serializable_data.items():
+                if isinstance(value, (date, datetime)):
+                    serializable_data[key] = value.isoformat()
+
+            log = AuditVehicleLog(
+                user_id=user_id,
+                action="CREATION_FLOTTE_COMPLETE",
+                module="FLEET_MANAGEMENT",
+                item_id=new_fleet.id,
+                old_values=None,
+                new_values=json.dumps(serializable_data),
+                ip_local=local_ip,
+                ip_public=public_ip
+            )
+            self.session.add(log)
+            self.session.commit()
+            
+            return True, new_fleet.id
+
+        except Exception as e:
+            self.session.rollback()
+            print(f"❌ Erreur SQL create_fleet: {e}")
+            if "unique constraint" in str(e).lower():
+                return False, f"Le code flotte '{data.get('code_flotte')}' est déjà utilisé."
+            return False, str(e)
+
+    # ==================== MISE À JOUR DE FLOTTE ====================
+    
+    def update_fleet_data(self, fleet_id, data, user_id):
+        """
+        Met à jour une flotte existante avec les totaux financiers et l'audit.
+        """
+        try:
+            local_ip, public_ip = self.get_network_info()
+
+            def to_f(key):
+                val = data.get(key)
+                try:
+                    return float(val) if val is not None and val != '' else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+
+            code_flotte = data.get('code_flotte')
+            if isinstance(code_flotte, str):
+                code_flotte = code_flotte.strip().upper()
+                if not code_flotte:
+                    code_flotte = None
+
+            owner_id = data.get('owner_id')
+            if isinstance(owner_id, str) and not owner_id.isdigit():
+                owner_id = None
+
+            old_fleet = self.session.query(Fleet).filter(Fleet.id == fleet_id).first()
+            if not old_fleet:
+                return False, "Flotte introuvable."
+
+            self.session.query(Fleet).filter(Fleet.id == fleet_id).update({
+                "nom_flotte": data.get('nom_flotte'),
+                "code_flotte": code_flotte,
+                "owner_id": owner_id,
+                "assureur": data.get('assureur'),
+                "type_gestion": data.get('type_gestion'),
+                "remise_flotte": to_f('remise_flotte'),
+                
+                "total_rc": to_f('total_rc'),
+                "total_dr": to_f('total_dr'),
+                "total_vol": to_f('total_vol'),
+                "total_vb": to_f('total_vb'),
+                "total_in": to_f('total_in'),
+                "total_bris": to_f('total_bris'),
+                "total_ar": to_f('total_ar'),
+                "total_dta": to_f('total_dta'),
+                "total_ipt": to_f('total_ipt'),
+                "total_pttc": to_f('total_pttc'),
+                "total_prime_nette": to_f('total_prime_nette'),
+                
+                "statut": data.get('statut'),
+                "is_active": data.get('is_active'),
+                "date_debut": data.get('date_debut'),
+                "date_fin": data.get('date_fin'),
+                "observations": data.get('observations'),
+                
+                "updated_at": datetime.now(timezone.utc),
+                "updated_by": user_id,
+                "last_ip": local_ip
+            }, synchronize_session=False)
 
             serializable_data = data.copy()
             for key, value in serializable_data.items():
                 if isinstance(value, (date, datetime)):
-                    serializable_data[key] = value.isoformat() # Transforme en "2023-10-27"
-            # LOG D'AUDIT POUR LA TRAÇABILITÉ
-            log = AuditVehicleLog(
+                    serializable_data[key] = value.isoformat()
+
+            audit_log = AuditVehicleLog(
                 user_id=user_id,
-                action="CREATION",
-                module="VEHICULE_MANAGEMENT", # Nom de votre module pour le filtrage
-                item_id=new_fleet.id,
+                action="UPDATE_FLOTTE_COMPLETE",
+                module="FLEET_MANAGEMENT",
+                item_id=fleet_id,
                 old_values=None,
-                new_values=json.dumps(serializable_data), # On transforme le dictionnaire en texte
-                ip_local=local_ip,   # Doit correspondre au nom dans models.py
-                ip_public=public_ip, # Doit correspondre au nom dans models.py
-                # timestamp est géré par défaut par la base de données (server_default)
+                new_values=json.dumps(serializable_data),
+                ip_local=local_ip,
+                ip_public=public_ip
             )
-            self.session.add(log)
-            
+            self.session.add(audit_log)
             self.session.commit()
-            return True, new_fleet.id
+            
+            return True, "Flotte mise à jour avec succès."
+
         except Exception as e:
             self.session.rollback()
+            print(f"❌ Erreur SQL update_fleet_data: {e}")
+            if "unique constraint" in str(e).lower():
+                return False, f"Le code flotte '{data.get('code_flotte')}' est déjà utilisé."
             return False, str(e)
+
+    # ==================== GESTION DES VÉHICULES DANS LA FLOTTE ====================
+    
+ 
+
+    def update_fleet_vehicles(self, fleet_id, selected_vehicle_ids, user_id):
+        """
+        Met à jour la relation entre une flotte et ses véhicules.
+        ✅ Version avec gestion des garanties flotte (vehicle_fleet_guarantees)
+        
+        Args:
+            fleet_id: ID de la flotte
+            selected_vehicle_ids: Liste des IDs des véhicules à attacher
+            user_id: ID de l'utilisateur
+        
+        Returns:
+            tuple: (success, message)
+        """
+        try:
+            from addons.Automobiles.models.automobile_models import Vehicle
+            from addons.Automobiles.models.automobile_models import VehicleGuarantee, VehicleFleetGuarantee
+            
+            if isinstance(selected_vehicle_ids, dict):
+                print("ERREUR: Le contrôleur a reçu un dictionnaire au lieu d'une liste d'IDs.")
+                return False, "Format de données invalide (attendu: liste d'IDs)."
+
+            # Nettoyer les IDs
+            clean_ids = []
+            for i in selected_vehicle_ids:
+                try:
+                    if isinstance(i, int):
+                        clean_ids.append(i)
+                    elif isinstance(i, str) and i.isdigit():
+                        clean_ids.append(int(i))
+                except (ValueError, TypeError):
+                    continue
+            
+            if not clean_ids:
+                return True, "Aucun véhicule à associer"
+            
+            local_ip, public_ip = self.get_network_info()
+
+            # 1. Récupérer les véhicules actuellement dans la flotte
+            current_vehicle_ids = self.session.query(Vehicle.id).filter(
+                Vehicle.fleet_id == fleet_id
+            ).all()
+            current_vehicle_ids = [v[0] for v in current_vehicle_ids]
+
+            # 2. Détacher les véhicules qui ne sont plus sélectionnés
+            vehicles_to_detach = set(current_vehicle_ids) - set(clean_ids)
+            if vehicles_to_detach:
+                self.session.query(Vehicle).filter(
+                    Vehicle.id.in_(vehicles_to_detach)
+                ).update({"fleet_id": None}, synchronize_session=False)
+                
+                # Optionnel: Supprimer les enregistrements fleet_guarantees des véhicules détachés
+                for vid in vehicles_to_detach:
+                    self.session.query(VehicleFleetGuarantee).filter(
+                        VehicleFleetGuarantee.vehicle_id == vid
+                    ).delete()
+
+            # 3. Attacher les nouveaux véhicules sélectionnés
+            vehicles_to_attach = set(clean_ids) - set(current_vehicle_ids)
+            if vehicles_to_attach:
+                for vehicle_id in vehicles_to_attach:
+                    vehicle = self.session.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
+                    if vehicle:
+                        # 3a. Mettre à jour la flotte du véhicule
+                        vehicle.fleet_id = fleet_id
+                        
+                        # 3b. Créer ou mettre à jour les garanties flotte
+                        # Récupérer les garanties brutes du véhicule
+                        guarantees = self.session.query(VehicleGuarantee).filter(
+                            VehicleGuarantee.vehicle_id == vehicle_id
+                        ).first()
+                        
+                        if guarantees:
+                            # Créer ou mettre à jour les garanties flotte
+                            fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                                VehicleFleetGuarantee.vehicle_id == vehicle_id
+                            ).first()
+                            
+                            if not fleet_guarantee:
+                                # Créer une nouvelle entrée
+                                fleet_guarantee = VehicleFleetGuarantee(vehicle_id=vehicle_id)
+                                self.session.add(fleet_guarantee)
+                            
+                            # Copier les valeurs des garanties brutes vers les garanties flotte
+                            # (les valeurs seront modifiables par l'utilisateur ensuite)
+                            fleet_guarantee.rc = guarantees.rc or 0
+                            fleet_guarantee.dr = guarantees.dr or 0
+                            fleet_guarantee.vol = guarantees.vol or 0
+                            fleet_guarantee.vb = guarantees.vb or 0
+                            fleet_guarantee.ipt = guarantees.ipt or 0
+                            fleet_guarantee.bris = guarantees.bris or 0
+                            fleet_guarantee.ar = guarantees.ar or 0
+                            fleet_guarantee.dta = guarantees.dta or 0
+                            fleet_guarantee.in_garantie = guarantees.in_garantie or 0
+                            
+                            self.session.flush()
+                            
+                            # Mettre à jour les champs de compatibilité (pour éviter les erreurs)
+                            # Ces champs existent peut-être dans Vehicle pour compatibilité ascendante
+                            self._update_vehicle_fleet_fields(vehicle, guarantees)
+
+            # 4. Mettre à jour les totaux de la flotte
+            self._update_fleet_totals(fleet_id)
+
+            # 5. Audit
+            audit = AuditVehicleLog(
+                user_id=user_id,
+                action="UPDATE_RELATION_FLEET",
+                module="FLEETS",
+                item_id=fleet_id,
+                new_values=json.dumps({
+                    "vehicle_ids": clean_ids,
+                    "attached": list(vehicles_to_attach),
+                    "detached": list(vehicles_to_detach)
+                }),
+                ip_local=local_ip,
+                ip_public=public_ip,
+                timestamp=datetime.now(timezone.utc)
+            )
+            self.session.add(audit)
+            self.session.commit()
+            
+            return True, f"Relation Flotte-Véhicules mise à jour avec succès. {len(vehicles_to_attach)} véhicule(s) ajouté(s), {len(vehicles_to_detach)} retiré(s)."
+
+        except Exception as e:
+            self.session.rollback()
+            print(f"Erreur Update Fleet Relation: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return False, f"Erreur base de données : {str(e)}"
+
+
+    def _update_vehicle_fleet_fields(self, vehicle, guarantees):
+        """
+        Met à jour les champs de compatibilité du véhicule pour la flotte.
+        (Appelé lors de l'ajout d'un véhicule à une flotte)
+        """
+        try:
+            # Mettre à jour les champs amt_fleet_*_val si ils existent
+            if hasattr(vehicle, 'amt_fleet_rc_val'):
+                vehicle.amt_fleet_rc_val = guarantees.rc or 0
+            if hasattr(vehicle, 'amt_fleet_dr_val'):
+                vehicle.amt_fleet_dr_val = guarantees.dr or 0
+            if hasattr(vehicle, 'amt_fleet_vol_val'):
+                vehicle.amt_fleet_vol_val = guarantees.vol or 0
+            if hasattr(vehicle, 'amt_fleet_vb_val'):
+                vehicle.amt_fleet_vb_val = guarantees.vb or 0
+            if hasattr(vehicle, 'amt_fleet_in_val'):
+                vehicle.amt_fleet_in_val = guarantees.in_garantie or 0
+            if hasattr(vehicle, 'amt_fleet_bris_val'):
+                vehicle.amt_fleet_bris_val = guarantees.bris or 0
+            if hasattr(vehicle, 'amt_fleet_ar_val'):
+                vehicle.amt_fleet_ar_val = guarantees.ar or 0
+            if hasattr(vehicle, 'amt_fleet_dta_val'):
+                vehicle.amt_fleet_dta_val = guarantees.dta or 0
+            if hasattr(vehicle, 'amt_fleet_ipt_val'):
+                vehicle.amt_fleet_ipt_val = guarantees.ipt or 0
+                
+            # Mettre à jour les champs de réduction si ils existent
+            if hasattr(vehicle, 'amt_fleet_red_rc_val'):
+                vehicle.amt_fleet_red_rc_val = guarantees.rc or 0
+            # ... etc pour les autres garanties
+            
+            self.session.flush()
+            
+        except Exception as e:
+            print(f"Erreur _update_vehicle_fleet_fields: {e}")
+
+
+    def _update_fleet_totals(self, fleet_id):
+        """
+        Met à jour les totaux de la flotte (somme des garanties de tous les véhicules).
+        Utilise les données de vehicle_fleet_guarantees.
+        """
+        try:
+            from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            
+            # Récupérer la flotte
+            fleet = self.session.query(Fleet).filter(Fleet.id == fleet_id).first()
+            if not fleet:
+                return
+            
+            # Récupérer les véhicules de la flotte
+            vehicles = self.session.query(Vehicle).filter(
+                Vehicle.fleet_id == fleet_id,
+                Vehicle.is_active == True
+            ).all()
+            
+            if not vehicles:
+                # Réinitialiser les totaux
+                fleet.total_rc = 0
+                fleet.total_dr = 0
+                fleet.total_vol = 0
+                fleet.total_vb = 0
+                fleet.total_in = 0
+                fleet.total_bris = 0
+                fleet.total_ar = 0
+                fleet.total_dta = 0
+                fleet.total_ipt = 0
+                fleet.total_pttc = 0
+                fleet.total_prime_nette = 0
+                self.session.flush()
+                return
+            
+            # Initialiser les totaux
+            totals = {
+                'rc': 0, 'dr': 0, 'vol': 0, 'vb': 0,
+                'in': 0, 'bris': 0, 'ar': 0, 'dta': 0, 'ipt': 0,
+                'pttc': 0, 'prime_nette': 0
+            }
+            
+            # Calculer la somme des garanties pour chaque véhicule
+            for vehicle in vehicles:
+                fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                    VehicleFleetGuarantee.vehicle_id == vehicle.id
+                ).first()
+                
+                if fleet_guarantee:
+                    # Somme des garanties flotte
+                    totals['rc'] += fleet_guarantee.rc or 0
+                    totals['dr'] += fleet_guarantee.dr or 0
+                    totals['vol'] += fleet_guarantee.vol or 0
+                    totals['vb'] += fleet_guarantee.vb or 0
+                    totals['in'] += fleet_guarantee.ipt or 0  # ipt = incendie
+                    totals['bris'] += fleet_guarantee.bris or 0
+                    totals['ar'] += fleet_guarantee.ar or 0
+                    totals['dta'] += fleet_guarantee.dta or 0
+                    totals['ipt'] += fleet_guarantee.in_garantie or 0  # in_garantie = garantie individuelle
+                else:
+                    # Fallback: utiliser les garanties brutes
+                    if hasattr(vehicle, 'guarantees') and vehicle.guarantees:
+                        g = vehicle.guarantees
+                        totals['rc'] += g.rc or 0
+                        totals['dr'] += g.dr or 0
+                        totals['vol'] += g.vol or 0
+                        totals['vb'] += g.vb or 0
+                        totals['in'] += g.ipt or 0
+                        totals['bris'] += g.bris or 0
+                        totals['ar'] += g.ar or 0
+                        totals['dta'] += g.dta or 0
+                        totals['ipt'] += g.in_garantie or 0
+                
+                # Prime du véhicule
+                totals['prime_nette'] += vehicle.prime_nette or 0
+                totals['pttc'] += vehicle.pttc or 0
+            
+            # Mettre à jour la flotte
+            fleet.total_rc = totals['rc']
+            fleet.total_dr = totals['dr']
+            fleet.total_vol = totals['vol']
+            fleet.total_vb = totals['vb']
+            fleet.total_in = totals['in']
+            fleet.total_bris = totals['bris']
+            fleet.total_ar = totals['ar']
+            fleet.total_dta = totals['dta']
+            fleet.total_ipt = totals['ipt']
+            fleet.total_pttc = totals['pttc']
+            fleet.total_prime_nette = totals['prime_nette']
+            
+            self.session.flush()
+            
+        except Exception as e:
+            print(f"Erreur _update_fleet_totals: {e}")
+            import traceback
+            traceback.print_exc()
+
+    # ==================== GESTION DES GARANTIES DANS LA FLOTTE ====================
+    
+    def update_vehicle_guarantees_in_fleet(self, vehicle_id, garanties):
+        """
+        Met à jour les montants des garanties d'un véhicule dans le cadre d'une flotte.
+        ⭐ Les valeurs sont stockées dans les champs amt_fleet_*_val.
+        
+        Args:
+            vehicle_id: ID du véhicule
+            garanties: Dictionnaire des garanties avec leurs montants
+                    Ex: {'rc': 50000, 'dr': 25000, 'vol': 100000, ...}
+        
+        Returns:
+            tuple: (success, message)
+        """
+        try:
+            vehicle = self.vehicle_service.get_vehicles_by_id(vehicle_id)
+            if not vehicle:
+                return False, f"Véhicule {vehicle_id} non trouvé"
+            
+            # ⭐ Mapping vers les nouveaux champs amt_fleet_*_val
+            mapping = {
+                'rc': 'amt_fleet_rc_val',
+                'dr': 'amt_fleet_dr_val',
+                'vol': 'amt_fleet_vol_val',
+                'vb': 'amt_fleet_vb_val',
+                'in': 'amt_fleet_in_val',
+                'bris': 'amt_fleet_bris_val',
+                'ar': 'amt_fleet_ar_val',
+                'dta': 'amt_fleet_dta_val',
+                'ipt': 'amt_fleet_ipt_val',
+            }
+            
+            # Mettre à jour les attributs
+            for key, amount in garanties.items():
+                if key in mapping:
+                    setattr(vehicle, mapping[key], amount)
+            
+            # Sauvegarder
+            update_data = {
+                'amt_fleet_rc_val': garanties.get('rc', 0),
+                'amt_fleet_dr_val': garanties.get('dr', 0),
+                'amt_fleet_vol_val': garanties.get('vol', 0),
+                'amt_fleet_vb_val': garanties.get('vb', 0),
+                'amt_fleet_in_val': garanties.get('in', 0),
+                'amt_fleet_bris_val': garanties.get('bris', 0),
+                'amt_fleet_ar_val': garanties.get('ar', 0),
+                'amt_fleet_dta_val': garanties.get('dta', 0),
+                'amt_fleet_ipt_val': garanties.get('ipt', 0),
+            }
+            
+            success, result = self.vehicle_service.update_vehicle(vehicle_id, update_data, self.current_user_id)
+            
+            if success:
+                return True, "Garanties mises à jour avec succès"
+            else:
+                return False, result
+            
+        except Exception as e:
+            print(f"Erreur update_vehicle_guarantees_in_fleet: {e}")
+            import traceback
+            traceback.print_exc()
+            return False, str(e)
+
+    def get_vehicle_guarantees_for_fleet(self, vehicle_id):
+        """
+        Récupère les montants des garanties d'un véhicule pour l'affichage dans la flotte.
+        ⭐ Utilise les champs amt_fleet_*_val.
+        
+        Args:
+            vehicle_id: ID du véhicule
+        
+        Returns:
+            dict: Dictionnaire des garanties avec leurs montants actuels dans la flotte
+        """
+        try:
+            vehicle = self.vehicle_service.get_vehicles_by_id(vehicle_id)
+            if not vehicle:
+                return {}
+            
+            return {
+                'rc': float(getattr(vehicle, 'amt_fleet_rc_val', 0) or 0),
+                'dr': float(getattr(vehicle, 'amt_fleet_dr_val', 0) or 0),
+                'vol': float(getattr(vehicle, 'amt_fleet_vol_val', 0) or 0),
+                'vb': float(getattr(vehicle, 'amt_fleet_vb_val', 0) or 0),
+                'in': float(getattr(vehicle, 'amt_fleet_in_val', 0) or 0),
+                'bris': float(getattr(vehicle, 'amt_fleet_bris_val', 0) or 0),
+                'ar': float(getattr(vehicle, 'amt_fleet_ar_val', 0) or 0),
+                'dta': float(getattr(vehicle, 'amt_fleet_dta_val', 0) or 0),
+                'ipt': float(getattr(vehicle, 'amt_fleet_ipt_val', 0) or 0),
+            }
+            
+        except Exception as e:
+            print(f"Erreur get_vehicle_guarantees_for_fleet: {e}")
+            return {}
+
+    def reset_vehicle_guarantees_to_original(self, vehicle_id):
+        """
+        Remet les garanties d'un véhicule à leurs valeurs originales (amt_*)
+        
+        Args:
+            vehicle_id: ID du véhicule
+        
+        Returns:
+            tuple: (success, message)
+        """
+        try:
+            vehicle = self.vehicle_service.get_vehicles_by_id(vehicle_id)
+            if not vehicle:
+                return False, "Véhicule non trouvé"
+            
+            guarantees = getattr(vehicle, 'guarantees', None)
+            update_data = {
+                'amt_fleet_rc_val': float(getattr(guarantees, 'rc', 0) if guarantees else 0),
+                'amt_fleet_dr_val': float(getattr(guarantees, 'dr', 0) if guarantees else 0),
+                'amt_fleet_vol_val': float(getattr(guarantees, 'vol', 0) if guarantees else 0),
+                'amt_fleet_vb_val': float(getattr(guarantees, 'vb', 0) if guarantees else 0),
+                'amt_fleet_in_val': float(getattr(guarantees, 'in_garantie', 0) if guarantees else 0),
+                'amt_fleet_bris_val': float(getattr(guarantees, 'bris', 0) if guarantees else 0),
+                'amt_fleet_ar_val': float(getattr(guarantees, 'ar', 0) if guarantees else 0),
+                'amt_fleet_dta_val': float(getattr(guarantees, 'dta', 0) if guarantees else 0),
+                'amt_fleet_ipt_val': float(getattr(guarantees, 'ipt', 0) if guarantees else 0),
+            }
+            
+            success, result = self.vehicle_service.update_vehicle(vehicle_id, update_data, self.current_user_id)
+            
+            if success:
+                return True, "Garanties réinitialisées avec succès"
+            else:
+                return False, result
+            
+        except Exception as e:
+            return False, str(e)
+
+    # ==================== CALCULS ET STATISTIQUES ====================
+    
+    def calculate_fleet_total_premium(self, fleet_id):
+        """
+        Calcule le total des primes pour une flotte.
+        ⭐ Utilise la propriété total_fleet_amount du véhicule
+        """
+        try:
+            fleet = self.session.query(Fleet).filter(Fleet.id == fleet_id).first()
+            if not fleet or not fleet.vehicles:
+                return 0
+            
+            total = 0
+            for vehicle in fleet.vehicles:
+                total += vehicle.total_fleet_amount
+            
+            return total
+        except Exception as e:
+            print(f"Erreur calculate_fleet_total_premium: {e}")
+            return 0
+
+    def get_fleet_vehicles_with_custom_guarantees(self, fleet_id):
+        """
+        Récupère les véhicules d'une flotte avec leurs garanties personnalisées.
+        ⭐ Utilise les propriétés du modèle Vehicle.
+        """
+        try:
+            fleet = self.session.query(Fleet).options(
+                joinedload(Fleet.vehicles)
+            ).filter(Fleet.id == fleet_id).first()
+            
+            if not fleet:
+                return []
+            
+            result = []
+            for vehicle in fleet.vehicles:
+                result.append({
+                    'id': vehicle.id,
+                    'immatriculation': vehicle.immatriculation,
+                    'marque': vehicle.marque,
+                    'modele': vehicle.modele,
+                    'original_amount': vehicle.total_original_amount,
+                    'fleet_amount': vehicle.total_fleet_amount,
+                    'reduction': vehicle.total_fleet_reduction,
+                    'reduction_percent': vehicle.fleet_reduction_percent,
+                    'has_custom': vehicle.has_custom_fleet_guarantees,
+                    'guarantees': vehicle.get_fleet_guarantees_dict()
+                })
+            
+            return result
+        except Exception as e:
+            print(f"Erreur get_fleet_vehicles_with_custom_guarantees: {e}")
+            return []
 
     def get_fleet_stats(self, fleet_id):
         """Récupère les indicateurs clés (KPI) pour le tableau de bord d'une flotte."""
-        # Nombre de véhicules, somme des primes, etc.
-        stats = self.session.query(
-            func.count(Vehicle.id).label("total"),
-            func.sum(Vehicle.prime_emise).label("prime_totale")
-        ).filter(Vehicle.fleet_id == fleet_id).first()
-        
-        return {
-            "total_vehicules": stats.total or 0,
-            "prime_globale": stats.prime_totale or 0,
-            # Vous pourrez ajouter ici le calcul des véhicules expirés
-        }
-
-    # --- GESTION DES VÉHICULES ---
-
-    def add_vehicle_to_fleet(self, data):
-        """Enregistre un véhicule avec ses données techniques et garanties."""
         try:
-            # Conversion des données de garanties (dict) en colonnes si nécessaire
-            new_vehicle = Vehicle(
-                immatriculation=data['immatriculation'],
-                fleet_id=data['fleet_id'],
-                owner_id=data['owner_id'],
-                marque=data['marque'],
-                genre=data['genre'],
-                poids=data['poids'],
-                puissance=data['puissance'],
-                val_neuf=data['val_neuf'],
-                val_venale=data['val_venale'],
-                prime_emise=data['prime_emise'],
-                # Stockage des garanties (en colonnes booléennes ou JSON selon votre choix de modèle)
-                rc=data['garanties']['rc'],
-                tc=data['garanties']['tc'],
-                vol=data['garanties']['vol'],
-                bris=data['garanties']['bris'],
-                dommages=data['garanties']['dommages'],
-                individuelle=data['garanties']['individuelle'],
-                dr=data['garanties']['dr']
+            fleet = self.session.query(Fleet).filter(Fleet.id == fleet_id).first()
+            if not fleet:
+                return {"total_vehicules": 0, "prime_globale": 0}
+            
+            total_vehicules = len(fleet.vehicles) if fleet.vehicles else 0
+            prime_globale = sum(v.total_fleet_amount for v in fleet.vehicles) if fleet.vehicles else 0
+            
+            return {
+                "total_vehicules": total_vehicules,
+                "prime_globale": prime_globale,
+            }
+        except Exception as e:
+            print(f"Erreur get_fleet_stats: {e}")
+            return {"total_vehicules": 0, "prime_globale": 0}
+
+    # ==================== RÉCUPÉRATION DE DONNÉES ====================
+    
+    def get_all_fleets(self):
+        try:
+            from sqlalchemy.orm import joinedload
+            return self.session.query(Fleet).options(joinedload(Fleet.owner)).all()
+        except Exception as e:
+            print(f"Erreur lors de la récupération des flottes : {e}")
+            return []
+    
+    def get_fleets_by_owner(self, owner_id):
+        """Récupère les flottes d'un propriétaire"""
+        try:
+            from addons.Automobiles.models import Fleet, Compagnie
+            from sqlalchemy.orm import joinedload
+            
+            results = self.session.query(Fleet).filter(
+                Fleet.owner_id == owner_id
+            ).options(
+                joinedload(Fleet.compagnie)
+            ).all()
+            
+            return results
+        except Exception as e:
+            print(f"Erreur: {e}")
+            return []
+
+    def get_fleet_with_details(self, fleet_id):
+        """Récupère une flotte avec toutes ses relations chargées"""
+        try:
+            fleet = self.session.query(Fleet).options(
+                joinedload(Fleet.owner),
+                joinedload(Fleet.vehicles)
+            ).filter(Fleet.id == fleet_id).first()
+            
+            return fleet
+        except Exception as e:
+            print(f"Erreur lors de la récupération de la flotte {fleet_id}: {e}")
+            return None
+
+    def get_all_vehicles(self):
+        return self.vehicle_service.get_all_vehicles()
+
+    # flotte_controller.py - Ajouter ces méthodes
+
+    def create_fleet_contract(self, fleet_id, data, user_id):
+        """Crée un contrat pour une flotte entière"""
+        try:
+            from addons.Automobiles.models.contract_models import Contrat, ContractStatus
+            
+            local_ip, public_ip = self.get_network_info()
+            
+            fleet = self.session.query(Fleet).filter(Fleet.id == fleet_id).first()
+            if not fleet:
+                return False, "Flotte non trouvée"
+            
+            # Générer un numéro de police unique pour la flotte
+            numero_police = self._generate_fleet_police_number(fleet)
+            
+            # Créer le contrat de flotte
+            contrat = Contrat(
+                numero_police=numero_police,
+                owner_id=fleet.owner_id,
+                company_id=fleet.assureur,
+                fleet_id=fleet_id,
+                vehicle_id=None,
+                type_contrat="FLOTTE",
+                statut=ContractStatus.ACTIF,
+                date_debut=fleet.date_debut,
+                date_fin=fleet.date_fin,
+                prime_pure=data.get('prime_pure', fleet.total_prime_nette or 0),
+                accessoires=data.get('accessoires', 0),
+                taxes_totales=data.get('taxes_totales', 0),
+                commission_intermediaire=data.get('commission_intermediaire', 0),
+                prime_totale_ttc=data.get('prime_totale_ttc', fleet.total_pttc or 0),
+                montant_paye=0,
+                statut_paiement="NON_PAYE",
+                created_by=user_id,
+                created_ip=public_ip,
+                last_ip=local_ip
             )
-            self.session.add(new_vehicle)
+            
+            self.session.add(contrat)
+            self.session.flush()  # Pour obtenir l'ID du contrat
+            
+            # Optionnel: Enregistrer l'audit (si la méthode existe)
+            if hasattr(self, '_log_action'):
+                self._log_action(
+                    action="CREATE_FLEET_CONTRACT",
+                    fleet_id=fleet_id,
+                    contrat_id=contrat.id,
+                    user_id=user_id,
+                    local_ip=local_ip,
+                    public_ip=public_ip,
+                    new_values={
+                        'numero_police': numero_police,
+                        'montant_total': contrat.prime_totale_ttc
+                    }
+                )
+            
             self.session.commit()
-            return True
+            
+            return True, contrat
+            
         except Exception as e:
             self.session.rollback()
+            print(f"Erreur create_fleet_contract: {e}")
             return False, str(e)
+    
+    def _create_vehicle_sub_contract(self, vehicle, parent_contract_id, user_id, local_ip, public_ip):
+        """
+        Crée un sous-contrat pour un véhicule individuel dans une flotte
+        """
+        from addons.Automobiles.models.contract_models import Contrat, ContractStatus
+        
+        # Calculer la prime individuelle du véhicule
+        vehicle_prime = vehicle.total_fleet_amount or vehicle.prime_nette or 0
+        
+        sub_contract = Contrat(
+            numero_police=f"{vehicle.immatriculation}-FLT-{parent_contract_id}",
+            owner_id=vehicle.owner_id,
+            company_id=vehicle.compagny_id,
+            vehicle_id=vehicle.id,
+            fleet_id=vehicle.fleet_id,
+            contrat_flotte_id=parent_contract_id,
+            type_contrat="VEHICULE_FLOTTE",
+            statut=ContractStatus.ACTIF,
+            date_debut=vehicle.date_debut,
+            date_fin=vehicle.date_fin,
+            prime_pure=vehicle_prime,
+            prime_totale_ttc=vehicle_prime,
+            montant_paye=0,
+            statut_paiement="NON_PAYE",
+            created_by=user_id,
+            created_ip=public_ip,
+            last_ip=local_ip
+        )
+        
+        self.session.add(sub_contract)
+        return sub_contract
 
-    # --- RÉCUPÉRATION DES DONNÉES POUR LES COMBOS ---
+    def _generate_fleet_police_number(self, fleet):
+        """Génère un numéro de police unique pour la flotte"""
+        from datetime import datetime
+        import random
+        
+        year = datetime.now().year
+        fleet_code = fleet.code_flotte or fleet.nom_flotte[:5].upper()
+        random_num = random.randint(1000, 9999)
+        
+        return f"FLT-{fleet_code}-{year}-{random_num}"
+
+    def get_fleet_contract(self, fleet_id):
+        """Récupère le contrat principal d'une flotte"""
+        from addons.Automobiles.models.contract_models import Contrat
+        
+        return self.session.query(Contrat).filter(
+            Contrat.fleet_id == fleet_id,
+            Contrat.type_contrat == "FLOTTE"
+        ).first()
+
+    def get_fleet_vehicle_contracts(self, fleet_id):
+        """Récupère les contrats des véhicules d'une flotte"""
+        from addons.Automobiles.models.contract_models import Contrat
+        
+        return self.session.query(Contrat).filter(
+            Contrat.fleet_id == fleet_id,
+            Contrat.type_contrat == "VEHICULE_FLOTTE"
+        ).all()
+
+    def get_all_contacts_for_combo(self):
+        """Retourne les contacts de nature physique depuis la table Contact."""
+        try:
+            compagnies = self.session.query(Contact.id, Contact.nom)\
+                .filter(Contact.nature == "Physique")\
+                .all()
+            
+            return [(contact_id, contact_nom) for contact_id, contact_nom in compagnies]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des contacts : {e}")
+            return []
+
+    def get_all_compagnies_for_combo(self):
+        """Retourne la liste des compagnies d'assurance pour les combobox."""
+        try:
+            from addons.Automobiles.models import Compagnie
+            
+            compagnies = self.session.query(Compagnie.id, Compagnie.nom).filter(
+                Compagnie.is_active == True
+            ).all()
+            
+            return [(comp_id, comp_nom) for comp_id, comp_nom in compagnies]
+        except Exception as e:
+            print(f"Erreur lors de la récupération des compagnies : {e}")
+            return []
 
     def get_all_fleets_for_combo(self):
         try:
@@ -121,60 +870,38 @@ class FleetController:
             print(f"Erreur lors de la récupération : {e}")
             return []
 
-    def get_all_contacts_for_combo(self):
-        """Retourne les contacts de nature physique depuis la table Contact."""
-        try:
-            # On récupère spécifiquement les colonnes ID et NOM
-            compagnies = self.session.query(Contact.id, Contact.nom)\
-                .filter(Contact.nature == "Physique")\
-                .all()
-            
-            # Debug : affiche la liste brute pour vérification
-            print(f"DEBUG Contacts : {compagnies}")
-            
-            # Correction de la compréhension de liste :
-            # Puisque ce sont des tuples (id, nom), on les dépaquette directement
-            return [(contact_id, contact_nom) for contact_id, contact_nom in compagnies]
+    # ==================== MISE À JOUR STATUT ====================
 
-        except Exception as e:
-            print(f"Erreur lors de la récupération des contacts : {e}")
-            return []
-
-    def get_all_compagnies_for_combo(self):
-        """Retourne les contacts de nature physique depuis la table Contact."""
-        try:
-            # On récupère spécifiquement les colonnes ID et NOM
-            compagnies = self.session.query(Contact.id, Contact.nom)\
-                .filter(Contact.nature == "Morale")\
-                .all()
-            
-            # Debug : affiche la liste brute pour vérification
-            print(f"DEBUG Contacts : {compagnies}")
-            
-            # Correction de la compréhension de liste :
-            # Puisque ce sont des tuples (id, nom), on les dépaquette directement
-            return [(contact_id, contact_nom) for contact_id, contact_nom in compagnies]
-
-        except Exception as e:
-            print(f"Erreur lors de la récupération des contacts : {e}")
-            return []
-    
-    # --- DANS controllers/fleet_controller.py ---
-    def get_all_fleets(self):
-        try:
-            # On utilise joinedload pour récupérer le nom du propriétaire en une seule fois
-            from sqlalchemy.orm import joinedload
-            return self.session.query(Fleet).options(joinedload(Fleet.owner)).all()
-        except Exception as e:
-            print(f"Erreur lors de la récupération des flottes : {e}")
-            return []
+    def get_fleet_full_details(self, fleet_id):
+        """
+        Récupère une flotte avec toutes ses relations chargées pour les rapports PDF
         
+        Args:
+            fleet_id: ID de la flotte
+        
+        Returns:
+            Objet Fleet avec toutes les relations chargées
+        """
+        try:
+            from sqlalchemy.orm import joinedload
+            
+            fleet = self.session.query(Fleet).options(
+                joinedload(Fleet.owner),
+                joinedload(Fleet.vehicles),
+                joinedload(Fleet.compagnie),
+                joinedload(Fleet.contract)
+            ).filter(Fleet.id == fleet_id).first()
+            
+            return fleet
+        except Exception as e:
+            print(f"Erreur get_fleet_full_details: {e}")
+            return None
+    
     def update_status(self, fleet_id, is_active):
         try:
             fleet = self.session.query(Fleet).get(fleet_id)
             if fleet:
                 fleet.is_active = is_active
-                # On met aussi à jour le updated_by
                 fleet.updated_by = self.current_user_id
                 self.session.commit()
                 return True
@@ -183,59 +910,961 @@ class FleetController:
             self.session.rollback()
             return False
 
-    def update_fleet_vehicles(self, fleet_id, selected_vehicle_ids, user_id, ip_local=None, ip_public=None):
+    # ==================== GÉNÉRATION PDF ====================
+    
+    def generate_fleet_pdf(self, fleet_id, output_path):
+        """
+        Génère un rapport PDF professionnel pour une flotte - Format A3 paysage
+        Avec tableau des échéances, graphiques détaillés et analyses avancées
+        """
         try:
-            # --- 1. Logique métier : Mise à jour des véhicules ---
-            # On détache ceux qui ne sont plus sélectionnés
-            self.session.query(Vehicle).filter(
-                Vehicle.fleet_id == fleet_id,
-                ~Vehicle.id.in_(selected_vehicle_ids)
-            ).update({Vehicle.fleet_id: None}, synchronize_session=False)
+            from reportlab.lib.pagesizes import A3, landscape
+            from reportlab.platypus import PageBreak, KeepTogether
+            from reportlab.lib.enums import TA_JUSTIFY
+            from reportlab.graphics.shapes import Drawing
+            from reportlab.graphics.charts.barcharts import VerticalBarChart
+            from reportlab.graphics.charts.piecharts import Pie
+            from reportlab.graphics.charts.legends import Legend
+            from reportlab.graphics.widgets.markers import makeMarker
+            import os
+            from datetime import datetime, timedelta
+            
+            # Récupération des données
+            fleet = self.get_fleet_full_details(fleet_id)
+            if not fleet:
+                return False, "Flotte introuvable en base de données."
+            
+            fleet_contract = self.get_fleet_contract(fleet_id)
+            
+            # Configuration du document - FORMAT A3 PAYSAGE
+            doc = SimpleDocTemplate(
+                output_path, 
+                pagesize=landscape(A3), 
+                rightMargin=2*cm, 
+                leftMargin=2*cm, 
+                topMargin=2.2*cm, 
+                bottomMargin=2*cm,
+                title=f"Rapport_Flotte_{fleet.code_flotte}",
+                author="AMS Assurance"
+            )
+            elements = []
+            styles = getSampleStyleSheet()
+            
+            # ==================== PALETTE DE COULEURS ====================
+            colors_dict = {
+                'primary': colors.HexColor('#1a365d'),
+                'secondary': colors.HexColor('#2d3748'),
+                'accent': colors.HexColor('#3182ce'),
+                'accent_light': colors.HexColor('#ebf8ff'),
+                'success': colors.HexColor('#276749'),
+                'danger': colors.HexColor('#9b2c2c'),
+                'warning': colors.HexColor('#dd6b20'),
+                'light': colors.HexColor('#f7fafc'),
+                'light_gray': colors.HexColor('#edf2f7'),
+                'border': colors.HexColor('#e2e8f0'),
+                'text': colors.HexColor('#2d3748'),
+                'text_light': colors.HexColor('#718096'),
+                'white': colors.white,
+                'black': colors.black,
+                'gold': colors.HexColor('#d69e2e'),
+                'purple': colors.HexColor('#805ad5'),
+                'pink': colors.HexColor('#ed64a6'),
+                'teal': colors.HexColor('#38b2ac'),
+            }
+            
+            # Palette de couleurs pour les graphiques
+            chart_colors = [
+                colors_dict['accent'],
+                colors_dict['success'],
+                colors_dict['warning'],
+                colors_dict['danger'],
+                colors_dict['purple'],
+                colors_dict['pink'],
+                colors_dict['teal'],
+                colors_dict['gold'],
+                colors_dict['primary'],
+            ]
+            
+            # ==================== STYLES TYPOGRAPHIQUES ====================
+            styles.add(ParagraphStyle(
+                name='TitleStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=26,
+                textColor=colors_dict['primary'],
+                alignment=TA_CENTER,
+                spaceAfter=8,
+                leading=30
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='SubtitleStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica',
+                fontSize=12,
+                textColor=colors_dict['text_light'],
+                alignment=TA_CENTER,
+                spaceAfter=25,
+                leading=15
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='SectionHeaderStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=14,
+                textColor=colors_dict['primary'],
+                spaceAfter=12,
+                spaceBefore=20,
+                leading=17,
+                borderPadding=5
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='SubSectionHeaderStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=12,
+                textColor=colors_dict['secondary'],
+                spaceAfter=8,
+                spaceBefore=12,
+                leading=14
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='InfoLabelStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=9,
+                textColor=colors_dict['secondary'],
+                leading=12
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='InfoValueStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica',
+                fontSize=9,
+                textColor=colors_dict['text'],
+                leading=12
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='TableHeaderStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=9,
+                textColor=colors_dict['white'],
+                alignment=TA_CENTER,
+                leading=11
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='TableCellStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica',
+                fontSize=8,
+                textColor=colors_dict['text'],
+                leading=10
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='FooterStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica',
+                fontSize=8,
+                textColor=colors_dict['text_light'],
+                alignment=TA_CENTER,
+                leading=10
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='DangerStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=9,
+                textColor=colors_dict['danger'],
+                alignment=TA_CENTER,
+                leading=11
+            ))
+            
+            styles.add(ParagraphStyle(
+                name='SuccessStyle',
+                parent=styles['Normal'],
+                fontName='Helvetica-Bold',
+                fontSize=9,
+                textColor=colors_dict['success'],
+                alignment=TA_CENTER,
+                leading=11
+            ))
+            
+            # ==================== 1. EN-TÊTE ====================
+            logo_path = "addons/Automobiles/static/logo.png"
+            
+            header_bg = Table([['']], colWidths=[42*cm], rowHeights=[0.3*cm])
+            header_bg.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['primary'])]))
+            elements.append(header_bg)
+            elements.append(Spacer(1, 0.2*cm))
+            
+            if os.path.exists(logo_path):
+                try:
+                    logo = Image(logo_path, width=2.5*cm, height=2.5*cm)
+                except:
+                    logo = None
+            else:
+                logo = None
+            
+            if logo:
+                header_data = [
+                    [logo, 
+                    Paragraph("<b><font color='#1a365d'>AMS ASSURANCE</font></b><br/><font size=9 color='#4a5568'>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Document</font></b><br/><font size=9 color='#4a5568'>Rapport de flotte</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Date</font></b><br/><font size=9 color='#4a5568'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</font>", styles['InfoValueStyle'])]
+                ]
+                header_table = Table(header_data, colWidths=[3*cm, 12*cm, 6*cm, 6*cm])
+            else:
+                header_data = [
+                    [Paragraph("<b><font color='#1a365d'>AMS ASSURANCE</font></b><br/><font size=9 color='#4a5568'>Assurance de confiance depuis 2020</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Document</font></b><br/><font size=9 color='#4a5568'>Rapport de flotte</font>", styles['InfoValueStyle']),
+                    Paragraph(f"<b><font color='#1a365d'>Date</font></b><br/><font size=9 color='#4a5568'>{datetime.now().strftime('%d/%m/%Y %H:%M')}</font>", styles['InfoValueStyle'])]
+                ]
+                header_table = Table(header_data, colWidths=[15*cm, 8*cm, 8*cm])
+            
+            header_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ('ALIGN', (-2, 0), (-1, 0), 'RIGHT'),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            elements.append(header_table)
+            elements.append(Spacer(1, 0.3*cm))
+            
+            sep_line = Table([['']], colWidths=[42*cm], rowHeights=[0.04*cm])
+            sep_line.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['accent'])]))
+            elements.append(sep_line)
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 2. TITRE PRINCIPAL ====================
+            elements.append(Paragraph(f"RAPPORT DE FLOTTE", styles['TitleStyle']))
+            elements.append(Paragraph(f"{fleet.nom_flotte.upper()} - {fleet.code_flotte}", styles['SubtitleStyle']))
+            elements.append(Spacer(1, 0.3*cm))
+            
+            # ==================== 3. INFORMATIONS GÉNÉRALES ====================
+            elements.append(Paragraph("INFORMATIONS GÉNÉRALES", styles['SectionHeaderStyle']))
+            
+            fleet_info_data = [
+                ["Nom de la flotte", fleet.nom_flotte or 'N/A', "Code flotte", fleet.code_flotte or 'N/A', "Statut", fleet.statut or 'Actif'],
+                ["Type de gestion", fleet.type_gestion or 'N/A', "Remise commerciale", f"{fleet.remise_flotte or 0}%", "Véhicules", str(len(fleet.vehicles) if fleet.vehicles else 0)],
+                ["Date début", fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A', "Date fin", fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A', "Période", f"{fleet.date_debut.strftime('%d/%m/%Y') if fleet.date_debut else 'N/A'} - {fleet.date_fin.strftime('%d/%m/%Y') if fleet.date_fin else 'N/A'}"],
+                ["Assureur", fleet.compagnie.nom if fleet.compagnie else 'N/A', "", "", "", ""],
+            ]
+            
+            fleet_info_table = Table(fleet_info_data, colWidths=[4*cm, 7*cm, 4*cm, 7*cm, 4*cm, 7*cm])
+            fleet_info_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors_dict['light']),
+                ('BACKGROUND', (2, 0), (2, -1), colors_dict['light']),
+                ('BACKGROUND', (4, 0), (4, -1), colors_dict['light']),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (2, 0), (2, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (4, 0), (4, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('BOX', (0, 0), (-1, -1), 0.5, colors_dict['primary']),
+            ]))
+            elements.append(fleet_info_table)
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 4. PROPRIÉTAIRE ET CONTRAT ====================
+            left_data = []
+            right_data = []
+            
+            owner = fleet.owner
+            if owner:
+                owner_info = [
+                    ["Propriétaire", f"{owner.nom or ''} {owner.prenom or ''}".strip() or 'N/A'],
+                    ["Nature", owner.nature or 'N/A'],
+                    ["Téléphone", owner.telephone or 'N/A'],
+                    ["Email", owner.email or 'N/A'],
+                    ["Adresse", owner.adresse or 'N/A'],
+                    ["Code client", owner.code_client or 'N/A'],
+                ]
+            else:
+                owner_info = [["Propriétaire", "Non renseigné"]]
+            
+            owner_table = Table(owner_info, colWidths=[5*cm, 12*cm])
+            owner_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            left_data.append(Paragraph("PROPRIÉTAIRE", styles['SectionHeaderStyle']))
+            left_data.append(owner_table)
+            
+            if fleet_contract:
+                montant_total = float(fleet_contract.prime_totale_ttc or 0)
+                montant_paye = float(fleet_contract.montant_paye or 0)
+                solde = montant_total - montant_paye
+                
+                contract_info = [
+                    ["Numéro de police", fleet_contract.numero_police or 'N/A'],
+                    ["Statut", fleet_contract.statut.value if hasattr(fleet_contract.statut, 'value') else str(fleet_contract.statut)],
+                    ["Prime totale", f"{montant_total:,.0f} FCFA".replace(",", " ")],
+                    ["Montant payé", f"{montant_paye:,.0f} FCFA".replace(",", " ")],
+                    ["Solde restant", f"{solde:,.0f} FCFA".replace(",", " ")],
+                    ["Statut paiement", fleet_contract.statut_paiement or 'NON_PAYE'],
+                ]
+            else:
+                contract_info = [["Contrat", "Aucun contrat généré"]]
+            
+            contract_table = Table(contract_info, colWidths=[5*cm, 12*cm])
+            contract_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+            ]))
+            right_data.append(Paragraph("CONTRAT", styles['SectionHeaderStyle']))
+            right_data.append(contract_table)
+            
+            two_cols = Table([[left_data, right_data]], colWidths=[20*cm, 20*cm])
+            two_cols.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ]))
+            elements.append(two_cols)
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 5. LISTE DES VÉHICULES ====================
+            elements.append(Paragraph("VÉHICULES DE LA FLOTTE", styles['SectionHeaderStyle']))
+            
+            vehicle_list_data = [["N°", "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Puissance", "Places", "Statut"]]
+            
+            if fleet.vehicles:
+                for idx, vehicle in enumerate(fleet.vehicles, 1):
+                    vehicle_list_data.append([
+                        str(idx),
+                        vehicle.immatriculation or 'N/A',
+                        vehicle.marque or 'N/A',
+                        vehicle.modele or 'N/A',
+                        str(vehicle.annee) if vehicle.annee else 'N/A',
+                        vehicle.energie or 'N/A',
+                        str(vehicle.puissance_fiscale or 'N/A'),
+                        str(vehicle.places or 'N/A'),
+                        vehicle.statut or 'En circulation',
+                    ])
+            
+            vehicle_list_table = Table(vehicle_list_data, colWidths=[0.7*cm, 3.5*cm, 4*cm, 4.5*cm, 2*cm, 2.5*cm, 2.5*cm, 2*cm, 3.5*cm])
+            vehicle_list_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            ]))
+            elements.append(vehicle_list_table)
+            elements.append(Spacer(1, 0.6*cm))
+            
+            # ==================== 6. TABLEAU DES GARANTIES ====================
+            elements.append(Paragraph("GARANTIES PAR VÉHICULE", styles['SectionHeaderStyle']))
+            
+            garanties_headers = [
+                "N°", "Immatriculation",
+                "RC", "DR", "Vol", "VB",
+                "Incendie", "Bris", "AR", "DTA", "IPT",
+                "TOTAL"
+            ]
+            
+            garanties_data = [garanties_headers]
+            
+            def fmt(val):
+                return f"{val:,.0f}".replace(",", " ") if val > 0 else "-"
+            
+            totals = {
+                'rc': 0, 'dr': 0, 'vol': 0, 'vb': 0,
+                'in': 0, 'bris': 0, 'ar': 0, 'dta': 0, 'ipt': 0,
+                'total': 0
+            }
+            
+            from addons.Automobiles.models.automobile_models import VehicleFleetGuarantee
+            
+            if fleet.vehicles:
+                for idx, vehicle in enumerate(fleet.vehicles, 1):
+                    fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                        VehicleFleetGuarantee.vehicle_id == vehicle.id
+                    ).first()
+                    
+                    if fleet_guarantee:
+                        rc = float(fleet_guarantee.rc or 0)
+                        dr = float(fleet_guarantee.dr or 0)
+                        vol = float(fleet_guarantee.vol or 0)
+                        vb = float(fleet_guarantee.vb or 0)
+                        in_garantie = float(fleet_guarantee.in_garantie or 0)
+                        bris = float(fleet_guarantee.bris or 0)
+                        ar = float(fleet_guarantee.ar or 0)
+                        dta = float(fleet_guarantee.dta or 0)
+                        ipt = float(fleet_guarantee.ipt or 0)
+                    else:
+                        g = getattr(vehicle, 'guarantees', None)
+                        if g:
+                            rc = float(g.rc or 0)
+                            dr = float(g.dr or 0)
+                            vol = float(g.vol or 0)
+                            vb = float(g.vb or 0)
+                            in_garantie = float(g.in_garantie or 0)
+                            bris = float(g.bris or 0)
+                            ar = float(g.ar or 0)
+                            dta = float(g.dta or 0)
+                            ipt = float(g.ipt or 0)
+                        else:
+                            rc = dr = vol = vb = in_garantie = bris = ar = dta = ipt = 0
+                    
+                    total_vehicule = rc + dr + vol + vb + in_garantie + bris + ar + dta + ipt
+                    
+                    garanties_data.append([
+                        str(idx),
+                        vehicle.immatriculation or 'N/A',
+                        fmt(rc),
+                        fmt(dr),
+                        fmt(vol),
+                        fmt(vb),
+                        fmt(in_garantie),
+                        fmt(bris),
+                        fmt(ar),
+                        fmt(dta),
+                        fmt(ipt),
+                        fmt(total_vehicule),
+                    ])
+                    
+                    totals['rc'] += rc
+                    totals['dr'] += dr
+                    totals['vol'] += vol
+                    totals['vb'] += vb
+                    totals['in'] += in_garantie
+                    totals['bris'] += bris
+                    totals['ar'] += ar
+                    totals['dta'] += dta
+                    totals['ipt'] += ipt
+                    totals['total'] += total_vehicule
+            
+            garanties_data.append([
+                "", "TOTAL", 
+                fmt(totals['rc']),
+                fmt(totals['dr']),
+                fmt(totals['vol']),
+                fmt(totals['vb']),
+                fmt(totals['in']),
+                fmt(totals['bris']),
+                fmt(totals['ar']),
+                fmt(totals['dta']),
+                fmt(totals['ipt']),
+                fmt(totals['total']),
+            ])
+            
+            col_widths = [
+                0.6*cm, 3*cm,
+                2*cm, 2*cm, 2*cm, 2*cm,
+                2*cm, 2*cm, 2*cm, 2*cm, 2*cm,
+                2.5*cm
+            ]
+            
+            garanties_table = Table(garanties_data, colWidths=col_widths, repeatRows=1)
+            garanties_table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 8.5),
+                ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                ('ALIGN', (0, 1), (1, -2), 'LEFT'),
+                ('ALIGN', (2, 1), (-1, -2), 'RIGHT'),
+                ('ALIGN', (0, -1), (1, -1), 'CENTER'),
+                ('ALIGN', (2, -1), (-1, -1), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTSIZE', (0, 1), (-1, -2), 7.5),
+                ('FONTSIZE', (0, -1), (-1, -1), 8.5),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors_dict['white'], colors_dict['light']]),
+                ('BACKGROUND', (0, -1), (-1, -1), colors_dict['light_gray']),
+                ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+                ('TEXTCOLOR', (0, -1), (-1, -1), colors_dict['primary']),
+                ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                ('BOX', (0, 0), (-1, -1), 0.5, colors_dict['primary']),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('LEFTPADDING', (0, 0), (-1, -1), 3),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 3),
+            ]))
+            elements.append(garanties_table)
+            elements.append(Spacer(1, 0.6*cm))
+            
+            # ==================== 7. NOUVEAU: TABLEAU DES ÉCHÉANCES ====================
+            elements.append(PageBreak())
+            elements.append(Paragraph("ÉCHÉANCIER DE PAIEMENT", styles['SectionHeaderStyle']))
+            
+            if fleet_contract and montant_total > 0:
+                # Calculer les échéances
+                solde = montant_total - montant_paye
+                nombre_echeances = 12  # 12 mensualités
+                
+                # Déterminer le nombre d'échéances en fonction du montant
+                if solde > 10000000:
+                    nombre_echeances = 24  # 24 mois pour les gros montants
+                elif solde > 5000000:
+                    nombre_echeances = 18
+                elif solde > 1000000:
+                    nombre_echeances = 12
+                else:
+                    nombre_echeances = 6
+                
+                echeance_mensuelle = solde / nombre_echeances if nombre_echeances > 0 else 0
+                
+                # Générer les échéances
+                echeances_data = [["N°", "Date d'échéance", "Montant", "Statut", "Observations"]]
+                
+                date_debut = fleet.date_debut or datetime.now().date()
+                if isinstance(date_debut, datetime):
+                    date_debut = date_debut.date()
+                
+                for i in range(1, nombre_echeances + 1):
+                    date_echeance = date_debut + timedelta(days=30 * i)
+                    statut = "À payer" if i <= 6 else "Programmé"
+                    if i == 1:
+                        statut = "En attente"
+                    elif i <= 3:
+                        statut = "À venir"
+                    
+                    echeances_data.append([
+                        str(i),
+                        date_echeance.strftime('%d/%m/%Y'),
+                        f"{echeance_mensuelle:,.0f} FCFA".replace(",", " "),
+                        statut,
+                        f"Échéance {i}/{nombre_echeances}"
+                    ])
+                
+                echeances_table = Table(echeances_data, colWidths=[2*cm, 4*cm, 6*cm, 4*cm, 8*cm])
+                echeances_table.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                elements.append(echeances_table)
+                
+                # Résumé des échéances
+                echeance_summary = [
+                    ["Nombre total d'échéances", f"{nombre_echeances}"],
+                    ["Montant par échéance", f"{echeance_mensuelle:,.0f} FCFA".replace(",", " ")],
+                    ["Solde total à payer", f"{solde:,.0f} FCFA".replace(",", " ")],
+                    ["Prochaine échéance", (date_debut + timedelta(days=30)).strftime('%d/%m/%Y')],
+                ]
+                
+                summary_table = Table(echeance_summary, colWidths=[10*cm, 15*cm])
+                summary_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors_dict['accent_light']),
+                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(Spacer(1, 0.3*cm))
+                elements.append(Paragraph("RÉSUMÉ DES ÉCHÉANCES", styles['SubSectionHeaderStyle']))
+                elements.append(summary_table)
+            else:
+                no_contract = Paragraph("Aucun contrat trouvé pour générer l'échéancier.", styles['InfoValueStyle'])
+                elements.append(no_contract)
+            
+            elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 8. GRAPHIQUE: RÉPARTITION DES GARANTIES ====================
+            elements.append(PageBreak())
+            elements.append(Paragraph("ANALYSE STATISTIQUE", styles['SectionHeaderStyle']))
+            
+            if totals['total'] > 0:
+                # Graphique en barres - Répartition des garanties
+                chart_data = [
+                    [totals['rc'], totals['dr'], totals['vol'], totals['vb'], 
+                    totals['in'], totals['bris'], totals['ar'], totals['dta'], totals['ipt']]
+                ]
+                
+                drawing = Drawing(400, 200)
+                bc = VerticalBarChart()
+                bc.x = 50
+                bc.y = 50
+                bc.width = 300
+                bc.height = 120
+                bc.data = chart_data
+                bc.strokeColor = colors.black
+                bc.valueAxis.valueMin = 0
+                bc.valueAxis.valueMax = max(chart_data[0]) * 1.2 if max(chart_data[0]) > 0 else 1000
+                bc.categoryAxis.categoryNames = ['RC', 'DR', 'Vol', 'VB', 'Inc', 'Bris', 'AR', 'DTA', 'IPT']
+                bc.categoryAxis.labels.boxAnchor = 'ne'
+                bc.categoryAxis.labels.dx = 8
+                bc.categoryAxis.labels.dy = -2
+                bc.categoryAxis.labels.angle = 45
+                bc.categoryAxis.labels.fontSize = 8
+                bc.bars[0].fillColor = colors_dict['accent']
+                bc.bars[0].strokeColor = colors_dict['primary']
+                drawing.add(bc)
+                
+                # Statistiques
+                stats_data = [
+                    ["Indicateur", "Valeur"],
+                    ["Nombre de véhicules", str(len(fleet.vehicles) if fleet.vehicles else 0)],
+                    ["Total des garanties", fmt(totals['total'])],
+                    ["Prime moyenne", fmt(totals['total'] / len(fleet.vehicles) if fleet.vehicles else 0)],
+                    ["Couverture moyenne", f"{self._calculate_fleet_coverage_rate(fleet):.0f}%"],
+                    ["Garantie la plus élevée", max([
+                        ('RC', totals['rc']), ('DR', totals['dr']), ('Vol', totals['vol']),
+                        ('VB', totals['vb']), ('Incendie', totals['in']), ('Bris', totals['bris']),
+                        ('AR', totals['ar']), ('DTA', totals['dta']), ('IPT', totals['ipt'])
+                    ], key=lambda x: x[1])[0]],
+                ]
+                
+                stats_table = Table(stats_data, colWidths=[8*cm, 8*cm])
+                stats_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['accent_light']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                
+                graph_and_stats = Table([[drawing, stats_table]], colWidths=[18*cm, 18*cm])
+                graph_and_stats.setStyle(TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('ALIGN', (0, 0), (0, 0), 'CENTER'),
+                    ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ]))
+                elements.append(graph_and_stats)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 9. NOUVEAU: GRAPHIQUE PAR VÉHICULE ====================
+            elements.append(Paragraph("COMPARAISON PAR VÉHICULE", styles['SectionHeaderStyle']))
+            
+            if fleet.vehicles and len(fleet.vehicles) > 0:
+                # Créer un graphique comparant le total des garanties par véhicule
+                vehicle_names = []
+                vehicle_totals = []
+                
+                for vehicle in fleet.vehicles[:15]:  # Limiter à 15 véhicules pour lisibilité
+                    vehicle_names.append(vehicle.immatriculation or f"V{vehicle.id}")
+                    fleet_guarantee = self.session.query(VehicleFleetGuarantee).filter(
+                        VehicleFleetGuarantee.vehicle_id == vehicle.id
+                    ).first()
+                    if fleet_guarantee:
+                        total = (fleet_guarantee.rc or 0) + (fleet_guarantee.dr or 0) + \
+                                (fleet_guarantee.vol or 0) + (fleet_guarantee.vb or 0) + \
+                                (fleet_guarantee.in_garantie or 0) + (fleet_guarantee.bris or 0) + \
+                                (fleet_guarantee.ar or 0) + (fleet_guarantee.dta or 0) + \
+                                (fleet_guarantee.ipt or 0)
+                    else:
+                        total = 0
+                    vehicle_totals.append(total)
+                
+                if vehicle_totals:
+                    # Graphique à barres horizontales
+                    drawing2 = Drawing(600, max(200, len(vehicle_totals) * 15))
+                    bc2 = VerticalBarChart()
+                    bc2.x = 80
+                    bc2.y = 50
+                    bc2.width = 450
+                    bc2.height = max(100, len(vehicle_totals) * 12)
+                    bc2.data = [vehicle_totals]
+                    bc2.strokeColor = colors.black
+                    bc2.valueAxis.valueMin = 0
+                    bc2.valueAxis.valueMax = max(vehicle_totals) * 1.2 if max(vehicle_totals) > 0 else 1000
+                    bc2.categoryAxis.categoryNames = vehicle_names
+                    bc2.categoryAxis.labels.boxAnchor = 'ne'
+                    bc2.categoryAxis.labels.dx = 8
+                    bc2.categoryAxis.labels.dy = -2
+                    bc2.categoryAxis.labels.angle = 45
+                    bc2.categoryAxis.labels.fontSize = 7
+                    bc2.bars[0].fillColor = colors_dict['success']
+                    bc2.bars[0].strokeColor = colors_dict['primary']
+                    drawing2.add(bc2)
+                    
+                    elements.append(Paragraph("Total des garanties par véhicule", styles['SubSectionHeaderStyle']))
+                    elements.append(drawing2)
+                    elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 10. RÉPARTITION PAR CATÉGORIE ====================
+            elements.append(Paragraph("RÉPARTITION PAR CATÉGORIE", styles['SectionHeaderStyle']))
+            
+            categorie_counts = {}
+            if fleet.vehicles:
+                for vehicle in fleet.vehicles:
+                    cat = vehicle.categorie or 'Non défini'
+                    categorie_counts[cat] = categorie_counts.get(cat, 0) + 1
+            
+            if categorie_counts:
+                categorie_data = [["Catégorie", "Nombre", "Pourcentage"]]
+                total_vehicles = len(fleet.vehicles)
+                for cat, count in sorted(categorie_counts.items(), key=lambda x: x[1], reverse=True):
+                    pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+                    categorie_data.append([cat, str(count), f"{pct:.1f}%"])
+                
+                categorie_table = Table(categorie_data, colWidths=[10*cm, 8*cm, 8*cm])
+                categorie_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(categorie_table)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 11. RÉPARTITION PAR ÉNERGIE ====================
+            elements.append(Paragraph("RÉPARTITION PAR ÉNERGIE", styles['SectionHeaderStyle']))
+            
+            energie_counts = {}
+            if fleet.vehicles:
+                for vehicle in fleet.vehicles:
+                    energie = vehicle.energie or 'Non défini'
+                    energie_counts[energie] = energie_counts.get(energie, 0) + 1
+            
+            if energie_counts:
+                energie_data = [["Énergie", "Nombre", "Pourcentage"]]
+                total_vehicles = len(fleet.vehicles)
+                for energie, count in sorted(energie_counts.items(), key=lambda x: x[1], reverse=True):
+                    pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+                    energie_data.append([energie, str(count), f"{pct:.1f}%"])
+                
+                energie_table = Table(energie_data, colWidths=[10*cm, 8*cm, 8*cm])
+                energie_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(energie_table)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 12. NOUVEAU: RÉPARTITION PAR ANNÉE ====================
+            elements.append(Paragraph("RÉPARTITION PAR ANNÉE", styles['SectionHeaderStyle']))
+            
+            annee_counts = {}
+            if fleet.vehicles:
+                for vehicle in fleet.vehicles:
+                    annee = str(vehicle.annee) if vehicle.annee else 'Non défini'
+                    annee_counts[annee] = annee_counts.get(annee, 0) + 1
+            
+            if annee_counts:
+                annee_data = [["Année", "Nombre", "Pourcentage"]]
+                total_vehicles = len(fleet.vehicles)
+                for annee, count in sorted(annee_counts.items(), key=lambda x: x[1], reverse=True):
+                    pct = (count / total_vehicles) * 100 if total_vehicles > 0 else 0
+                    annee_data.append([annee, str(count), f"{pct:.1f}%"])
+                
+                annee_table = Table(annee_data, colWidths=[10*cm, 8*cm, 8*cm])
+                annee_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors_dict['primary']),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors_dict['white']),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('GRID', (0, 0), (-1, -1), 0.3, colors_dict['border']),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8.5),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors_dict['white'], colors_dict['light']]),
+                    ('TOPPADDING', (0, 0), (-1, -1), 5),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 8),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+                ]))
+                elements.append(annee_table)
+                elements.append(Spacer(1, 0.5*cm))
+            
+            # ==================== 13. OBSERVATIONS ====================
+            if fleet.observations:
+                elements.append(Spacer(1, 0.3*cm))
+                elements.append(Paragraph("OBSERVATIONS", styles['SectionHeaderStyle']))
+                obs_style = ParagraphStyle(
+                    'ObservationStyle',
+                    parent=styles['Normal'],
+                    fontName='Helvetica',
+                    fontSize=10,
+                    textColor=colors_dict['text'],
+                    alignment=TA_JUSTIFY,
+                    leading=14,
+                    leftIndent=20,
+                    rightIndent=20
+                )
+                obs_text = Paragraph(fleet.observations, obs_style)
+                elements.append(obs_text)
+            
+            # ==================== 14. PIED DE PAGE ====================
+            elements.append(Spacer(1, 1.5*cm))
+            
+            footer_line = Table([['']], colWidths=[42*cm], rowHeights=[0.04*cm])
+            footer_line.setStyle(TableStyle([('BACKGROUND', (0, 0), (-1, -1), colors_dict['border'])]))
+            elements.append(footer_line)
+            elements.append(Spacer(1, 0.2*cm))
+            
+            footer_data = [
+                ["AMS Assurance - Rapport généré automatiquement", f"Page 1/1", f"Fait à Douala, le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"],
+            ]
+            footer_table = Table(footer_data, colWidths=[15*cm, 12*cm, 15*cm])
+            footer_table.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'CENTER'),
+                ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+                ('FONTSIZE', (0, 0), (-1, -1), 7.5),
+                ('TEXTCOLOR', (0, 0), (-1, -1), colors_dict['text_light']),
+            ]))
+            elements.append(footer_table)
+            
+            # Génération du PDF
+            doc.build(elements)
+            
+            return True, f"PDF généré avec succès : {output_path}"
+            
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"❌ Erreur critique lors de la génération PDF : {e}\nDetails:\n{error_details}")
+            return False, f"Erreur technique : {str(e)}"
 
-            # On attache les nouveaux sélectionnés
-            if selected_vehicle_ids:
-                self.session.query(Vehicle).filter(
-                    Vehicle.id.in_(selected_vehicle_ids)
-                ).update({Vehicle.fleet_id: fleet_id}, synchronize_session=False)
+    def _format_currency(self, value):
+        """Formate un montant en FCFA avec séparateurs"""
+        return f"{value:,.0f}".replace(",", " ") if value > 0 else "0"
 
-            # --- 2. LOG D'AUDIT (C'est ici que vous insérez le code) ---
+
+    def _calculate_fleet_coverage_rate(self, fleet):
+        """Calcule le taux de couverture moyen de la flotte"""
+        if not fleet.vehicles:
+            return 0
+        
+        garanties_list = ['amt_rc', 'amt_dr', 'amt_vol', 'amt_vb', 'amt_in', 'amt_bris', 'amt_ar', 'amt_dta', 'amt_ipt']
+        total_coverage = 0
+        
+        for vehicle in fleet.vehicles:
+            coverage = 0
+            for g in garanties_list:
+                value = getattr(vehicle, g, 0)
+                if value and float(value) > 0:
+                    coverage += 1
+            total_coverage += (coverage / len(garanties_list)) * 100
+        
+        return int(total_coverage / len(fleet.vehicles)) if fleet.vehicles else 0
+    # ==================== UTILITAIRES ====================
+    
+    # flotte_controller.py - Ajoutez cette méthode
+
+    def _log_action(self, action, fleet_id, contrat_id, user_id, local_ip, public_ip, old_values=None, new_values=None):
+        """
+        Enregistre une action dans les logs d'audit pour les flottes
+        
+        Args:
+            action: Type d'action (CREATE_FLEET_CONTRACT, UPDATE_FLEET_CONTRACT, etc.)
+            fleet_id: ID de la flotte concernée
+            contrat_id: ID du contrat associé
+            user_id: ID de l'utilisateur
+            local_ip: IP locale
+            public_ip: IP publique
+            old_values: Anciennes valeurs (optionnel)
+            new_values: Nouvelles valeurs (optionnel)
+        """
+        try:
+            from addons.Automobiles.models.automobile_models import AuditVehicleLog
+            from datetime import datetime
+            import json
+            
             audit = AuditVehicleLog(
                 user_id=user_id,
-                action="UPDATE_RELATION",
-                module="FLEETS",
+                action=action,
+                module="FLEET_MANAGEMENT",
                 item_id=fleet_id,
-                new_values=json.dumps({"vehicle_ids": selected_vehicle_ids}), # Liste des IDs sélectionnés
-                ip_local=ip_local,
-                ip_public=ip_public,
-                timestamp=datetime.now(timezone.utc)
+                old_values=json.dumps(old_values, default=str) if old_values else None,
+                new_values=json.dumps({
+                    'action': action,
+                    'fleet_id': fleet_id,
+                    'contrat_id': contrat_id,
+                    'details': new_values or {}
+                }, default=str),
+                ip_local=local_ip,
+                ip_public=public_ip,
+                timestamp=datetime.now()
             )
+            
             self.session.add(audit)
-
-            # --- 3. Validation finale ---
             self.session.commit()
-            return True, "Relation Flotte-Véhicules mise à jour."
-
+            
         except Exception as e:
-            self.session.rollback()
-            print(f"Erreur Update Fleet Relation: {e}")
-            return False, str(e)
+            print(f"Erreur _log_action: {e}")
+            # On ne fait pas de rollback ici pour ne pas affecter l'action principale
+    
+    def get_all(self):
+        return self.session.query(Fleet).all()
 
-    def get_all_vehicles(self):
-        # On délègue le travail au service véhicule
-        return self.vehicle_service.get_all_vehicles()
+    def count_all(self):
+        return self.session.query(Fleet).count()
 
     def get_network_info(self):
         """Récupère simultanément l'IP Locale et l'IP Publique."""
-        # 1. IP Locale (Rapide)
         try:
             hostname = socket.gethostname()
             local_ip = socket.gethostbyname(hostname)
         except:
             local_ip = "127.0.0.1"
 
-        # 2. IP Publique (Requête HTTP avec timeout court)
         try:
-            # On utilise ipify avec un timeout de 1.5s pour ne pas bloquer l'UI
             response = requests.get('https://api.ipify.org?format=json', timeout=1.5)
             public_ip = response.json().get('ip')
         except:
@@ -243,3 +1872,50 @@ class FleetController:
 
         return local_ip, public_ip
 
+    def _invalidate_cache(self, pattern: str = None):
+        """
+        Invalide le cache mémoire des flottes
+        
+        Args:
+            pattern: Si fourni, invalide uniquement les clés contenant ce pattern
+        """
+        if not hasattr(self, '_cache'):
+            self._cache = {}
+        
+        if pattern:
+            keys_to_remove = [k for k in self._cache.keys() if pattern in k]
+            for key in keys_to_remove:
+                del self._cache[key]
+        else:
+            self._cache.clear()
+        
+        print(f"🗑️ Cache flottes invalidé: {pattern or 'tous'}")
+
+    def invalidate_fleet_cache(self, fleet_id: int = None):
+        """
+        Invalide le cache des flottes
+        
+        Args:
+            fleet_id: Si fourni, invalide uniquement la flotte spécifique
+        """
+        # Invalider le cache mémoire
+        self._invalidate_cache()
+        
+        # Invalider le cache SQLite si disponible
+        try:
+            from core.local_db import cache
+            
+            # Supprimer la liste générale
+            cache.delete("automobiles:fleets:list")
+            
+            # Supprimer une flotte spécifique
+            if fleet_id:
+                cache.delete(f"automobiles:fleet:{fleet_id}")
+                cache.delete(f"automobiles:fleet:details:{fleet_id}")
+            
+            # Supprimer les flottes par propriétaire
+            cache.delete("automobiles:fleets:by_owner:*")
+            
+            print(f"🗑️ Cache flottes invalidé (fleet_id={fleet_id})")
+        except Exception as e:
+            print(f"⚠️ Erreur invalidation cache SQLite: {e}")

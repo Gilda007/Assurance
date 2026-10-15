@@ -1,0 +1,104 @@
+name: CI/CD Pipeline - Assurance (Python)
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10, 3.11]
+
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cacher pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
+      - name: Installer les dépendances
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest --upgrade
+
+      - name: Lint (flake8) si configuré
+        run: |
+          if command -v flake8 >/dev/null 2>&1 || ( [ -f requirements.txt ] && grep -q "flake8" requirements.txt ); then
+            pip install flake8 || true
+            flake8 || true
+          else
+            echo "flake8 non trouvé, passage du lint"
+          fi
+
+      - name: Exécuter les tests (pytest + JUnit)
+        run: |
+          mkdir -p reports
+          python -m pytest -q --junitxml=reports/junit-${{ matrix.python-version }}.xml
+
+      - name: Publier rapports de tests
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.python-version }}
+          path: reports/
+
+
+  package:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: Installer Python (packaging)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Installer dépendances (packaging)
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Exécuter PyInstaller (spec)
+        run: |
+          if [ -f LOMETA_DEBUG.spec ]; then
+            python -m PyInstaller --noconfirm --clean LOMETA_DEBUG.spec
+          else
+            python -m PyInstaller --noconfirm --clean main.py
+          fi
+
+      - name: Upload artifact (dist)
+        uses: actions/upload-artifact@v4
+        with:
+          name: lometa-dist
+          path: dist/
+
+  deploy:
+    needs: package
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: Récupérer le code source
+        uses: actions/checkout@v4
+
+      - name: Déploiement
+        run: |
+          echo "Étape de déploiement (SSH vers le serveur, VPS ou service Cloud)"

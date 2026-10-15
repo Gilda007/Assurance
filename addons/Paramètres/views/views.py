@@ -1,7 +1,8 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget, 
-                             QTableWidgetItem, QHeaderView, QLabel, QPushButton, QListWidgetItem, QStackedWidget, QListWidget, QFrame, QMessageBox, QDialog)
-from PySide6.QtCore import Qt, QSize
+                             QTableWidgetItem, QHeaderView, QLabel, QPushButton, QListWidgetItem, QStackedWidget, QListWidget, QFrame, QMessageBox, QDialog, QGraphicsDropShadowEffect)
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QFont
+from addons.Paramètres.views.widgets.loading_page import LoadingPage
 from addons.Paramètres.controllers import controller
 from addons.Paramètres.views.dialog_form import UserDialog
 from addons.Paramètres.views.user_from import CustomUserForm
@@ -15,68 +16,128 @@ class ParametreMainView(QWidget):
     def __init__(self, controller=None, user=None):
         super().__init__()
         self.controller = controller
-        print(self.controller)
         self.user = user
-        self.pages_cache = {} # Stocke les pages déjà créées
+        self.pages_cache = {}
+        self._page_factories = {}
+        self.page_widgets = {}
+        self.pages = []            # liste ordonnée des page_id accessibles
+        self._page_rows = {}       # {page_id: index dans self.pages}
+        self._page_history = []
+        self._loading_page_id = None  # verrou anti double-clic
+
+        # Style Global du Widget Principal
+        self.setObjectName("MainSettingsWindow")
+        self.setStyleSheet("background-color: #f8fafc;")
 
         self.layout = QHBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-        # --- Sidebar de navigation ---
+        self.setup_sidebar()
+        self.setup_content_area()
+
+        self._register_page_factories()
+        if self.pages:
+            self.sidebar.setCurrentRow(0)
+        # Sélectionner la première page par défaut
+        self.sidebar.setCurrentRow(0)
+
+    def setup_sidebar(self):
+        """Configuration de la barre de navigation latérale"""
+        self.sidebar_container = QFrame()
+        self.sidebar_container.setFixedWidth(250)
+        self.sidebar_container.setStyleSheet("background-color: #1e293b; border: none;")
+        
+        sidebar_layout = QVBoxLayout(self.sidebar_container)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+
+        # Header de la Sidebar (Titre)
+        header = QLabel("  PARAMÈTRES")
+        header.setFixedHeight(70)
+        header.setStyleSheet("""
+            color: #3b82f6; 
+            font-weight: 800; 
+            font-size: 14px; 
+            letter-spacing: 1px;
+            padding-left: 20px;
+            background-color: #0f172a;
+        """)
+        sidebar_layout.addWidget(header)
+
         self.sidebar = QListWidget()
-        self.sidebar.setFixedWidth(220)
         self.sidebar.setObjectName("ParamNav")
+        self.sidebar.setFocusPolicy(Qt.NoFocus)
         self.sidebar.setStyleSheet("""
             QListWidget {
-                background-color: #1e293b;  /* Bleu nuit moderne */
+                background-color: transparent;
                 border: none;
-                padding-top: 20px;
-                outline: none;
+                padding-top: 15px;
             }
             QListWidget::item {
                 color: #94a3b8;
-                padding: 12px 20px;
-                margin: 4px 10px;
-                border-radius: 8px;
-                font-weight: 500;
+                padding: 15px 25px;
+                margin: 4px 15px;
+                border-radius: 10px;
                 font-size: 13px;
+                font-weight: 500;
             }
             QListWidget::item:hover {
                 background-color: #334155;
-                color: white;
+                color: #f8fafc;
             }
             QListWidget::item:selected {
-                background-color: #3b82f6; /* Bleu vif pour l'onglet actif */
+                background-color: #3b82f6;
                 color: white;
             }
         """)
-        # ... (votre style CSS ici) ...
 
-        # --- Stack d'affichage ---
-        self.container = QStackedWidget()
-
-        # Définition des menus
-        self.menu_items = [
-            ("👥 Utilisateurs", "users"),
-            ("📦 Modules", "modules"),
-            ("👤 Mon Compte", "account"),
-            ("ℹ️ À propos", "about")
+        menu_items = [
+            ("👥  Utilisateurs", "users"),
+            ("📦  Modules", "modules"),
+            ("👤  Mon Compte", "account"),
+            ("ℹ️   À propos", "about")
         ]
 
-        for text, key in self.menu_items:
+        for text, key in menu_items:
             item = QListWidgetItem(text)
-            item.setData(Qt.UserRole, key) # On stocke la clé technique
+            item.setData(Qt.UserRole, key)
             self.sidebar.addItem(item)
 
-        self.sidebar.currentRowChanged.connect(self.display_page)
+        sidebar_layout.addWidget(self.sidebar)
+        sidebar_layout.addStretch() # Pousse les éléments vers le haut
         
-        self.layout.addWidget(self.sidebar)
-        self.layout.addWidget(self.container)
+        self.layout.addWidget(self.sidebar_container)
+        self.sidebar.currentRowChanged.connect(self.display_page)
 
-        # Charger la première page
-        self.sidebar.setCurrentRow(0)
-    
+    def setup_content_area(self):
+        """Zone de contenu avec effet d'ombre interne"""
+        self.content_container = QFrame()
+        self.content_layout = QVBoxLayout(self.content_container)
+        self.content_layout.setContentsMargins(30, 30, 30, 30)
+
+        # ✅ LoadingPage (réutilisée à chaque chargement)
+        self.loading_page = LoadingPage(message="Chargement...")
+
+        # ✅ Stack contenant loading_page + pages chargées
+        self.container = QStackedWidget()
+        self.container.setStyleSheet(
+            "background-color: white; border-radius: 20px; "
+            "border: 1px solid #e2e8f0;"
+        )
+        self.container.addWidget(self.loading_page)  # index 0
+        
+        # Ajout d'une ombre portée douce au conteneur de contenu
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 20))
+        self.container.setGraphicsEffect(shadow)
+
+        self.content_layout.addWidget(self.container)
+        self.layout.addWidget(self.content_container)
+
     def display_page(self, row):
         item = self.sidebar.item(row)
         if not item: return
@@ -120,6 +181,7 @@ class ParametreMainView(QWidget):
             
         # On affiche la page correspondante
         self.container.setCurrentWidget(self.pages_cache[key])
+    
     # --- GÉNÉRATEURS DE PAGES ---
     def get_user_page(self):
         return UserListPage(self.controller, self.user)
@@ -210,21 +272,43 @@ class ParametreMainView(QWidget):
             }
         """)
 
-    def display_users(self, users):
-        """Route les données vers la page UserListPage"""
-        # 1. On s'assure que la page est dans le cache
-        if "users" not in self.pages_cache:
-            from addons.Paramètres.views.user_list_view import UserListPage
-            # Récupération sécurisée du contrôleur
-            ctrl = self.controller.get('user') if isinstance(self.controller, dict) else self.controller
+    # def display_users(self, users):
+    #     """Route les données vers la page UserListPage"""
+    #     # 1. On s'assure que la page est dans le cache
+    #     if "users" not in self.pages_cache:
+    #         from addons.Paramètres.views.user_list_view import UserListPage
+    #         # Récupération sécurisée du contrôleur
+    #         ctrl = self.controller.get('user') if isinstance(self.controller, dict) else self.controller
             
-            self.pages_cache["users"] = UserListPage(ctrl, self.user)
-            self.container.addWidget(self.pages_cache["users"])
+    #         self.pages_cache["users"] = UserListPage(ctrl, self.user)
+    #         self.container.addWidget(self.pages_cache["users"])
 
-        # 2. On récupère l'instance de la page
-        user_page = self.pages_cache["users"]
+    #     # 2. On récupère l'instance de la page
+    #     user_page = self.pages_cache["users"]
         
-        # 3. On lui donne les utilisateurs pour qu'elle remplisse SON tableau
+    #     # 3. On lui donne les utilisateurs pour qu'elle remplisse SON tableau
+    #     if hasattr(user_page, 'display_users'):
+    #         user_page.display_users(users)
+    #     else:
+    #         print("Erreur: La méthode display_users est manquante dans UserListPage")
+
+    def display_users(self, users):
+        """Route les données vers la page UserListPage."""
+        # 1. Si la page users n'a pas encore été créée, on la crée
+        if "users" not in self.page_widgets:
+            ctrl = (
+                self.controller.get('user')
+                if isinstance(self.controller, dict)
+                else self.controller
+            )
+            user_page = UserListPage(ctrl, self.user)
+            user_page.setObjectName("users")
+            self.page_widgets["users"] = user_page
+            self.container.addWidget(user_page)
+        else:
+            user_page = self.page_widgets["users"]
+
+        # 2. On lui donne les utilisateurs pour remplir SON tableau
         if hasattr(user_page, 'display_users'):
             user_page.display_users(users)
         else:
@@ -456,22 +540,197 @@ class ParametreMainView(QWidget):
         
         dialog.exec()
 
-    def switch_page(self, index):
-        """Crée la page dynamiquement si elle n'existe pas encore"""
-        text = self.sidebar.item(index).text()
-        page_func = self.menu_map[text]
+    # def switch_page(self, index):
+    #     """Crée la page dynamiquement si elle n'existe pas encore"""
+    #     text = self.sidebar.item(index).text()
+    #     page_func = self.menu_map[text]
 
-        # On vérifie si on a déjà créé cette page pour ne pas la recréer
-        existing_page = None
-        for i in range(self.container.count()):
-            if self.container.widget(i).objectName() == text:
-                existing_page = self.container.widget(i)
-                break
+    #     # On vérifie si on a déjà créé cette page pour ne pas la recréer
+    #     existing_page = None
+    #     for i in range(self.container.count()):
+    #         if self.container.widget(i).objectName() == text:
+    #             existing_page = self.container.widget(i)
+    #             break
 
-        if not existing_page:
-            new_page = page_func()
-            new_page.setObjectName(text)
-            self.container.addWidget(new_page)
-            self.container.setCurrentWidget(new_page)
+    #     if not existing_page:
+    #         new_page = page_func()
+    #         new_page.setObjectName(text)
+    #         self.container.addWidget(new_page)
+    #         self.container.setCurrentWidget(new_page)
+    #     else:
+    #         self.container.setCurrentWidget(existing_page)
+
+    def display_page(self, row):
+        """
+        Change la page affichée — Lazy Loading avec LoadingPage.
+        Appelée par `sidebar.currentRowChanged`.
+        """
+        if not (0 <= row < len(self.pages)):
+            return
+
+        page_id = self.pages[row]
+        widget = self.page_widgets.get(page_id)
+
+        # ─── Historique ───
+        if not self._page_history or self._page_history[-1] != page_id:
+            self._page_history.append(page_id)
+            if len(self._page_history) > 20:
+                self._page_history.pop(0)
+
+        # ═══════════════════════════════════════════════════════════════
+        # CAS 1 : Première visite → LoadingPage + création
+        # ═══════════════════════════════════════════════════════════════
+        if widget is None:
+            messages = {
+                "users":   "Chargement des utilisateurs...",
+                "modules": "Chargement des modules...",
+                "account": "Chargement de votre compte...",
+                "about":   "Chargement des informations...",
+            }
+
+            self.loading_page.set_message(messages.get(page_id, "Chargement..."))
+            self.loading_page.set_subtitle("Veuillez patienter quelques instants...")
+            self.container.setCurrentWidget(self.loading_page)
+
+            from PySide6.QtWidgets import QApplication
+            QApplication.processEvents()
+
+            # ─── Créer la page ───
+            try:
+                widget = self._page_factories[page_id]()
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                error_widget = self._build_error_widget(page_id, str(e))
+                self.container.addWidget(error_widget)
+                self.container.setCurrentWidget(error_widget)
+                return
+
+            if widget is None:
+                error_widget = self._build_error_widget(
+                    page_id, "Widget non créé (import manquant ?)"
+                )
+                self.container.addWidget(error_widget)
+                self.container.setCurrentWidget(error_widget)
+                return
+
+            widget.setObjectName(page_id)
+
+            # ─── Charger les données ───
+            self.loading_page.set_message("Chargement des données...")
+            QApplication.processEvents()
+
+            try:
+                if hasattr(widget, 'refresh'):
+                    widget.refresh()
+                elif hasattr(widget, 'load_data'):
+                    widget.load_data()
+            except Exception as refresh_err:
+                print(f"❌ Erreur refresh {page_id}: {refresh_err}")
+                import traceback
+                traceback.print_exc()
+
+            # ─── Mise en cache + affichage ───
+            self.page_widgets[page_id] = widget
+            self.container.addWidget(widget)
+
+            QTimer.singleShot(
+                300,
+                lambda w=widget: self.container.setCurrentWidget(w)
+            )
+
+        # ═══════════════════════════════════════════════════════════════
+        # CAS 2 : Déjà visitée → affichage direct + refresh doux
+        # ═══════════════════════════════════════════════════════════════
         else:
-            self.container.setCurrentWidget(existing_page)
+            self.container.setCurrentWidget(widget)
+            if hasattr(widget, 'refresh'):
+                try:
+                    QTimer.singleShot(10, widget.refresh)
+                except Exception:
+                    pass
+
+
+    def _build_error_widget(self, page_id: str, error: str) -> QWidget:
+        """Widget d'erreur stylisé."""
+        w = QWidget()
+        w.setStyleSheet("background: white;")
+
+        layout = QVBoxLayout(w)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.setSpacing(20)
+
+        icon = QLabel("⚠️")
+        icon.setStyleSheet("font-size: 64px;")
+        icon.setAlignment(Qt.AlignCenter)
+        layout.addWidget(icon)
+
+        title = QLabel(f"Impossible de charger '{page_id}'")
+        title.setStyleSheet(
+            "font-size: 18px; font-weight: 700; color: #1e293b;"
+        )
+        title.setAlignment(Qt.AlignCenter)
+        layout.addWidget(title)
+
+        msg = QLabel(error)
+        msg.setStyleSheet("color: #64748b; font-size: 13px;")
+        msg.setAlignment(Qt.AlignCenter)
+        msg.setWordWrap(True)
+        layout.addWidget(msg)
+
+        return w
+
+    def _register_page_factories(self):
+        """Enregistre les factories (pas les instances)."""
+        self._page_factories = {
+            "users":   lambda: self._make_users(),
+            "modules": lambda: self._make_modules(),
+            "account": lambda: self._make_account(),
+            "about":   lambda: self._make_about(),
+        }
+
+        self.pages = []
+        self._page_rows = {}
+
+        # On garde l'ordre de la sidebar
+        for i in range(self.sidebar.count()):
+            item = self.sidebar.item(i)
+            key = item.data(Qt.UserRole)
+            if key in self._page_factories:
+                self._page_rows[key] = len(self.pages)
+                self.pages.append(key)
+
+
+    # ─── Factories individuelles ───
+
+    def _make_users(self):
+        """Page Utilisateurs (controller peut être dict ou objet)."""
+        ctrl = (
+            self.controller.get('user')
+            if isinstance(self.controller, dict)
+            else self.controller
+        )
+        return UserListPage(ctrl, self.user)
+
+
+    def _make_modules(self):
+        """Page Modules."""
+        from addons.Paramètres.controllers.module_controller import ModuleController
+
+        db_session = getattr(self.controller, 'session', None)
+        m_ctrl = ModuleController(db_session)
+        return ParametreModuleWidget(m_ctrl, self.user)
+
+
+    def _make_account(self):
+        """Page Mon Compte."""
+        if self.user is None:
+            label = QLabel("Erreur : Session utilisateur introuvable.")
+            label.setAlignment(Qt.AlignCenter)
+            return label
+        return AccountSettingsView(self.controller, self.user)
+
+
+    def _make_about(self):
+        """Page À propos."""
+        return AboutUsView()

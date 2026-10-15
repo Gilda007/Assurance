@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AutoAssure - Propriétaire</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-variant": "#e0e3e5",
+                        "on-secondary-container": "#54647a",
+                        "on-tertiary-container": "#68c4ff",
+                        "secondary": "#505f76",
+                        "on-surface-variant": "#444653",
+                        "on-tertiary-fixed": "#001e2f",
+                        "outline-variant": "#c4c5d5",
+                        "background": "#f7f9fb",
+                        "on-surface": "#191c1e",
+                        "inverse-surface": "#2d3133",
+                        "inverse-primary": "#b8c4ff",
+                        "on-background": "#191c1e",
+                        "tertiary-fixed-dim": "#89ceff",
+                        "surface-container": "#eceef0",
+                        "error-container": "#ffdad6",
+                        "on-secondary-fixed-variant": "#38485d",
+                        "secondary-container": "#d0e1fb",
+                        "surface-tint": "#3755c3",
+                        "on-primary-fixed-variant": "#173bab",
+                        "primary-fixed-dim": "#b8c4ff",
+                        "primary": "#00288e",
+                        "surface-bright": "#f7f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#001453",
+                        "tertiary-fixed": "#c9e6ff",
+                        "surface": "#f7f9fb",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#a8b8ff",
+                        "secondary-fixed": "#d3e4fe",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-highest": "#e0e3e5",
+                        "primary-fixed": "#dde1ff",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-lowest": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#1e40af",
+                        "on-primary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "tertiary": "#003853",
+                        "on-tertiary-fixed-variant": "#004c6e",
+                        "error": "#ba1a1a",
+                        "secondary-fixed-dim": "#b7c8e1",
+                        "tertiary-container": "#005074",
+                        "on-secondary-fixed": "#0b1c30",
+                        "surface-container-low": "#f2f4f6",
+                        "outline": "#757684"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-md": "16px",
+                        "stack-lg": "24px",
+                        "stack-xs": "4px",
+                        "margin-page": "32px",
+                        "sidebar-width": "260px",
+                        "gutter": "24px",
+                        "container-max": "1440px",
+                        "stack-sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Hanken Grotesk"],
+                        "body-sm": ["Hanken Grotesk"],
+                        "data-mono": ["JetBrains Mono"],
+                        "label-caps": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "headline-xl": ["Hanken Grotesk"],
+                        "headline-md": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }],
+                        "data-mono": ["13px", { "lineHeight": "18px", "fontWeight": "450" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-lg-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-xl": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Hanken Grotesk', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex overflow-hidden">
+<!-- Sidebar Navigation -->
+<aside class="hidden md:flex flex-col h-screen py-gutter px-stack-sm w-sidebar-width bg-surface-container-low border-r border-outline-variant flex-shrink-0 z-20">
+<!-- Brand -->
+<div class="flex items-center gap-3 px-3 mb-8">
+<img class="h-8 w-8 object-contain" data-alt="A small, professional abstract geometric logo representing insurance, predominantly blue and white, clean vector style, light mode, clear and sharp edges." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiCD0xdk9Nvg5hN7UJLr1TU6na2P5xxhpjU3S2lROt4DqsKFulHCHebFips7j26AzsE90kafxDr9FbV8B6iD5psz5EUYzcHSu2r55fni3DoFmtxot7QLSVwM6r_s4h885w11gzGjMqvAvliD-biPvlnO9qQ6qhkhXL42WhTPpjaGdzYRnq7G7pak_xbhY5FkF2hnLvBqPRdU4kptj-hAgbcprAVVtf2wq-MvHJD4Q3mWLDK7mC_pgy"/>
+<div>
+<h1 class="font-headline-lg text-headline-lg font-bold text-primary tracking-tight">AutoAssure</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Management Portal</p>
+</div>
+</div>
+<!-- Main Navigation -->
+<nav class="flex-1 overflow-y-auto pr-2 space-y-1">
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">dashboard</span>
+                Tableau de bord
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">directions_car</span>
+                Véhicules
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">group</span>
+                Clients
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">business</span>
+                Compagnies
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant border-l-4 border-primary font-semibold font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">description</span>
+                Contrats
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">report_problem</span>
+                Sinistres
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">assignment_turned_in</span>
+                Expertises
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">home_repair_service</span>
+                Garages
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">upload_file</span>
+                Import ASAC
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">assessment</span>
+                Rapports
+            </a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg text-on-surface-variant hover:bg-surface-variant transition-colors font-body-md text-body-md group" href="#">
+<span class="material-symbols-outlined text-outline group-hover:text-on-surface-variant">settings</span>
+                Paramètres
+            </a>
+</nav>
+<!-- Form Progress/Sub-nav (Specific to this screen type) -->
+<div class="mt-auto pt-6 border-t border-outline-variant px-2">
+<div class="mb-4 px-2 flex justify-between items-center">
+<span class="font-body-sm text-body-sm text-on-surface-variant">Progression</span>
+<span class="font-label-caps text-label-caps text-primary">45%</span>
+</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full mb-6">
+<div class="bg-primary h-1.5 rounded-full" style="width: 45%"></div>
+</div>
+<div class="space-y-1">
+<div class="flex items-center gap-3 px-2 py-1.5 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Identification
+                </div>
+<div class="flex items-center gap-3 px-2 py-1.5 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Classification
+                </div>
+<div class="flex items-center gap-3 px-2 py-1.5 text-on-surface-variant font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+                    Caractéristiques
+                </div>
+<div class="flex items-center gap-3 px-2 py-2 bg-primary-container text-on-primary rounded-lg font-body-md text-body-md font-semibold my-1 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">radio_button_checked</span>
+                    Propriétaire
+                </div>
+<div class="flex items-center gap-3 px-2 py-1.5 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
+                    Garanties
+                </div>
+<div class="flex items-center gap-3 px-2 py-1.5 text-outline font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-[18px]">radio_button_unchecked</span>
+                    Financier
+                </div>
+</div>
+</div>
+<div class="mt-6">
+<button class="w-full bg-primary-container hover:bg-primary-fixed-dim text-on-primary font-body-md text-body-md py-2.5 px-4 rounded flex items-center justify-center gap-2 transition-colors">
+<span class="material-symbols-outlined text-[20px]">save</span>
+                Enregistrer
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden bg-background">
+<!-- Top App Bar -->
+<header class="flex justify-between items-center h-16 w-full px-margin-page bg-surface border-b border-outline-variant flex-shrink-0">
+<div class="flex items-center gap-4">
+<button class="md:hidden p-2 text-on-surface-variant hover:bg-surface-variant rounded-full transition-colors">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h2 class="font-headline-md text-headline-md font-semibold text-on-surface">Création Contrat</h2>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-variant hover:text-primary rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-variant hover:text-primary rounded-full transition-colors">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="h-8 w-8 ml-2 rounded-full bg-surface-variant overflow-hidden border border-outline-variant">
+<img alt="User profile" class="h-full w-full object-cover" data-alt="A professional headshot of a person, soft office lighting, friendly expression, suitable for a corporate SaaS avatar, 30-40 years old." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCIvWQbT8ajGcMVpuD9T02A1sBXNg0MRwDVdQmtYNC51E5OfcSDhzfV_0b_pT5cExLT6A0Hy57bzRh3r7U8P5n0QI3fmpuKqsYhlDznh1V2mPdyd5pkZSh_PCkeeMLE6sUzK6wq4pXrdwakuw0U3mHtHbMgrTvjHrFMyq9FE86btJnjMM3hhVk6pfcQbFJE7DaPVQFHV2pxyCFOUqiXpySS7kqqGrZ_AoXh_OxhHfAbSb4ZUYcuL6RY"/>
+</div>
+</div>
+</header>
+<!-- Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-margin-page">
+<div class="max-w-container-max mx-auto space-y-stack-lg">
+<!-- Souscripteur Section -->
+<section class="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm">
+<h3 class="font-headline-md text-headline-md font-semibold text-on-surface mb-6 pb-2 border-b border-surface-variant">Souscripteur <span class="text-error">*</span></h3>
+<div class="flex gap-4 mb-6">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none" placeholder="Rechercher un souscripteur (nom, téléphone, code)..." type="text"/>
+</div>
+<button class="bg-[#10b981] hover:bg-[#059669] text-white px-6 py-2 rounded font-body-md text-body-md font-medium transition-colors shadow-sm whitespace-nowrap">
+                            Nouveau
+                        </button>
+</div>
+<div class="flex flex-col md:flex-row gap-6">
+<!-- Empty Image Placeholder -->
+<div class="w-full md:w-64 h-48 bg-surface-container-low rounded-lg border border-outline-variant flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-outline text-4xl opacity-50">image</span>
+</div>
+<!-- Empty State Card -->
+<div class="flex-1 bg-surface-container-low rounded-lg border border-outline-variant p-8 flex items-center gap-6">
+<div class="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm text-white">
+<span class="material-symbols-outlined text-3xl">person</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md font-semibold text-on-surface mb-2">Aucun souscripteur sélectionné</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Sélectionnez un souscripteur dans la liste ou créez-en un nouveau.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Chauffeur Section -->
+<section class="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm">
+<h3 class="font-headline-md text-headline-md font-semibold text-on-surface mb-6 pb-2 border-b border-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant">badge</span>
+                        Chauffeur
+                    </h3>
+<div class="flex gap-4 mb-6">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none" placeholder="Rechercher un chauffeur..." type="text"/>
+</div>
+<button class="bg-[#10b981] hover:bg-[#059669] text-white px-6 py-2 rounded font-body-md text-body-md font-medium transition-colors shadow-sm whitespace-nowrap">
+                            Nouveau
+                        </button>
+</div>
+<div class="flex flex-col md:flex-row gap-6">
+<!-- Empty Image Placeholder -->
+<div class="w-full md:w-64 h-48 bg-surface-container-low rounded-lg border border-outline-variant flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-outline text-4xl opacity-50">image</span>
+</div>
+<!-- Empty State Card -->
+<div class="flex-1 bg-surface-container-low rounded-lg border border-outline-variant p-8 flex items-center gap-6">
+<div class="w-16 h-16 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0 shadow-sm text-white">
+<span class="material-symbols-outlined text-3xl">drive_eta</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md font-semibold text-on-surface mb-2">Aucun chauffeur sélectionné</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Sélectionnez un chauffeur dans la liste ou créez-en un.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Compagnie d'assurance Section -->
+<section class="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm mb-8">
+<h3 class="font-headline-md text-headline-md font-semibold text-on-surface mb-6 pb-2 border-b border-surface-variant">Compagnie d'assurance <span class="text-error">*</span></h3>
+<div class="flex gap-4 mb-6">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all font-body-md text-body-md text-on-surface placeholder:text-outline-variant outline-none" placeholder="Rechercher une compagnie..." type="text"/>
+</div>
+<button class="bg-[#06b6d4] hover:bg-[#0891b2] text-white px-6 py-2 rounded font-body-md text-body-md font-medium transition-colors shadow-sm whitespace-nowrap">
+                            Nouveau
+                        </button>
+</div>
+<div class="flex flex-col md:flex-row gap-6">
+<!-- Empty Image Placeholder -->
+<div class="w-full md:w-64 h-48 bg-surface-container-low rounded-lg border border-outline-variant flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-outline text-4xl opacity-50">image</span>
+</div>
+<!-- Empty State Card -->
+<div class="flex-1 bg-surface-container-low rounded-lg border border-outline-variant p-8 flex items-center gap-6">
+<div class="w-16 h-16 rounded-full bg-teal-500 flex items-center justify-center flex-shrink-0 shadow-sm text-white">
+<span class="material-symbols-outlined text-3xl">account_balance</span>
+</div>
+<div>
+<h4 class="font-headline-md text-headline-md font-semibold text-on-surface mb-2">Aucune compagnie sélectionnée</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Veuillez sélectionner la compagnie d'assurance concernée.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Spacer for scrolling past the bottom slightly -->
+<div class="h-8"></div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,20 @@
+{
+  "name": "testModule",
+  "version": "1.0.0",
+  "description": "Module créé automatiquement",
+  "author": "Votre nom",
+  "entry_point": "main_ui.py",
+  "enabled": true,
+  "category": "generic",
+  "min_app_version": "1.0.0",
+  "created_at": "2026-10-14T12:49:55.145198",
+  "dependencies": [],
+  "python_version": ">=3.8",
+  "license": "MIT",
+  "repository": "",
+  "keywords": [],
+  "main_class": "TestmoduleMainViewModule",
+  "view_class": "TestmoduleMainView",
+  "icon_name": "fa5s.cube",
+  "icon_label": "testModule"
+}

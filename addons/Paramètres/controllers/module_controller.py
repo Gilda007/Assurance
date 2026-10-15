@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 
@@ -22,12 +23,12 @@ class ModuleController:
                 folder_path = os.path.join(self.addons_path, folder)
                 
                 if os.path.isdir(folder_path):
-                    manifest_path = os.path.join(folder_path, "__manifest__.py")
+                    manifest_path = os.path.join(folder_path, "__manifest__.json")
                     
                     if os.path.exists(manifest_path):
                         # On lit le manifeste du module
                         with open(manifest_path, "r", encoding="utf-8") as f:
-                            manifest_data = eval(f.read())
+                            manifest_data = json.load(f)
                             
                             # On ajoute le nom du dossier pour pouvoir le gérer plus tard
                             manifest_data['folder_name'] = folder

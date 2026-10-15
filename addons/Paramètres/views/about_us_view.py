@@ -57,7 +57,7 @@ class AboutUsView(QWidget):
         info_grid = QVBoxLayout(info_box)
         
         infos = [
-            ("Développeur", "Fearless / AMS Project Group"),
+            ("Développeur", "Fearless / Fearless Cybertech Group"),
             ("Licence", "Propriétaire - Entreprise"),
             ("Base de données", "PostgreSQL / SQLite Local")
         ]
@@ -82,7 +82,7 @@ class AboutUsView(QWidget):
         main_layout.addWidget(card)
         
         # Footer
-        footer = QLabel("© 2026 AMS Project Group. Tous droits réservés.")
+        footer = QLabel("© 2026 Fearless Group. Tous droits réservés.")
         footer.setStyleSheet("color: #94a3b8; font-size: 11px; margin-top: 20px;")
         main_layout.addWidget(footer, alignment=Qt.AlignCenter)
 

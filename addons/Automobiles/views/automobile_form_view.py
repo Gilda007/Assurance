@@ -1,64 +1,216 @@
-import os
 
-from PySide6.QtWidgets import (QCheckBox, QDialog, QListWidget, QListWidgetItem, QVBoxLayout, QHBoxLayout, QGridLayout, QProgressBar,
-                             QLabel, QLineEdit, QComboBox, QPushButton, QFrame, 
-                             QGraphicsDropShadowEffect, QWidget, QScrollArea, QTextEdit, QDateEdit, QMessageBox, QApplication)
-from PySide6.QtCore import Qt, QPoint, QDate
-from PySide6.QtGui import QColor, QPixmap
+import os
+import re
+from datetime import date, datetime, timedelta
+from PySide6.QtWidgets import (
+    QCheckBox, QDialog, QListWidget, QListWidgetItem, QVBoxLayout, 
+    QHBoxLayout, QGridLayout, QProgressBar, QLabel, QLineEdit, 
+    QComboBox, QPushButton, QFrame, QGraphicsDropShadowEffect, 
+    QWidget, QScrollArea, QTextEdit, QDateEdit, QMessageBox, 
+    QApplication, QGroupBox, QSplitter, QTabWidget, QFormLayout, QStackedWidget,
+    QSpinBox, QDoubleSpinBox, QButtonGroup, QRadioButton, QSizePolicy
+)
+from PySide6.QtCore import QSize, Qt, Signal, QDate, QPropertyAnimation, QEasingCurve, QTimer
+from PySide6.QtGui import QColor, QPixmap, QFont, QLinearGradient, QBrush
+
 import socket
 import platform
 import requests
 
+from core.widgets.global_loader import get_global_loader
+from core.workers.database_worker import async_query
+from addons.Automobiles.controllers.compagnies_controller import CompagnieController
+
+# Importer le style unifié
+from addons.Automobiles.views.style import Colors, Fonts, Spacing, create_shadow
+from addons.Automobiles.views.automobile_slidebar_menu_form_view import SlideMenu
+from icons.icons import get_icon, get_icon_pixmap, ICON_COLORS
+
+
+def _round_int(self, value):
+    """
+    Arrondit une valeur à l'entier le plus proche
+    
+    Args:
+        value: Valeur à arrondir (float, int, str)
+    
+    Returns:
+        int: Valeur arrondie
+    """
+    try:
+        return int(round(float(value)))
+    except (ValueError, TypeError):
+        return 0
+
+VEHICLE_BRANDS = [
+    "ACURA", "ALFA ROMEO", "ALPINE", "ASTON MARTIN", "AUDI", "BENTLEY", "BMW",
+    "BUGATTI", "BUICK", "CADILLAC", "CHERY", "CHEVROLET", "CHRYSLER", "CITROEN",
+    "DACIA", "DAEWOO", "DAIHATSU", "DODGE", "DS", "FERRARI", "FIAT", "FORD",
+    "GEELY", "GMC", "GREAT WALL", "HONDA", "HUMMER", "HYUNDAI", "INFINITI",
+    "ISUZU", "JAGUAR", "JEEP", "KIA", "LAMBORGHINI", "LANCIA", "LAND ROVER",
+    "LEXUS", "LINCOLN", "LOTUS", "MASERATI", "MAYBACH", "MAZDA", "MCLAREN",
+    "MERCEDES-BENZ", "MG", "MINI", "MITSUBISHI", "NISSAN", "OPEL", "PEUGEOT",
+    "PONTIAC", "PORSCHE", "RENAULT", "ROLLS-ROYCE", "ROVER", "SAAB", "SEAT",
+    "SKODA", "SMART", "SSANGYONG", "SUBARU", "SUZUKI", "TESLA", "TOYOTA",
+    "VOLKSWAGEN", "VOLVO", "YUCHAI", "ZX"
+]
+
+
 class VehicleForm(QDialog):
-    def __init__(self, controller=None, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
+    """
+    Formulaire complet de gestion des véhicules
+    Conforme aux spécifications API ASAC
+    """
+    FIELD_STYLE = """
+        QLineEdit, QComboBox, QDateEdit, QTextEdit, QSpinBox, QDoubleSpinBox {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 14px;
+            background-color: white;
+            font-size: 13px;
+            color: #2d3748;
+            font-family: 'Segoe UI';
+        }
+        QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QTextEdit:focus {
+            border-color: #3498db;
+            background-color: #f0f9ff;
+        }
+        QLabel {
+            color: #4a5568;
+            font-weight: 600;
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+    """
+    
+    GROUP_STYLE = """
+        QGroupBox {
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            margin-top: 12px;
+            padding-top: 12px;
+            background: white;
+        }
+        QGroupBox::title {
+            subcontrol-origin: margin;
+            left: 20px;
+            padding: 0 12px 0 12px;
+            color: #2c3e50;
+        }
+    """
+    # Constantes pour les codes ASAC
+    ASAC_CUSTOMER_TYPES = {
+        "TSPP": "Personne Physique",
+        "TSPM": "Personne Morale"
+    }
+    
+    ASAC_VEHICLE_CATEGORIES = {
+        "VP01": "Véhicule de tourisme (Personne physique)",
+        "VP02": "Transport pour propre compte",
+        "VP03": "Transport public de marchandises",
+        "VP04": "Transport public de voyageurs",
+        "VP05": "Véhicule motorisé à 2 ou 3 roues",
+        "VP06": "Véhicule des garagistes",
+        "VP07": "Véhicule d'auto-écoles",
+        "VP08": "Véhicule de location",
+        "VP09": "Engin de chantier",
+        "VP10": "Véhicules spéciaux",
+        "VP11": "Catégorie 11",
+        "VP12": "Véhicule de tourisme (Personne morale)"
+    }
+    
+    ASAC_VEHICLE_GENRES = {
+        "GV01": "Camion",
+        "GV02": "Camionnette",
+        "GV03": "Cyclomoteur (2/3 Roues)",
+        "GV04": "Voiture (4 Roues)",
+        "GV05": "Engins de chantiers",
+        "GV06": "Car",
+        "GV07": "Fourgonnette",
+        "GV08": "Remorque",
+        "GV09": "Scooter",
+        "GV10": "Semi-remorque",
+        "GV11": "Tracteur agricole",
+        "GV12": "Tracteur routier"
+    }
+    
+    ASAC_VEHICLE_TYPES = {
+        "TV01": "Ambulance",
+        "TV02": "Auto Car (Plus de 41 places)",
+        "TV03": "Corbiard",
+        "TV04": "Mini Car (9 à 40 places)",
+        "TV05": "Taxi Communaux",
+        "TV06": "Taxi Urbain (MATCA, VTC)",
+        "TV07": "Véhicule Auto-École",
+        "TV08": "Véhicule de Service Public",
+        "TV09": "Véhicule de Tourisme (max 9 places, avec chauffeur)",
+        "TV10": "Véhicule Particulier (PTAC max 3,5 T)",
+        "TV11": "Véhicule Utilitaire",
+        "TV12": "Voiture de Location",
+        "TV13": "Cyclomoteur (2/3 Roues)"
+    }
+    
+    ASAC_VEHICLE_USAGES = {
+        "UV01": "Promenade ou Affaire",
+        "UV02": "Transport pour propre compte",
+        "UV03": "Transport privé de voyageurs",
+        "UV04": "Transport public de marchandises",
+        "UV05": "Transport public de voyageurs",
+        "UV06": "Véhicules Auto-école",
+        "UV07": "Véhicules de Location",
+        "UV08": "Véhicules Spéciaux",
+        "UV09": "Engin de Chantier",
+        "UV10": "Véhicule motorisé 2 à 3 roues"
+    }
+    
+    ASAC_VEHICLE_ENERGIES = {
+        "SEE": "Essence",
+        "SED": "Diesel",
+        "SEL": "Électrique",
+        "SEHY": "Hybride"
+    }
+    
+    ASAC_CIRCULATION_ZONES = {
+        "ZA": "A",
+        "ZB": "B",
+        "ZC": "C"
+    }
+    
+    ASAC_INSURED_PROFESSIONS = {
+        "ST01": "Agent commercial",
+        "ST02": "Agent de recouvrement",
+        "ST03": "Agriculteur",
+        "ST04": "Artisan",
+        "ST05": "Conjoint",
+        "ST06": "Employeur",
+        "ST07": "Religieux",
+        "ST08": "Retraité",
+        "ST09": "Salarié",
+        "ST10": "Sans emploi",
+        "ST11": "VRP (Vendeur, Représentant et Placer)",
+        "ST12": "Autre profession"
+    }
+
+    def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
         super().__init__()
-      
-        self.style_scroll_bar = """
-            /* La barre verticale */
-            QScrollBar:vertical {
-                border-radius: 20px;
-                background: #f1f2f6;
-                width: 8px;
-                margin: 0px;
-            }
-
-            /* Le curseur (handle) */
-            QScrollBar::handle:vertical {
-                background: #ced4da;
-                min-height: 20px;
-                border-radius: 4px;
-            }
-
-            QScrollBar::handle:vertical:hover {
-                background: #3498db;
-            }
-
-            /* Supprimer les boutons fléchés */
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                border: none;
-                background: none;
-                height: 0px;
-            }
-        """
-
-        # --- CONFIGURATION SANS BORDURES (FRAMELESS) ---
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setAttribute(Qt.WA_TranslucentBackground) # Nécessaire pour les coins arrondis et l'ombre
+        
+        # ✅ Fenêtre normale avec header système
+        self.setWindowFlags(Qt.Window | Qt.WindowCloseButtonHint | Qt.WindowMinimizeButtonHint | Qt.WindowMaximizeButtonHint)
+        self.setAttribute(Qt.WA_DeleteOnClose)
         
         self.controller = controller
         self.contacts = contacts_list or []
-        # self.compagnies = compagnies_list or []
         self.current_user = current_user
-        # self.fleets = fleets_list or []
         self.mode = mode
-        self.initial_data = data  # L'objet Fleet ou Vehicle à modifier/voir
+        self.initial_data = data
         self.vehicle_to_edit = vehicle_to_edit
-
         self.vehicle_id = vehicle_to_edit.id if hasattr(vehicle_to_edit, 'id') else None
+        self.selected_cie_id = None
+        self.preselected_owner_id = data.get('owner_id') if data else None
         
-        # Variable pour gérer le déplacement de la fenêtre
-        self.old_pos = None
+        self.garanties_widgets = {}
         
         self.setup_ui()
 
@@ -70,861 +222,4889 @@ class VehicleForm(QDialog):
         
         if self.mode == "view":
             self.freeze_ui()
+            
+        self._connect_signals()
 
-    def freeze_ui(self):
-        """Désactive tous les champs de saisie."""
-        for widget in self.findChildren((QLineEdit, QComboBox, QTextEdit, QCheckBox)):
-            widget.setEnabled(False)
-        if hasattr(self, 'btn_save'):
-            self.btn_save.hide()
-        self.setWindowTitle("Consultation des données")
+    def _connect_signals(self):
+        """Connecte les signaux pour les calculs automatiques"""
+        if hasattr(self, 'combo_zone'):
+            self.combo_zone.currentTextChanged.connect(self.on_zone_changed)
+        if hasattr(self, 'combo_cat'):
+            self.combo_cat.currentTextChanged.connect(self.on_category_changed)
+        if hasattr(self, 'combo_usage'):
+            self.combo_usage.currentTextChanged.connect(self.on_usage_changed)
+        if hasattr(self, 'usage_input'):
+            self.usage_input.textChanged.connect(self.on_power_changed)
+        if hasattr(self, 'date_debut'):
+            self.date_debut.dateChanged.connect(self.on_date_changed)
+        if hasattr(self, 'date_fin'):
+            self.date_fin.dateChanged.connect(self.on_date_changed)
 
-    def setup_ui(self):
-        self.setFixedSize(750, 850)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
-        self.setAttribute(Qt.WA_TranslucentBackground)
+    def on_zone_changed(self, zone):
+        self.update_rc_calculation_async()
         
-        main_layout = QVBoxLayout(self)
-        self.card = QFrame()
-        self.card.setObjectName("MainCard")
-        self.card.setStyleSheet("""
-            QFrame#MainCard { background-color: white; border-radius: 20px; }
-            QLabel { color: #2f3640; font-weight: bold; font-size: 11px; text-transform: uppercase; }
-            QLineEdit, QComboBox, QDateEdit {
-                border: 2px solid #f1f2f6; border-radius: 10px; padding: 8px;
-                background-color: #f8f9fa; color: #2f3542;
-            }
-            QLineEdit:focus, QComboBox:focus { border: 2px solid #3498db; background-color: white; }
-            QCheckBox { font-size: 12px; color: #2f3640; font-weight: bold; }
-            QListWidget {
-                border: 1px solid #f1f2f6;
-                border-radius: 10px;
-                background-color: white;
-            }
-            QListWidget::item { padding: 8px; border-bottom: 1px solid #f8f9fa; }
-            QListWidget::item:selected { background-color: #3498db; color: white; border-radius: 5px; }
+    def on_category_changed(self, category):
+        self.update_rc_calculation_async()
+        
+    def on_usage_changed(self, usage):
+        self.update_rc_calculation_async()
 
-            #ClientCard {
-                background-color: #f8f9fa;
-                border-radius: 15px;
-                border: 1px dashed #dcdde1;
-            }
-            #PhotoLabel {
-                background-color: #dcdde1;
-                border-radius: 40px; /* Pour une photo ronde */
-                border: 2px solid white;
+    def on_power_changed(self, power):
+        """Met à jour le calcul RC et la vignette lors du changement de puissance"""
+        self.update_rc_calculation_async()
+        
+        # ✅ Mettre à jour la vignette si l'exonération est active
+        if hasattr(self, 'check_exonere_dta') and self.check_exonere_dta.isChecked():
+            cv_val = self.get_int_value(self.usage_input)
+            
+            if 2 <= cv_val <= 7:
+                vignette_value = "30000"
+            elif 8 <= cv_val <= 13:
+                vignette_value = "50000"
+            elif 14 <= cv_val <= 20:
+                vignette_value = "75000"
+            elif cv_val > 20:
+                vignette_value = "200000"
+            else:
+                vignette_value = "0"
+            
+            idx = self.vignette.findText(vignette_value)
+            if idx >= 0:
+                self.vignette.setCurrentIndex(idx)
+            else:
+                self.vignette.setCurrentText(vignette_value)
+            
+            self.calculate_pttc()
+        
+    def on_date_changed(self):
+        self.calculate_prorata()
+        self.refresh_all_garanties()
+
+    def _create_classification_tab(self):
+        """Crée l'onglet de classification ASAC avec ScrollArea"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # ScrollArea pour tout le contenu
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
             }
             QScrollBar:vertical {
                 border: none;
                 background: #f1f2f6;
-                width: 10px;
-                border-radius: 5px;
+                width: 8px;
+                border-radius: 4px;
             }
             QScrollBar::handle:vertical {
-                background: #ced6e0;
+                background: #cbd5e0;
+                border-radius: 4px;
                 min-height: 20px;
-                border-radius: 5px;
             }
-            QScrollBar::handle:vertical:hover { background: #747d8c; }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
-
-            /* Style des ComboBox */
-            QComboBox {
-                border: 2px solid #f1f2f6;
-                border-radius: 10px;
-                padding: 8px;
-                background-color: #f8f9fa;
-            }
-            QComboBox::drop-down {
-                border: none;
-                padding-right: 10px;
-            }
-            QComboBox::down-arrow {
-                image: url(assets/icons/chevron-down.png); /* Si vous avez une icône */
-                width: 12px;
-                height: 12px;
-            }
-            
-            /* Style des listes de résultats */
-            QListWidget {
-                border: 1px solid #f1f2f6;
-                border-radius: 10px;
-                outline: none;
-            }
-            QListWidget::item {
-                padding: 10px;
-                border-bottom: 1px solid #f1f2f6;
-            }
-            QListWidget::item:selected {
+            QScrollBar::handle:vertical:hover {
                 background: #3498db;
-                color: white;
             }
         """)
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(25, 25, 25, 25)
+        
+        field_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                color: #2d3748;
+                font-family: 'Segoe UI';
+            }
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border-color: #3498db;
+                background-color: #f0f9ff;
+            }
+            QLabel {
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+        """
+        
+        group_style = """
+            QGroupBox {
+                font-size: 14px;
+                font-weight: bold;
+                border: 2px solid #e2e8f0;
+                border-radius: 16px;
+                margin-top: 12px;
+                padding-top: 12px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 20px;
+                padding: 0 12px 0 12px;
+                color: #2c3e50;
+            }
+        """
+        
+        # Groupe: Classification ASAC
+        group_class = QGroupBox("Classification ASAC")
+        group_class.setStyleSheet(group_style)
+        
+        class_layout = QGridLayout(group_class)
+        class_layout.setSpacing(15)
+        class_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Catégorie
+        class_layout.addWidget(self._create_label("category", "Catégorie *"), 0, 0)
+        self.asac_combo_cat = QComboBox()
+        self.asac_combo_cat.setStyleSheet(field_style)
+        self.asac_combo_cat.setEditable(True)
+        self.asac_combo_cat.addItem("", "")
+        for code, label in self.ASAC_VEHICLE_CATEGORIES.items():
+            self.asac_combo_cat.addItem(f"{code} - {label}", code)
+        self.asac_combo_cat.currentTextChanged.connect(self.on_category_changed)
+        class_layout.addWidget(self.asac_combo_cat, 1, 0)
+        
+        # Genre
+        class_layout.addWidget(self._create_label("genre", "Genre *"), 0, 1)
+        self.combo_genre = QComboBox()
+        self.combo_genre.setStyleSheet(field_style)
+        self.combo_genre.addItem("", "")
+        for code, label in self.ASAC_VEHICLE_GENRES.items():
+            self.combo_genre.addItem(f"{code} - {label}", code)
+        class_layout.addWidget(self.combo_genre, 1, 1)
+        
+        # Type
+        class_layout.addWidget(self._create_label("model", "Type *"), 2, 0)
+        self.combo_type = QComboBox()
+        self.combo_type.setStyleSheet(field_style)
+        self.combo_type.addItem("", "")
+        for code, label in self.ASAC_VEHICLE_TYPES.items():
+            self.combo_type.addItem(f"{code} - {label}", code)
+        class_layout.addWidget(self.combo_type, 3, 0)
+        
+        # Usage
+        class_layout.addWidget(self._create_label("usage", "Usage *"), 2, 1)
+        self.combo_usage = QComboBox()
+        self.combo_usage.setStyleSheet(field_style)
+        self.combo_usage.addItem("", "")
+        for code, label in self.ASAC_VEHICLE_USAGES.items():
+            self.combo_usage.addItem(f"{code} - {label}", code)
+        self.combo_usage.currentTextChanged.connect(self.on_usage_changed)
+        class_layout.addWidget(self.combo_usage, 3, 1)
+        
+        # Énergie
+        class_layout.addWidget(self._create_label("energy", "Énergie *"), 4, 0)
+        self.combo_energie = QComboBox()
+        self.combo_energie.setStyleSheet(field_style)
+        self.combo_energie.addItem("", "")
+        for code, label in self.ASAC_VEHICLE_ENERGIES.items():
+            self.combo_energie.addItem(f"{code} - {label}", code)
+        class_layout.addWidget(self.combo_energie, 5, 0)
+        
+        # Zone de circulation
+        class_layout.addWidget(self._create_label("zone", "Zone de circulation *"), 4, 1)
+        self.combo_zone = QComboBox()
+        self.combo_zone.setStyleSheet(field_style)
+        self.combo_zone.addItem("", "")
+        for code, label in self.ASAC_CIRCULATION_ZONES.items():
+            self.combo_zone.addItem(f"{code} - {label}", code)
+        self.combo_zone.currentTextChanged.connect(self.on_zone_changed)
+        class_layout.addWidget(self.combo_zone, 5, 1)
+        
+        content_layout.addWidget(group_class)
+        
+        # Groupe: Options et compléments
+        group_options = QGroupBox("Options et compléments")
+        group_options.setStyleSheet(group_style)
+        
+        options_layout = QGridLayout(group_options)
+        options_layout.setSpacing(15)
+        options_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Remorque
+        self.check_remorque = QCheckBox(" Véhicule avec Remorque")
+        self.check_remorque.setIcon(get_icon('trailer', color='#4a5568', size=18))
+        self.check_remorque.setIconSize(QSize(18, 18))
+        self.check_remorque.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4a5568;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+                border-color: #3498db;
+            }
+        """)
+        self.check_remorque.stateChanged.connect(self.on_remorque_changed)
+        options_layout.addWidget(self.check_remorque, 0, 0)
+        
+        # Immatriculation remorque
+        options_layout.addWidget(self._create_label("immatriculation", "Immatriculation Remorque"), 1, 0)
+        self.remorque_immat = QLineEdit()
+        self.remorque_immat.setPlaceholderText("Immatriculation de la remorque")
+        self.remorque_immat.setStyleSheet(field_style)
+        self.remorque_immat.setEnabled(False)
+        options_layout.addWidget(self.remorque_immat, 2, 0)
+        
+        # Matières inflammables
+        self.check_inflammable = QCheckBox(" Remorque transportant des matières inflammables")
+        self.check_inflammable.setIcon(get_icon('flammable', color='#4a5568', size=18))
+        self.check_inflammable.setIconSize(QSize(18, 18))
+        self.check_inflammable.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4a5568;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #e74c3c;
+                border-color: #e74c3c;
+            }
+        """)
+        self.check_inflammable.setEnabled(False)
+        options_layout.addWidget(self.check_inflammable, 0, 1)
+        
+        # Double commande (auto-école)
+        self.check_double_commande = QCheckBox("Double commande (Auto-école)")
+        self.check_double_commande.setIcon(get_icon('double-command', color='#4a5568', size=18))
+        self.check_double_commande.setIconSize(QSize(18, 18))
+        self.check_double_commande.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4a5568;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+                border-color: #3498db;
+            }
+        """)
+        options_layout.addWidget(self.check_double_commande, 1, 1)
+        
+        # RC élèves (auto-école)
+        self.check_rc_eleves = QCheckBox(" Garantie RC élèves (Auto-école)")
+        self.check_rc_eleves.setIcon(get_icon('rc_students', color='#4a5568', size=18))
+        self.check_rc_eleves.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4a5568;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+                border-color: #3498db;
+            }
+        """)
+        options_layout.addWidget(self.check_rc_eleves, 2, 1)
+        
+        # Engin portuaire
+        self.check_engin_portuaire = QCheckBox("  Engin portuaire")
+        self.check_engin_portuaire.setIcon(get_icon('port_equipment', color='#4a5568', size=18))
+        self.check_engin_portuaire.setIconSize(QSize(18, 18))
+        self.check_engin_portuaire.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4a5568;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+                border-color: #3498db;
+            }
+        """)
+        options_layout.addWidget(self.check_engin_portuaire, 3, 1)
+        
+        content_layout.addWidget(group_options)
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        return tab
+
+    def on_fleet_changed(self, libelle):
+        """Met à jour le code tarif en fonction du libellé"""
+        if libelle:
+            # Chercher le code correspondant
+            for i in range(self.combo_fleet.count()):
+                data = self.combo_fleet.itemData(i)
+                if data and data.get('libelle') == libelle:
+                    code = data.get('code')
+                    if code:
+                        self.code_tarif.setCurrentText(code)
+                    break
+
+    def calculate_prorata(self):
+        try:
+            d_debut = self.date_debut.date().toPython()
+            d_fin = self.date_fin.date().toPython()
+            nbr_jr = (max(0, (d_fin - d_debut).days))+1
+            
+            self.nbr_jour.setText(str(nbr_jr))
+            return nbr_jr / 365.0 if nbr_jr > 0 else 1
+        except Exception:
+            return 1
+
+    def setup_ui(self):
+        """Configure l'interface utilisateur - header géré par le système"""
+        self.resize(1200, 900)
+        self.setMinimumSize(1100, 800)
+        
+        # ✅ Titre de la fenêtre (géré par le système)
+        mode_text = "MODIFICATION" if self.mode == "edit" else "NOUVEAU"
+        self.setWindowTitle(f"FICHE VÉHICULE - {mode_text}")
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(16, 16, 16, 16)
+        main_layout.setSpacing(0)
+
+        # Carte principale
+        self.card = QFrame()
+        self.card.setObjectName("MainCard")
+        # self.card.setStyleSheet("""
+        #     QFrame#MainCard {
+        #         background: #ffffff;
+        #         border-radius: 20px;
+        #         border: 1px solid rgba(0,0,0,0.06);
+        #     }
+        # """)
+        
+        shadow = create_shadow(blur=50, offset_y=12, color=QColor(0, 0, 0, 60))
+        self.card.setGraphicsEffect(shadow)
         
         card_layout = QVBoxLayout(self.card)
         card_layout.setContentsMargins(0, 0, 0, 0)
+        card_layout.setSpacing(0)
 
-        # --- HEADER ---
-        header = QFrame()
-        header.setFixedHeight(60)
-        header.setStyleSheet("background: #f8f9fa; border-top-left-radius: 20px; border-top-right-radius: 20px;")
-        h_layout = QHBoxLayout(header)
-        title_lbl = QLabel("📋 FICHE COMPLÈTE DU VÉHICULE")
-        title_lbl.setStyleSheet("font-size: 15px; color: #2c3e50;")
-        self.btn_close = QPushButton("✕")
-        self.btn_close.clicked.connect(self.reject)
-        self.btn_close.setFixedSize(30, 30)
-        self.btn_close.setStyleSheet("background: #ff7675; color: white; border-radius: 15px; border: none;")
-        h_layout.addWidget(title_lbl); h_layout.addStretch(); h_layout.addWidget(self.btn_close)
-        card_layout.addWidget(header)
-
-        # --- SCROLL AREA ---
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        content = QWidget()
-        form_layout = QVBoxLayout(content)
-        form_layout.setContentsMargins(25, 15, 25, 15)
-        form_layout.setSpacing(12)
-
-        # --- SECTION : PROPRIÉTAIRE DU VÉHICULE ---
-        form_layout.addWidget(self.create_section_title("👤 SÉLECTION DU PROPRIÉTAIRE"))
+        # ---- CORPS AVEC MENU LATÉRAL ----
+        body_widget = QWidget()
+        body_widget.setStyleSheet("QWidget { background: #0f172a; }")
+        body_layout = QHBoxLayout(body_widget)
+        body_layout.setContentsMargins(0, 0, 0, 0)
+        body_layout.setSpacing(0)
         
-        # 1. Barre de recherche
-        search_layout = QHBoxLayout()
-        self.owner_search = QLineEdit()
-        self.owner_search.setPlaceholderText("🔍 Rechercher un client (Nom, téléphone, ou n° de pièce)...")
-        self.owner_search.textChanged.connect(self.filter_clients) # Logique de recherche
-        search_layout.addWidget(self.owner_search)
-        form_layout.addLayout(search_layout)
-
-        # 2. Zone de sélection (Splitter horizontal)
-        selection_widget = QWidget()
-        selection_layout = QHBoxLayout(selection_widget)
-        selection_layout.setContentsMargins(0, 0, 0, 0)
-        selection_layout.setSpacing(15)
-
-        # --- Partie Gauche : Liste des résultats ---
-        self.client_list_widget = QListWidget()
-        self.client_list_widget.setFixedHeight(180)
-        self.client_list_widget.currentRowChanged.connect(self.display_client_details)
-        selection_layout.addWidget(self.client_list_widget, 2) # Ratio 2
-
-        # --- Partie Droite : Carte du client ---
-        self.client_card = QFrame()
-        self.client_card.setObjectName("ClientCard")
-        self.client_card.setFixedHeight(180)
-        card_info_layout = QHBoxLayout(self.client_card)
-
-        # Photo à gauche dans la carte
-        self.client_photo = QLabel()
-        self.client_photo.setObjectName("PhotoLabel")
-        self.client_photo.setFixedSize(80, 80)
-        self.client_photo.setScaledContents(True)
-        self.client_photo.setAlignment(Qt.AlignCenter)
-        card_info_layout.addWidget(self.client_photo)
-
-        # Détails à droite dans la carte
-        details_layout = QVBoxLayout()
-        self.lbl_card_name = QLabel("SÉLECTIONNEZ UN CLIENT")
-        self.lbl_card_name.setStyleSheet("font-size: 13px; color: #2980b9;")
+        # Menu latéral
+        self.slide_menu = SlideMenu(self)
+        self.slide_menu.section_changed.connect(self._on_section_changed)
+        self.slide_menu.save_clicked.connect(self.validate_and_save)
+        self.slide_menu.cancel_clicked.connect(self.reject)
+        body_layout.addWidget(self.slide_menu)
         
-        self.lbl_card_info = QLabel("Détails : ---\nTel : ---\nAdresse : ---")
-        self.lbl_card_info.setStyleSheet("font-weight: normal; text-transform: none; color: #7f8c8d;")
-        self.lbl_card_info.setWordWrap(True)
-        
-        details_layout.addWidget(self.lbl_card_name)
-        details_layout.addWidget(self.lbl_card_info)
-        details_layout.addStretch()
-        
-        card_info_layout.addLayout(details_layout)
-        selection_layout.addWidget(self.client_card, 3) # Ratio 3
-
-        form_layout.addWidget(selection_widget)
-
-        # --- SECTION 1 : IDENTIFICATION & FLOTTE ---
-        form_layout.addWidget(self.create_section_title("🔍 IDENTIFICATION & RATTACHEMENT"))
-        grid_id = QGridLayout()
-        
-        self.combo_fleet = QComboBox() # fleet_id
-        # for fid, fname in self.fleets_list: self.combo_fleet.addItem(fname, fid)
-        
-        self.immat_input = QLineEdit() # Immatriculation
-        self.chassis_input = QLineEdit() # Chassis
-        
-        grid_id.addWidget(QLabel("Flotte de rattach. (fleet_id)"), 0, 0, 1, 2)
-        grid_id.addWidget(self.combo_fleet, 1, 0, 1, 2)
-        grid_id.addWidget(QLabel("Immatriculation"), 2, 0); grid_id.addWidget(self.immat_input, 3, 0)
-        grid_id.addWidget(QLabel("N° Châssis"), 2, 1); grid_id.addWidget(self.chassis_input, 3, 1)
-        form_layout.addLayout(grid_id)
-
-        # --- SECTION 2 : TECHNIQUE & USAGE ---
-        form_layout.addWidget(self.create_section_title("⚙️ TECHNIQUE & USAGE"))
-        grid_tech = QGridLayout()
-        
-        self.marque_input = QLineEdit(); self.modele_input = QLineEdit(); self.annee_input = QLineEdit()
-        self.energie_combo = QComboBox(); self.energie_combo.addItems(["Essence", "Diesel", "Hybride", "Electrique"])
-        self.usage_input = QLineEdit() # usage
-        self.places_input = QLineEdit() # places
-        self.check_remorque = QCheckBox("Véhicule avec Remorque") # remorque
-        
-        grid_tech.addWidget(QLabel("Marque"), 0, 0); grid_tech.addWidget(self.marque_input, 1, 0)
-        grid_tech.addWidget(QLabel("Modèle"), 0, 1); grid_tech.addWidget(self.modele_input, 1, 1)
-        grid_tech.addWidget(QLabel("Année"), 0, 2); grid_tech.addWidget(self.annee_input, 1, 2)
-        grid_tech.addWidget(QLabel("Énergie"), 2, 0); grid_tech.addWidget(self.energie_combo, 3, 0)
-        grid_tech.addWidget(QLabel("Nombre de chevaux"), 2, 1); grid_tech.addWidget(self.usage_input, 3, 1)
-        grid_tech.addWidget(QLabel("Places"), 2, 2); grid_tech.addWidget(self.places_input, 3, 2)
-        grid_tech.addWidget(self.check_remorque, 4, 0, 1, 3)
-        form_layout.addLayout(grid_tech)
-
-        # --- SECTION 3 : FINANCIER ---
-        grid_fin = QGridLayout()
-        self.date_debut = QDateEdit()
-        self.date_debut.setDisplayFormat("dd/MM/yyyy")
-        self.date_debut.dateChanged.connect(self.refresh_all_garanties)
-        self.date_fin = QDateEdit()
-        self.date_fin.setDisplayFormat("dd/MM/yyyy")
-        self.date_fin.dateChanged.connect(self.refresh_all_garanties)
-        self.val_neuf = QLineEdit(); self.val_venale = QLineEdit(); self.prime_emise = QLineEdit()
-        self.val_venale.textChanged.connect(self.refresh_all_garanties)
-        self.prime_emise.setReadOnly(True)
-        self.prime_emise.setPlaceholderText("Total calculé...")
-        self.status_combo = QComboBox(); self.status_combo.addItems(["En Circulation", "En Panne", "Vendu", "Saisi"])
-        
-        # --- SECTION 3 : FINANCIER & PÉRIODE ---
-        form_layout.addWidget(self.create_section_title("💰 VALEURS, STATUT & PÉRIODE"))
-        grid_fin = QGridLayout()
-        grid_fin.setSpacing(15)
-
-        # Ligne 0 : Les titres
-        grid_fin.addWidget(QLabel("Val. à Neuf"), 0, 0)
-        grid_fin.addWidget(QLabel("Statut du Véhicule"), 0, 1)
-        grid_fin.addWidget(QLabel("Date de début"), 0, 2)
-
-        # Ligne 1 : Les inputs correspondants
-        grid_fin.addWidget(self.val_neuf, 1, 0)
-        grid_fin.addWidget(self.status_combo, 1, 1)
-        grid_fin.addWidget(self.date_debut, 1, 2)
-
-        # Ligne 2 : Les titres (suite)
-        grid_fin.addWidget(QLabel("Val. Vénale"), 2, 0)
-        grid_fin.addWidget(QLabel("Prime Brute (Totale)"), 2, 1)
-        grid_fin.addWidget(QLabel("Date de fin"), 2, 2)
-
-        # Ligne 3 : Les inputs (suite)
-        grid_fin.addWidget(self.val_venale, 3, 0)
-        grid_fin.addWidget(self.prime_emise, 3, 1)
-        grid_fin.addWidget(self.date_fin, 3, 2)
-
-        form_layout.addLayout(grid_fin)
-        form_layout.addLayout(grid_fin)
-
-        # --- SECTION : RÉCAPITULATIF DES CALCULS (AUTOMATIQUE) ---
-        form_layout.addWidget(self.create_section_title("🧮 RÉCAPITULATIF DES CALCULS"))
-        grid_calc = QGridLayout()
-        grid_calc.setSpacing(15)
-
-        # Style pour les champs calculés
-        style_auto = "background-color: #f1f2f6; color: #2f3542; font-weight: bold; border: 1px solid #dcdde1;"
-
-        # Prime Brute (Somme des garanties) 
-        self.prime_brute = QLineEdit("0")
-        self.prime_brute.setReadOnly(True)
-        self.prime_brute.setStyleSheet(style_auto)
-        
-        # Réduction (ex: Bonus/Malus ou remise commerciale)
-        self.reduction = QLineEdit("0")
-        self.reduction.setReadOnly(True)
-        self.reduction.setStyleSheet(style_auto)
-
-        # Prime Nette (Brute - Réduction)
-        self.prime_nette = QLineEdit("0")
-        self.prime_nette.setReadOnly(True)
-        self.prime_nette.setStyleSheet("background-color: #e1f5fe; color: #0288d1; font-weight: bold; border: 1px solid #b3e5fc;")
-
-        grid_calc.addWidget(QLabel("Total Prime Brute"), 0, 0)
-        grid_calc.addWidget(self.prime_brute, 1, 0)
-        
-        grid_calc.addWidget(QLabel("Réduction Accordée"), 0, 1)
-        grid_calc.addWidget(self.reduction, 1, 1)
-        
-        grid_calc.addWidget(QLabel("Prime Nette à Payer"), 0, 2)
-        grid_calc.addWidget(self.prime_nette, 1, 2)
-
-        form_layout.addLayout(grid_calc)
-
-        # --- SECTION 4 : GARANTIES ---
-        form_layout.addWidget(self.create_section_title("🛡️ GARANTIES & COTISATIONS"))
-        grid_gar = QGridLayout()
-        grid_gar.setSpacing(10)
-
-        # Dictionnaire pour stocker nos labels de calcul
-        self.result_labels = {}
-
-        # Liste des garanties (Clé, Libellé, Label Affichage)
-        garanties = [
-            ("rc", "RC (Resp. Civile)", "Valeur RC"),
-            ("df", "Defense Recours (Resp. Civile)", "Valeur DF"),
-            ("vol", "Vol/Vol partie", "Valeur VOL"),
-            ("vb", "Vol / Braquage", "Valeur Vol/Br"),
-            ("in", "Incendie", "Valeur In"),
-            ("bris", "Bris de Glace", "Valeur BG"),
-            ("ar", "Assistance Reparation", "Valeur AR"),
-            ("dta", "Dommages Tous Accidents", "Valeur DTA"),
-            ("ipt", "Individuelle Personnes Transportées", "Valeur IPT"),
-            ("dom", "Dommages Collision", "Valeur DC"),
-            ("dr", "Défense Recours", "Valeur DR")
-        ]
-
-        for i, (key, label, title) in enumerate(garanties):
-            # 1. Checkbox
-            checkbox = QCheckBox(label)
-            setattr(self, f"check_{key}", checkbox) # ex: self.check_rc
-            
-            # 2. Label Titre
-            title_lbl = QLineEdit(title)
-            title_lbl.setReadOnly(True)
-            title_lbl.setStyleSheet("color: #7f8c8d; font-size: 10px;")
-            
-            # 3. Label de Résultat (Le calcul)
-            res_lbl = QLabel("0 FCFA")
-            res_lbl.setStyleSheet("font-weight: bold; color: #2ecc71; font-size: 12px;")
-            res_lbl.setVisible(False) # Caché par défaut
-            self.result_labels[key] = res_lbl
-            
-            # Ajout au grid
-            grid_gar.addWidget(checkbox, i, 0)
-            grid_gar.addWidget(title_lbl, i, 1)
-            grid_gar.addWidget(res_lbl, i, 2)
-
-            # Connexion au calcul (lambda pour passer la clé)
-            checkbox.stateChanged.connect(lambda state, k=key: self.update_garantie_price(k, state))
-            
-
-        form_layout.addLayout(grid_gar)
-
-        scroll.setWidget(content); card_layout.addWidget(scroll)
-
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setStyleSheet("""
-            QProgressBar {
-                border: 2px solid #E0E0E0;
-                border-radius: 10px;
-                text-align: center;
-                background-color: #F8F9FA;
-                height: 25px;
-                font-weight: bold;
-                color: #333;
-            }
-
-            QProgressBar::chunk {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, 
-                    stop:0 #2ECC71, stop:1 #27AE60);
-                border-radius: 8px;
+        # Stacked Widget
+        self.stack_widget = QStackedWidget()
+        self.stack_widget.setStyleSheet("""
+            QStackedWidget {
+                background: white;
+                border-radius: 0 0 16px 0;
             }
         """)
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(True)
-        self.progress_bar.setFormat("%p% - %v") # Affiche le pourcentage et l'étape
-        self.progress_bar.setVisible(False) # Cachée par défaut
-
-        # Ajoutez-la à votre layout vertical principal
-
-        # --- FOOTER ---
-        footer = QHBoxLayout(); footer.setContentsMargins(20, 10, 20, 20)
-        self.btn_save = QPushButton("💾 ENREGISTRER LE VÉHICULE")
-        self.btn_save.setFixedSize(300, 45)
-        self.btn_save.setStyleSheet("background: #2ecc71; color: white; border-radius: 22px; font-weight: bold;")
-        self.btn_save.clicked.connect(self.validate_and_save)
-        footer.addStretch(); footer.addWidget(self.btn_save); footer.addStretch()
-        footer.addWidget(self.progress_bar)
-        card_layout.addLayout(footer)
-
+        
+        self._create_pages()
+        body_layout.addWidget(self.stack_widget, 1)
+        
+        card_layout.addWidget(body_widget)
+        
         main_layout.addWidget(self.card)
 
-        self.val_neuf.textChanged.connect(self.refresh_all_garanties)
+    def _create_pages(self):
+        """Crée les pages du stacked widget et les ajoute au menu"""
+        # Définir les sections
+        sections = [
+            ("Identification", self._create_identification_tab, 'card-account-details'),
+            ("Classification", self._create_classification_tab, 'tag'),
+            ("Caractéristiques", self._create_technical_tab, 'engine'),
+            ("Propriétaire", self._create_owner_tab, 'account'),
+            ("Garanties", self._create_guarantees_tab, 'shield'),
+            ("Financier", self._create_financial_tab, 'currency-usd'),
+        ]
+        
+        for label, create_func, icon_name in sections:
+            page = create_func()
+            page.setStyleSheet("background: white; padding: 20px 24px;")
+            self.stack_widget.addWidget(page)
+            # self.slide_menu.add_section(label, page, icon_name)
+        # self.slide_menu.update_progress()
 
-    def create_section_title(self, text):
-        lbl = QLabel(text)
-        lbl.setStyleSheet("color: #3498db; font-size: 13px; font-weight: 900; margin-top: 10px; border-bottom: 2px solid #f1f2f6; padding-bottom: 5px;")
-        return lbl
+    def _create_label(self, icon_name, text):
+        """
+        Crée un label avec icône QtAwesome
+        
+        Args:
+            icon_name: Nom de l'icône dans ICONS
+            text: Texte du label
+        """
+        # Gérer l'icône passée soit comme nom (str) soit comme QPixmap
+        from PySide6.QtGui import QPixmap
+        from PySide6.QtWidgets import QWidget, QHBoxLayout
 
-    # On ajoute la possibilité de déplacer la fenêtre à la souris (vu qu'on est en Frameless)
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.drag_position = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
+        if isinstance(icon_name, QPixmap):
+            icon_pix = icon_name
+        else:
+            icon_pix = get_icon_pixmap(icon_name, color=ICON_COLORS['gray'], size=35)
 
-    def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.LeftButton:
-            self.move(event.globalPosition().toPoint() - self.drag_position)
-            event.accept()
+        container = QWidget()
+        hl = QHBoxLayout(container)
+        hl.setContentsMargins(0, 0, 0, 0)
+        hl.setSpacing(8)
 
-    def get_data(self):
-        data = {
-            "fleet_id": self.combo_fleet.currentData(),
-            "immatriculation": self.immat_input.text().strip().upper(),
-            "chassis": self.chassis_input.text().strip(),
-            "marque": self.marque_input.text().strip(),
-            "modele": self.modele_input.text().strip(),
-            "annee": self.annee_input.text().strip(),
-            "places": int(self.places_input.text() or 0),
-            "energie": self.energie_combo.currentText(),
-            "remorque": self.check_remorque.isChecked(),
-            "val_neuf": float(self.val_neuf.text() or 0),
-            "val_venale": float(self.val_venale.text() or 0),
-            "usage": self.usage_input.text().strip(),
-            "prime_emise": float(self.prime_emise.text() or 0),
-            "statut": self.status_combo.currentText(),
-            # Garanties (Booléens)
-            "garantie_rc": self.check_rc.isChecked(),
-            "garantie_tc": self.check_tc.isChecked(),
-            "garantie_vol": self.check_vol.isChecked(),
-            "garantie_bris": self.check_bris.isChecked(),
-            "garantie_dom": self.check_dom.isChecked(),
-            "garantie_dr": self.check_dr.isChecked(),
-            "proprietaire_nom": self.owner_name.text().strip(),
-            "proprietaire_type": self.owner_type.currentText(),
-            "proprietaire_tel": self.owner_phone.text().strip(),
-            "proprietaire_adresse": self.owner_address.text().strip(),
-        }
-        return data
-    # --- LOGIQUE DE DÉPLACEMENT DE LA FENÊTRE ---
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.old_pos = event.globalPosition().toPoint()
-
-    def mouseMoveEvent(self, event):
-        if self.old_pos is not None:
-            delta = event.globalPosition().toPoint() - self.old_pos
-            self.move(self.x() + delta.x(), self.y() + delta.y())
-            self.old_pos = event.globalPosition().toPoint()
-
-    def mouseReleaseEvent(self, event):
-        self.old_pos = None
-    
-    def get_form_data(self):
-        # Fonction utilitaire pour extraire le montant d'un label de résultat
-        def clean_amt(key):
-            label = self.result_labels.get(key)
-            if label and label.isVisible():
-                # On retire "FCFA" et les espaces pour convertir en float
-                txt = label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
-                return float(txt) if txt else 0.0
-            return 0.0
-
-        # Fonction utilitaire pour les QLineEdit numériques
-        def clean_input(widget):
-            txt = widget.text().replace(" ", "").replace(",", ".")
-            return float(txt) if txt else 0.0
-
-        data = {
-            # --- IDENTIFICATION & PROPRIÉTAIRE ---
-            "immatriculation": self.immat_input.text().strip().upper(),
-            "chassis": self.chassis_input.text().strip().upper(),
-            "fleet_id": self.combo_fleet.currentData(),
-            "owner_id": self.client_list_widget.currentItem().data(Qt.UserRole).id if self.client_list_widget.currentItem() else None,
-            "marque": self.marque_input.text().strip(),
-            "modele": self.modele_input.text().strip(),
-            "annee": int(self.annee_input.text()) if self.annee_input.text().isdigit() else None,
-            "energie": self.energie_combo.currentText(),
-            "usage": self.usage_input.text().strip(),
-            "places": int(self.places_input.text()) if self.places_input.text().isdigit() else 5,
-            "has_remorque": self.check_remorque.isChecked(),
-            "statut": self.status_combo.currentText(),
-
-            # --- DATES (Conversion QDate -> Python Date) ---
-            "date_debut": self.date_debut.date().toPython(),
-            "date_fin": self.date_fin.date().toPython(),
-
-            # --- RÉCAPITULATIF FINANCIER ---
-            "valeur_neuf": clean_input(self.val_neuf),
-            "valeur_venale": clean_input(self.val_venale),
-            "prime_brute": clean_input(self.prime_brute),
-            "reduction": clean_input(self.reduction),
-            "prime_nette": clean_input(self.prime_nette),
-            "prime_emise": clean_input(self.prime_nette), # prime_emise = prime_nette
-
-            # --- ÉTAT DES GARANTIES (Booleans) ---
-            "check_rc": self.check_rc.isChecked(),
-            "check_dr": self.check_dr.isChecked(),
-            "check_vol": self.check_vol.isChecked(),
-            "check_vb": self.check_vb.isChecked(),
-            "check_in": self.check_in.isChecked(),
-            "check_bris": self.check_bris.isChecked(),
-            "check_ar": self.check_ar.isChecked(),
-            "check_dta": self.check_dta.isChecked(),
-            "check_ipt": self.check_ipt.isChecked(),
-
-            # --- MONTANTS DES GARANTIES (Valeurs calculées) ---
-            "amt_rc": clean_amt("rc"),
-            "amt_dr": clean_amt("dr"),
-            "amt_vol": clean_amt("vol"),
-            "amt_vb": clean_amt("vb"),
-            "amt_in": clean_amt("in"),
-            "amt_bris": clean_amt("bris"),
-            "amt_ar": clean_amt("ar"),
-            "amt_dta": clean_amt("dta"),
-            "amt_ipt": clean_amt("ipt")
-        }
-        return data
-
-    def get_system_info(self):
-        """Récupère l'IP locale et le nom de la machine."""
-        try:
-            hostname = socket.gethostname()
-            ip_address = socket.gethostbyname(hostname)
-            os_info = f"{platform.system()} {platform.release()}"
-            print(os_info)
-            return {
-                "ip_address": ip_address,
-                "hostname": hostname,
-                "os_info": os_info
-            }
-        except Exception:
-            return {"ip_address": "127.0.0.1", "hostname": "unknown", "os_info": "N/A"}
-
-    def validate_and_save(self):
-        """Gère la création ou la mise à jour avec Audit et IP."""
-        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
-        self.btn_save.setEnabled(False)
-        self.btn_save.setText("Traitement en cours...")
-
-        self.progress_bar.setVisible(True)
-        self.progress_bar.setValue(10)
-        self.progress_bar.setFormat("🚀 Préparation des données...")
-        QApplication.processEvents()
-
-        try:
-            # 1. Récupération des données du formulaire
-            data = self.get_form_data()
-            
-            # 2. Récupération des adresses IP
-            ip_local = socket.gethostbyname(socket.gethostname())
-            ip_public = None
+        icon_lbl = QLabel()
+        if icon_pix is not None:
+            icon_lbl.setPixmap(icon_pix)
             try:
-                # On tente de récupérer l'IP publique via un service externe
-                ip_public = requests.get('https://api.ipify.org', timeout=1).text
-            except:
-                ip_public = "Non disponible"
+                icon_lbl.setFixedSize(icon_pix.size())
+            except Exception:
+                pass
+        icon_lbl.setStyleSheet("background: transparent;")
 
-            self.progress_bar.setValue(30)
-            self.progress_bar.setFormat("🔍 Analyse du contexte...")
+        text_lbl = QLabel(text)
+        text_lbl.setStyleSheet(f"""
+            font-size: 12px;
+            font-weight: 600;
+            color: {Colors.TEXT_SECONDARY};
+            margin-bottom: 4px;
+        """)
+
+        hl.addWidget(icon_lbl)
+        hl.addWidget(text_lbl)
+        hl.addStretch()
+
+        return container
+
+    def _get_field_style(self):
+        """Retourne le style unifié pour les champs"""
+        return f"""
+            QLineEdit, QComboBox, QDateEdit, QTextEdit, QSpinBox, QDoubleSpinBox {{
+                border: 2px solid {Colors.BORDER};
+                border-radius: 10px;
+                padding: 9px 12px;
+                background-color: {Colors.WHITE};
+                font-size: 13px;
+                color: {Colors.TEXT_PRIMARY};
+                font-family: {Fonts.FAMILY};
+            }}
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus, QTextEdit:focus {{
+                border-color: {Colors.PRIMARY};
+                background-color: {Colors.PRIMARY}10;
+            }}
+            QLineEdit:disabled, QComboBox:disabled, QDateEdit:disabled {{
+                background-color: {Colors.GRAY_100};
+                color: {Colors.TEXT_MUTED};
+            }}
+        """
+
+    def _get_group_style(self):
+        """Retourne le style unifié pour les groupes"""
+        return f"""
+            QGroupBox {{
+                font-size: 13px;
+                font-weight: bold;
+                border: 2px solid {Colors.BORDER};
+                border-radius: 14px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background: {Colors.WHITE};
+            }}
+            QGroupBox::title {{
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 10px 0 10px;
+                color: {Colors.TEXT_PRIMARY};
+            }}
+        """
+
+    def on_remorque_changed(self, state):
+        """Active/désactive les champs liés à la remorque"""
+        enabled = state == Qt.CheckState.Checked
+        self.remorque_immat.setEnabled(enabled)
+        self.check_inflammable.setEnabled(enabled)
+
+    def calculate_tva(self):
+        """Calcule la TVA (19.25%)"""
+        try:
+            prime_nette = self.get_float_value(self.prime_nette)
+            accessoires = self.get_float_value(self.accessoire)
+            asac = self.get_float_value(self.asac)
             
-            # 3. Récupération de l'ID utilisateur
-            current_user_id = getattr(self, "current_user_id", 1)
-
-            # 4. CHOIX DE L'ACTION : UPDATE ou CREATE
-            # On vérifie si self.vehicle_to_edit existe et contient un ID
-            if hasattr(self, 'vehicle_to_edit') and self.vehicle_to_edit and hasattr(self.vehicle_to_edit, 'id'):
-                self.progress_bar.setFormat("📝 Mise à jour en cours...")
-                # On appelle update_vehicle
-                success, message = self.controller.update_vehicle(
-                    vehicle_id=self.vehicle_to_edit.id, 
-                    new_data=data, 
-                    user_id=current_user_id,
-                    local_ip=ip_local,    # <--- Correction ici
-                    public_ip=ip_public   # <--- Correction ici
-                )
-            else:
-                self.progress_bar.setFormat("🆕 Création en cours...")
-                # On appelle create_vehicle
-                success, message = self.controller.create_vehicle(
-                    data=data, 
-                    user_id=current_user_id,
-                    local_ip=ip_local,    # <--- Correction ici
-                    public_ip=ip_public   # <--- Correction ici
-                )
-
-            self.progress_bar.setValue(70)
-            QApplication.processEvents()
-
-            if success:
-                self.progress_bar.setValue(100)
-                self.progress_bar.setFormat("✅ Opération réussie !")
-                QApplication.restoreOverrideCursor()
-                
-                import time
-                time.sleep(0.5)
-                self.accept() # Ferme le dialogue
-            else:
-                raise Exception(message)
-
+            base_tva = prime_nette + accessoires + asac
+            tva = base_tva * 0.1925
+            
+            self.tva.setText(f"{tva:,.0f}".replace(",", " "))
+            return tva
         except Exception as e:
-            QApplication.restoreOverrideCursor()
-            self.btn_save.setEnabled(True)
-            self.btn_save.setText("ENREGISTRER")
-            self.progress_bar.setVisible(False)
-            QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {str(e)}")
+            print(f"Erreur TVA: {e}")
+            return 0
+    
+    def calculate_pttc(self):
+        """Calcule le PTTC"""
+        try:
+            prime_nette = self.get_float_value(self.prime_nette)
+            accessoires = self.get_float_value(self.accessoire)
+            asac = self.get_float_value(self.asac)
+            tva = self.get_float_value(self.tva)
+            vignette_text = self.vignette.currentText() if hasattr(self, 'vignette') else "0"
+            vignette = float(vignette_text.replace(" ", "")) if vignette_text else 0
+            carte_rose = self.get_float_value(self.carte_rose)
+            
+            pttc = int(prime_nette + accessoires + asac + tva + vignette + carte_rose)
 
-    def filter_clients(self, text):
-        self.client_list_widget.clear()
-        if len(text) < 2: return
-        
-        clients = self.controller.get_contacts_for_combo(text)
-        
-        for client in clients:
-            # Sécurité : Si c'est un tuple (nom, prenom, ...) au lieu d'un objet
-            if isinstance(client, tuple):
-                name_display = f"{client[0]} {client[1] if len(client) > 1 else ''}"
-            else:
-                name_display = f"{client.nom} {client.prenom or ''}"
-                
-            item = QListWidgetItem(name_display)
-            item.setData(Qt.UserRole, client) # On stocke l'objet (ou le tuple) pour la suite
-            self.client_list_widget.addItem(item)
 
-    def display_client_details(self, row):
-        """ Affiche les infos du client sélectionné dans la carte """
-        if row < 0: return
-        
-        item = self.client_list_widget.currentItem()
-        client = item.data(Qt.UserRole)
-        
-        # Mise à jour des textes
-        self.lbl_card_name.setText(f"{client.nom.upper()} {client.prenom or ''}")
-        info_text = (
-            f"<b>Nature:</b> {client.nature}<br>"
-            f"<b>Tel:</b> {client.telephone or 'N/A'}<br>"
-            f"<b>Adresse:</b> {client.adresse or 'N/A'}"
+            
+            self.pttc.setText(f"{pttc:,.0f}".replace(",", " "))
+            return pttc
+        except Exception as e:
+            print(f"Erreur PTTC: {e}")
+            return 0
+
+    def load_tarif_categories_by_code_async(self, code):
+        """Charge les catégories associées à un code tarif sélectionné."""
+        if not self.selected_cie_id or not self.controller or not code:
+            return
+
+        loader = get_global_loader()
+        loader.show_loading("Chargement des catégories...")
+
+        def fetch():
+            return self.controller.vehicles.get_tarif_categories_by_compagnie_and_code(
+                self.selected_cie_id,
+                code
+            )
+
+        async_query.execute(
+            fetch,
+            on_finished=self._on_tarif_categories_loaded,
+            on_error=self._on_tarif_codes_error
         )
-        self.lbl_card_info.setText(info_text)
 
-        # Mise à jour de la photo
-        if client.photo_path and os.path.exists(client.photo_path):
-            self.client_photo.setPixmap(QPixmap(client.photo_path))
-        else:
-            self.client_photo.setText("👤") # Avatar par défaut
-
-    def update_garantie_price(self, key, state):
-        label = self.result_labels.get(key)
+    def get_rc_base_amount(self):
+        """
+        Récupère le montant de base de la RC (utile pour les garanties dépendantes)
         
-        if state:
-            try:
-                # 1. Préparation des dates
-                d_debut = self.date_debut.date().toPython()
-                d_fin = self.date_fin.date().toPython()
-                nbr_jr = max(0, (d_fin - d_debut).days)
-
-                # 2. Conversion sécurisée des champs de saisie en nombres (float)
-                def get_val(line_edit):
-                    txt = line_edit.text().replace(" ", "").replace(",", ".")
+        Returns:
+            float: Montant de la RC (0 si non calculée)
+        """
+        try:
+            garantie_data = self.result_labels.get("rc")
+            if garantie_data:
+                montant_brut_label = garantie_data['montant_brut']
+                if montant_brut_label and montant_brut_label.isVisible():
+                    txt = montant_brut_label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
                     return float(txt) if txt else 0.0
+            return 0.0
+        except (ValueError, AttributeError):
+            return 0.0
+    
+    def _validate_section(self, index):
+        """Valide une section et met à jour la barre de progression"""
+        sections_validators = {
+            0: self._validate_identification,
+            1: self._validate_classification,
+            2: self._validate_technical,
+            3: self._validate_owner,
+            4: self._validate_guarantees,
+            5: self._validate_financial,
+        }
+        
+        validator = sections_validators.get(index)
+        if validator:
+            is_valid = validator()
+            # self.slide_menu.mark_section_completed(index, is_valid)
+    
+    def _validate_identification(self):
+        """Valide la section identification"""
+        has_immat = bool(self.immat_input.text().strip())
+        has_chassis = bool(self.chassis_input.text().strip())
+        has_marque = bool(self.marque_input.currentText().strip())
+        has_modele = bool(self.modele_input.text().strip())
+        return has_immat and has_chassis and has_marque and has_modele
 
-                val_venale = get_val(self.val_venale)
-                val_neuf = get_val(self.val_neuf)
-                # Pour les places, on évite la division par zéro
-                try:
-                    places = int(self.places_input.text()) if self.places_input.text() else 1
-                except:
-                    places = 1
+    def _validate_classification(self):
+        """Valide la section classification"""
+        has_cat = bool(self.asac_combo_cat.currentText().strip())
+        has_genre = bool(self.combo_genre.currentText().strip())
+        has_type = bool(self.combo_type.currentText().strip())
+        has_usage = bool(self.combo_usage.currentText().strip())
+        has_energie = bool(self.combo_energie.currentText().strip())
+        has_zone = bool(self.combo_zone.currentText().strip())
+        return has_cat and has_genre and has_type and has_usage and has_energie and has_zone
 
-                montant = 0.0
+    def _validate_technical(self):
+        """Valide la section caractéristiques"""
+        has_power = bool(self.usage_input.text().strip())
+        has_places = bool(self.places_input.text().strip())
+        has_val_neuf = bool(self.val_neuf.text().strip())
+        has_val_venale = bool(self.val_venale.text().strip())
+        return has_power and has_places and has_val_neuf and has_val_venale
 
-                # 3. Application des formules corrigées
-                if key == "rc":
-                    # Formule : ((Valeur Vénale * Nbr_jr) * Nbr_jr) / 365
-                    montant = ((0 * nbr_jr) * nbr_jr) / 365
+    def _validate_owner(self):
+        """Valide la section propriétaire"""
+        has_customer = self.customer_list.currentItem() is not None
+        has_company = self.company_list.currentItem() is not None
+        return has_customer and has_company
+
+    def _validate_guarantees(self):
+        """Valide la section garanties"""
+        # Vérifier qu'au moins une garantie est sélectionnée
+        for key, garantie in self.garanties_widgets.items():
+            if garantie['checkbox'].isChecked():
+                return True
+        return False
+
+    def _validate_financial(self):
+        """Valide la section financière"""
+        has_amount = bool(self.prime_nette.text().strip() and float(self.prime_nette.text().replace(" ", "").replace(",", ".")) > 0)
+        has_date_debut = self.date_debut.date().isValid()
+        has_date_fin = self.date_fin.date().isValid()
+        return has_amount and has_date_debut and has_date_fin
+
+    # ============================================================
+    # ONGLET PROPRIÉTAIRE AVEC SCROLLAREA
+    # ============================================================
+    
+    # def _create_owner_tab(self):
+    #     """Crée l'onglet des propriétaires avec ScrollArea"""
+    #     tab = QWidget()
+    #     layout = QVBoxLayout(tab)
+    #     layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     # ScrollArea pour tout le contenu
+    #     scroll = QScrollArea()
+    #     scroll.setWidgetResizable(True)
+    #     scroll.setFrameShape(QScrollArea.NoFrame)
+    #     scroll.setStyleSheet(f"""
+    #         QScrollArea {{
+    #             border: none;
+    #             background: transparent;
+    #         }}
+    #         QScrollBar:vertical {{
+    #             border: none;
+    #             background: {Colors.GRAY_100};
+    #             width: 8px;
+    #             border-radius: 4px;
+    #         }}
+    #         QScrollBar::handle:vertical {{
+    #             background: {Colors.GRAY_400};
+    #             border-radius: 4px;
+    #             min-height: 20px;
+    #         }}
+    #         QScrollBar::handle:vertical:hover {{
+    #             background: {Colors.PRIMARY};
+    #         }}
+    #     """)
+        
+    #     content_widget = QWidget()
+    #     content_layout = QVBoxLayout(content_widget)
+    #     content_layout.setSpacing(20)
+    #     content_layout.setContentsMargins(25, 25, 25, 25)
+        
+    #     field_style = self._get_field_style()
+    #     group_style = self._get_group_style()
+        
+    #     # ====== SOUSCRIPTEUR ======
+    #     group_customer = QGroupBox("Souscripteur *")
+    #     group_customer.setStyleSheet(group_style)
+    #     customer_layout = QVBoxLayout(group_customer)
+    #     customer_layout.setSpacing(12)
+    #     customer_layout.setContentsMargins(20, 20, 20, 20)
+        
+    #     # Barre de recherche
+    #     search_layout = QHBoxLayout()
+    #     search_layout.setSpacing(10)
+        
+    #     self.search_customer = QLineEdit()
+    #     self.search_customer.setPlaceholderText("Rechercher un souscripteur (nom, téléphone, code)...")
+    #     self.search_customer.setStyleSheet(field_style)
+    #     self.search_customer.textChanged.connect(self.filter_customers)
+    #     search_layout.addWidget(self.search_customer, 1)
+        
+    #     new_customer_btn = QPushButton(f"Nouveau")
+    #     new_customer_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background: {Colors.SUCCESS};
+    #             color: {Colors.WHITE};
+    #             border-radius: 8px;
+    #             padding: 8px 16px;
+    #             font-weight: 600;
+    #             font-size: 12px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background: {Colors.SUCCESS}cc;
+    #         }}
+    #     """)
+    #     new_customer_btn.clicked.connect(self._open_new_contact_dialog)
+    #     search_layout.addWidget(new_customer_btn)
+        
+    #     customer_layout.addLayout(search_layout)
+        
+    #     # Séparateur
+    #     sep = QFrame()
+    #     sep.setFrameShape(QFrame.HLine)
+    #     sep.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+    #     customer_layout.addWidget(sep)
+        
+    #     # Contenu principal : Liste + Détails
+    #     customer_content = QHBoxLayout()
+    #     customer_content.setSpacing(15)
+        
+    #     # Liste
+    #     self.customer_list = QListWidget()
+    #     self.customer_list.setFixedWidth(280)
+    #     self.customer_list.setMinimumHeight(150)
+    #     self.customer_list.setStyleSheet(f"""
+    #         QListWidget {{
+    #             border: 2px solid {Colors.BORDER};
+    #             border-radius: 10px;
+    #             background: {Colors.WHITE};
+    #             outline: none;
+    #             padding: 4px;
+    #         }}
+    #         QListWidget::item {{
+    #             padding: 10px 12px;
+    #             border-radius: 6px;
+    #             margin: 1px;
+    #             font-size: 12px;
+    #         }}
+    #         QListWidget::item:hover {{
+    #             background: {Colors.GRAY_100};
+    #         }}
+    #         QListWidget::item:selected {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+    #                 stop:0 {Colors.PRIMARY}, stop:1 {Colors.PRIMARY_DARK});
+    #             color: {Colors.WHITE};
+    #         }}
+    #     """)
+    #     self.customer_list.currentRowChanged.connect(self.display_customer_details)
+    #     customer_content.addWidget(self.customer_list)
+        
+    #     # Carte de détails
+    #     self.customer_card = QFrame()
+    #     self.customer_card.setObjectName("CustomerCard")
+    #     self.customer_card.setStyleSheet(f"""
+    #         QFrame#CustomerCard {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+    #                 border-radius: 12px;
+    #                 border: 2px solid {Colors.BORDER};
+    #                 padding: 16px;
+    #             }}
+    #     """)
+    #     customer_card_layout = QHBoxLayout(self.customer_card)
+    #     customer_card_layout.setSpacing(15)
+        
+    #     # Avatar
+    #     avatar_container = QFrame()
+    #     avatar_container.setFixedSize(70, 70)
+    #     avatar_container.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {Colors.PRIMARY};
+    #             border-radius: 35px;
+    #             border: 3px solid {Colors.WHITE};
+    #         }}
+    #     """)
+    #     avatar_layout = QVBoxLayout(avatar_container)
+    #     avatar_layout.setAlignment(Qt.AlignCenter)
+    #     avatar_layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.customer_photo = QLabel()
+    #     pix = get_icon_pixmap('owner', color='white', size=28)
+    #     if pix is not None:
+    #         self.customer_photo.setPixmap(pix)
+    #     self.customer_photo.setStyleSheet(f"""
+    #         font-size: 28px;
+    #         color: {Colors.WHITE};
+    #         background: transparent;
+    #     """)
+    #     self.customer_photo.setAlignment(Qt.AlignCenter)
+    #     avatar_layout.addWidget(self.customer_photo)
+    #     customer_card_layout.addWidget(avatar_container)
+        
+    #     # Informations
+    #     info_widget = QWidget()
+    #     info_layout = QVBoxLayout(info_widget)
+    #     info_layout.setSpacing(6)
+    #     info_layout.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.lbl_customer_name = QLabel("Aucun souscripteur sélectionné")
+    #     self.lbl_customer_name.setStyleSheet(f"""
+    #         font-size: 15px;
+    #         font-weight: 700;
+    #         color: {Colors.TEXT_PRIMARY};
+    #     """)
+        
+    #     self.lbl_customer_info = QLabel("Sélectionnez un souscripteur dans la liste")
+    #     self.lbl_customer_info.setStyleSheet(f"""
+    #         font-size: 12px;
+    #         color: {Colors.TEXT_MUTED};
+    #         line-height: 1.6;
+    #     """)
+    #     self.lbl_customer_info.setWordWrap(True)
+        
+    #     info_layout.addWidget(self.lbl_customer_name)
+    #     info_layout.addWidget(self.lbl_customer_info)
+    #     info_layout.addStretch()
+        
+    #     customer_card_layout.addWidget(info_widget, 1)
+    #     customer_content.addWidget(self.customer_card, 1)
+        
+    #     customer_layout.addLayout(customer_content)
+    #     content_layout.addWidget(group_customer)
+        
+    #     # ====== CHAUFFEUR (avec liste et recherche) ======
+    #     group_driver = QGroupBox("Chauffeur")
+    #     group_driver.setStyleSheet(group_style)
+    #     driver_layout = QVBoxLayout(group_driver)
+    #     driver_layout.setSpacing(12)
+    #     driver_layout.setContentsMargins(20, 20, 20, 20)
+        
+    #     # ✅ Barre de recherche pour chauffeurs
+    #     search_driver_layout = QHBoxLayout()
+    #     search_driver_layout.setSpacing(10)
+        
+    #     self.search_driver = QLineEdit()
+    #     self.search_driver.setPlaceholderText("Rechercher un chauffeur (nom, permis)...")
+    #     self.search_driver.setStyleSheet(field_style)
+    #     self.search_driver.textChanged.connect(self.filter_drivers)
+    #     search_driver_layout.addWidget(self.search_driver, 1)
+        
+    #     new_driver_btn = QPushButton("Nouveau")
+    #     new_driver_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background: {Colors.SUCCESS};
+    #             color: {Colors.WHITE};
+    #             border-radius: 8px;
+    #             padding: 8px 16px;
+    #             font-weight: 600;
+    #             font-size: 12px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background: {Colors.SUCCESS}cc;
+    #         }}
+    #     """)
+    #     new_driver_btn.clicked.connect(self._open_new_driver_dialog)
+    #     search_driver_layout.addWidget(new_driver_btn)
+        
+    #     driver_layout.addLayout(search_driver_layout)
+        
+    #     # Séparateur
+    #     sep2 = QFrame()
+    #     sep2.setFrameShape(QFrame.HLine)
+    #     sep2.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+    #     driver_layout.addWidget(sep2)
+        
+    #     # Contenu principal : Liste + Détails du chauffeur
+    #     driver_content = QHBoxLayout()
+    #     driver_content.setSpacing(15)
+        
+    #     # ✅ Liste des chauffeurs
+    #     self.driver_list = QListWidget()
+    #     self.driver_list.setFixedWidth(280)
+    #     self.driver_list.setMinimumHeight(150)
+    #     self.driver_list.setStyleSheet(self.customer_list.styleSheet())
+    #     self.driver_list.currentRowChanged.connect(self.display_driver_details)
+    #     driver_content.addWidget(self.driver_list)
+        
+    #     # Carte de détails du chauffeur
+    #     self.driver_card = QFrame()
+    #     self.driver_card.setObjectName("DriverCard")
+    #     self.driver_card.setStyleSheet(f"""
+    #         QFrame#DriverCard {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+    #             border-radius: 12px;
+    #             border: 2px solid {Colors.BORDER};
+    #             padding: 16px;
+    #         }}
+    #     """)
+    #     driver_card_layout = QHBoxLayout(self.driver_card)
+    #     driver_card_layout.setSpacing(15)
+        
+    #     # Avatar du chauffeur
+    #     avatar_container2 = QFrame()
+    #     avatar_container2.setFixedSize(70, 70)
+    #     avatar_container2.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {Colors.WARNING};
+    #             border-radius: 35px;
+    #             border: 3px solid {Colors.WHITE};
+    #         }}
+    #     """)
+    #     avatar_layout2 = QVBoxLayout(avatar_container2)
+    #     avatar_layout2.setAlignment(Qt.AlignCenter)
+    #     avatar_layout2.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.driver_photo = QLabel()
+    #     pix = get_icon_pixmap('driver', color='white', size=28)
+    #     if pix is not None:
+    #         self.driver_photo.setPixmap(pix)
+    #     self.driver_photo.setStyleSheet(f"""
+    #         font-size: 28px;
+    #         color: {Colors.WHITE};
+    #         background: transparent;
+    #     """)
+    #     self.driver_photo.setAlignment(Qt.AlignCenter)
+    #     avatar_layout2.addWidget(self.driver_photo)
+    #     driver_card_layout.addWidget(avatar_container2)
+        
+    #     # Informations du chauffeur
+    #     info_widget2 = QWidget()
+    #     info_layout2 = QVBoxLayout(info_widget2)
+    #     info_layout2.setSpacing(6)
+    #     info_layout2.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.lbl_driver_name = QLabel("Aucun chauffeur sélectionné")
+    #     self.lbl_driver_name.setStyleSheet(f"""
+    #         font-size: 15px;
+    #         font-weight: 700;
+    #         color: {Colors.TEXT_PRIMARY};
+    #     """)
+        
+    #     self.lbl_driver_info = QLabel("Sélectionnez un chauffeur dans la liste ou créez-en un")
+    #     self.lbl_driver_info.setStyleSheet(f"""
+    #         font-size: 12px;
+    #         color: {Colors.TEXT_MUTED};
+    #         line-height: 1.6;
+    #     """)
+    #     self.lbl_driver_info.setWordWrap(True)
+        
+    #     info_layout2.addWidget(self.lbl_driver_name)
+    #     info_layout2.addWidget(self.lbl_driver_info)
+    #     info_layout2.addStretch()
+        
+    #     driver_card_layout.addWidget(info_widget2, 1)
+    #     driver_content.addWidget(self.driver_card, 1)
+        
+    #     driver_layout.addLayout(driver_content)
+    #     content_layout.addWidget(group_driver)
+    #     # ====== COMPAGNIE ======
+    #     group_company = QGroupBox("Compagnie d'assurance  *")
+    #     group_company.setStyleSheet(group_style)
+    #     company_layout = QVBoxLayout(group_company)
+    #     company_layout.setSpacing(12)
+    #     company_layout.setContentsMargins(20, 20, 20, 20)
+        
+    #     # Barre de recherche avec bouton
+    #     search_layout3 = QHBoxLayout()
+    #     search_layout3.setSpacing(10)
+        
+    #     self.search_company = QLineEdit()
+    #     self.search_company.setPlaceholderText("Rechercher une compagnie...")
+    #     self.search_company.setStyleSheet(field_style)
+    #     self.search_company.textChanged.connect(self.filter_companies)
+    #     search_layout3.addWidget(self.search_company, 1)
+        
+    #     new_company_btn = QPushButton("Nouveau")
+    #     new_company_btn.setStyleSheet(f"""
+    #         QPushButton {{
+    #             background: {Colors.INFO};
+    #             color: {Colors.WHITE};
+    #             border-radius: 8px;
+    #             padding: 8px 16px;
+    #             font-weight: 600;
+    #             font-size: 12px;
+    #         }}
+    #         QPushButton:hover {{
+    #             background: {Colors.INFO}cc;
+    #         }}
+    #     """)
+    #     new_company_btn.clicked.connect(self._open_new_company_dialog)
+    #     search_layout3.addWidget(new_company_btn)
+        
+    #     company_layout.addLayout(search_layout3)
+        
+    #     sep3 = QFrame()
+    #     sep3.setFrameShape(QFrame.HLine)
+    #     sep3.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+    #     company_layout.addWidget(sep3)
+        
+    #     # Contenu principal
+    #     company_content = QHBoxLayout()
+    #     company_content.setSpacing(15)
+        
+    #     self.company_list = QListWidget()
+    #     self.company_list.setFixedWidth(280)
+    #     self.company_list.setMinimumHeight(120)
+    #     self.company_list.setStyleSheet(self.customer_list.styleSheet())
+    #     self.company_list.currentRowChanged.connect(self.display_company_details)
+    #     company_content.addWidget(self.company_list)
+        
+    #     self.company_card = QFrame()
+    #     self.company_card.setObjectName("CompanyCard")
+    #     self.company_card.setStyleSheet(f"""
+    #         QFrame#CompanyCard {{
+    #             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+    #                 stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+    #                 border-radius: 12px;
+    #                 border: 2px solid {Colors.BORDER};
+    #                 padding: 16px;
+    #             }}
+    #     """)
+    #     company_card_layout = QHBoxLayout(self.company_card)
+    #     company_card_layout.setSpacing(15)
+        
+    #     avatar_container3 = QFrame()
+    #     avatar_container3.setFixedSize(70, 70)
+    #     avatar_container3.setStyleSheet(f"""
+    #         QFrame {{
+    #             background: {Colors.INFO};
+    #             border-radius: 35px;
+    #             border: 3px solid {Colors.WHITE};
+    #         }}
+    #     """)
+    #     avatar_layout3 = QVBoxLayout(avatar_container3)
+    #     avatar_layout3.setAlignment(Qt.AlignCenter)
+    #     avatar_layout3.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.company_photo = QLabel()
+    #     pix = get_icon_pixmap('companies', color='white', size=28)
+    #     if pix is not None:
+    #         self.company_photo.setPixmap(pix)
+    #     self.company_photo.setStyleSheet(f"""
+    #         font-size: 28px;
+    #         color: {Colors.WHITE};
+    #         background: transparent;
+    #     """)
+    #     self.company_photo.setAlignment(Qt.AlignCenter)
+    #     avatar_layout3.addWidget(self.company_photo)
+    #     company_card_layout.addWidget(avatar_container3)
+        
+    #     info_widget3 = QWidget()
+    #     info_layout3 = QVBoxLayout(info_widget3)
+    #     info_layout3.setSpacing(6)
+    #     info_layout3.setContentsMargins(0, 0, 0, 0)
+        
+    #     self.lbl_company_name = QLabel("Aucune compagnie sélectionnée")
+    #     self.lbl_company_name.setStyleSheet(f"""
+    #         font-size: 15px;
+    #         font-weight: 700;
+    #         color: {Colors.TEXT_PRIMARY};
+    #     """)
+        
+    #     self.lbl_company_info = QLabel("Sélectionnez une compagnie dans la liste")
+    #     self.lbl_company_info.setStyleSheet(f"""
+    #         font-size: 12px;
+    #         color: {Colors.TEXT_MUTED};
+    #         line-height: 1.6;
+    #     """)
+    #     self.lbl_company_info.setWordWrap(True)
+        
+    #     info_layout3.addWidget(self.lbl_company_name)
+    #     info_layout3.addWidget(self.lbl_company_info)
+    #     info_layout3.addStretch()
+        
+    #     company_card_layout.addWidget(info_widget3, 1)
+    #     company_content.addWidget(self.company_card, 1)
+        
+    #     company_layout.addLayout(company_content)
+    #     content_layout.addWidget(group_company)
+        
+    #     content_layout.addStretch()
+        
+    #     # Assigner le contenu à la ScrollArea
+    #     scroll.setWidget(content_widget)
+    #     layout.addWidget(scroll)
+        
+    #     return tab
+
+    def _create_owner_tab(self):
+        """Crée l'onglet des propriétaires avec ScrollArea - Style AutoAssure"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # ScrollArea pour tout le contenu
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #f1f2f6;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cbd5e0;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #3498db;
+            }
+        """)
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(25, 25, 25, 25)
+        
+        field_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                color: #2d3748;
+                font-family: 'Segoe UI';
+            }
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border-color: #3498db;
+                background-color: #f0f9ff;
+            }
+            QLabel {
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+        """
+        
+        group_style = """
+            QGroupBox {
+                font-size: 13px;
+                font-weight: bold;
+                border: 2px solid #e2e8f0;
+                border-radius: 14px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 10px 0 10px;
+                color: #2c3e50;
+            }
+        """
+        
+        # ====== SOUSCRIPTEUR ======
+        group_customer = QGroupBox("Souscripteur *")
+        group_customer.setStyleSheet(group_style)
+        customer_layout = QVBoxLayout(group_customer)
+        customer_layout.setSpacing(12)
+        customer_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Barre de recherche
+        search_layout = QHBoxLayout()
+        search_layout.setSpacing(10)
+        
+        self.search_customer = QLineEdit()
+        self.search_customer.setPlaceholderText("Rechercher un souscripteur (nom, téléphone, code)...")
+        self.search_customer.setStyleSheet(field_style)
+        self.search_customer.textChanged.connect(self.filter_customers)
+        search_layout.addWidget(self.search_customer, 1)
+        
+        new_customer_btn = QPushButton("Nouveau")
+        new_customer_btn.setStyleSheet("""
+            QPushButton {
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: #059669;
+            }
+        """)
+        new_customer_btn.clicked.connect(self._open_new_contact_dialog)
+        search_layout.addWidget(new_customer_btn)
+        
+        customer_layout.addLayout(search_layout)
+        
+        # Séparateur
+        sep = QFrame()
+        sep.setFrameShape(QFrame.HLine)
+        sep.setStyleSheet("background: #e2e8f0; margin: 4px 0;")
+        customer_layout.addWidget(sep)
+        
+        # Contenu principal : Liste + Détails
+        customer_content = QHBoxLayout()
+        customer_content.setSpacing(15)
+        
+        # Liste
+        self.customer_list = QListWidget()
+        self.customer_list.setFixedWidth(280)
+        self.customer_list.setMinimumHeight(150)
+        self.customer_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                background: white;
+                outline: none;
+                padding: 4px;
+            }
+            QListWidget::item {
+                padding: 10px 12px;
+                border-radius: 6px;
+                margin: 1px;
+                font-size: 12px;
+            }
+            QListWidget::item:hover {
+                background: #f1f5f9;
+            }
+            QListWidget::item:selected {
+                background: #3b82f6;
+                color: white;
+            }
+        """)
+        self.customer_list.currentRowChanged.connect(self.display_customer_details)
+        customer_content.addWidget(self.customer_list)
+        
+        # Carte de détails
+        self.customer_card = QFrame()
+        self.customer_card.setObjectName("CustomerCard")
+        self.customer_card.setStyleSheet("""
+            QFrame#CustomerCard {
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 2px solid #e2e8f0;
+                padding: 16px;
+            }
+        """)
+        customer_card_layout = QHBoxLayout(self.customer_card)
+        customer_card_layout.setSpacing(15)
+        
+        # Avatar
+        avatar_container = QFrame()
+        avatar_container.setFixedSize(60, 60)
+        avatar_container.setStyleSheet("""
+            QFrame {
+                background: #3b82f6;
+                border-radius: 30px;
+                border: 3px solid white;
+            }
+        """)
+        avatar_layout = QVBoxLayout(avatar_container)
+        avatar_layout.setAlignment(Qt.AlignCenter)
+        avatar_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.customer_photo = QLabel()
+        self.customer_photo.setText("👤")
+        self.customer_photo.setStyleSheet("""
+            font-size: 28px;
+            color: white;
+            background: transparent;
+        """)
+        self.customer_photo.setAlignment(Qt.AlignCenter)
+        avatar_layout.addWidget(self.customer_photo)
+        customer_card_layout.addWidget(avatar_container)
+        
+        # Informations
+        info_widget = QWidget()
+        info_layout = QVBoxLayout(info_widget)
+        info_layout.setSpacing(6)
+        info_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.lbl_customer_name = QLabel("Aucun souscripteur sélectionné")
+        self.lbl_customer_name.setStyleSheet("""
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        """)
+        
+        self.lbl_customer_info = QLabel("Sélectionnez un souscripteur dans la liste ou créez-en un nouveau.")
+        self.lbl_customer_info.setStyleSheet("""
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+        """)
+        self.lbl_customer_info.setWordWrap(True)
+        
+        info_layout.addWidget(self.lbl_customer_name)
+        info_layout.addWidget(self.lbl_customer_info)
+        info_layout.addStretch()
+        
+        customer_card_layout.addWidget(info_widget, 1)
+        customer_content.addWidget(self.customer_card, 1)
+        
+        customer_layout.addLayout(customer_content)
+        content_layout.addWidget(group_customer)
+        
+        # ====== CHAUFFEUR ======
+        group_driver = QGroupBox("Chauffeur")
+        group_driver.setStyleSheet(group_style)
+        driver_layout = QVBoxLayout(group_driver)
+        driver_layout.setSpacing(12)
+        driver_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Barre de recherche
+        search_driver_layout = QHBoxLayout()
+        search_driver_layout.setSpacing(10)
+        
+        self.search_driver = QLineEdit()
+        self.search_driver.setPlaceholderText("Rechercher un chauffeur (nom, permis)...")
+        self.search_driver.setStyleSheet(field_style)
+        self.search_driver.textChanged.connect(self.filter_drivers)
+        search_driver_layout.addWidget(self.search_driver, 1)
+        
+        new_driver_btn = QPushButton("Nouveau")
+        new_driver_btn.setStyleSheet("""
+            QPushButton {
+                background: #10b981;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: #059669;
+            }
+        """)
+        new_driver_btn.clicked.connect(self._open_new_driver_dialog)
+        search_driver_layout.addWidget(new_driver_btn)
+        
+        driver_layout.addLayout(search_driver_layout)
+        
+        # Séparateur
+        sep2 = QFrame()
+        sep2.setFrameShape(QFrame.HLine)
+        sep2.setStyleSheet("background: #e2e8f0; margin: 4px 0;")
+        driver_layout.addWidget(sep2)
+        
+        # Contenu principal : Liste + Détails
+        driver_content = QHBoxLayout()
+        driver_content.setSpacing(15)
+        
+        # Liste des chauffeurs
+        self.driver_list = QListWidget()
+        self.driver_list.setFixedWidth(280)
+        self.driver_list.setMinimumHeight(150)
+        self.driver_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                background: white;
+                outline: none;
+                padding: 4px;
+            }
+            QListWidget::item {
+                padding: 10px 12px;
+                border-radius: 6px;
+                margin: 1px;
+                font-size: 12px;
+            }
+            QListWidget::item:hover {
+                background: #f1f5f9;
+            }
+            QListWidget::item:selected {
+                background: #3b82f6;
+                color: white;
+            }
+        """)
+        self.driver_list.currentRowChanged.connect(self.display_driver_details)
+        driver_content.addWidget(self.driver_list)
+        
+        # Carte de détails du chauffeur
+        self.driver_card = QFrame()
+        self.driver_card.setObjectName("DriverCard")
+        self.driver_card.setStyleSheet("""
+            QFrame#DriverCard {
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 2px solid #e2e8f0;
+                padding: 16px;
+            }
+        """)
+        driver_card_layout = QHBoxLayout(self.driver_card)
+        driver_card_layout.setSpacing(15)
+        
+        # Avatar du chauffeur
+        avatar_container2 = QFrame()
+        avatar_container2.setFixedSize(60, 60)
+        avatar_container2.setStyleSheet("""
+            QFrame {
+                background: #f59e0b;
+                border-radius: 30px;
+                border: 3px solid white;
+            }
+        """)
+        avatar_layout2 = QVBoxLayout(avatar_container2)
+        avatar_layout2.setAlignment(Qt.AlignCenter)
+        avatar_layout2.setContentsMargins(0, 0, 0, 0)
+        
+        self.driver_photo = QLabel()
+        self.driver_photo.setText("🚗")
+        self.driver_photo.setStyleSheet("""
+            font-size: 28px;
+            color: white;
+            background: transparent;
+        """)
+        self.driver_photo.setAlignment(Qt.AlignCenter)
+        avatar_layout2.addWidget(self.driver_photo)
+        driver_card_layout.addWidget(avatar_container2)
+        
+        # Informations du chauffeur
+        info_widget2 = QWidget()
+        info_layout2 = QVBoxLayout(info_widget2)
+        info_layout2.setSpacing(6)
+        info_layout2.setContentsMargins(0, 0, 0, 0)
+        
+        self.lbl_driver_name = QLabel("Aucun chauffeur sélectionné")
+        self.lbl_driver_name.setStyleSheet("""
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        """)
+        
+        self.lbl_driver_info = QLabel("Sélectionnez un chauffeur dans la liste ou créez-en un.")
+        self.lbl_driver_info.setStyleSheet("""
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+        """)
+        self.lbl_driver_info.setWordWrap(True)
+        
+        info_layout2.addWidget(self.lbl_driver_name)
+        info_layout2.addWidget(self.lbl_driver_info)
+        info_layout2.addStretch()
+        
+        driver_card_layout.addWidget(info_widget2, 1)
+        driver_content.addWidget(self.driver_card, 1)
+        
+        driver_layout.addLayout(driver_content)
+        content_layout.addWidget(group_driver)
+        
+        # ====== COMPAGNIE ======
+        group_company = QGroupBox("Compagnie d'assurance  *")
+        group_company.setStyleSheet(group_style)
+        company_layout = QVBoxLayout(group_company)
+        company_layout.setSpacing(12)
+        company_layout.setContentsMargins(20, 20, 20, 20)
+        
+        # Barre de recherche
+        search_layout3 = QHBoxLayout()
+        search_layout3.setSpacing(10)
+        
+        self.search_company = QLineEdit()
+        self.search_company.setPlaceholderText("Rechercher une compagnie...")
+        self.search_company.setStyleSheet(field_style)
+        self.search_company.textChanged.connect(self.filter_companies)
+        search_layout3.addWidget(self.search_company, 1)
+        
+        new_company_btn = QPushButton("Nouveau")
+        new_company_btn.setStyleSheet("""
+            QPushButton {
+                background: #3b82f6;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-weight: 600;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: #2563eb;
+            }
+        """)
+        new_company_btn.clicked.connect(self._open_new_company_dialog)
+        search_layout3.addWidget(new_company_btn)
+        
+        company_layout.addLayout(search_layout3)
+        
+        # Séparateur
+        sep3 = QFrame()
+        sep3.setFrameShape(QFrame.HLine)
+        sep3.setStyleSheet("background: #e2e8f0; margin: 4px 0;")
+        company_layout.addWidget(sep3)
+        
+        # Contenu principal
+        company_content = QHBoxLayout()
+        company_content.setSpacing(15)
+        
+        self.company_list = QListWidget()
+        self.company_list.setFixedWidth(280)
+        self.company_list.setMinimumHeight(120)
+        self.company_list.setStyleSheet("""
+            QListWidget {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                background: white;
+                outline: none;
+                padding: 4px;
+            }
+            QListWidget::item {
+                padding: 10px 12px;
+                border-radius: 6px;
+                margin: 1px;
+                font-size: 12px;
+            }
+            QListWidget::item:hover {
+                background: #f1f5f9;
+            }
+            QListWidget::item:selected {
+                background: #3b82f6;
+                color: white;
+            }
+        """)
+        self.company_list.currentRowChanged.connect(self.display_company_details)
+        company_content.addWidget(self.company_list)
+        
+        self.company_card = QFrame()
+        self.company_card.setObjectName("CompanyCard")
+        self.company_card.setStyleSheet("""
+            QFrame#CompanyCard {
+                background: #f8fafc;
+                border-radius: 12px;
+                border: 2px solid #e2e8f0;
+                padding: 16px;
+            }
+        """)
+        company_card_layout = QHBoxLayout(self.company_card)
+        company_card_layout.setSpacing(15)
+        
+        # Avatar compagnie
+        avatar_container3 = QFrame()
+        avatar_container3.setFixedSize(60, 60)
+        avatar_container3.setStyleSheet("""
+            QFrame {
+                background: #3b82f6;
+                border-radius: 30px;
+                border: 3px solid white;
+            }
+        """)
+        avatar_layout3 = QVBoxLayout(avatar_container3)
+        avatar_layout3.setAlignment(Qt.AlignCenter)
+        avatar_layout3.setContentsMargins(0, 0, 0, 0)
+        
+        self.company_photo = QLabel()
+        self.company_photo.setText("🏢")
+        self.company_photo.setStyleSheet("""
+            font-size: 28px;
+            color: white;
+            background: transparent;
+        """)
+        self.company_photo.setAlignment(Qt.AlignCenter)
+        avatar_layout3.addWidget(self.company_photo)
+        company_card_layout.addWidget(avatar_container3)
+        
+        info_widget3 = QWidget()
+        info_layout3 = QVBoxLayout(info_widget3)
+        info_layout3.setSpacing(6)
+        info_layout3.setContentsMargins(0, 0, 0, 0)
+        
+        self.lbl_company_name = QLabel("Aucune compagnie sélectionnée")
+        self.lbl_company_name.setStyleSheet("""
+            font-size: 15px;
+            font-weight: 700;
+            color: #0f172a;
+        """)
+        
+        self.lbl_company_info = QLabel("Sélectionnez une compagnie dans la liste.")
+        self.lbl_company_info.setStyleSheet("""
+            font-size: 12px;
+            color: #64748b;
+            line-height: 1.6;
+        """)
+        self.lbl_company_info.setWordWrap(True)
+        
+        info_layout3.addWidget(self.lbl_company_name)
+        info_layout3.addWidget(self.lbl_company_info)
+        info_layout3.addStretch()
+        
+        company_card_layout.addWidget(info_widget3, 1)
+        company_content.addWidget(self.company_card, 1)
+        
+        company_layout.addLayout(company_content)
+        content_layout.addWidget(group_company)
+        
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        return tab
+
+    # ============================================================
+    # MÉTHODES DE FILTRAGE ET AFFICHAGE
+    # ============================================================
+
+    def _open_new_contact_dialog(self):
+        """Ouvre le dialogue de création d'un nouveau contact"""
+        try:
+            from addons.Automobiles.views.contacts_view import ContactDialog
+            
+            dialog = ContactDialog(self.controller, current_user=self.current_user)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                if hasattr(self, 'search_customer'):
+                    self.filter_customers(self.search_customer.text())
+                if hasattr(self, 'search_insured'):
+                    self.filter_insured(self.search_insured.text())
+                QMessageBox.information(self, "Succès", "Contact créé avec succès")
+        except ImportError:
+            QMessageBox.information(self, "Nouveau contact", 
+                "Veuillez créer le contact depuis l'onglet 'Clients'")
+        except Exception as e:
+            QMessageBox.warning(self, "Erreur", f"Erreur lors de la création: {str(e)}")
+
+    def _open_new_company_dialog(self):
+        """Ouvre le dialogue de création d'une nouvelle compagnie"""
+        try:
+            from addons.Automobiles.views.compagnies_view import CompanyDialog
+            
+            dialog = CompanyDialog(self.controller, current_user=self.current_user)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                if hasattr(self, 'search_company'):
+                    self.filter_companies(self.search_company.text())
+                QMessageBox.information(self, "Succès", "Compagnie créée avec succès")
+        except ImportError:
+            QMessageBox.information(self, "Nouvelle compagnie",
+                "Veuillez créer la compagnie depuis l'onglet 'Compagnies'")
+        except Exception as e:
+            QMessageBox.warning(self, "Erreur", f"Erreur lors de la création: {str(e)}")
+
+    def filter_customers(self, text):
+        """Filtre les souscripteurs selon la recherche"""
+        self.customer_list.clear()
+        if len(text) < 2:
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.customer_list.addItem(item)
+            return
+        
+        try:
+            contacts = self.controller.contacts.search_contacts(text)
+            if not contacts:
+                item = QListWidgetItem("Aucun souscripteur trouvé")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.customer_list.addItem(item)
+                return
+            
+            for contact in contacts:
+                display = f"{contact.nom} {contact.prenom or ''} - {contact.telephone or ''}"
+                item = QListWidgetItem(display)
+                item.setData(Qt.UserRole, contact)
+                self.customer_list.addItem(item)
+        except Exception as e:
+            print(f"Erreur filtrage souscripteurs: {e}")
+            item = QListWidgetItem(f"Erreur: {str(e)}")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.customer_list.addItem(item)
+
+    def filter_insured(self, text):
+        """Filtre les assurés selon la recherche"""
+        self.driver_list.clear()
+        if len(text) < 2:
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.driver_list.addItem(item)
+            return
+        
+        try:
+            drivers = self.controller.contacts.search_drivers(text)
+            if not drivers:
+                item = QListWidgetItem("Aucun chauffeur trouvé")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.driver_list.addItem(item)
+                return
+            
+            for contact in drivers:
+                display = f"{contact.nom} {contact.prenom or ''} - {contact.telephone or ''}"
+                item = QListWidgetItem(display)
+                item.setData(Qt.UserRole, contact)
+                self.driver_list.addItem(item)
+        except Exception as e:
+            print(f"Erreur filtrage chauffeur: {e}")
+            item = QListWidgetItem(f"Erreur: {str(e)}")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.driver_list.addItem(item)
+
+    def filter_companies(self, text):
+        """Filtre les compagnies selon la recherche"""
+        self.company_list.clear()
+        if len(text) < 2:
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.company_list.addItem(item)
+            return
+        
+        try:
+            if hasattr(self.controller, 'compagnies'):
+                companies = self.controller.compagnies.search_companies(text)
+            else:
+                from core.database import SessionLocal
                 
-                elif key == "vol":
-                    montant = (val_venale * 0.02 * nbr_jr) / 365
-
-                elif key == "vb":
-                    montant = nbr_jr * (val_venale * 0.02) / 365
-
-                elif key == "in":
-                    # 0.25% s'écrit 0.0025
-                    montant = nbr_jr * (val_venale * 0.0025) / 365
-                    
-                elif key == "bris":
-                    # 0.5% s'écrit 0.005
-                    montant = nbr_jr * (val_neuf * 0.005) / 365
+                session = SessionLocal()
+                controller = CompagnieController(session)
+                companies = controller.search_companies(text)
+                session.close()
+            
+            if not companies:
+                item = QListWidgetItem("Aucune compagnie trouvée")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.company_list.addItem(item)
+                return
+            
+            for company in companies:
+                display = f"{company.nom} - {company.code or ''}"
+                item = QListWidgetItem(display)
+                item.setData(Qt.UserRole, company)
+                self.company_list.addItem(item)
                 
-                elif key == "ar":
-                    # Note: 'car' n'existait pas, j'utilise val_venale par défaut ou remplacez par la bonne variable
-                    montant = nbr_jr * (val_venale * 0.03) / 365
+        except Exception as e:
+            print(f"Erreur filtrage compagnies: {e}")
+            item = QListWidgetItem(f"Erreur: {str(e)}")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.company_list.addItem(item)
 
-                elif key == "dta":
-                    montant = nbr_jr * (val_neuf * 0.05) / 365
+    def filter_drivers(self, text):
+        """Filtre les chauffeurs selon la recherche"""
+        self.driver_list.clear()
+        if len(text) < 2:
+            item = QListWidgetItem("Saisissez au moins 2 caractères")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.driver_list.addItem(item)
+            return
+        
+        try:
+            from addons.Automobiles.models.driver_models import Driver
+            
+            # ✅ Recherche directe dans la table drivers
+            pattern = f"%{text}%"
+            drivers = self.controller.session.query(Driver).filter(
+                Driver.nom.ilike(pattern) |
+                Driver.num_permis.ilike(pattern) |
+                Driver.cat_permis.ilike(pattern)
+                # ✅ Ne pas chercher sur driver.id (entier)
+            ).limit(10).all()
+            
+            if not drivers:
+                item = QListWidgetItem("Aucun chauffeur trouvé")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.driver_list.addItem(item)
+                return
+            
+            for driver in drivers:
+                display = f"{driver.nom} - {driver.num_permis or ''}"
+                item = QListWidgetItem(display)
+                item.setData(Qt.UserRole, driver)
+                self.driver_list.addItem(item)
+                
+        except Exception as e:
+            print(f"❌ Erreur filtrage chauffeurs: {e}")
+            item = QListWidgetItem(f"Erreur: {str(e)}")
+            item.setFlags(Qt.ItemFlag.NoItemFlags)
+            self.driver_list.addItem(item)
 
-                elif key == "ipt":
-                    # Votre formule : ((nbr_jr * 0) / (5 * places)) / 365
-                    # Note: multiplier par 0 donnera toujours 0, j'ai gardé la structure
-                    montant = ((nbr_jr * 0) / (5 * places)) / 365
+    def display_driver_details(self, row):
+        """Affiche les détails du chauffeur sélectionné"""
+        if row < 0:
+            return
+        
+        item = self.driver_list.currentItem()
+        if not item or not item.data(Qt.UserRole):
+            return
+        
+        driver = item.data(Qt.UserRole)  # ✅ Maintenant un vrai objet Driver
+        self.selected_driver_id = driver.id
+        
+        # ✅ Utiliser les attributs du modèle Driver
+        name = getattr(driver, 'nom', 'Chauffeur')
+        self.lbl_driver_name.setText(name)
+        
+        info = f"""🪪 Permis: {getattr(driver, 'num_permis', 'N/A')}
+    📋 Catégorie: {getattr(driver, 'driver_licence_category', 'N/A')}
+    📅 Date d'obtention: {getattr(driver, 'driver_licence_issued_at', None).strftime('%d/%m/%Y') if getattr(driver, 'driver_licence_issued_at', None) else 'N/A'}
+    🏷️ Spécialité: {getattr(driver, 'specialite', 'N/A')}
+    ⭐ Expérience: {getattr(driver, 'annees_experience', 0)} ans"""
+        self.lbl_driver_info.setText(info)
+        
+        # Avatar
+        initials = ''.join([part[0].upper() for part in name.split()[:2]])
+        self.driver_photo.setText(initials or "🚗")
 
-                # 4. Affichage formaté
-                label.setText(f"{montant:,.0f} FCFA".replace(",", " "))
-                label.setVisible(True)
+    def _open_new_driver_dialog(self):
+        """Ouvre le dialogue de création d'un nouveau chauffeur"""
+        try:
+            from addons.Automobiles.views.contact_form_view import ContactForm
+            
+            # Créer un contact de type chauffeur
+            dialog = ContactForm(self.controller, parent=self)
+            # Forcer le type à chauffeur
+            dialog.type_client.setCurrentIndex(1)  # Chauffeur
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                # Rafraîchir la liste des chauffeurs
+                if hasattr(self, 'search_driver'):
+                    self.filter_drivers(self.search_driver.text())
+                QMessageBox.information(self, "Succès", "Chauffeur créé avec succès")
+        except Exception as e:
+            QMessageBox.warning(self, "Erreur", f"Erreur lors de la création: {str(e)}")
 
-            except Exception as e:
-                print(f"Erreur de calcul pour {key} : {e}")
-                label.setText("0 FCFA")
+    def display_customer_details(self, row):
+        """Affiche les détails du souscripteur sélectionné"""
+        if row < 0:
+            return
+        
+        item = self.customer_list.currentItem()
+        if not item or not item.data(Qt.UserRole):
+            return
+        
+        contact = item.data(Qt.UserRole)
+        self.selected_customer_id = contact.id
+        
+        name = f"{contact.nom} {contact.prenom or ''}".upper()
+        self.lbl_customer_name.setText(name)
+        
+        info = f"""📌 Type: {contact.nature or 'Particulier'}
+📞 Tél: {contact.telephone or 'N/A'}
+📧 Email: {contact.email or 'N/A'}
+🆔 code: {contact.code_client or 'N/A'}
+📍 adresse: {contact.adresse or 'N/A'}"""
+        self.lbl_customer_info.setText(info)
+        
+        initials = f"{contact.nom[0]}{contact.prenom[0] if contact.prenom else ''}".upper()
+        self.customer_photo.setText(initials)
+        self.customer_photo.setStyleSheet(f"""
+            font-size: 24px;
+            color: {Colors.WHITE};
+            background: transparent;
+        """)
+
+    def display_insured_details(self, row):
+        """Affiche les détails de l'assuré sélectionné"""
+        if row < 0:
+            return
+        
+        item = self.driver_list.currentItem()
+        if not item or not item.data(Qt.UserRole):
+            return
+        
+        contact = item.data(Qt.UserRole)
+        self.selected_insured_id = contact.id
+        
+        name = f"{contact.nom} {contact.prenom or ''}".upper()
+        self.lbl_insured_name.setText(name)
+        
+        info = f"""📌 Type: {contact.nature or 'Particulier'}
+📞 Tél: {contact.telephone or 'N/A'}
+📧 Email: {contact.email or 'N/A'}
+🆔 Code: {contact.code_client or 'N/A'}
+📍 Adresse: {contact.adresse or 'N/A'}"""
+        self.lbl_insured_info.setText(info)
+        
+        initials = f"{contact.nom[0]}{contact.prenom[0] if contact.prenom else ''}".upper()
+        self.insured_photo.setText(initials)
+        self.insured_photo.setStyleSheet(f"""
+            font-size: 24px;
+            color: {Colors.WHITE};
+            background: transparent;
+        """)
+
+    def display_company_details(self, row):
+        """Affiche les détails de la compagnie sélectionnée"""
+        if row < 0:
+            return
+        
+        item = self.company_list.currentItem()
+        if not item or not item.data(Qt.UserRole):
+            return
+        
+        company = item.data(Qt.UserRole)
+        self.selected_cie_id = company.id
+        
+        self.lbl_company_name.setText(company.nom.upper())
+        
+        info = f"""📌 Code: {company.code or 'N/A'}
+📞 Tél: {company.telephone or 'N/A'}
+📧 Email: {company.email or 'N/A'}
+📍 Adresse: {company.adresse or 'N/A'}"""
+        self.lbl_company_info.setText(info)
+        
+        if hasattr(company, 'logo') and company.logo:
+            pixmap = QPixmap()
+            pixmap.loadFromData(company.logo)
+            self.company_photo.setPixmap(pixmap.scaled(60, 60, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         else:
-            label.setVisible(False)
-            label.setText("0 FCFA")
-                
-        self.calculate_total_premium()
+            self.company_photo.setText("🏢")
+            self.company_photo.setStyleSheet(f"""
+                font-size: 28px;
+                color: {Colors.WHITE};
+                background: transparent;
+            """)
+        
+        self.load_tarif_codes_async()
+
+    def _add_contact_to_list(self, contact, list_widget):
+        """Ajoute un contact à une liste"""
+        for i in range(list_widget.count()):
+            item = list_widget.item(i)
+            if item and item.data(Qt.UserRole) and hasattr(item.data(Qt.UserRole), 'id'):
+                if item.data(Qt.UserRole).id == contact.id:
+                    list_widget.setCurrentItem(item)
+                    return
+        
+        display = f"{contact.nom} {contact.prenom or ''} - {contact.telephone or ''}"
+        item = QListWidgetItem(display)
+        item.setData(Qt.UserRole, contact)
+        list_widget.addItem(item)
+        list_widget.setCurrentItem(item)
+
+    def load_owner_details_by_id(self, owner_id):
+        """Charge les détails du propriétaire par son ID"""
+        try:
+            contact = self.controller.contacts.get_contact_by_id(owner_id)
+            if not contact:
+                return
+            
+            self._add_contact_to_list(contact, self.customer_list)
+            self._add_contact_to_list(contact, self.driver_list)
+            
+        except Exception as e:
+            print(f"Erreur chargement propriétaire: {e}")
+
+    def load_tarif_codes_async(self):
+        """Charge les codes tarif de manière asynchrone"""
+        if not self.selected_cie_id or not self.controller:
+            return
+        
+        loader = get_global_loader()
+        loader.show_loading("Chargement des tarifs...")
+        
+        def fetch():
+            return self.controller.vehicles.get_tarif_codes_by_compagnie(self.selected_cie_id)
+        
+        async_query.execute(
+            fetch,
+            on_finished=self._on_tarif_codes_loaded,
+            on_error=self._on_tarif_codes_error
+        )
+
+    def _on_tarif_codes_loaded(self, codes):
+        get_global_loader().hide_loading()
+        
+        if hasattr(self, 'code_tarif'):
+            self.code_tarif.clear()
+            self.code_tarif.addItem("", "")
+        
+        if hasattr(self, 'combo_fleet'):
+            self.combo_fleet.clear()
+            self.combo_fleet.addItem("", "")
+        
+        for code, libelle in codes:
+            if hasattr(self, 'code_tarif'):
+                self.code_tarif.addItem(code, {"code": code, "libelle": libelle})
+            if hasattr(self, 'combo_fleet'):
+                self.combo_fleet.addItem(libelle, {"code": code, "libelle": libelle})
+
+    def _on_tarif_codes_error(self, error):
+        get_global_loader().hide_loading()
+        print(f"Erreur chargement tarifs: {error}")
+
+    def _on_immat_change(self, text):
+        """Formate l'immatriculation en majuscules"""
+        self.immat_input.setText(text.upper())
+
+    # ============================================================
+    # MÉTHODES DE GESTION DES GARANTIES (simplifiées)
+    # ============================================================
 
     def refresh_all_garanties(self):
-        """Parcourt les garanties et relance le calcul pour celles qui sont cochées"""
-        for key in self.result_labels.keys():
-            checkbox = getattr(self, f"check_{key}")
-            if checkbox.isChecked():
-                # On force l'appel à la fonction de calcul
+        """Rafraîchit toutes les garanties"""
+        for key in self.garanties_widgets:
+            checkbox = self.garanties_widgets[key].get('checkbox')
+            if checkbox and checkbox.isChecked():
                 self.update_garantie_price(key, 2)
 
-    def calculate_total_premium(self):
-        """ Calcule la Prime Brute et la Réduction selon la formule spécifique """
-        try:
-            # Fonction utilitaire pour extraire le nombre d'un label (ex: "50 000 FCFA" -> 50000)
-            def get_amt(key):
-                label = self.result_labels.get(key)
-                if label and label.isVisible():
-                    txt = label.text().replace(" FCFA", "").replace(" ", "").replace(",", ".")
-                    return float(txt) if txt else 0.0
-                return 0.0
+    def update_garantie_price(self, key, state):
+        """Met à jour le prix d'une garantie"""
+        garantie = self.garanties_widgets.get(key)
+        if not garantie:
+            return
+        # Implémentation simplifiée - à compléter selon vos besoins
+        pass
 
-            # 1. Récupération des montants individuels calculés
-            amt_rc   = get_amt("rc")
-            amt_dr   = get_amt("dr")
-            amt_vol  = get_amt("vol")
-            amt_vb   = get_amt("vb")
-            amt_in   = get_amt("in")
-            amt_bris = get_amt("bris")
-            amt_dta  = get_amt("dta")
-            amt_ar   = get_amt("ar")
-            amt_ipt  = get_amt("ipt")
+    def update_rc_calculation_async(self):
+        """Met à jour le calcul de la RC en tâche de fond"""
+        pass
 
-            # 2. Calcul de la Prime Brute (Somme de TOUTES les garanties cochées)
-            total_brut = amt_rc + amt_dr + amt_vol + amt_vb + amt_in + amt_bris + amt_dta + amt_ar + amt_ipt
+    # ============================================================
+    # AUTRES MÉTHODES UTILITAIRES
+    # ============================================================
 
-            # 3. Application de votre formule de RÉDUCTION :
-            # Formule : (RC + DR) * 10% + (Vol + VB + In + Bris + DTA) * 50%
-            partie_A = (amt_rc + amt_dr) * 0.10
-            partie_B = (amt_vol + amt_vb + amt_in + amt_bris + amt_dta) * 0.50
-            
-            total_reduction = partie_A + partie_B
+    def _on_field_changed(self):
+        """Déclenché quand un champ change - met à jour la validation"""
+        current_index = self.stack_widget.currentIndex()
+        self._validate_section(current_index)
 
-            # 4. Calcul de la Prime Nette
-            total_net = total_brut - total_reduction
+    def _connect_signals(self):
+        """Connecte les signaux pour les calculs automatiques et la validation"""
+        # Signaux existants...
+        if hasattr(self, 'combo_zone'):
+            self.combo_zone.currentTextChanged.connect(self.on_zone_changed)
+        if hasattr(self, 'combo_cat'):
+            self.combo_cat.currentTextChanged.connect(self.on_category_changed)
+        if hasattr(self, 'combo_usage'):
+            self.combo_usage.currentTextChanged.connect(self.on_usage_changed)
+        if hasattr(self, 'usage_input'):
+            self.usage_input.textChanged.connect(self.on_power_changed)
+        if hasattr(self, 'date_debut'):
+            self.date_debut.dateChanged.connect(self.on_date_changed)
+        if hasattr(self, 'date_fin'):
+            self.date_fin.dateChanged.connect(self.on_date_changed)
+        
+        # ✅ Validation automatique pour la ProgressBar
+        # Connecter uniquement les champs de saisie
+        for widget in self.findChildren(QLineEdit):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QComboBox):
+            widget.currentTextChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QDateEdit):
+            widget.dateChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QTextEdit):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QSpinBox):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QDoubleSpinBox):
+            widget.textChanged.connect(self._on_field_changed)
+        
+        for widget in self.findChildren(QCheckBox):
+            widget.stateChanged.connect(self._on_field_changed)
+    
+    def fill_form(self, data):
+        """Pré-remplit le formulaire"""
+        if not data:
+            return
+        
+        owner_id = data.get('owner_id')
+        if owner_id:
+            self.preselected_owner_id = owner_id
+            self.load_owner_details_by_id(owner_id)
 
-            # 5. Affichage dans les champs de la section "Calcul Automatique"
-            self.prime_brute.setText(f"{total_brut:,.0f}".replace(",", " "))
-            self.reduction.setText(f"{total_reduction:,.0f}".replace(",", " "))
-            self.prime_nette.setText(f"{total_net:,.0f}".replace(",", " "))
-            
-            # Mise à jour du champ prime_emise pour la base de données
-            self.prime_emise.setText(f"{total_net:.0f}")
-
-        except Exception as e:
-            print(f"Erreur dans le récapitulatif financier : {e}")
-
-    def load_existing_data(self, v):
+    def _to_qdate(self, dt):
         """
-        Remplit le formulaire en utilisant les mêmes clés que get_form_data.
+        Convertit un datetime ou date en QDate.
+        
+        Args:
+            dt: datetime, date ou None
+        
+        Returns:
+            QDate: Date convertie ou date courante
+        """
+        if dt is None:
+            return QDate.currentDate()
+        if isinstance(dt, datetime):
+            return QDate(dt.year, dt.month, dt.day)
+        if isinstance(dt, date):
+            return QDate(dt.year, dt.month, dt.day)
+        return QDate.currentDate()
+
+    def load_existing_data(self, vehicle):
+        """
+        Charge les données d'un véhicule existant dans le formulaire.
+        Cette méthode est appelée lors de l'édition d'un véhicule.
+        
+        Args:
+            vehicle: Objet Vehicle chargé depuis la base de données
         """
         try:
-            # --- 1. TEXTES (QLineEdit / QTextEdit) ---
-            # Format: (attribut_objet, widget)
-            text_fields = [
-                ('immatriculation', self.immat_input),
-                ('chassis', self.chassis_input),
-                ('marque', self.marque_input),
-                ('modele', self.modele_input),
-                ('usage', self.usage_input),
-                ('valeur_neuf', self.val_neuf),
-                ('valeur_venale', self.val_venale),
-                ('prime_brute', self.prime_brute),
-                ('reduction', self.reduction),
-                ('prime_nette', self.prime_nette),
-            ]
-            for attr, widget in text_fields:
-                widget.setText(str(getattr(v, attr, "")) if getattr(v, attr, None) else "")
-
-            # --- 2. NOMBRES SIMPLES (QLineEdit avec chiffres) ---
-            if hasattr(v, 'annee') and v.annee:
-                self.annee_input.setText(str(v.annee))
-
-            if hasattr(v, 'places') and v.places:
-                self.places_input.setText(str(v.places))
-
-            if hasattr(self, 'val_neuf'):
-                if isinstance(self.val_neuf, QLineEdit):
-                    self.val_neuf.setText(int(v.valeur_neuf or 0))
-                else:
-                    self.val_neuf.setText(float(v.valeur_neuf or 0))
-
-            # --- 3. COMBOBOXES ---
-            # Pour l'énergie et le statut (recherche par texte)
-            if v.energie:
-                # On cherche l'index du texte (MatchExact pour éviter les erreurs)
-                index = self.energie_combo.findText(v.energie, Qt.MatchFlag.MatchExactly)
-                if index >= 0:
-                    self.energie_combo.setCurrentIndex(index)
-                else:
-                    # Si la valeur en BD n'est pas dans la liste, on l'ajoute temporairement
-                    self.energie_combo.addItem(v.energie)
-                    self.energie_combo.setCurrentText(v.energie)
-
-            if v.statut:
-                index = self.status_combo.findText(v.statut, Qt.MatchFlag.MatchExactly)
-                if index >= 0:
-                    self.status_combo.setCurrentIndex(index)
+            # ============================================================
+            # 1. IDENTIFICATION
+            # ============================================================
+            if hasattr(self, 'immat_input') and vehicle.immatriculation:
+                self.immat_input.setText(vehicle.immatriculation)
             
-            # Pour la flotte (recherche par Data/ID)
-            # if v.fleet_id:
-            #     index = self.combo_fleet.findData(v.fleet_id)
-            #     if index >= 0: self.combo_fleet.setCurrentIndex(index)
-
-            # --- 4. DATES (QDateEdit) ---
-            if v.date_debut:
-                # Si v.date_debut est un objet datetime.date (SQLAlchemy)
-                d = v.date_debut
-                q_date = QDate(d.year, d.month, d.day)
-                self.date_debut.setDate(q_date)
-
-            if v.date_fin:
-                d = v.date_fin
-                q_date = QDate(d.year, d.month, d.day)
-                self.date_fin.setDate(q_date)
-
-            # --- 5. FINANCIER (QDoubleSpinBox ou QSpinBox) ---
-            # Note: On utilise float(x or 0) pour éviter les crashs si la valeur est None
-            self.val_neuf.setText(float(v.valeur_neuf or 0))
-            self.val_venale.setText(float(v.valeur_venale or 0))
-            self.prime_brute.setText(float(v.prime_brute or 0))
-            self.reduction.setText(float(v.reduction or 0))
-            self.prime_nette.setText(float(v.prime_nette or 0))
-
-            # --- 6. CHECKBOXES (Garanties & Remorque) ---
-            # On fait correspondre exactement vos clés "check_xx"
-            cles_garanties = ["rc", "df", "vol", "vb", "in", "bris", "ar", "dta", "ipt", "dom", "dr"]
-
-            for key in cles_garanties:
-                # 1. On retrouve le widget dynamiquement (ex: self.check_rc)
-                checkbox_widget = getattr(self, f"check_{key}", None)
-                
-                if checkbox_widget:
-                    # 2. On récupère la valeur en base de données
-                    # ATTENTION : vérifiez que le nom en BD est bien 'check_rc' etc.
-                    valeur_bd = getattr(v, f"check_{key}", False)
-                    
-                    # 3. On force la conversion en booléen et on applique
-                    checkbox_widget.setChecked(bool(valeur_bd))
-                    
-                    # 4. Forcer l'affichage du label de prix si coché
-                    if self.result_labels.get(key):
-                        self.result_labels[key].setVisible(bool(valeur_bd))
-
-            # --- 7. PROPRIÉTAIRE (Cas particulier : QListWidget) ---
-            # Si vous avez l'ID du client, on peut essayer de le sélectionner dans la liste
-            if v.owner_id:
-                for i in range(self.client_list_widget.count()):
-                    item = self.client_list_widget.item(i)
-                    if item.data(Qt.UserRole).id == v.owner_id:
-                        self.client_list_widget.setCurrentItem(item)
+            if hasattr(self, 'chassis_input') and vehicle.chassis:
+                self.chassis_input.setText(vehicle.chassis)
+            
+            # ✅ Marque (QComboBox)
+            if hasattr(self, 'marque_input') and vehicle.marque:
+                # Chercher la marque dans la liste
+                index = self.marque_input.findText(vehicle.marque.upper())
+                if index >= 0:
+                    self.marque_input.setCurrentIndex(index)
+                else:
+                    # Si la marque n'est pas dans la liste, l'ajouter
+                    self.marque_input.addItem(vehicle.marque.upper(), vehicle.marque.upper())
+                    self.marque_input.setCurrentText(vehicle.marque.upper())
+            
+            if hasattr(self, 'modele_input') and vehicle.modele:
+                self.modele_input.setText(vehicle.modele)
+            
+            if hasattr(self, 'annee_input') and vehicle.annee:
+                self.annee_input.setText(str(vehicle.annee))
+            
+            if hasattr(self, 'date_mise_circulation') and vehicle.date_mise_circulation:
+                self.date_mise_circulation.setDate(self._to_qdate(vehicle.date_mise_circulation))
+            
+            # ============================================================
+            # 2. CLASSIFICATION ASAC
+            # ============================================================
+            # Catégorie
+            if hasattr(self, 'asac_combo_cat') and vehicle.categorie:
+                # Chercher l'item correspondant
+                for i in range(self.asac_combo_cat.count()):
+                    item_text = self.asac_combo_cat.itemText(i)
+                    if vehicle.categorie in item_text:
+                        self.asac_combo_cat.setCurrentIndex(i)
                         break
+            
+            if hasattr(self, 'combo_cat') and vehicle.categorie:
+                for i in range(self.combo_cat.count()):
+                    item_text = self.combo_cat.itemText(i)
+                    if vehicle.categorie in item_text:
+                        self.combo_cat.setCurrentIndex(i)
+                        break
+            
+            # Genre
+            if hasattr(self, 'combo_genre') and vehicle.genre:
+                for i in range(self.combo_genre.count()):
+                    item_text = self.combo_genre.itemText(i)
+                    if vehicle.genre in item_text:
+                        self.combo_genre.setCurrentIndex(i)
+                        break
+            
+            # Type
+            if hasattr(self, 'combo_type') and vehicle.type_vehicule:
+                for i in range(self.combo_type.count()):
+                    item_text = self.combo_type.itemText(i)
+                    if vehicle.type_vehicule in item_text:
+                        self.combo_type.setCurrentIndex(i)
+                        break
+            
+            # Usage
+            if hasattr(self, 'combo_usage') and vehicle.usage:
+                for i in range(self.combo_usage.count()):
+                    item_text = self.combo_usage.itemText(i)
+                    if vehicle.usage in item_text:
+                        self.combo_usage.setCurrentIndex(i)
+                        break
+            
+            # Énergie
+            if hasattr(self, 'combo_energie') and vehicle.energie:
+                for i in range(self.combo_energie.count()):
+                    item_text = self.combo_energie.itemText(i)
+                    if vehicle.energie in item_text:
+                        self.combo_energie.setCurrentIndex(i)
+                        break
+            
+            # Zone
+            if hasattr(self, 'combo_zone') and vehicle.zone:
+                for i in range(self.combo_zone.count()):
+                    item_text = self.combo_zone.itemText(i)
+                    if not item_text:  # Ignorer les items vides
+                        continue
+                    # Vérifier si la zone est dans le texte ou si c'est la dernière lettre
+                    if vehicle.zone in item_text or vehicle.zone == item_text[-1]:
+                        self.combo_zone.setCurrentIndex(i)
+                        break
+            
+            # ============================================================
+            # 3. CARACTÉRISTIQUES TECHNIQUES
+            # ============================================================
+            if hasattr(self, 'usage_input') and vehicle.puissance_fiscale:
+                self.usage_input.setText(str(vehicle.puissance_fiscale))
+            
+            if hasattr(self, 'places_input') and vehicle.places:
+                self.places_input.setText(str(vehicle.places))
+            
+            if hasattr(self, 'cylindree_input') and vehicle.cylindree:
+                self.cylindree_input.setText(str(vehicle.cylindree))
+            
+            if hasattr(self, 'ptac_input') and vehicle.ptac:
+                self.ptac_input.setText(str(vehicle.ptac))
+            
+            if hasattr(self, 'charge_utile_input') and vehicle.charge_utile:
+                self.charge_utile_input.setText(str(vehicle.charge_utile))
+            
+            if hasattr(self, 'val_neuf') and vehicle.valeur_neuf:
+                self.val_neuf.setText(f"{vehicle.valeur_neuf:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'val_venale') and vehicle.valeur_venale:
+                self.val_venale.setText(f"{vehicle.valeur_venale:,.0f}".replace(",", " "))
+            
+            # ============================================================
+            # 4. OPTIONS
+            # ============================================================
+            if hasattr(self, 'check_remorque'):
+                self.check_remorque.setChecked(vehicle.has_remorque or False)
+            
+            if hasattr(self, 'check_inflammable'):
+                self.check_inflammable.setChecked(vehicle.remorque_inflammable or False)
+            
+            if hasattr(self, 'check_double_commande'):
+                self.check_double_commande.setChecked(vehicle.double_commande or False)
+            
+            if hasattr(self, 'check_rc_eleves'):
+                self.check_rc_eleves.setChecked(vehicle.rc_eleves or False)
+            
+            if hasattr(self, 'check_engin_portuaire'):
+                self.check_engin_portuaire.setChecked(vehicle.engin_portuaire or False)
+            
+            if hasattr(self, 'remorque_immat') and vehicle.remorque_immat:
+                self.remorque_immat.setText(vehicle.remorque_immat)
+                self.remorque_immat.setEnabled(vehicle.has_remorque or False)
+            
+            # ============================================================
+            # 5. CODES TARIFAIRES
+            # ============================================================
+            if hasattr(self, 'code_tarif') and vehicle.code_tarif:
+                for i in range(self.code_tarif.count()):
+                    item_text = self.code_tarif.itemText(i)
+                    if vehicle.code_tarif in item_text or vehicle.code_tarif == item_text:
+                        self.code_tarif.setCurrentIndex(i)
+                        break
+            
+            if hasattr(self, 'combo_fleet') and vehicle.libele_tarif:
+                for i in range(self.combo_fleet.count()):
+                    item_text = self.combo_fleet.itemText(i)
+                    if vehicle.libele_tarif in item_text or vehicle.libele_tarif == item_text:
+                        self.combo_fleet.setCurrentIndex(i)
+                        break
+            
+            if hasattr(self, 'code_assure') and vehicle.code_assure:
+                self.code_assure.setText(vehicle.code_assure)
+            
+            # ============================================================
+            # 6. PROPRIÉTAIRES (Souscripteur et Assuré)
+            # ============================================================
+            if hasattr(self, 'owner_id') and vehicle.owner_id:
+                self.selected_customer_id = vehicle.owner_id
+                self.selected_insured_id = vehicle.owner_id
+                
+                # Charger les détails du propriétaire
+                self.load_owner_details_by_id(vehicle.owner_id)
+            
+            # ============================================================
+            # 7. COMPAGNIE
+            # ============================================================
+            if hasattr(self, 'selected_cie_id') and vehicle.compagny_id:
+                self.selected_cie_id = vehicle.compagny_id
+                # Charger les détails de la compagnie
+                self._load_company_by_id(vehicle.compagny_id)
+            
+            # ============================================================
+            # 8. CONDUCTEUR (Driver)
+            # ============================================================
 
+            if hasattr(vehicle, 'driver') and vehicle.driver is not None:
+                driver = vehicle.driver  # ✅ C'est un objet Driver
+                
+                if hasattr(self, 'driver_list'):
+                    display = f"{driver.nom} - {driver.num_permis or ''}"
+                    item = QListWidgetItem(display)
+                    item.setData(Qt.UserRole, driver)
+                    self.driver_list.addItem(item)
+                    self.driver_list.setCurrentItem(item)
+                    
+                    self.selected_driver_id = driver.id
+                    self.lbl_driver_name.setText(driver.nom)
+
+            # ============================================================
+            # 9. GARANTIES
+            # ============================================================
+            if hasattr(vehicle, 'guarantees') and vehicle.guarantees:
+                g = vehicle.guarantees
+                self._load_guarantee_values(g)
+            elif hasattr(vehicle, 'guarantee') and vehicle.guarantee:
+                g = vehicle.guarantee
+                self._load_guarantee_values(g)
+            
+            # ============================================================
+            # 10. DATES
+            # ============================================================
+            if hasattr(self, 'date_debut') and vehicle.date_debut:
+                self.date_debut.setDate(self._to_qdate(vehicle.date_debut))
+            
+            if hasattr(self, 'date_fin') and vehicle.date_fin:
+                self.date_fin.setDate(self._to_qdate(vehicle.date_fin))
+            
+            if hasattr(self, 'nbr_jour') and vehicle.nbr_jour:
+                self.nbr_jour.setText(str(vehicle.nbr_jour))
+            
+            # ============================================================
+            # 11. FINANCES
+            # ============================================================
+            if hasattr(self, 'prime_brute') and vehicle.prime_brute:
+                self.prime_brute.setText(f"{vehicle.prime_brute:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'reduction') and vehicle.reduction:
+                self.reduction.setText(f"{vehicle.reduction:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'prime_nette') and vehicle.prime_nette:
+                self.prime_nette.setText(f"{vehicle.prime_nette:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'accessoire') and vehicle.accessoires:
+                self.accessoire.setText(f"{vehicle.accessoires:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'tva') and vehicle.tva:
+                self.tva.setText(f"{vehicle.tva:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'asac') and vehicle.fichier_asac:
+                self.asac.setText(f"{vehicle.fichier_asac:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'carte_rose') and vehicle.carte_rose:
+                self.carte_rose.setText(f"{vehicle.carte_rose:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'vignette') and vehicle.vignette:
+                self.vignette.setItemText(0, f"{vehicle.vignette:,.0f}".replace(",", " "))
+            
+            if hasattr(self, 'pttc') and vehicle.pttc:
+                self.pttc.setText(f"{vehicle.pttc:,.0f}".replace(",", " "))
+            
+            print(f"✅ Données du véhicule {vehicle.immatriculation} chargées avec succès")
+
+            # ============================================================
+            # EXONÉRATION DTA
+            # ============================================================
+            if hasattr(self, 'check_exonere_dta'):
+                # Vérifier si le véhicule a l'attribut exonere_dta
+                if hasattr(vehicle, 'exonere_dta'):
+                    self.check_exonere_dta.setChecked(vehicle.exonere_dta or False)
+                elif hasattr(vehicle, 'vignette') and vehicle.vignette > 0:
+                    # Si vignette > 0, c'est qu'il y a une exonération
+                    self.check_exonere_dta.setChecked(True)
+                    self.vignette.setVisible(True)
+                    # Définir la valeur de la vignette
+                    idx = self.vignette.findText(str(int(vehicle.vignette)))
+                    if idx >= 0:
+                        self.vignette.setCurrentIndex(idx)
+            
         except Exception as e:
-            print(f"Erreur lors du chargement : {str(e)}")
+            print(f"❌ Erreur lors du chargement des données: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _load_guarantee_values(self, guarantees):
+        """
+        Charge les valeurs des garanties dans le formulaire.
+        Seul le champ 'ipt' (Indiv. Personnes Transportées) a un montant brut modifiable.
+        
+        Args:
+            guarantees: Objet garantie (VehicleGuarantee)
+        """
+        try:
+            # Mapping des clés garantie
+            guarantee_map = {
+                'rc': ('RC', 'Responsabilité Civile'),
+                'dr': ('DR', 'Défense Recours'),
+                'vol': ('VOL', 'Vol/Vol partie'),
+                'vb': ('VB', 'Vol/Braquage'),
+                'in': ('INC', 'Incendie'),
+                'bris': ('BG', 'Bris de Glace'),
+                'ar': ('AR', 'Assistance Réparation'),
+                'dta': ('DTA', 'Dommages'),
+                'ipt': ('IPT', 'Indiv. Personnes Transportées')
+            }
+            
+            for key, (code, label) in guarantee_map.items():
+                if key not in self.garanties_widgets:
+                    continue
+                
+                garantie_widgets = self.garanties_widgets[key]
+                checkbox = garantie_widgets['checkbox']
+                montant_brut = garantie_widgets['montant_brut']
+                taux_input = garantie_widgets['taux']
+                montant_taux = garantie_widgets['montant_taux']
+                montant_net = garantie_widgets['montant_net']
+                
+                # Récupérer les valeurs depuis l'objet garantie
+                valeur_brute = getattr(guarantees, key, 0) or 0
+                valeur_taux = getattr(guarantees, f'red_{key}', 0) or 0
+                valeur_net = getattr(guarantees, f'net_{key}', 0) or 0
+                valeur_reduction = getattr(guarantees, f'reduction_{key}', 0) or 0
+                
+                # ✅ Si la valeur brute est > 0, activer la garantie
+                if valeur_brute > 0:
+                    checkbox.setChecked(True)
+                    montant_brut.setText(f"{valeur_brute:,.0f} FCFA".replace(",", " "))
+                    montant_brut.setVisible(True)
+                    
+                    if valeur_taux > 0:
+                        taux_input.setText(f"{valeur_taux}")
+                    taux_input.setVisible(True)
+                    
+                    if valeur_reduction > 0:
+                        montant_taux.setText(f"{valeur_reduction:,.0f} FCFA".replace(",", " "))
+                    montant_taux.setVisible(True)
+                    
+                    if valeur_net > 0:
+                        montant_net.setText(f"{valeur_net:,.0f} FCFA".replace(",", " "))
+                    montant_net.setVisible(True)
+                    
+                    # ============================================================
+                    # ✅ RENDRE MODIFIABLE UNIQUEMENT POUR 'ipt'
+                    # ============================================================
+                    if key == 'ipt':
+                        # ✅ Montant brut modifiable (QLineEdit au lieu de QLabel)
+                        self._make_brut_editable(montant_brut, key)
+                        
+                        # ✅ Taux modifiable
+                        taux_input.setReadOnly(False)
+                        taux_input.setStyleSheet("""
+                            QLineEdit {
+                                border: 2px solid #3498db;
+                                border-radius: 8px;
+                                padding: 6px 10px;
+                                font-size: 12px;
+                                max-width: 80px;
+                                background-color: #f0f9ff;
+                            }
+                            QLineEdit:focus {
+                                border-color: #2563eb;
+                                background-color: #ffffff;
+                            }
+                        """)
+                        # Connecter le signal pour recalculer le net
+                        try:
+                            taux_input.textChanged.disconnect()
+                        except:
+                            pass
+                        taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
+                        
+                        # ✅ Rendre la réduction et le net non modifiables (lecture seule)
+                        montant_taux.setStyleSheet("""
+                            color: #e67e22;
+                            font-weight: bold;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                            background-color: #f1f5f9;
+                        """)
+                        montant_net.setStyleSheet("""
+                            color: #2563eb;
+                            font-weight: bold;
+                            padding: 4px 8px;
+                            border-radius: 6px;
+                            background-color: #f1f5f9;
+                        """)
+                        
+                    else:
+                        # ❌ Pour les autres garanties : tout est en lecture seule
+                        self._make_brut_readonly(montant_brut)
+                        
+                        # ❌ Taux non modifiable
+                        taux_input.setReadOnly(True)
+                        taux_input.setStyleSheet("""
+                            QLineEdit {
+                                border: 2px solid #e2e8f0;
+                                border-radius: 8px;
+                                padding: 6px 10px;
+                                font-size: 12px;
+                                max-width: 80px;
+                                background-color: #f1f5f9;
+                                color: #64748b;
+                            }
+                        """)
+                else:
+                    checkbox.setChecked(False)
+                    montant_brut.setVisible(False)
+                    taux_input.setVisible(False)
+                    montant_taux.setVisible(False)
+                    montant_net.setVisible(False)
+                    
+                    # Réinitialiser les valeurs
+                    # ✅ Pour 'ipt', on remet un QLabel en lecture seule
+                    if key == 'ipt':
+                        # Remplacer le QLineEdit par un QLabel pour le montant brut
+                        self._make_brut_readonly(montant_brut)
+                        # Mettre à jour la référence dans le dictionnaire
+                        self.garanties_widgets[key]['montant_brut'] = montant_brut
+                    
+                    montant_brut.setText("0 FCFA")
+                    montant_taux.setText("0 FCFA")
+                    montant_net.setText("0 FCFA")
+                    taux_input.setText("")
+                            
+        except Exception as e:
+            print(f"❌ Erreur lors du chargement des garanties: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _make_brut_editable(self, widget, key):
+        """
+        Transforme un QLabel en QLineEdit modifiable pour le montant brut.
+        Utilisé uniquement pour la garantie 'ipt'.
+        
+        Args:
+            widget: Le widget actuel (QLabel ou QLineEdit)
+            key: Clé de la garantie
+        """
+        try:
+            # ✅ Si c'est déjà un QLineEdit, ne rien faire
+            if isinstance(widget, QLineEdit):
+                return
+            
+            # Récupérer la valeur actuelle
+            current_text = widget.text()
+            if current_text.endswith(" FCFA"):
+                current_text = current_text.replace(" FCFA", "")
+            current_text = current_text.replace(" ", "").replace(",", ".")
+            
+            # Créer un QLineEdit à la place du QLabel
+            line_edit = QLineEdit()
+            line_edit.setText(current_text)
+            line_edit.setAlignment(Qt.AlignRight)
+            line_edit.setStyleSheet("""
+                QLineEdit {
+                    border: 2px solid #3498db;
+                    border-radius: 8px;
+                    padding: 6px 10px;
+                    font-size: 13px;
+                    max-width: 120px;
+                    background-color: #f0f9ff;
+                    color: #1e40af;
+                    font-weight: bold;
+                }
+                QLineEdit:focus {
+                    border-color: #2563eb;
+                    background-color: #ffffff;
+                }
+            """)
+            line_edit.setToolTip("Modifier le montant brut de l'IPT")
+            
+            # Connecter le signal pour mettre à jour le total
+            line_edit.textChanged.connect(lambda text, k=key: self._on_ipt_brut_changed(k, text))
+            
+            # Remplacer le widget dans le layout
+            layout = widget.parent().layout()
+            if layout:
+                # Trouver l'index du widget
+                for i in range(layout.count()):
+                    item = layout.itemAt(i)
+                    if item and item.widget() == widget:
+                        # Remplacer par le nouveau widget
+                        layout.replaceWidget(widget, line_edit)
+                        widget.setParent(None)  # Ne pas supprimer, Qt le gère
+                        
+                        # Mettre à jour la référence dans le dictionnaire
+                        self.garanties_widgets[key]['montant_brut'] = line_edit
+                        break
+            
+        except Exception as e:
+            print(f"❌ Erreur lors du remplacement du widget: {e}")
+            import traceback
+            traceback.print_exc()
+
+    def _make_brut_readonly(self, widget):
+        """
+        Transforme un widget en QLabel en lecture seule pour le montant brut.
+        
+        Args:
+            widget: Le widget actuel (QLineEdit ou QLabel)
+        """
+        try:
+            # ✅ Si c'est déjà un QLabel, ne rien faire
+            if isinstance(widget, QLabel):
+                return widget
+                
+            # Si c'est un QLineEdit, le remplacer par un QLabel
+            if isinstance(widget, QLineEdit):
+                current_text = widget.text()
+                
+                label = QLabel(current_text)
+                label.setStyleSheet("""
+                    color: #27ae60;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                """)
+                label.setAlignment(Qt.AlignRight)
+                
+                # Remplacer le widget dans le layout
+                layout = widget.parent().layout()
+                if layout:
+                    for i in range(layout.count()):
+                        item = layout.itemAt(i)
+                        if item and item.widget() == widget:
+                            layout.replaceWidget(widget, label)
+                            widget.setParent(None)  # Ne pas supprimer, Qt le gère
+                            break
+                return label
+        except Exception as e:
+            print(f"❌ Erreur lors du passage en lecture seule: {e}")
+            import traceback
+            traceback.print_exc()
+        return widget
+
+    def _on_ipt_brut_changed(self, key, text):
+        """
+        Gère le changement du montant brut pour l'IPT.
+        Recalcule le net et met à jour le total.
+        
+        Args:
+            key: Clé de la garantie (doit être 'ipt')
+            text: Nouvelle valeur saisie
+        """
+        if key != 'ipt':
+            return
+        
+        try:
+            # Nettoyer le texte
+            clean_text = text.strip().replace(" ", "").replace(",", ".")
+            if not clean_text:
+                clean_text = "0"
+            
+            value = float(clean_text) if clean_text else 0
+            
+            # Mettre à jour le montant brut
+            garantie = self.garanties_widgets.get(key)
+            if garantie:
+                # Mettre à jour l'affichage
+                garantie['montant_brut'].setText(f"{value:,.0f}".replace(",", " "))
+                
+                # Recalculer le net avec le nouveau brut
+                self.update_net_amount(key)
+                
+                # Mettre à jour le total
+                self.calculate_total_premium()
+                
+        except ValueError as e:
+            print(f"⚠️ Valeur invalide pour l'IPT: {e}")
+
+    def update_net_amount(self, key):
+        """
+        Met à jour le montant net après application du taux
+        Seul 'ipt' est modifiable, les autres sont en lecture seule
+        """
+        garantie = self.garanties_widgets.get(key)
+        if not garantie:
+            return
+        
+        try:
+            # Récupérer le montant brut
+            brut_widget = garantie['montant_brut']
+            brut_text = ""
+            if isinstance(brut_widget, QLineEdit):
+                brut_text = brut_widget.text()
+            else:
+                brut_text = brut_widget.text()
+            
+            brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+            montant_brut = float(brut_text) if brut_text else 0
+            
+            # Récupérer le taux
+            taux_text = garantie['taux'].text().strip()
+            if taux_text.endswith('%'):
+                taux_text = taux_text[:-1]
+            taux = float(taux_text) if taux_text else 0
+            
+            # Calculer la réduction et le montant net
+            if taux > 0:
+                reduction = montant_brut * (taux / 100)
+                montant_net = montant_brut - reduction
+            else:
+                reduction = 0
+                montant_net = montant_brut
+            
+            # Mettre à jour les labels
+            garantie['montant_taux'].setText(f"{reduction:,.0f} FCFA".replace(",", " "))
+            garantie['montant_net'].setText(f"{montant_net:,.0f} FCFA".replace(",", " "))
+            
+            # Mettre à jour le total
+            self.calculate_total_premium()
+            
+        except Exception as e:
+            print(f"⚠️ Erreur lors de la mise à jour du net pour {key}: {e}")
+
+    def _load_company_by_id(self, compagny_id):
+        """
+        Charge les détails d'une compagnie par son ID.
+        
+        Args:
+            compagny_id: ID de la compagnie
+        """
+        try:
+            # Récupérer la compagnie depuis le contrôleur
+            compagny = self.controller.vehicles.get_compagnie_by_id(compagny_id)
+            if not compagny:
+                return
+            
+            # Afficher dans la liste
+            if hasattr(self, 'company_list'):
+                for i in range(self.company_list.count()):
+                    item = self.company_list.item(i)
+                    if item and item.data(Qt.UserRole):
+                        if item.data(Qt.UserRole).id == compagny_id:
+                            self.company_list.setCurrentItem(item)
+                            break
+            
+            # Mettre à jour les détails
+            if hasattr(self, 'lbl_company_name'):
+                self.lbl_company_name.setText(compagny.nom.upper())
+            
+            if hasattr(self, 'lbl_company_info'):
+                info = f"""{get_icon_pixmap('qrcode', color='white', size=24)} Code: {compagny.code or 'N/A'}
+    {get_icon_pixmap('phone', color='white', size=24)} Tél: {compagny.telephone or 'N/A'}
+    {get_icon_pixmap('email', color='white', size=24)} Email: {compagny.email or 'N/A'}
+    {get_icon_pixmap('address', color='white', size=24)} Adresse: {compagny.adresse or 'N/A'}"""
+                self.lbl_company_info.setText(info)
+            
+            # Charger les tarifs de la compagnie
+            self.load_tarif_codes_async()
+            
+        except Exception as e:
+            print(f"Erreur chargement compagnie {compagny_id}: {e}")
+
+    def freeze_ui(self):
+        """Désactive tous les champs pour la consultation"""
+        for widget in self.findChildren((QLineEdit, QComboBox, QTextEdit, QCheckBox, QDateEdit)):
+            widget.setEnabled(False)
+        for widget in self.findChildren(QListWidget):
+            widget.setEnabled(False)
+        if hasattr(self, 'btn_save'):
+            self.btn_save.setEnabled(False)
+        self.setWindowTitle("Consultation du véhicule")
+
+    #     parent_layout.addLayout(footer)
+    # ============================================================
+    # MÉTHODES DE SAUVEGARDE (simplifiées)
+    # ============================================================
+
+    def get_form_data(self):
+        """
+        Récupère toutes les données du formulaire pour la sauvegarde
+        
+        Returns:
+            dict: Dictionnaire des données du formulaire
+        """
+        data = {}
+        
+        # ============================================================
+        # IDENTIFICATION
+        # ============================================================
+        if hasattr(self, 'immat_input'):
+            data["immatriculation"] = self.immat_input.text().strip().upper()
+        else:
+            data["immatriculation"] = ""
+        
+        if hasattr(self, 'chassis_input'):
+            data["chassis"] = self.chassis_input.text().strip().upper()
+        else:
+            data["chassis"] = ""
+        
+        if hasattr(self, 'marque_input'):
+            data["marque"] = self.marque_input.currentText().strip().upper()
+        else:
+            data["marque"] = ""
+        
+        if hasattr(self, 'modele_input'):
+            data["modele"] = self.modele_input.text().strip()
+        else:
+            data["modele"] = ""
+        
+        if hasattr(self, 'annee_input'):
+            data["annee"] = int(self.annee_input.text()) if self.annee_input.text().isdigit() else None
+        else:
+            data["annee"] = None
+        
+        if hasattr(self, 'date_mise_circulation'):
+            data["date_mise_circulation"] = self.date_mise_circulation.date().toPython()
+        else:
+            data["date_mise_circulation"] = None
+        
+        # ============================================================
+        # CLASSIFICATION ASAC
+        # ============================================================
+        if hasattr(self, 'asac_combo_cat'):
+            cat_text = self.asac_combo_cat.currentText().strip()
+            # Extraire le code avant le " - "
+            data["categorie"] = cat_text.split(" - ")[0] if " - " in cat_text else cat_text
+        elif hasattr(self, 'combo_cat'):
+            cat_text = self.combo_cat.currentText().strip()
+            data["categorie"] = cat_text.split(" - ")[0] if " - " in cat_text else cat_text
+        else:
+            data["categorie"] = ""
+        
+        if hasattr(self, 'combo_genre'):
+            genre_text = self.combo_genre.currentText().strip()
+            data["genre"] = genre_text.split(" - ")[0] if " - " in genre_text else genre_text
+        else:
+            data["genre"] = ""
+        
+        if hasattr(self, 'combo_type'):
+            type_text = self.combo_type.currentText().strip()
+            data["type_vehicule"] = type_text.split(" - ")[0] if " - " in type_text else type_text
+        else:
+            data["type_vehicule"] = ""
+        
+        if hasattr(self, 'combo_usage'):
+            usage_text = self.combo_usage.currentText().strip()
+            data["usage"] = usage_text.split(" - ")[0] if " - " in usage_text else usage_text
+        else:
+            data["usage"] = ""
+        
+        if hasattr(self, 'combo_energie'):
+            energie_text = self.combo_energie.currentText().strip()
+            data["energie"] = energie_text.split(" - ")[0] if " - " in energie_text else energie_text
+        else:
+            data["energie"] = ""
+        
+        if hasattr(self, 'combo_zone'):
+            zone_text = self.combo_zone.currentText().strip()
+            # Extraire la lettre après "ZA - Zone A" -> "A"
+            if " - " in zone_text:
+                # Prendre la dernière lettre (ex: "ZA" -> "A")
+                code = zone_text.split(" - ")[0].strip()  # "ZA"
+                data["zone"] = code[-1] if code else ""   # "A"
+            else:
+                # Si c'est déjà "A", "B" ou "C"
+                data["zone"] = zone_text
+        else:
+            data["zone"] = ""
+        
+        # ============================================================
+        # CARACTÉRISTIQUES TECHNIQUES
+        # ============================================================
+        if hasattr(self, 'usage_input'):
+            data["puissance_fiscale"] = self.get_int_value(self.usage_input)
+        else:
+            data["puissance_fiscale"] = 0
+        
+        if hasattr(self, 'places_input'):
+            data["places"] = self.get_int_value(self.places_input)
+        else:
+            data["places"] = 5
+        
+        if hasattr(self, 'cylindree_input'):
+            data["cylindree"] = self.get_int_value(self.cylindree_input)
+        else:
+            data["cylindree"] = 0
+        
+        if hasattr(self, 'ptac_input'):
+            data["ptac"] = self.get_int_value(self.ptac_input)
+        else:
+            data["ptac"] = 0
+        
+        if hasattr(self, 'charge_utile_input'):
+            data["charge_utile"] = self.get_int_value(self.charge_utile_input)
+        else:
+            data["charge_utile"] = 0
+        
+        if hasattr(self, 'val_neuf'):
+            data["valeur_neuf"] = self.get_float_value(self.val_neuf)
+        else:
+            data["valeur_neuf"] = 0
+        
+        if hasattr(self, 'val_venale'):
+            data["valeur_venale"] = self.get_float_value(self.val_venale)
+        else:
+            data["valeur_venale"] = 0
+        
+        # ============================================================
+        # OPTIONS
+        # ============================================================
+        if hasattr(self, 'check_remorque'):
+            data["has_remorque"] = self.check_remorque.isChecked()
+        else:
+            data["has_remorque"] = False
+        
+        if hasattr(self, 'check_inflammable'):
+            data["remorque_inflammable"] = self.check_inflammable.isChecked()
+        else:
+            data["remorque_inflammable"] = False
+        
+        if hasattr(self, 'check_double_commande'):
+            data["double_commande"] = self.check_double_commande.isChecked()
+        else:
+            data["double_commande"] = False
+        
+        if hasattr(self, 'check_rc_eleves'):
+            data["rc_eleves"] = self.check_rc_eleves.isChecked()
+        else:
+            data["rc_eleves"] = False
+        
+        if hasattr(self, 'check_engin_portuaire'):
+            data["engin_portuaire"] = self.check_engin_portuaire.isChecked()
+        else:
+            data["engin_portuaire"] = False
+        
+        if hasattr(self, 'remorque_immat'):
+            data["remorque_immat"] = self.remorque_immat.text().strip().upper()
+        else:
+            data["remorque_immat"] = ""
+        
+        # ============================================================
+        # CODES TARIFAIRES
+        # ============================================================
+        if hasattr(self, 'code_tarif'):
+            data["code_tarif"] = self.code_tarif.currentText().strip()
+        else:
+            data["code_tarif"] = ""
+        
+        if hasattr(self, 'combo_fleet'):
+            data["libele_tarif"] = self.combo_fleet.currentText().strip()
+        else:
+            data["libele_tarif"] = ""
+        
+        if hasattr(self, 'code_assure'):
+            data["code_assure"] = self.code_assure.text().strip()
+        else:
+            data["code_assure"] = ""
+        
+        # ============================================================
+        # PROPRIÉTAIRES
+        # ============================================================
+        data["customer_id"] = getattr(self, 'selected_customer_id', None)
+        data["insured_id"] = getattr(self, 'selected_insured_id', None)
+        data["compagny_id"] = self.selected_cie_id if hasattr(self, 'selected_cie_id') else None
+        data["owner_id"] = getattr(self, 'selected_customer_id', None)  # Alias pour compatibilité
+        
+        # ============================================================
+        # CONDUCTEUR
+        # ============================================================
+        if hasattr(self, 'selected_driver_id') and self.selected_driver_id:
+            # ✅ Récupérer le chauffeur depuis la base
+            driver = self.controller.contacts.get_driver_by_id(self.selected_driver_id)
+            if driver:
+                # ✅ Préparer les données du conducteur pour la table Driver
+                driver_data = {
+                    'nom': getattr(driver, 'nom', ''),
+                    'date_naissance': getattr(driver, 'date_naissance', None),
+                    'num_permis': getattr(driver, 'num_permis', ''),
+                    'cat_permis': getattr(driver, 'cat_permis', ''),
+                    'date_permis': getattr(driver, 'date_permis', None),
+                    'subscriber': getattr(driver, 'subscriber', ''),
+                }
+                data["driver"] = driver_data
+        else:
+            data["driver"] = {}
+        
+        # ============================================================
+        # DATES
+        # ============================================================
+        if hasattr(self, 'date_debut'):
+            data["date_debut"] = self.date_debut.date().toPython()
+        else:
+            data["date_debut"] = None
+        
+        if hasattr(self, 'date_fin'):
+            data["date_fin"] = self.date_fin.date().toPython()
+        else:
+            data["date_fin"] = None
+        
+        if hasattr(self, 'nbr_jour'):
+            data["nbr_jour"] = self.get_int_value(self.nbr_jour)
+        else:
+            data["nbr_jour"] = 0
+
+        # ============================================================
+        # CONDUCTEUR - Préparer les données pour la table Driver
+        # ============================================================
+        driver_data = {}
+        
+        if hasattr(self, 'nom'):
+            driver_data["nom"] = self.nom.text().strip()
+        else:
+            driver_data["nom"] = ""
+        
+        if hasattr(self, 'date_naissance'):
+            driver_data["date_naissance"] = self.driver_birth.date().toPython()
+        else:
+            driver_data["date_naissance"] = None
+        
+        if hasattr(self, 'num_permis'):
+            driver_data["num_permis"] = self.num_permis.text().strip()
+        else:
+            driver_data["num_permis"] = ""
+        
+        if hasattr(self, 'categorie_permis'):
+            driver_data["categorie_permis"] = self.cat_permis.currentText()
+        else:
+            driver_data["categorie_permis"] = ""
+        
+        if hasattr(self, 'date_permis'):
+            driver_data["date_permis"] = self.date_permis.date().toPython()
+        else:
+            driver_data["date_permis"] = None
+        
+        if hasattr(self, 'driver_licence_authority'):
+            driver_data["autorite_delivrance"] = self.driver_licence_authority.text().strip()
+        else:
+            driver_data["autorite_delivrance"] = ""
+        
+        # Ajouter les données du conducteur au dictionnaire principal
+        data["driver"] = driver_data
+        
+        # ============================================================
+        # FINANCES (récupérées depuis les champs de l'onglet financier)
+        # ============================================================
+        if hasattr(self, 'prime_brute'):
+            data["prime_brute"] = self.get_float_value(self.prime_brute)
+        else:
+            data["prime_brute"] = 0
+        
+        if hasattr(self, 'reduction'):
+            data["reduction"] = self.get_float_value(self.reduction)
+        else:
+            data["reduction"] = 0
+        
+        if hasattr(self, 'prime_nette'):
+            data["prime_nette"] = self.get_float_value(self.prime_nette)
+        else:
+            data["prime_nette"] = 0
+        
+        if hasattr(self, 'accessoire'):
+            data["accessoires"] = self.get_float_value(self.accessoire)
+        else:
+            data["accessoires"] = 0
+        
+        if hasattr(self, 'tva'):
+            data["tva"] = self.get_float_value(self.tva)
+        else:
+            data["tva"] = 0
+        
+        if hasattr(self, 'asac'):
+            data["fichier_asac"] = self.get_float_value(self.asac)
+        else:
+            data["fichier_asac"] = 0
+        
+        if hasattr(self, 'carte_rose'):
+            data["carte_rose"] = self.get_float_value(self.carte_rose)
+        else:
+            data["carte_rose"] = 0
+        
+        if hasattr(self, 'vignette'):
+            data["vignette"] = self.get_float_value(self.vignette)
+        else:
+            data["vignette"] = 0
+        
+        if hasattr(self, 'pttc'):
+            data["pttc"] = self.get_float_value(self.pttc)
+        else:
+            data["pttc"] = 0
+
+        # ============================================================
+        # EXONÉRATION DTA ET VIGNETTE
+        # ============================================================
+        if hasattr(self, 'check_exonere_dta'):
+            data["exonere_dta"] = self.check_exonere_dta.isChecked()
+        else:
+            data["exonere_dta"] = False
+        
+        # Récupérer la vignette depuis la combo box
+        if hasattr(self, 'vignette'):
+            vignette_text = self.vignette.currentText()
+            data["vignette"] = float(vignette_text.replace(" ", "")) if vignette_text else 0
+        else:
+            data["vignette"] = 0
+        
+        # ============================================================
+        # GARANTIES
+        # ============================================================
+        for key, garantie in self.garanties_widgets.items():
+            if garantie['checkbox'].isChecked():
+                # Montant brut
+                brut_text = garantie['montant_brut'].text()
+                brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                data[f"amt_{key}_brut"] = float(brut_text) if brut_text else 0
+                
+                # Montant net
+                net_text = garantie['montant_net'].text()
+                net_text = net_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                data[f"amt_{key}_net"] = float(net_text) if net_text else 0
+                
+                # Réduction
+                red_text = garantie['montant_taux'].text()
+                red_text = red_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                data[f"amt_{key}_red"] = float(red_text) if red_text else 0
+                
+                # Taux
+                taux_text = garantie['taux'].text().strip()
+                if taux_text.endswith('%'):
+                    taux_text = taux_text[:-1]
+                data[f"red_{key}"] = float(taux_text) if taux_text else 0
+            else:
+                data[f"amt_{key}_brut"] = 0
+                data[f"amt_{key}_net"] = 0
+                data[f"amt_{key}_red"] = 0
+                data[f"red_{key}"] = 0
+        
+        return data
+
+    def _extract_zone(self, text: str) -> str:
+        """
+        Extrait la zone de circulation d'une chaîne du type "ZA - Zone A"
+        
+        Args:
+            text: Chaîne contenant le code et le libellé
+        
+        Returns:
+            str: Zone (ex: "A", "B" ou "C")
+        """
+        if not text:
+            return ""
+        if " - " in text:
+            code = text.split(" - ")[0].strip()  # "ZA"
+            return code[-1] if code else ""      # "A"
+        return text.strip()
+
+    def validate_and_save(self):
+        """
+        Valide et sauvegarde le véhicule avec toutes les données du formulaire
+        Conforme aux spécifications API ASAC
+        """
+        print(f" {get_icon_pixmap('check', color='white', size=24)} validate_and_save() appelée")
+        
+        # ============================================================
+        # 1. VALIDATION DES CHAMPS OBLIGATOIRES
+        # ============================================================
+        errors = []
+        
+        # Identification
+        if not hasattr(self, 'immat_input') or not self.immat_input.text().strip():
+            errors.append("❌ Immatriculation obligatoire")
+        if not hasattr(self, 'chassis_input') or not self.chassis_input.text().strip():
+            errors.append("❌ N° Châssis obligatoire")
+        if not hasattr(self, 'marque_input') or not self.marque_input.currentText().strip():
+            errors.append("❌ Marque obligatoire")
+        if not hasattr(self, 'modele_input') or not self.modele_input.text().strip():
+            errors.append("❌ Modèle obligatoire")
+        
+        # Classification ASAC
+        if hasattr(self, 'combo_cat') and not self.combo_cat.currentText().strip():
+            errors.append("❌ Catégorie obligatoire")
+        if hasattr(self, 'combo_genre') and not self.combo_genre.currentText().strip():
+            errors.append("❌ Genre obligatoire")
+        if hasattr(self, 'combo_type') and not self.combo_type.currentText().strip():
+            errors.append("❌ Type obligatoire")
+        if hasattr(self, 'combo_usage') and not self.combo_usage.currentText().strip():
+            errors.append("❌ Usage obligatoire")
+        if hasattr(self, 'combo_energie') and not self.combo_energie.currentText().strip():
+            errors.append("❌ Énergie obligatoire")
+        if hasattr(self, 'combo_zone') and not self.combo_zone.currentText().strip():
+            errors.append("❌ Zone de circulation obligatoire")
+        
+        # Caractéristiques
+        if hasattr(self, 'usage_input') and not self.usage_input.text().strip():
+            errors.append("❌ Puissance fiscale obligatoire")
+        if hasattr(self, 'places_input') and not self.places_input.text().strip():
+            errors.append("❌ Nombre de places obligatoire")
+        if hasattr(self, 'val_neuf') and not self.val_neuf.text().strip():
+            errors.append("❌ Valeur à neuf obligatoire")
+        if hasattr(self, 'val_venale') and not self.val_venale.text().strip():
+            errors.append("❌ Valeur vénale obligatoire")
+        
+        # Propriétaire (Souscripteur/Assuré)
+        if hasattr(self, 'customer_list') and self.customer_list.currentItem() is None:
+            errors.append("❌ Souscripteur obligatoire (sélectionnez un contact)")
+        if hasattr(self, 'driver_list') and self.driver_list.currentItem() is None:
+            errors.append("❌ Assuré obligatoire (sélectionnez un contact)")
+        
+        # Conducteur
+        if hasattr(self, 'nom') and not self.normalGeometry.text().strip():
+            errors.append("❌ Nom du conducteur obligatoire")
+        if hasattr(self, 'num_permis') and not self.num_permis.text().strip():
+            errors.append("❌ N° de permis obligatoire")
+        if hasattr(self, 'cat_permis') and not self.cat_permis.currentText().strip():
+            errors.append("❌ Catégorie du permis obligatoire")
+        
+        # Compagnie
+        if hasattr(self, 'company_list') and self.company_list.currentItem() is None:
+            errors.append("❌ Compagnie d'assurance obligatoire")
+        
+        # ============================================================
+        # 2. AFFICHAGE DES ERREURS
+        # ============================================================
+        if errors:
+            error_msg = "\n".join(errors)
+            QMessageBox.warning(self, "Champs obligatoires", 
+                f"Veuillez corriger les erreurs suivantes :\n\n{error_msg}")
+            return
+        
+        # ============================================================
+        # 3. CONFIRMATION DE L'UTILISATEUR
+        # ============================================================
+        mode_text = "modification" if self.mode == "edit" else "création"
+        reply = QMessageBox.question(
+            self, 
+            "Confirmation",
+            f"Voulez-vous confirmer la {mode_text} de ce véhicule ?\n\n"
+            f"🚗 {self.immat_input.text().strip().upper()}\n"
+            f"🏭 {self.marque_input.currentText().strip()} {self.modele_input.text().strip()}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        
+        if reply == QMessageBox.StandardButton.No:
+            return
+        
+        # ============================================================
+        # 4. PRÉPARATION DE L'UI
+        # ============================================================
+        self._prepare_save_ui()
+        
+        try:
+            # ============================================================
+            # 5. RÉCUPÉRATION DES DONNÉES DU FORMULAIRE
+            # ============================================================
+            data = self.get_form_data()
+            
+            # ============================================================
+            # 6. INFORMATIONS RÉSEAU
+            # ============================================================
+            local_ip = socket.gethostbyname(socket.gethostname())
+            public_ip = None
+            try:
+                public_ip = requests.get('https://api.ipify.org', timeout=1).text
+            except Exception:
+                public_ip = "Non disponible"
+            
+            current_user_id = getattr(self.current_user, 'id', 1)
+            
+            # ============================================================
+            # 7. SAUVEGARDE
+            # ============================================================
+            # self.progress_bar.setValue(30)
+            
+            def save_vehicle():
+                from addons.Automobiles.controllers.automobile_controller import VehicleController
+                from core.database import SessionLocal
+                
+                session = SessionLocal()
+                try:
+                    vehicle_ctrl = VehicleController(session)
+                    
+                    if self.vehicle_id:
+                        # Mise à jour
+                        return vehicle_ctrl.update_vehicle(
+                            vehicle_id=self.vehicle_id,
+                            new_data=data,
+                            user_id=current_user_id,
+                            local_ip=local_ip,
+                            public_ip=public_ip
+                        )
+                    else:
+                        # Création
+                        return vehicle_ctrl.create_vehicle(
+                            data=data,
+                            user_id=current_user_id,
+                            local_ip=local_ip,
+                            public_ip=public_ip
+                        )
+                finally:
+                    session.close()
+            
+            async_query.execute(
+                save_vehicle,
+                on_finished=self._on_save_finished,
+                on_error=self._on_save_error,
+                show_loader=True,
+                loader_message="Enregistrement du véhicule..."
+            )
+            
+        except Exception as e:
+            self._reset_save_ui()
+            QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+    def _prepare_save_ui(self):
+        """Prépare l'interface avant la sauvegarde"""
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        
+        # ✅ Afficher la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(10)
+        
+        QApplication.processEvents()
+
+    def _reset_save_ui(self):
+        """Réinitialise l'interface après la sauvegarde"""
+        QApplication.restoreOverrideCursor()
+        
+        # ✅ Cacher la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(0)
+
+    def _on_save_finished(self, result):
+        """Callback en cas de succès de la sauvegarde"""
+        QApplication.restoreOverrideCursor()
+        
+        # ✅ Mettre à jour la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(100)
+        
+        if not isinstance(result, (tuple, list)) or len(result) == 0:
+            self._reset_save_ui()
+            QMessageBox.critical(self, "Erreur de sauvegarde", "Résultat inattendu")
+            return
+        
+        success = result[0]
+        if success:
+            message = result[1] if len(result) > 1 else "Véhicule enregistré avec succès"
+            QMessageBox.information(self, "Succès", message)
+            self.accept()
+            return
+        
+        message = result[1] if len(result) > 1 else "Erreur inconnue"
+        self._reset_save_ui()
+        QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {message}")
+
+    def _on_save_error(self, error):
+        """Callback en cas d'erreur de sauvegarde"""
+        self._reset_save_ui()
+        
+        # ✅ Cacher la progression dans la SlideMenu
+        if hasattr(self, 'slide_menu'):
+            self.slide_menu.set_save_progress(0)
+        
+        QMessageBox.critical(self, "Erreur de sauvegarde", f"Détails : {error}")
+
+    # ============================================================
+    # MÉTHODES À COMPLÉTER (onglets autres)
+    # ============================================================
+    
+    def _create_identification_tab(self):
+        """Crée l'onglet d'identification du véhicule avec ScrollArea"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # ScrollArea pour tout le contenu
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #f1f2f6;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cbd5e0;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #3498db;
+            }
+        """)
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Style commun
+        field_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                color: #2d3748;
+                font-family: 'Segoe UI';
+            }
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border-color: #3498db;
+                background-color: #f0f9ff;
+            }
+            QLabel {
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+        """
+        
+        group_style = """
+            QGroupBox {
+                font-size: 14px;
+                font-weight: bold;
+                border: 2px solid #e2e8f0;
+                border-radius: 16px;
+                margin-top: 12px;
+                padding-top: 12px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 20px;
+                padding: 0 12px 0 12px;
+                color: #2c3e50;
+            }
+        """
+        
+        # Groupe: Immatriculation et identification
+        group_id = QGroupBox("Identification du véhicule")
+        group_id.setStyleSheet(group_style)
+        
+        id_layout = QGridLayout(group_id)
+        id_layout.setSpacing(15)
+        id_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Ligne 1: Immatriculation et Châssis
+        id_layout.addWidget(self._create_label("immatriculation", "Immatriculation *"), 0, 0)
+        id_layout.addWidget(self._create_label("chassis", "N° Châssis *"), 0, 1)
+        
+        self.immat_input = QLineEdit()
+        self.immat_input.setPlaceholderText("EX: LS-123-AB")
+        self.immat_input.setStyleSheet(field_style)
+        self.immat_input.textChanged.connect(self._on_immat_change)
+        id_layout.addWidget(self.immat_input, 1, 0)
+        
+        self.chassis_input = QLineEdit()
+        self.chassis_input.setPlaceholderText("N° de châssis du véhicule")
+        self.chassis_input.setStyleSheet(field_style)
+        id_layout.addWidget(self.chassis_input, 1, 1)
+        
+        # Ligne 2: Marque, Modèle, Année
+        id_layout.addWidget(self._create_label(get_icon_pixmap('brand', color='white', size=50), "Marque *"), 2, 0)
+        id_layout.addWidget(self._create_label(get_icon_pixmap('model', color='white', size=50), "Modèle *"), 2, 1)
+        id_layout.addWidget(self._create_label(get_icon_pixmap('year', color='white', size=50), "Année"), 2, 2)
+        
+        self.marque_input = QComboBox()
+        self.marque_input.setStyleSheet(field_style)
+        self.marque_input.setEditable(True)  # Permet de saisir une marque personnalisée
+        self.marque_input.setPlaceholderText("Sélectionner ou saisir une marque...")
+        id_layout.addWidget(self.marque_input, 3, 0)
+        for brand in VEHICLE_BRANDS:
+            self.marque_input.addItem(brand, brand)
+        
+        self.modele_input = QLineEdit()
+        self.modele_input.setPlaceholderText("EX: COROLLA")
+        self.modele_input.setStyleSheet(field_style)
+        id_layout.addWidget(self.modele_input, 3, 1)
+        
+        self.annee_input = QLineEdit()
+        self.annee_input.setPlaceholderText("2024")
+        self.annee_input.setStyleSheet(field_style)
+        id_layout.addWidget(self.annee_input, 3, 2)
+        
+        # Ligne 3: Date première mise en circulation
+        id_layout.addWidget(self._create_label(get_icon_pixmap('calendar', color='white', size=24), "1ère mise en circulation"), 4, 0)
+        
+        self.date_mise_circulation = QDateEdit()
+        self.date_mise_circulation.setDisplayFormat("dd/MM/yyyy")
+        self.date_mise_circulation.setCalendarPopup(True)
+        self.date_mise_circulation.setDate(QDate.currentDate().addYears(-5))
+        self.date_mise_circulation.setStyleSheet(field_style)
+        id_layout.addWidget(self.date_mise_circulation, 5, 0)
+        
+        content_layout.addWidget(group_id)
+        
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        return tab
+
+    def on_code_tarif_changed(self, code):
+        """Charge les catégories liées au code tarif"""
+        if code and self.selected_cie_id:
+            self.load_tarif_categories_by_code_async(code)
+
+    def _on_section_changed(self, index):
+        """Gère le changement de section et valide la section précédente"""
+        # ✅ Valider la section précédente
+        # if hasattr(self, 'slide_menu') and self.slide_menu:
+        #     previous_index = self.slide_menu._current_index if hasattr(self.slide_menu, '_current_index') else 0
+        #     if 0 <= previous_index < len(self.slide_menu._buttons):
+        #         self._validate_section(previous_index)
+        
+        self.stack_widget.setCurrentIndex(index)
+        
+        # Valider la nouvelle section immédiatement
+        self._validate_section(index)
+
+    def _update_section_title(self, title):
+        """Met à jour le titre de la section dans le header"""
+        # Si vous avez un label dans le header pour le titre de la section
+        # Vous pouvez l'ajouter dans _setup_header
+        pass
+
+    def _create_technical_tab(self):
+        """Crée l'onglet des caractéristiques techniques avec ScrollArea"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # ScrollArea pour tout le contenu
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #f1f2f6;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cbd5e0;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #3498db;
+            }
+        """)
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(25, 25, 25, 25)
+        
+        field_style = """
+            QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                color: #2d3748;
+                font-family: 'Segoe UI';
+            }
+            QLineEdit:focus, QComboBox:focus {
+                border-color: #3498db;
+                background-color: #f0f9ff;
+            }
+            QLabel {
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+        """
+        
+        group_style = """
+            QGroupBox {
+                font-size: 14px;
+                font-weight: bold;
+                border: 2px solid #e2e8f0;
+                border-radius: 16px;
+                margin-top: 12px;
+                padding-top: 12px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 20px;
+                padding: 0 12px 0 12px;
+                color: #2c3e50;
+            }
+        """
+        
+        # Groupe: Caractéristiques techniques
+        group_tech = QGroupBox(f"Caractéristiques techniques")
+        group_tech.setStyleSheet(group_style)
+        
+        tech_layout = QGridLayout(group_tech)
+        tech_layout.setSpacing(15)
+        tech_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Puissance fiscale
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('bolt', color='white', size=24), "Puissance fiscale (CV) *"), 0, 0)
+        self.usage_input = QLineEdit()
+        self.usage_input.setPlaceholderText("Ex: 7")
+        self.usage_input.setStyleSheet(field_style)
+        self.usage_input.textChanged.connect(self.on_power_changed)
+        tech_layout.addWidget(self.usage_input, 1, 0)
+        
+        # Nombre de places
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('flash', color='white', size=24), "Nombre de places *"), 0, 1)
+        self.places_input = QLineEdit()
+        self.places_input.setPlaceholderText("5")
+        self.places_input.setStyleSheet(field_style)
+        tech_layout.addWidget(self.places_input, 1, 1)
+        
+        # Cylindrée
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('settings', color='white', size=24), "Cylindrée (cm³)"), 2, 0)
+        self.cylindree_input = QLineEdit()
+        self.cylindree_input.setPlaceholderText("Ex: 1600")
+        self.cylindree_input.setStyleSheet(field_style)
+        tech_layout.addWidget(self.cylindree_input, 3, 0)
+        
+        # PTAC
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('reports', color='white', size=24), "PTAC (kg)"), 2, 1)
+        self.ptac_input = QLineEdit()
+        self.ptac_input.setPlaceholderText("Poids total autorisé en charge")
+        self.ptac_input.setStyleSheet(field_style)
+        tech_layout.addWidget(self.ptac_input, 3, 1)
+        
+        # Charge utile
+        tech_layout.addWidget(self._create_label(get_icon_pixmap('ptac', color='white', size=24), "Charge utile (kg)"), 4, 0)
+        self.charge_utile_input = QLineEdit()
+        self.charge_utile_input.setPlaceholderText("Capacité de charge")
+        self.charge_utile_input.setStyleSheet(field_style)
+        tech_layout.addWidget(self.charge_utile_input, 5, 0)
+        
+        content_layout.addWidget(group_tech)
+        
+        # Groupe: Valeurs
+        group_values = QGroupBox("Valeurs")
+        group_values.setStyleSheet(group_style)
+        
+        values_layout = QGridLayout(group_values)
+        values_layout.setSpacing(15)
+        values_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Valeur à neuf
+        values_layout.addWidget(self._create_label(get_icon_pixmap('gem', color='white', size=24), "Valeur à neuf (FCFA) *"), 0, 0)
+        self.val_neuf = QLineEdit()
+        self.val_neuf.setPlaceholderText("0")
+        self.val_neuf.setStyleSheet(field_style)
+        self.val_neuf.textChanged.connect(self.refresh_all_garanties)
+        values_layout.addWidget(self.val_neuf, 1, 0)
+        
+        # Valeur vénale
+        values_layout.addWidget(self._create_label(get_icon_pixmap('reports', color='white', size=24), "Valeur vénale (FCFA) *"), 0, 1)
+        self.val_venale = QLineEdit()
+        self.val_venale.setPlaceholderText("0")
+        self.val_venale.setStyleSheet(field_style)
+        self.val_venale.textChanged.connect(self.refresh_all_garanties)
+        values_layout.addWidget(self.val_venale, 1, 1)
+        
+        content_layout.addWidget(group_values)
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        return tab
+
+    def handle_garantie_click(self, key, state):
+        """
+        Gère le clic sur une garantie
+        
+        Args:
+            key: Identifiant de la garantie (rc, dr, vol, etc.)
+            state: État de la checkbox (0=décoché, 2=coché)
+        """
+        is_checked = state == 2  # Qt.Checked
+        
+        garantie = self.garanties_widgets.get(key)
+        if not garantie:
+            return
+        
+        # Récupérer les widgets
+        montant_brut = garantie['montant_brut']
+        taux_input = garantie['taux']
+        montant_taux = garantie['montant_taux']
+        montant_net = garantie['montant_net']
+        
+        if is_checked:
+            # ✅ Garantie activée - Afficher tous les champs
+            montant_brut.setVisible(True)
+            taux_input.setVisible(True)
+            montant_taux.setVisible(True)
+            montant_net.setVisible(True)
+            
+            # ============================================================
+            # ✅ RENDRE MODIFIABLE UNIQUEMENT POUR 'ipt'
+            # ============================================================
+            if key == 'ipt':
+                # ✅ Vérifier si le widget est déjà un QLineEdit
+                if not isinstance(montant_brut, QLineEdit):
+                    # ✅ Montant brut modifiable (QLineEdit au lieu de QLabel)
+                    self._make_brut_editable(montant_brut, key)
+                    # Mettre à jour la référence
+                    montant_brut = self.garanties_widgets[key]['montant_brut']
+                
+                # ✅ Taux modifiable
+                taux_input.setReadOnly(False)
+                taux_input.setStyleSheet("""
+                    QLineEdit {
+                        border: 2px solid #3498db;
+                        border-radius: 8px;
+                        padding: 6px 10px;
+                        font-size: 12px;
+                        max-width: 80px;
+                        background-color: #f0f9ff;
+                    }
+                    QLineEdit:focus {
+                        border-color: #2563eb;
+                        background-color: #ffffff;
+                    }
+                """)
+                # Connecter le signal pour recalculer le net
+                try:
+                    taux_input.textChanged.disconnect()
+                except:
+                    pass
+                taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
+                
+                # ✅ Rendre la réduction et le net non modifiables (lecture seule)
+                montant_taux.setStyleSheet("""
+                    color: #e67e22;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    background-color: #f1f5f9;
+                """)
+                montant_net.setStyleSheet("""
+                    color: #2563eb;
+                    font-weight: bold;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    background-color: #f1f5f9;
+                """)
+                
+            else:
+                # ❌ Pour les autres garanties : tout est en lecture seule
+                self._make_brut_readonly(montant_brut)
+                
+                # ❌ Taux non modifiable
+                taux_input.setReadOnly(True)
+                taux_input.setStyleSheet("""
+                    QLineEdit {
+                        border: 2px solid #e2e8f0;
+                        border-radius: 8px;
+                        padding: 6px 10px;
+                        font-size: 12px;
+                        max-width: 80px;
+                        background-color: #f1f5f9;
+                        color: #64748b;
+                    }
+                """)
+            
+            # Calculer le montant brut (appel à la méthode de calcul)
+            self.update_garantie_price(key, state)
+            
+        else:
+            # ❌ Garantie désactivée - Cacher tous les champs
+            montant_brut.setVisible(False)
+            taux_input.setVisible(False)
+            montant_taux.setVisible(False)
+            montant_net.setVisible(False)
+            
+            # Réinitialiser les valeurs
+            # ✅ Vérifier le type du widget avant de modifier le texte
+            if isinstance(montant_brut, QLineEdit):
+                montant_brut.setText("0")
+            else:
+                montant_brut.setText("0 FCFA")
+            
+            montant_taux.setText("0 FCFA")
+            montant_net.setText("0 FCFA")
+            taux_input.setText("")
+            
+            # Restaurer le style par défaut pour 'ipt' si désactivé
+            if key == 'ipt':
+                # ✅ Remplacer le QLineEdit par un QLabel pour le montant brut
+                new_widget = self._make_brut_readonly(montant_brut)
+                if new_widget:
+                    self.garanties_widgets[key]['montant_brut'] = new_widget
+            
+            # Mettre à jour le total
+            self.calculate_total_premium()
+
+    def update_garantie_price(self, key, state):
+        """
+        Met à jour le prix d'une garantie
+        
+        Args:
+            key: Identifiant de la garantie
+            state: État de la checkbox
+        """
+        if not state:  # Si désactivé
+            return
+        
+        garantie = self.garanties_widgets.get(key)
+        if not garantie:
+            return
+        
+        try:
+            # Calculer le prorata
+            prorata = self.calculate_prorata()
+            
+            # Calculer le montant brut
+            montant_brut = self.calculate_garantie_amount(key, prorata)
+            
+            # Mettre à jour le label du montant brut
+            garantie['montant_brut'].setText(f"{montant_brut:,.0f} FCFA".replace(",", " "))
+            garantie['montant_brut'].setVisible(True)
+            
+            # Activer les autres champs
+            garantie['taux'].setVisible(True)
+            garantie['montant_taux'].setVisible(True)
+            garantie['montant_net'].setVisible(True)
+            
+            # Calculer le montant net initial (sans réduction)
+            self.update_net_amount(key)
+            
+            # Mettre à jour le total
+            self.calculate_total_premium()
+            
+        except Exception as e:
+            print(f"Erreur lors du calcul de la garantie {key}: {e}")
+
+    def update_net_amount(self, key):
+        """
+        Met à jour le montant net après application du taux
+        
+        Args:
+            key: Identifiant de la garantie
+        """
+        garantie = self.garanties_widgets.get(key)
+        if not garantie:
+            return
+        
+        try:
+            # Récupérer le montant brut
+            brut_text = garantie['montant_brut'].text()
+            brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+            montant_brut = float(brut_text) if brut_text else 0
+            
+            # Récupérer le taux
+            taux_text = garantie['taux'].text().strip()
+            if taux_text.endswith('%'):
+                taux_text = taux_text[:-1]
+            taux = float(taux_text) if taux_text else 0
+            
+            # Calculer la réduction et le montant net
+            if taux > 0:
+                reduction = montant_brut * (taux / 100)
+                montant_net = montant_brut - reduction
+            else:
+                reduction = 0
+                montant_net = montant_brut
+            
+            # Mettre à jour les labels
+            garantie['montant_taux'].setText(f"{reduction:,.0f} FCFA".replace(",", " "))
+            garantie['montant_net'].setText(f"{montant_net:,.0f} FCFA".replace(",", " "))
+            
+            # Mettre à jour le total
+            self.calculate_total_premium()
+            
+        except Exception as e:
+            print(f"Erreur lors de la mise à jour du net pour {key}: {e}")
+
+    def calculate_total_premium(self):
+        """
+        Calcule le total des primes (brut, net, réduction)
+        """
+        try:
+            total_brut = 0
+            total_net = 0
+            total_reduction = 0
+            
+            for key, garantie in self.garanties_widgets.items():
+                # Vérifier si la garantie est active
+                if garantie['checkbox'].isChecked():
+                    # Brut
+                    brut_text = garantie['montant_brut'].text()
+                    brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    montant_brut = float(brut_text) if brut_text else 0
+                    total_brut += montant_brut
+                    
+                    # Net
+                    net_text = garantie['montant_net'].text()
+                    net_text = net_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    montant_net = float(net_text) if net_text else 0
+                    total_net += montant_net
+                    
+                    # Réduction
+                    red_text = garantie['montant_taux'].text()
+                    red_text = red_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
+                    montant_red = float(red_text) if red_text else 0
+                    total_reduction += montant_red
+            
+            # Mettre à jour les champs de récapitulatif
+            self.prime_brute.setText(f"{total_brut:,.0f}".replace(",", " "))
+            self.prime_nette.setText(f"{total_net:,.0f}".replace(",", " "))
+            self.reduction.setText(f"{total_reduction:,.0f}".replace(",", " "))
+            
+            # Recalculer la TVA et le PTTC
+            self.calculate_tva()
+            self.calculate_pttc()
+            
+        except Exception as e:
+            print(f"Erreur lors du calcul du total: {e}")
+
+    def calculate_garantie_amount(self, key, prorata):
+        """
+        Calcule le montant brut d'une garantie
+        
+        Args:
+            key: Identifiant de la garantie
+            prorata: Facteur de prorata
+        
+        Returns:
+            float: Montant brut calculé
+        """
+        v_venale = self.get_float_value(self.val_venale)
+        v_neuf = self.get_float_value(self.val_neuf)
+        
+        if key == "rc":
+            return self.calculate_rc_brut() * prorata
+        elif key == "dr":
+            return (self.calculate_rc_brut() * prorata ) * 0.03 * prorata
+        elif key == "vol":
+            return v_venale * 0.02 * prorata
+        elif key == "vb":
+            return v_venale * 0.02 * prorata
+        elif key == "in":
+            return v_venale * 0.025 * prorata
+        elif key == "bris":
+            return v_neuf * 0.005 * prorata
+        elif key == "ar":
+            return v_venale * 0.75 * 0.03 * prorata
+        elif key == "dta":
+            return v_neuf * 0.05 * prorata
+        elif key == "ipt":
+            places = int(self.places_input.text()) if self.places_input.text().isdigit() else 5
+            if places <= 5:
+                return 7500 * prorata
+            else:
+                return (7500 * places / 5) * prorata
+        return 0
+
+    def _create_guarantees_tab(self):
+        """Crée l'onglet des garanties avec ScrollArea"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # ScrollArea pour tout le contenu
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #f1f2f6;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cbd5e0;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #3498db;
+            }
+        """)
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(25, 25, 25, 25)
+        
+        field_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                color: #2d3748;
+                font-family: 'Segoe UI';
+            }
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border-color: #3498db;
+                background-color: #f0f9ff;
+            }
+            QLabel {
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+        """
+        
+        group_style = """
+            QGroupBox {
+                font-size: 14px;
+                font-weight: bold;
+                border: 2px solid #e2e8f0;
+                border-radius: 16px;
+                margin-top: 12px;
+                padding-top: 12px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 20px;
+                padding: 0 12px 0 12px;
+                color: #2c3e50;
+            }
+        """
+        
+        # ============================================================
+        # GROUPE: INFORMATIONS TARIFAIRES
+        # ============================================================
+        group_tarif = QGroupBox(" Informations tarifaires")
+        group_tarif.setStyleSheet(group_style)
+        
+        tarif_layout = QGridLayout(group_tarif)
+        tarif_layout.setSpacing(15)
+        tarif_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Code tarif
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('code', color='white', size=24), "Code Tarif"), 0, 0)
+        self.code_tarif = QComboBox()
+        self.code_tarif.setStyleSheet(field_style)
+        self.code_tarif.setEditable(True)
+        self.code_tarif.setPlaceholderText("Code ministériel du tarif...")
+        self.code_tarif.currentTextChanged.connect(self.on_code_tarif_changed)
+        tarif_layout.addWidget(self.code_tarif, 1, 0)
+        
+        # Libellé tarif
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('text', color='white', size=24), "Libellé Tarif"), 0, 1)
+        self.combo_fleet = QComboBox()
+        self.combo_fleet.setStyleSheet(field_style)
+        self.combo_fleet.setEditable(True)
+        self.combo_fleet.setPlaceholderText("Ex: Tarif Standard, Tarif Premium...")
+        self.combo_fleet.currentTextChanged.connect(self.on_fleet_changed)
+        tarif_layout.addWidget(self.combo_fleet, 1, 1)
+        
+        # Catégorie
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('tag', color='white', size=24), "Catégorie *"), 2, 0)
+        self.combo_cat = QComboBox()
+        self.combo_cat.setStyleSheet(field_style)
+        self.combo_cat.setEditable(True)
+        self.combo_cat.addItem("", "")
+        for code, label in self.ASAC_VEHICLE_CATEGORIES.items():
+            self.combo_cat.addItem(f"{code} - {label}", code)
+        self.combo_cat.currentTextChanged.connect(self.on_category_changed)
+        tarif_layout.addWidget(self.combo_cat, 3, 0)
+        
+        # Code assuré
+        tarif_layout.addWidget(self._create_label(get_icon_pixmap('tag', color='white', size=24), "Code Assuré"), 2, 1)
+        self.code_assure = QLineEdit()
+        self.code_assure.setPlaceholderText("Code interne de l'assuré")
+        self.code_assure.setStyleSheet(field_style)
+        tarif_layout.addWidget(self.code_assure, 3, 1)
+        
+        content_layout.addWidget(group_tarif)
+        
+        # ============================================================
+        # GROUPE: GARANTIES
+        # ============================================================
+        group_garanties = QGroupBox("Garanties & Cotisations")
+        group_garanties.setStyleSheet(group_style)
+        
+        garanties_layout = QGridLayout(group_garanties)
+        garanties_layout.setSpacing(12)
+        garanties_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # En-tête du tableau
+        headers = ["Garantie", "Code", "Montant Brut", "Taux %", "Réduction", "Montant Net"]
+        for col, header in enumerate(headers):
+            label = QLabel(header)
+            label.setStyleSheet("""
+                font-weight: 700;
+                color: #2c3e50;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            """)
+            garanties_layout.addWidget(label, 0, col)
+        
+        # Liste des garanties
+        garanties = [
+            ("rc", "RC", "Responsabilité Civile"),
+            ("dr", "DR", "Défense Recours"),
+            ("vol", "VOL", "Vol/Vol partie"),
+            ("vb", "VB", "Vol/Braquage"),
+            ("in", "INC", "Incendie"),
+            ("bris", "BG", "Bris de Glace"),
+            ("ar", "AR", "Assistance Réparation"),
+            ("dta", "DTA", "Dommages"),
+            ("ipt", "IPT", "Indiv. Personnes Transportées")
+        ]
+        
+        for i, (key, code, label_text) in enumerate(garanties):
+            row = i + 1
+            
+            # Checkbox
+            checkbox = QCheckBox(label_text)
+            checkbox.setStyleSheet("""
+                QCheckBox {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #4a5568;
+                    spacing: 8px;
+                }
+                QCheckBox::indicator {
+                    width: 18px;
+                    height: 18px;
+                    border-radius: 4px;
+                    border: 2px solid #cbd5e0;
+                }
+                QCheckBox::indicator:checked {
+                    background-color: #3498db;
+                    border-color: #3498db;
+                }
+            """)
+            checkbox.stateChanged.connect(lambda state, k=key: self.handle_garantie_click(k, state))
+            setattr(self, f"check_{key}", checkbox)
+            garanties_layout.addWidget(checkbox, row, 0)
+            
+            # Code
+            code_label = QLabel(code)
+            code_label.setStyleSheet("font-weight: 600; color: #64748b;")
+            garanties_layout.addWidget(code_label, row, 1)
+            
+            # Montant brut
+            montant_brut = QLabel("0 FCFA")
+            montant_brut.setStyleSheet("""
+                color: #27ae60;
+                font-weight: bold;
+                padding: 4px 8px;
+                border-radius: 6px;
+            """)
+            montant_brut.setVisible(False)
+            garanties_layout.addWidget(montant_brut, row, 2)
+            
+            # Taux
+            taux_input = QLineEdit()
+            taux_input.setPlaceholderText("0")
+            taux_input.setStyleSheet("""
+                QLineEdit {
+                    border: 2px solid #e2e8f0;
+                    border-radius: 8px;
+                    padding: 6px 10px;
+                    font-size: 12px;
+                    max-width: 80px;
+                }
+                QLineEdit:focus {
+                    border-color: #3498db;
+                }
+            """)
+            taux_input.setVisible(False)
+            taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
+            garanties_layout.addWidget(taux_input, row, 3)
+            
+            # Réduction (montant)
+            montant_taux = QLabel("0 FCFA")
+            montant_taux.setStyleSheet("""
+                color: #e67e22;
+                font-weight: bold;
+                padding: 4px 8px;
+                border-radius: 6px;
+            """)
+            montant_taux.setVisible(False)
+            garanties_layout.addWidget(montant_taux, row, 4)
+            
+            # Montant net
+            montant_net = QLabel("0 FCFA")
+            montant_net.setStyleSheet("""
+                color: #2563eb;
+                font-weight: bold;
+                padding: 4px 8px;
+                border-radius: 6px;
+            """)
+            montant_net.setVisible(False)
+            garanties_layout.addWidget(montant_net, row, 5)
+            
+            # Stocker les références
+            self.garanties_widgets[key] = {
+                'checkbox': checkbox,
+                'montant_brut': montant_brut,
+                'taux': taux_input,
+                'montant_taux': montant_taux,
+                'montant_net': montant_net
+            }
+        
+        content_layout.addWidget(group_garanties)
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        return tab
+
+    def get_int_value(self, widget):
+        """Récupère une valeur int d'un widget"""
+        try:
+            if not widget or not widget.text():
+                return 0
+            return int(widget.text())
+        except:
+            return 0
+    
+    def get_float_value(self, widget):
+        """Récupère une valeur float d'un widget"""
+        try:
+            if not widget or not widget.text():
+                return 0.0
+            txt = widget.text().strip().replace(" ", "").replace(",", ".")
+            return float(txt) if txt else 0.0
+        except:
+            return 0.0
+
+    def calculate_rc_brut(self):
+        """Calcule le montant brut de la RC"""
+        try:
+            if not self.selected_cie_id:
+                return 0
+                
+            # Récupérer les paramètres
+            code_tarif = self.code_tarif.currentText().strip() if hasattr(self.code_tarif, 'currentText') else ""
+            categorie = self.combo_cat.currentText().strip()
+            avec_remorque = self.check_remorque.isChecked()
+            zone = self.combo_zone.currentText()
+            energie = self.combo_energie.currentText()
+            cv = self.get_int_value(self.usage_input)
+            
+            # Appeler la méthode du contrôleur
+            res_rc = self.controller.vehicles.get_rc_premium_from_matrix(
+                cie_id=self.selected_cie_id,
+                zone_saisie=zone,
+                categorie=categorie,
+                energie=energie,
+                cv_saisi=cv,
+                avec_remorque=avec_remorque,
+                code_tarif=code_tarif if code_tarif else None
+            )
+            
+            # Récupérer le montant
+            montant_rc = res_rc.get('rc', 0.0)
+            
+            # Mettre à jour le libellé et la catégorie si nécessaire
+            libelle = res_rc.get('libelle', '')
+            categorie_retournee = res_rc.get('categorie', '')
+            
+            if libelle and self.combo_fleet.currentText() != libelle:
+                self.combo_fleet.setCurrentText(libelle)
+            
+            if categorie_retournee and self.combo_cat.currentText() != categorie_retournee:
+                self.combo_cat.setCurrentText(categorie_retournee)
+            
+            return montant_rc
+            
+        except Exception as e:
+            print(f"Erreur lors du calcul RC : {e}")
+            return 0
+
+    def _create_financial_tab(self):
+        """Crée l'onglet financier - Style AutoAssure"""
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        layout.setContentsMargins(0, 0, 0, 0)
+        
+        # ScrollArea pour tout le contenu
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setFrameShape(QScrollArea.NoFrame)
+        scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #f1f2f6;
+                width: 8px;
+                border-radius: 4px;
+            }
+            QScrollBar::handle:vertical {
+                background: #cbd5e0;
+                border-radius: 4px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #3498db;
+            }
+        """)
+        
+        content_widget = QWidget()
+        content_layout = QVBoxLayout(content_widget)
+        content_layout.setSpacing(20)
+        content_layout.setContentsMargins(25, 25, 25, 25)
+        
+        field_style = """
+            QLineEdit, QComboBox, QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                color: #2d3748;
+                font-family: 'Segoe UI';
+            }
+            QLineEdit:focus, QComboBox:focus, QDateEdit:focus {
+                border-color: #3498db;
+                background-color: #f0f9ff;
+            }
+            QLabel {
+                color: #4a5568;
+                font-weight: 600;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+        """
+        
+        group_style = """
+            QGroupBox {
+                font-size: 13px;
+                font-weight: bold;
+                border: 2px solid #e2e8f0;
+                border-radius: 14px;
+                margin-top: 10px;
+                padding-top: 10px;
+                background: white;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 16px;
+                padding: 0 10px 0 10px;
+                color: #2c3e50;
+            }
+        """
+        
+        # ============================================================
+        # GROUPE: RÉCAPITULATIF FINANCIER
+        # ============================================================
+        group_recap = QGroupBox("Récapitulatif financier")
+        group_recap.setStyleSheet(group_style)
+        
+        recap_layout = QVBoxLayout(group_recap)
+        recap_layout.setSpacing(12)
+        recap_layout.setContentsMargins(25, 25, 25, 25)
+        
+        # Description
+        desc_label = QLabel("Vérifiez et validez les montants de la prime avant d'enregistrer le contrat.")
+        desc_label.setStyleSheet("""
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 400;
+            margin-bottom: 8px;
+        """)
+        recap_layout.addWidget(desc_label)
+        
+        # Ligne 1: Prime Brute et Réduction
+        recap_row1 = QHBoxLayout()
+        recap_row1.setSpacing(30)
+        
+        # Prime brute
+        brute_layout = QVBoxLayout()
+        brute_layout.setSpacing(4)
+        brute_label = QLabel("PRIME BRUTE (FCFA)")
+        brute_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        brute_layout.addWidget(brute_label)
+        
+        self.prime_brute = QLineEdit("0")
+        self.prime_brute.setReadOnly(True)
+        self.prime_brute.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 16px;
+                font-weight: 700;
+                color: #1e293b;
+                max-width: 180px;
+            }
+        """)
+        self.prime_brute.setAlignment(Qt.AlignRight)
+        brute_layout.addWidget(self.prime_brute)
+        recap_row1.addLayout(brute_layout)
+        
+        # Réduction
+        reduction_layout = QVBoxLayout()
+        reduction_layout.setSpacing(4)
+        reduction_label = QLabel("RÉDUCTION (FCFA)")
+        reduction_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        reduction_layout.addWidget(reduction_label)
+        
+        self.reduction = QLineEdit("0")
+        self.reduction.setReadOnly(True)
+        self.reduction.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 16px;
+                font-weight: 700;
+                color: #1e293b;
+                max-width: 180px;
+            }
+        """)
+        self.reduction.setAlignment(Qt.AlignRight)
+        reduction_layout.addWidget(self.reduction)
+        recap_row1.addLayout(reduction_layout)
+        
+        # Prime nette
+        nette_layout = QVBoxLayout()
+        nette_layout.setSpacing(4)
+        nette_label = QLabel("PRIME NETTE (FCFA)")
+        nette_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        nette_layout.addWidget(nette_label)
+        
+        self.prime_nette = QLineEdit("0")
+        self.prime_nette.setReadOnly(True)
+        self.prime_nette.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #10b981;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f0fdf4;
+                font-size: 16px;
+                font-weight: 700;
+                color: #065f46;
+                max-width: 180px;
+            }
+        """)
+        self.prime_nette.setAlignment(Qt.AlignRight)
+        nette_layout.addWidget(self.prime_nette)
+        recap_row1.addLayout(nette_layout)
+        
+        recap_row1.addStretch()
+        recap_layout.addLayout(recap_row1)
+        
+        # Ligne 2: Accessoires, ASAC, TVA
+        recap_row2 = QHBoxLayout()
+        recap_row2.setSpacing(30)
+        
+        # Accessoires
+        accessoires_layout = QVBoxLayout()
+        accessoires_layout.setSpacing(4)
+        accessoires_label = QLabel("Accessoires (FCFA)")
+        accessoires_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        accessoires_layout.addWidget(accessoires_label)
+        
+        self.accessoire = QLineEdit("0")
+        self.accessoire.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 14px;
+                max-width: 180px;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
+        self.accessoire.setAlignment(Qt.AlignRight)
+        self.accessoire.textChanged.connect(self.calculate_tva)
+        self.accessoire.textChanged.connect(self.calculate_pttc)
+        accessoires_layout.addWidget(self.accessoire)
+        recap_row2.addLayout(accessoires_layout)
+        
+        # Fichier ASAC
+        asac_layout = QVBoxLayout()
+        asac_layout.setSpacing(4)
+        asac_label = QLabel("Fichier ASAC (FCFA)")
+        asac_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        asac_layout.addWidget(asac_label)
+        
+        self.asac = QLineEdit("0")
+        self.asac.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 14px;
+                max-width: 180px;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
+        self.asac.setAlignment(Qt.AlignRight)
+        self.asac.textChanged.connect(self.calculate_tva)
+        self.asac.textChanged.connect(self.calculate_pttc)
+        asac_layout.addWidget(self.asac)
+        recap_row2.addLayout(asac_layout)
+        
+        # TVA
+        tva_layout = QVBoxLayout()
+        tva_layout.setSpacing(4)
+        tva_label = QLabel("TVA (19.25%)")
+        tva_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        tva_layout.addWidget(tva_label)
+        
+        self.tva = QLineEdit("0")
+        self.tva.setReadOnly(True)
+        self.tva.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 14px;
+                font-weight: 600;
+                color: #1e293b;
+                max-width: 180px;
+            }
+        """)
+        self.tva.setAlignment(Qt.AlignRight)
+        tva_layout.addWidget(self.tva)
+        recap_row2.addLayout(tva_layout)
+        
+        recap_row2.addStretch()
+        recap_layout.addLayout(recap_row2)
+        
+        # Ligne 3: Exonéré DTA, Vignette, Carte Rose
+        recap_row3 = QHBoxLayout()
+        recap_row3.setSpacing(30)
+        
+        # Exonéré de DTA
+        exonere_layout = QVBoxLayout()
+        exonere_layout.setSpacing(4)
+        exonere_label = QLabel("Exonéré de DTA")
+        exonere_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        exonere_layout.addWidget(exonere_label)
+        
+        self.check_exonere_dta = QCheckBox("Exonéré de DTA")
+        self.check_exonere_dta.setStyleSheet("""
+            QCheckBox {
+                font-size: 13px;
+                font-weight: 600;
+                color: #4a5568;
+                spacing: 8px;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e0;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #3498db;
+                border-color: #3498db;
+            }
+        """)
+        self.check_exonere_dta.stateChanged.connect(self.on_exonere_dta_changed)
+        exonere_layout.addWidget(self.check_exonere_dta)
+        recap_row3.addLayout(exonere_layout)
+        
+        # Vignette
+        vignette_layout = QVBoxLayout()
+        vignette_layout.setSpacing(4)
+        vignette_label = QLabel("Vignette")
+        vignette_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        vignette_layout.addWidget(vignette_label)
+        
+        self.vignette = QComboBox()
+        self.vignette.setStyleSheet("""
+            QComboBox {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 8px 14px;
+                background-color: white;
+                font-size: 13px;
+                max-width: 180px;
+            }
+            QComboBox:focus {
+                border-color: #3498db;
+            }
+        """)
+        self.vignette.setEditable(False)
+        self.vignette.addItems(["0", "30000", "50000", "75000", "200000"])
+        self.vignette.setCurrentIndex(0)
+        self.vignette.setVisible(False)
+        self.vignette.currentTextChanged.connect(self.calculate_pttc)
+        vignette_layout.addWidget(self.vignette)
+        recap_row3.addLayout(vignette_layout)
+        
+        # Carte Rose
+        carte_layout = QVBoxLayout()
+        carte_layout.setSpacing(4)
+        carte_label = QLabel("Carte Rose (FCFA)")
+        carte_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        carte_layout.addWidget(carte_label)
+        
+        self.carte_rose = QLineEdit("0")
+        self.carte_rose.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 14px;
+                max-width: 180px;
+            }
+            QLineEdit:focus {
+                border-color: #3498db;
+            }
+        """)
+        self.carte_rose.setAlignment(Qt.AlignRight)
+        self.carte_rose.textChanged.connect(self.calculate_pttc)
+        carte_layout.addWidget(self.carte_rose)
+        recap_row3.addLayout(carte_layout)
+        
+        recap_row3.addStretch()
+        recap_layout.addLayout(recap_row3)
+        
+        # Ligne 4: PTTC
+        recap_row4 = QHBoxLayout()
+        recap_row4.setSpacing(30)
+        recap_row4.setContentsMargins(0, 8, 0, 0)
+        
+        pttc_layout = QVBoxLayout()
+        pttc_layout.setSpacing(4)
+        
+        pttc_header = QHBoxLayout()
+        pttc_header.setSpacing(8)
+        
+        pttc_label = QLabel("PTTC (FCFA) - PRIME TOTALE TOUTES TAXES COMPRISES")
+        pttc_label.setStyleSheet("""
+            font-size: 11px;
+            font-weight: 700;
+            color: #0f172a;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        """)
+        pttc_header.addWidget(pttc_label)
+        
+        pttc_sub = QLabel("Montant à payer par le client")
+        pttc_sub.setStyleSheet("""
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-left: 4px;
+        """)
+        pttc_header.addWidget(pttc_sub)
+        pttc_header.addStretch()
+        
+        pttc_layout.addLayout(pttc_header)
+        
+        self.pttc = QLineEdit("0")
+        self.pttc.setReadOnly(True)
+        self.pttc.setStyleSheet("""
+            QLineEdit {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #fef3c7,
+                    stop:1 #fde68a
+                );
+                color: #b45309;
+                font-weight: 800;
+                border: 2px solid #f59e0b;
+                border-radius: 12px;
+                padding: 14px 20px;
+                font-size: 24px;
+                max-width: 300px;
+            }
+        """)
+        self.pttc.setAlignment(Qt.AlignRight)
+        pttc_layout.addWidget(self.pttc)
+        
+        recap_row4.addLayout(pttc_layout)
+        recap_row4.addStretch()
+        recap_layout.addLayout(recap_row4)
+        
+        content_layout.addWidget(group_recap)
+        
+        # ============================================================
+        # GROUPE: PÉRIODE DE GARANTIE
+        # ============================================================
+        group_dates = QGroupBox("Période de garantie")
+        group_dates.setStyleSheet(group_style)
+        
+        dates_layout = QHBoxLayout(group_dates)
+        dates_layout.setContentsMargins(25, 20, 25, 20)
+        dates_layout.setSpacing(30)
+        
+        # Date début
+        date_debut_layout = QVBoxLayout()
+        date_debut_layout.setSpacing(4)
+        date_debut_label = QLabel("Date début")
+        date_debut_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        date_debut_layout.addWidget(date_debut_label)
+        
+        self.date_debut = QDateEdit()
+        self.date_debut.setDisplayFormat("dd/MM/yyyy")
+        self.date_debut.setCalendarPopup(True)
+        self.date_debut.setDate(QDate.currentDate())
+        self.date_debut.setStyleSheet("""
+            QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                max-width: 150px;
+            }
+            QDateEdit:focus {
+                border-color: #3498db;
+            }
+        """)
+        self.date_debut.dateChanged.connect(self.on_date_changed)
+        date_debut_layout.addWidget(self.date_debut)
+        dates_layout.addLayout(date_debut_layout)
+        
+        # Date fin
+        date_fin_layout = QVBoxLayout()
+        date_fin_layout.setSpacing(4)
+        date_fin_label = QLabel("Date fin")
+        date_fin_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        date_fin_layout.addWidget(date_fin_label)
+        
+        self.date_fin = QDateEdit()
+        self.date_fin.setDisplayFormat("dd/MM/yyyy")
+        self.date_fin.setCalendarPopup(True)
+        self.date_fin.setDate(QDate.currentDate().addYears(1))
+        self.date_fin.setStyleSheet("""
+            QDateEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: white;
+                font-size: 13px;
+                max-width: 150px;
+            }
+            QDateEdit:focus {
+                border-color: #3498db;
+            }
+        """)
+        self.date_fin.dateChanged.connect(self.on_date_changed)
+        date_fin_layout.addWidget(self.date_fin)
+        dates_layout.addLayout(date_fin_layout)
+        
+        # Jours
+        jours_layout = QVBoxLayout()
+        jours_layout.setSpacing(4)
+        jours_label = QLabel("Jours")
+        jours_label.setStyleSheet("font-size: 10px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;")
+        jours_layout.addWidget(jours_label)
+        
+        self.nbr_jour = QLineEdit("0")
+        self.nbr_jour.setReadOnly(True)
+        self.nbr_jour.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #e2e8f0;
+                border-radius: 10px;
+                padding: 10px 14px;
+                background-color: #f8fafc;
+                font-size: 13px;
+                font-weight: 600;
+                color: #1e293b;
+                max-width: 100px;
+            }
+        """)
+        self.nbr_jour.setAlignment(Qt.AlignRight)
+        jours_layout.addWidget(self.nbr_jour)
+        dates_layout.addLayout(jours_layout)
+        
+        dates_layout.addStretch()
+        content_layout.addWidget(group_dates)
+        
+        content_layout.addStretch()
+        
+        scroll.setWidget(content_widget)
+        layout.addWidget(scroll)
+        
+        return tab
+
+    def on_exonere_dta_changed(self, state):
+        """
+        Gère l'activation/désactivation de l'exonération DTA
+        Affiche ou cache la combo box vignette et met à jour sa valeur
+        """
+        is_checked = state == 2  # Qt.Checked
+        
+        # Afficher ou cacher la combo box vignette
+        self.vignette.setVisible(is_checked)
+        
+        if is_checked:
+            # Calculer la vignette en fonction de la puissance fiscale
+            cv_val = self.get_int_value(self.usage_input)
+            
+            if 2 <= cv_val <= 7:
+                vignette_value = "30000"
+            elif 8 <= cv_val <= 13:
+                vignette_value = "50000"
+            elif 14 <= cv_val <= 20:
+                vignette_value = "75000"
+            elif cv_val > 20:
+                vignette_value = "200000"
+            else:
+                vignette_value = "0"
+            
+            # Définir la valeur dans la combo box
+            index = self.vignette.findText(vignette_value)
+            if index >= 0:
+                self.vignette.setCurrentIndex(index)
+            else:
+                self.vignette.setCurrentText(vignette_value)
+        else:
+            # Réinitialiser la vignette à 0
+            self.vignette.setCurrentIndex(0)
+        
+        # Recalculer le PTTC
+        self.calculate_pttc()
+
+    def _on_tarif_categories_loaded(self, categories):
+        get_global_loader().hide_loading()
+        self._populate_category_combobox(categories, keep_current=False)
+
+        if categories:
+            first_category = str(categories[0]).strip()
+            if first_category:
+                self.combo_cat.setCurrentText(first_category)
+
+    def _populate_category_combobox(self, categories, keep_current=False):
+        current_value = self.combo_cat.currentText() if keep_current else None
+        self.combo_cat.clear()
+        self.combo_cat.addItem("", "")
+
+        unique_categories = sorted({str(c).strip() for c in categories if c})
+        for categorie in unique_categories:
+            self.combo_cat.addItem(categorie)
+
+        if current_value:
+            self.combo_cat.setCurrentText(current_value)
+
+  

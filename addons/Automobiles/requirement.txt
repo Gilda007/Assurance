@@ -1,0 +1,7 @@
+PySide6
+requests
+reportlab
+qrcode
+opencv-python
+pandas
+SQLAlchemy

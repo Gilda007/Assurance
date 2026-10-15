@@ -1,0 +1,25 @@
+2026-06-12 12:09:02,401 [INFO] AMS_Project: ✅ Connexion à PostgreSQL établie avec succès.
+2026-06-12 12:09:02,403 [INFO] AMS_Project:    Host: 212.47.73.151:5432
+2026-06-12 12:09:02,403 [INFO] AMS_Project:    Database: ams_db
+2026-06-12 12:09:02,403 [INFO] AMS_Project:    Pool size: 15 (max_overflow: 25)
+2026-06-12 12:09:03,067 [INFO] AMS_Project: ✅ Cache local initialisé: /home/fearless/.lometa/cache/cache.db
+2026-06-12 12:09:03,067 [INFO] AMS_Project:    Taille actuelle: 0.00 MB
+QObject::startTimer: Timers can only be used with threads started with QThread
+2026-06-12 12:09:04,533 [INFO] AMS_Project: ✅ Mappers configurés et base de données synchronisée.
+2026-06-12 12:09:08,262 [INFO] AMS_Project: ✅ Mappers configurés et base de données synchronisée.
+2026-06-12 12:09:09,699 [INFO] AMS_Project: Base de données prête
+2026-06-12 12:09:17,417 [INFO] AMS_Project: 🔐 Session sécurisée démarrée pour : Admin
+2026-06-12 12:09:19,352 [INFO] AMS_Project: 🔐 Authentification réussie pour : Admin (remember=True)
+2026-06-12 12:09:20,135 [INFO] AMS_Project: --- DÉBUT DU CHARGEMENT DES MODULES ---
+2026-06-12 12:09:20,135 [INFO] AMS_Project: Recherche dans : /home/fearless/Documents/Assurance/addons
+2026-06-12 12:09:20,141 [INFO] AMS_Project: Module détecté : [Automobiles] version=1.1.3
+2026-06-12 12:09:20,153 [INFO] AMS_Project: ✅ AsyncExecutor initialisé avec 12 threads
+2026-06-12 12:09:22 [INFO] AMS_Project:   > Importation réussie : addons.Automobiles.main_ui
+2026-06-12 12:09:22 [INFO] AMS_Project:   > Classe de module valide trouvée : AutomobileModule
+2026-06-12 12:09:22 [INFO] AMS_Project:   [OK] Module Automobiles chargé et initialisé.
+2026-06-12 12:09:22 [INFO] AMS_Project: Module détecté : [Paramètres] version=1.1.0
+2026-06-12 12:09:22 [INFO] AMS_Project:   > Importation réussie : addons.Paramètres.main_ui
+2026-06-12 12:09:22 [INFO] AMS_Project:   > Classe de module valide trouvée : UserModule
+2026-06-12 12:09:22 [INFO] AMS_Project:   [OK] Module Paramètres chargé et initialisé.
+2026-06-12 12:09:22 [INFO] AMS_Project: --- FIN DU CHARGEMENT DES MODULES (2 chargés) ---
+QThread: Destroyed while thread '' is still running

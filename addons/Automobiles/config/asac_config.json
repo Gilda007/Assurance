@@ -1,0 +1,7 @@
+{
+    "app_key": "VOTRE_CLE_APPLICATIVE_ASAC",
+    "username": "VOTRE_NOM_UTILISATEUR_ASAC",
+    "api_url": "https://ppeatt-api.asac.cm",
+    "office_code": "AG-DLA-001",
+    "organization_code": "ACTIVA"
+}

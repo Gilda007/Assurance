@@ -28,3 +28,23 @@ def log_error(message):
 
 def log_info(message):
     logger.info(message)
+
+def info(message):
+    """Log info"""
+    logger.info(message)
+
+def debug(message):
+    """Log debug"""
+    logger.debug(message)
+
+def warning(message):
+    """Log warning"""
+    logger.warning(message)
+
+def error(message):
+    """Log error"""
+    logger.error(message)
+
+def critical(message):
+    """Log critical"""
+    logger.critical(message)

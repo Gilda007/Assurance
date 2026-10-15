@@ -1,0 +1,51 @@
+COMMANDES CONFIGURÉES DU PROJET LOMETA
+====================================
+
+Ce fichier récapitule les commandes principales présentes dans le projet pour l'environnement, le lancement, les builds, les tests et la sauvegarde.
+
+1. ENVIRONNEMENT
+----------------
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install PySide6 sqlalchemy psycopg2-binary qrcode
+pip install pyinstaller
+pip install pyinstaller-hooks-contrib
+
+2. DÉMARRAGE DE L'APPLICATION
+-----------------------------
+python main.py
+./run_with_restart.sh
+./run_with_restart.bat
+
+3. BUILD / PACKAGING
+--------------------
+./build_windows.sh
+./build_windows.bat
+./compile_and_zip.sh
+pyinstaller --noconfirm --onedir --console LOMETA_DEBUG.spec
+pyinstaller --noconfirm --onedir --windowed LOMETA.spec
+
+4. TESTS
+--------
+python -m pytest nom_du_module/tests/
+
+5. MODULES / GÉNÉRATION
+-----------------------
+python manage.py enable_module NomDuModule
+python manage.py migrate NomDuModule
+python manage.py restart
+
+6. BACKUP / SAUVEGARDE
+----------------------
+cd backup_management
+chmod +x install_backup_service.sh
+sudo ./install_backup_service.sh
+sudo systemctl status lometa-backup.timer
+sudo /usr/local/bin/lometa-backup.sh
+sudo tail -f /var/log/lometa_backup.log
+python backup_manager.py
+
+7. COMMANDES DE MAINTENANCE
+----------------------------
+sudo ./install_backup_service.sh --uninstall

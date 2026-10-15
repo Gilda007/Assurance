@@ -160,66 +160,42 @@ class CompanyTarifForm(QDialog):
         self.inputs[key] = edit
         return w
 
-    # def get_data(self):
-    #     """
-    #     Récupère dynamiquement les 62 champs du formulaire.
-    #     Convertit les vides en '0.0' pour les champs numériques et nettoie le texte.
-    #     """
-    #     data = {}
-        
-    #     # Définition des champs qui doivent rester du texte
-    #     champs_strict_texte = [
-    #         "Cie", "Nom_Cie", "Tarif", "Lib_Tarif", 
-    #         "Categorie", "Zone", "LIBELLE OPTION", "Nbre Place"
-    #     ]
-
-    #     for key, widget in self.inputs.items():
-    #         # Récupération de la valeur saisie dans le QLineEdit
-    #         valeur = widget.text().strip()
-            
-    #         if key in champs_strict_texte:
-    #             # Pour le texte, on garde la valeur telle quelle
-    #             data[key] = valeur
-    #         else:
-    #             # Pour les 50+ champs de la grille (RC, Remorque, Essence, etc.)
-    #             if valeur == "":
-    #                 # Sécurité : un champ numérique vide devient 0.0
-    #                 data[key] = "0.0"
-    #             else:
-    #                 # On remplace la virgule par un point pour être compatible SQL/Excel
-    #                 data[key] = valeur.replace(',', '.')
-                    
-    #     return data
-
     def get_data(self):
         """
-        Récupère proprement les 62+ champs en utilisant le dictionnaire self.inputs.
+        Récupère dynamiquement les 62+ champs à partir du dictionnaire self.inputs.
         """
         data = {
-            'created_by': self.user.id if self.user else None,
+            'created_by': str(self.user.id) if self.user else "1",
             'created_at': datetime.now(),
             'is_active': True
         }
 
         # Mapping des noms de colonnes SQL vs clés dans self.inputs
-        # On nettoie les clés pour correspondre exactement aux attentes du modèle
         for key, widget in self.inputs.items():
             valeur = widget.text().strip()
             
-            # Conversion des noms avec espaces (ex: "Essence 1" -> "essence_1")
+            # 1. Normalisation de la clé (ex: "LIBELLE OPTION" -> "libelle_option")
+            # On gère aussi les espaces pour correspondre au CSV (ex: "Essence 1" -> "essence_1")
             clean_key = key.lower().replace(" ", "_")
 
-            # Liste des champs qui doivent rester du texte
-            if clean_key in ["cie", "nom_cie", "tarif", "lib_tarif", "categorie", "zone", "libelle_option", "max_corpo"]:
-                # Pour cie_id, on s'assure que c'est un entier
-                if clean_key == "cie":
-                    data['cie_id'] = int(valeur) if valeur.isdigit() else 0
-                else:
-                    data[clean_key] = valeur
+            # 2. Traitement spécifique des colonnes d'identification
+            if clean_key == "cie":
+                # On stocke temporairement la valeur brute pour la validation
+                data['cie_raw_value'] = valeur
+            elif clean_key == "tarif":
+                data['tarif_code'] = valeur
+            elif clean_key == "lib_tarif":
+                data['lib_tarif'] = valeur
+            elif clean_key == "categorie":
+                data['categorie'] = valeur
+            elif clean_key == "nbre_place":
+                data['nbre_place'] = int(valeur) if valeur.isdigit() else 0
+            elif clean_key in ["lib_tarif", "zone", "libelle_option", "max_corpo"]:
+                data[clean_key] = valeur
             else:
-                # Pour tous les champs numériques (Primes, Essences, Diesel, Remorquage...)
+                # 3. Traitement des champs numériques (Primes, Remorquage, etc.)
                 try:
-                    # Remplace la virgule par un point et convertit en float
+                    # Nettoyage pour SQL (remplacement virgule par point)
                     data[clean_key] = float(valeur.replace(',', '.')) if valeur else 0.0
                 except ValueError:
                     data[clean_key] = 0.0
@@ -227,20 +203,44 @@ class CompanyTarifForm(QDialog):
         return data
     
     def accept(self):
-        """Surchargé pour valider et enregistrer avant de fermer."""
+        """Surchargé pour valider et enregistrer."""
         tarif_data = self.get_data()
-        print(tarif_data)
         
-        # Validation minimale
-        if tarif_data.get('cie_id') == 0 or not tarif_data.get('tarif_code'):
+        cie_code_saisi = tarif_data.pop('cie_raw_value', "")
+        tarif_code = tarif_data.get('tarif_code', "")
+
+        if not cie_code_saisi or not tarif_code:
             AlertManager.show_error(self, "Champs manquants", "Le Code Cie et le Code Tarif sont obligatoires.")
             return
 
-        # Appel au contrôleur
-        success, message = self.controller.create_tarif(tarif_data)
+        # --- RECHERCHE DE LA COMPAGNIE ---
+        from addons.Automobiles.models import Compagnie
+        db_session = self.controller.tarifs.db # Accès à la session
+        
+        compagnie = db_session.query(Compagnie).filter(Compagnie.code == cie_code_saisi).first()
+
+        if not compagnie:
+            AlertManager.show_error(self, "Erreur Compagnie", f"Le code '{cie_code_saisi}' n'existe pas.")
+            return
+
+        # 1. On affecte l'ID réel
+        tarif_data['cie_id'] = compagnie.id
+
+        # 2. NETTOYAGE DES CHAMPS INTRUS (Ceux qui ne sont pas dans tarif_models.py)
+        # On supprime 'nom_cie' car il n'existe pas dans la table automobile_tarifs
+        if 'nom_cie' in tarif_data:
+            del tarif_data['nom_cie']
+            
+        # On vérifie aussi 'inflammable' si vous l'avez dans le dictionnaire 
+        # mais pas dans le modèle (votre modèle utilise prime1, prime2...)
+        keys_to_remove = [k for k in tarif_data.keys() if "inflamble" in k]
+        for k in keys_to_remove:
+            del tarif_data[k]
+
+        # 3. Appel au contrôleur
+        success, message = self.controller.tarifs.create_tarif(tarif_data)
         
         if success:
-            AlertManager.show_success(self, "Succès", message)
-            super().accept() # Ferme la fenêtre uniquement si succès
+            super().accept() 
         else:
-            AlertManager.show_error(self, "Erreur SQL", message)
+            AlertManager.show_error(self, "Erreur Enregistrement", message)
