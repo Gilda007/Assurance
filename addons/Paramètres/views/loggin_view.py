@@ -20,7 +20,8 @@ from PySide6.QtGui import (
 )
 
 import qtawesome as qta
-
+import random
+import glob
 
 # ═══════════════════════════════════════════════════════════════════
 # PALETTE & STYLES
@@ -55,68 +56,278 @@ class LoginView(QWidget):
         self.setMinimumSize(1280, 720)
         self.old_pos = None
         
-        # ─── Image de fond ───
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.image_candidates = [
-            os.path.join(base_dir, "login_bg_2.jpg"),
-            os.path.join(base_dir, "login_bg.png"),
-            os.path.join(base_dir, "login_bg.webp"),
-            os.path.join(base_dir, "..", "..", "..", "assets", "login_bg.jpg"),
-        ]
-        self.image_path = self._find_existing_image()
+        # ═══════════════════════════════════════════════════════════
+        # ROTATION D'IMAGES DE FOND
+        # ═══════════════════════════════════════════════════════════
+        self.background_images = self._discover_background_images()
+        self.current_bg_index = 0
+        self.current_pixmap = None       # Image actuellement affichée
+        self.next_pixmap = None          # Image en cours de fondu
+        self.fade_progress = 0.0         # 0.0 → 1.0 pendant la transition
+        self._fade_progress_value = 0.0
+        
+        # Charger la première image tout de suite
+        if self.background_images:
+            self.current_pixmap = self._load_pixmap(self.background_images[0])
         
         # ─── Settings ───
         self.settings = QSettings("LOMETA", "Login")
         
         self.setup_ui()
         self.load_saved_session()
+        
+        # ✅ Démarrer la rotation toutes les 1 minute
+        if len(self.background_images) > 1:
+            self._bg_timer = QTimer(self)
+            self._bg_timer.timeout.connect(self._rotate_background)
+            self._bg_timer.start(60_000)   # 60 000 ms = 1 minute
+        
+        # ✅ Animation de fondu (créée une seule fois, réutilisée)
+        self._fade_anim = QPropertyAnimation(self, b"fade_progress_prop")
+        self._fade_anim.finished.connect(self._on_fade_finished)
+        # ⚠️ On utilise une propriété Qt personnalisée ci-dessous
+
+    # def _find_existing_image(self):
+    #     for path in self.image_candidates:
+    #         if os.path.exists(path):
+    #             return path
+    #     return None
+
+    def _discover_background_images(self):
+        """
+        Découvre toutes les images de fond disponibles.
+        Cherche dans plusieurs dossiers avec plusieurs extensions.
+        """
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Dossiers à scanner
+        search_dirs = [
+            base_dir,
+            os.path.join(base_dir, "backgrounds"),
+            os.path.join(base_dir, "images", "backgrounds"),
+            os.path.join(base_dir, "..", "..", "..", "assets", "backgrounds"),
+        ]
+        
+        # Extensions supportées
+        extensions = ["*.jpg", "*.jpeg", "*.png", "*.webp"]
+        
+        found = []
+        for directory in search_dirs:
+            if not os.path.isdir(directory):
+                continue
+            for ext in extensions:
+                pattern = os.path.join(directory, f"login_bg*{ext[1:]}")
+                found.extend(glob.glob(pattern))
+                # Aussi : bg1.jpg, bg2.jpg, background_1.png...
+                pattern = os.path.join(directory, f"background*{ext[1:]}")
+                found.extend(glob.glob(pattern))
+        
+        # Dédupliquer (même chemin absolu)
+        unique = list(dict.fromkeys(os.path.abspath(p) for p in found))
+        
+        if not unique:
+            # Fallback : nom standard dans le dossier du fichier
+            fallback = os.path.join(base_dir, "login_bg.jpg")
+            if os.path.exists(fallback):
+                unique.append(fallback)
+        
+        return unique
+
+
+    def _load_pixmap(self, path):
+        """Charge une image sans la scaler (le scaling se fait dans paintEvent)."""
+        pix = QPixmap(path)
+        if pix.isNull():
+            return None
+        return pix
     
-    def _find_existing_image(self):
-        for path in self.image_candidates:
-            if os.path.exists(path):
-                return path
-        return None
-    
+
+    def _get_fade_progress(self):
+        return self._fade_progress_value
+
+    def _set_fade_progress(self, value):
+        self._fade_progress_value = value
+        self.update()  # redessine avec le fondu
+
+    # Déclaration de la propriété Qt
+    from PySide6.QtCore import Property as QtProperty
+
+    fade_progress_prop = QtProperty(
+        float,
+        _get_fade_progress,
+        _set_fade_progress,
+    )
+
+    # def _rotate_background(self):
+    #     """Change l'image de fond avec un fondu de 1,5 seconde."""
+    #     if len(self.background_images) <= 1:
+    #         return
+        
+    #     # Ne pas rotation si une animation est déjà en cours
+    #     if self._fade_anim.state() == QPropertyAnimation.Running:
+    #         return
+        
+    #     # ─── Choisir une image différente ───
+    #     old_index = self.current_bg_index
+    #     new_index = old_index
+    #     while new_index == old_index:
+    #         new_index = random.randint(0, len(self.background_images) - 1)
+    #     self.current_bg_index = new_index
+        
+    #     # ─── Préparer le fondu ───
+    #     self.next_pixmap = self._load_pixmap(self.background_images[new_index])
+    #     if self.next_pixmap is None:
+    #         return
+        
+    #     # ─── Lancer l'animation ───
+    #     self._fade_anim.stop()
+    #     self._fade_anim.setDuration(3000)  # 1,5 s de transition
+    #     self._fade_anim.setStartValue(0.0)
+    #     self._fade_anim.setEndValue(1.0)
+    #     self._fade_anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        
+    #     # À la fin, l'image suivante devient l'image courante
+    #     def on_finished():
+    #         self.current_pixmap = self.next_pixmap
+    #         self.next_pixmap = None
+    #         self._fade_progress_value = 0.0
+    #         self.update()
+        
+    #     try:
+    #         self._fade_anim.finished.disconnect()
+    #     except Exception:
+    #         pass
+    #     self._fade_anim.finished.connect(on_finished)
+        
+    #     self._fade_anim.start()
+
+    def _rotate_background(self):
+        """Change l'image de fond avec un fondu."""
+        if len(self.background_images) <= 1:
+            return
+        
+        if self._fade_anim.state() == QPropertyAnimation.Running:
+            return
+        
+        # Choisir une image différente
+        old_index = self.current_bg_index
+        new_index = old_index
+        while new_index == old_index:
+            new_index = random.randint(0, len(self.background_images) - 1)
+        self.current_bg_index = new_index
+        
+        # Préparer le fondu
+        self.next_pixmap = self._load_pixmap(self.background_images[new_index])
+        if self.next_pixmap is None:
+            return
+        
+        # ✅ Plus besoin de disconnect : on connecte UNE SEULE FOIS dans __init__
+        self._fade_anim.stop()
+        self._fade_anim.setDuration(1500)
+        self._fade_anim.setStartValue(0.0)
+        self._fade_anim.setEndValue(1.0)
+        self._fade_anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        self._fade_anim.start()
+
+    def _on_fade_finished(self):
+        """Appelée à la fin du fondu — l'image suivante devient l'image courante."""
+        self.current_pixmap = self.next_pixmap
+        self.next_pixmap = None
+        self._fade_progress_value = 0.0
+        self.update()
+
     # ═══════════════════════════════════════════════════════════════
     # FOND : IMAGE URBAINE
     # ═══════════════════════════════════════════════════════════════
     
+    # def paintEvent(self, event):
+    #     """Peint l'image de fond (étirée sur toute la fenêtre)."""
+    #     painter = QPainter(self)
+    #     painter.setRenderHint(QPainter.Antialiasing)
+    #     painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        
+    #     if self.image_path:
+    #         pixmap = QPixmap(self.image_path)
+    #         if not pixmap.isNull():
+    #             scaled = pixmap.scaled(
+    #                 self.size(),
+    #                 Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+    #                 Qt.TransformationMode.SmoothTransformation,
+    #             )
+    #             # Centrer l'image
+    #             x = (self.width() - scaled.width()) // 2
+    #             y = (self.height() - scaled.height()) // 2
+    #             painter.drawPixmap(x, y, scaled)
+    #         else:
+    #             # Fallback : dégradé sombre
+    #             gradient = QLinearGradient(0, 0, 0, self.height())
+    #             gradient.setColorAt(0, QColor("#0f172a"))
+    #             gradient.setColorAt(1, QColor("#1e293b"))
+    #             painter.fillRect(self.rect(), QBrush(gradient))
+    #     else:
+    #         # Pas d'image : dégradé sombre
+    #         gradient = QLinearGradient(0, 0, 0, self.height())
+    #         gradient.setColorAt(0, QColor("#0f172a"))
+    #         gradient.setColorAt(1, QColor("#1e293b"))
+    #         painter.fillRect(self.rect(), QBrush(gradient))
+        
+    #     # Overlay sombre pour faire ressortir la carte
+    #     painter.fillRect(self.rect(), QColor(0, 0, 0, 80))
+        
+    #     super().paintEvent(event)
+    
     def paintEvent(self, event):
-        """Peint l'image de fond (étirée sur toute la fenêtre)."""
+        """Peint l'image de fond avec fondu entre deux images."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setRenderHint(QPainter.SmoothPixmapTransform)
         
-        if self.image_path:
-            pixmap = QPixmap(self.image_path)
-            if not pixmap.isNull():
-                scaled = pixmap.scaled(
-                    self.size(),
-                    Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                    Qt.TransformationMode.SmoothTransformation,
-                )
-                # Centrer l'image
-                x = (self.width() - scaled.width()) // 2
-                y = (self.height() - scaled.height()) // 2
-                painter.drawPixmap(x, y, scaled)
-            else:
-                # Fallback : dégradé sombre
-                gradient = QLinearGradient(0, 0, 0, self.height())
-                gradient.setColorAt(0, QColor("#0f172a"))
-                gradient.setColorAt(1, QColor("#1e293b"))
-                painter.fillRect(self.rect(), QBrush(gradient))
-        else:
-            # Pas d'image : dégradé sombre
+        # ─── Image de fond (avec ou sans fondu) ───
+        if self.current_pixmap:
+            self._draw_pixmap_scaled(painter, self.current_pixmap, opacity=1.0)
+        
+        if self.next_pixmap:
+            # Fondu progressif : opacity = valeur de la propriété (0 → 1)
+            self._draw_pixmap_scaled(
+                painter, self.next_pixmap,
+                opacity=self._fade_progress_value,
+            )
+        
+        # ─── Fallback si aucune image ───
+        if not self.current_pixmap and not self.next_pixmap:
             gradient = QLinearGradient(0, 0, 0, self.height())
             gradient.setColorAt(0, QColor("#0f172a"))
             gradient.setColorAt(1, QColor("#1e293b"))
             painter.fillRect(self.rect(), QBrush(gradient))
         
-        # Overlay sombre pour faire ressortir la carte
+        # ─── Overlay sombre pour faire ressortir la carte ───
         painter.fillRect(self.rect(), QColor(0, 0, 0, 80))
         
         super().paintEvent(event)
-    
+
+
+    def _draw_pixmap_scaled(self, painter, pixmap, opacity=1.0):
+        """Dessine une pixmap scalée et centrée avec une opacité donnée."""
+        if pixmap is None or pixmap.isNull():
+            return
+        
+        scaled = pixmap.scaled(
+            self.size(),
+            Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+            Qt.TransformationMode.SmoothTransformation,
+        )
+        
+        x = (self.width() - scaled.width()) // 2
+        y = (self.height() - scaled.height()) // 2
+        
+        if opacity < 1.0:
+            painter.save()
+            painter.setOpacity(opacity)
+            painter.drawPixmap(x, y, scaled)
+            painter.restore()
+        else:
+            painter.drawPixmap(x, y, scaled)
+
     # ═══════════════════════════════════════════════════════════════
     # UI PRINCIPALE
     # ═══════════════════════════════════════════════════════════════

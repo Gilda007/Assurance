@@ -17,6 +17,7 @@ from addons.Automobiles.views.style import Colors, Fonts, Spacing, apply_global_
 from addons.Automobiles.views.widgets.modern_card import ModernCard
 from addons.Automobiles.security.access_control import Permissions, SecurityManager, Role
 from addons.Automobiles.views.widgets.loading_widget import LoadingPage
+from core.logger import logger
 
 
 
@@ -229,6 +230,7 @@ class VehicleMainView(QWidget):
         self.pages = []
         self._page_rows = {}
         self._page_history = []
+        self.refresh_timer = None 
         self.setup_ui()
         self.load_initial_data()
     
@@ -252,6 +254,43 @@ class VehicleMainView(QWidget):
         self.setup_content_area()
         main_layout.addWidget(self.content_container, 1)
     
+    def _start_refresh_timer(self):
+        """Démarre l'auto-refresh APRES affichage."""
+        if self.refresh_timer is None:
+            self.refresh_timer = QTimer(self)
+            self.refresh_timer.timeout.connect(self.load_data)
+            self.refresh_timer.start(300000)  # 5 min
+
+    def load_data(self):
+        """Charge les données du dashboard."""
+        if self._loading:
+            return
+        self._loading = True
+        try:
+            # ✅ Différer les updates visuels lourds
+            QTimer.singleShot(0, self._fetch_and_update)
+        except Exception as e:
+            logger.error(f"Erreur load_data: {e}")
+            self._loading = False
+
+
+    def _fetch_and_update(self):
+        """Récupération + mise à jour en plusieurs cycles Qt."""
+        try:
+            self._fetch_data()
+            from PySide6.QtWidgets import QApplication
+            QApplication.processEvents()
+
+            self._update_main_chart()
+            QApplication.processEvents()
+
+            self._update_donut()
+            QApplication.processEvents()
+
+        except Exception as e:
+            logger.error(f"Erreur fetch_and_update: {e}")
+        finally:
+            self._loading = False
 
     def setup_sidebar(self):
         """Configure la sidebar moderne avec Font Awesome"""
@@ -427,23 +466,25 @@ class VehicleMainView(QWidget):
         
         # Pages
         self.pages = {}
-        self.init_pages()
+        # self.init_pages()
         
         content_layout.addWidget(self.stacked_widget)
 
     def refresh_data(self):
-        """Rafraîchit les données du tableau de bord"""
-        # Chercher le dashboard dans la pile
-        for i in range(self.stacked_widget.count()):
-            widget = self.stacked_widget.widget(i)
-            if widget.__class__.__name__ == "DashboardView":
-                if hasattr(widget, 'refresh_data'):
-                    widget.refresh_data()
-                elif hasattr(widget, 'refresh'):
-                    widget.refresh()
-                elif hasattr(widget, 'load_data'):
-                    widget.load_data()
-                break
+        """Rafraîchit la page courante si déjà chargée."""
+        if not self._page_history:
+            return
+        current = self._page_history[-1]
+        widget = self.page_widgets.get(current)
+        if widget is None:
+            return
+        try:
+            if hasattr(widget, 'refresh'):
+                widget.refresh()
+            elif hasattr(widget, 'load_data'):
+                widget.load_data()
+        except Exception as e:
+            print(f"⚠️ Erreur refresh {current}: {e}")
 
     # def init_pages(self):
     #     """Initialise les différentes pages"""
@@ -507,7 +548,11 @@ class VehicleMainView(QWidget):
                 self._page_rows[page_id] = len(self.pages)
                 self.pages.append(page_id)
 
-    
+    def _on_sidebar_clicked(self, page_id: str):
+        """Convertit la clé en index et délègue à switch_page."""
+        if page_id not in self._page_rows:
+            return
+        self.switch_page(self._page_rows[page_id])
 
     # ─── Factories (imports locaux = création différée) ───
 
@@ -554,48 +599,112 @@ class VehicleMainView(QWidget):
     def _make_garages(self):
         from addons.Automobiles.views.garages.garage_list_view import GarageListView
         return GarageListView(self.controller, self.user)
+  
+    # def switch_page(self, index: int):
+    #     """Change la page — Lazy Loading avec LoadingPage."""
+    #     if not (0 <= index < len(self.pages)):
+    #         return
 
-    # def switch_page(self, page_key: str):
-    #     """Change de page avec animation"""
-    #     if page_key not in self.pages:
-    #         page_key = next(iter(self.pages), "dashboard")
-        
-    #     # Mettre à jour les boutons
+    #     page_id = self.pages[index]
+
+    #     # Sidebar : bouton actif
     #     for key, btn in self.nav_buttons.items():
-    #         btn.set_active(key == page_key)
-        
-    #     # Mettre à jour le titre
-    #     titles = {
-    #         "dashboard": "Tableau de Bord",
-    #         "vehicles": "Gestion des Véhicules",
-    #         "contacts": "Gestion des Clients",
-    #         "companies": "Compagnies d'Assurance",
-    #         "contracts": "Gestion des Contrats",
-    #         "import": "Import ASAC",
-    #         "reports": "Rapports et Statistiques",
-    #         "settings": "Paramètres",
-    #         "sinistres": "Gestion des Sinistres",
-    #         "expertises": "Expertises Automobiles",
-    #         "garages": "Garages Agréés"
-    #     }
-    #     # self.page_title.setText(titles.get(page_key, page_key))
-        
-    #     # Changer de page avec animation
-    #     index = list(self.pages.keys()).index(page_key)
-    #     self.animate_page_transition(index)
-    
+    #         btn.set_active(key == page_id)
+
+    #     # Historique
+    #     if not self._page_history or self._page_history[-1] != page_id:
+    #         self._page_history.append(page_id)
+    #         if len(self._page_history) > 20:
+    #             self._page_history.pop(0)
+
+    #     widget = self.page_widgets.get(page_id)
+
+    #     # ═══════════════════════════════════════════════════════════════
+    #     # CAS 1 : Première visite → LoadingPage + création
+    #     # ═══════════════════════════════════════════════════════════════
+    #     if widget is None:
+    #         messages = {
+    #             "dashboard":  "Préparation du tableau de bord...",
+    #             "vehicles":   "Chargement des véhicules...",
+    #             "contacts":   "Chargement des clients...",
+    #             "companies":  "Chargement des compagnies...",
+    #             "contracts":  "Chargement des contrats...",
+    #             "import":     "Initialisation de l'import ASAC...",
+    #             "reports":    "Chargement des rapports...",
+    #             "settings":   "Chargement des paramètres...",
+    #             "sinistres":  "Chargement des sinistres...",
+    #             "expertises": "Chargement des expertises...",
+    #             "garages":    "Chargement des garages...",
+    #         }
+
+    #         self.loading_page.set_message(messages.get(page_id, "Chargement..."))
+    #         self.loading_page.set_subtitle("Veuillez patienter quelques instants...")
+    #         self.container.setCurrentWidget(self.loading_page)
+
+    #         from PySide6.QtWidgets import QApplication
+    #         QApplication.processEvents()
+
+    #         # Créer la page
+    #         try:
+    #             widget = self._page_factories[page_id]()
+    #         except Exception as e:
+    #             import traceback
+    #             traceback.print_exc()
+    #             error_widget = self._build_error_widget(page_id, str(e))
+    #             self.container.addWidget(error_widget)
+    #             self.container.setCurrentWidget(error_widget)
+    #             return
+
+    #         if widget is None:
+    #             error_widget = self._build_error_widget(
+    #                 page_id, "Widget non créé (import manquant ?)"
+    #             )
+    #             self.container.addWidget(error_widget)
+    #             self.container.setCurrentWidget(error_widget)
+    #             return
+
+    #         # Charger les données
+    #         self.loading_page.set_message("Chargement des données...")
+    #         QApplication.processEvents()
+
+    #         try:
+    #             if hasattr(widget, 'refresh'):
+    #                 widget.refresh()
+    #             elif hasattr(widget, 'load_data'):
+    #                 widget.load_data()
+    #             widget._has_loaded = True
+    #         except Exception as refresh_err:
+    #             print(f"❌ Erreur refresh {page_id}: {refresh_err}")
+    #             import traceback
+    #             traceback.print_exc()
+
+    #         # Mise en cache + affichage
+    #         self.page_widgets[page_id] = widget
+    #         self.container.addWidget(widget)
+
+    #         QTimer.singleShot(300, lambda w=widget: self.container.setCurrentWidget(w))
+
+    #     # ═══════════════════════════════════════════════════════════════
+    #     # CAS 2 : Déjà visitée → affichage direct + refresh doux
+    #     # ═══════════════════════════════════════════════════════════════
+    #     else:
+    #         self.container.setCurrentWidget(widget)
+    #         if hasattr(widget, 'refresh'):
+    #             try:
+    #                 QTimer.singleShot(10, widget.refresh)
+    #             except Exception:
+    #                 pass
+
     def switch_page(self, index: int):
-        """Change la page — Lazy Loading avec LoadingPage."""
+        """Change la page — Lazy Loading avec LoadingPage vraiment non-bloquant."""
         if not (0 <= index < len(self.pages)):
             return
 
         page_id = self.pages[index]
 
-        # Sidebar : bouton actif
         for key, btn in self.nav_buttons.items():
             btn.set_active(key == page_id)
 
-        # Historique
         if not self._page_history or self._page_history[-1] != page_id:
             self._page_history.append(page_id)
             if len(self._page_history) > 20:
@@ -603,9 +712,6 @@ class VehicleMainView(QWidget):
 
         widget = self.page_widgets.get(page_id)
 
-        # ═══════════════════════════════════════════════════════════════
-        # CAS 1 : Première visite → LoadingPage + création
-        # ═══════════════════════════════════════════════════════════════
         if widget is None:
             messages = {
                 "dashboard":  "Préparation du tableau de bord...",
@@ -622,55 +728,15 @@ class VehicleMainView(QWidget):
             }
 
             self.loading_page.set_message(messages.get(page_id, "Chargement..."))
-            self.loading_page.set_subtitle("Veuillez patienter quelques instants...")
+            self.loading_page.set_subtitle("Veuillez patienter...")
             self.container.setCurrentWidget(self.loading_page)
 
             from PySide6.QtWidgets import QApplication
             QApplication.processEvents()
 
-            # Créer la page
-            try:
-                widget = self._page_factories[page_id]()
-            except Exception as e:
-                import traceback
-                traceback.print_exc()
-                error_widget = self._build_error_widget(page_id, str(e))
-                self.container.addWidget(error_widget)
-                self.container.setCurrentWidget(error_widget)
-                return
+            # ✅ Lancer la création APRÈS avoir peint le loading
+            QTimer.singleShot(50, lambda pid=page_id: self._create_page_async(pid))
 
-            if widget is None:
-                error_widget = self._build_error_widget(
-                    page_id, "Widget non créé (import manquant ?)"
-                )
-                self.container.addWidget(error_widget)
-                self.container.setCurrentWidget(error_widget)
-                return
-
-            # Charger les données
-            self.loading_page.set_message("Chargement des données...")
-            QApplication.processEvents()
-
-            try:
-                if hasattr(widget, 'refresh'):
-                    widget.refresh()
-                elif hasattr(widget, 'load_data'):
-                    widget.load_data()
-                widget._has_loaded = True
-            except Exception as refresh_err:
-                print(f"❌ Erreur refresh {page_id}: {refresh_err}")
-                import traceback
-                traceback.print_exc()
-
-            # Mise en cache + affichage
-            self.page_widgets[page_id] = widget
-            self.container.addWidget(widget)
-
-            QTimer.singleShot(300, lambda w=widget: self.container.setCurrentWidget(w))
-
-        # ═══════════════════════════════════════════════════════════════
-        # CAS 2 : Déjà visitée → affichage direct + refresh doux
-        # ═══════════════════════════════════════════════════════════════
         else:
             self.container.setCurrentWidget(widget)
             if hasattr(widget, 'refresh'):
@@ -678,6 +744,44 @@ class VehicleMainView(QWidget):
                     QTimer.singleShot(10, widget.refresh)
                 except Exception:
                     pass
+
+    def _create_page_async(self, page_id: str):
+        """Crée la page en différé — l'UI reste fluide."""
+        from PySide6.QtWidgets import QApplication
+
+        try:
+            # Étape 1 : Créer le widget (peut être lent, mais l'UI est déjà peinte)
+            self.loading_page.set_message("Création de l'interface...")
+            QApplication.processEvents()
+
+            widget = self._page_factories[page_id]()
+            if widget is None:
+                raise RuntimeError("Widget non créé (import manquant ?)")
+
+            # Étape 2 : Charger les données
+            self.loading_page.set_message("Chargement des données...")
+            QApplication.processEvents()
+
+            if hasattr(widget, 'refresh'):
+                widget.refresh()
+            elif hasattr(widget, 'load_data'):
+                widget.load_data()
+
+            widget._has_loaded = True
+
+            # Étape 3 : Afficher
+            self.page_widgets[page_id] = widget
+            self.container.addWidget(widget)
+
+            # ✅ Laisser la barre atteindre 100% avant de basculer
+            QTimer.singleShot(300, lambda w=widget: self.container.setCurrentWidget(w))
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            error_widget = self._build_error_widget(page_id, str(e))
+            self.container.addWidget(error_widget)
+            self.container.setCurrentWidget(error_widget)
 
     def _build_error_widget(self, page_id: str, error: str) -> QWidget:
         """Widget d'erreur stylisé."""
@@ -716,7 +820,8 @@ class VehicleMainView(QWidget):
         self._register_page_factories()
 
         if self.pages:
-            self.switch_page(0)
+            # ✅ Différer l'appel pour laisser le widget se peindre
+            QTimer.singleShot(0, lambda: self.switch_page(0))
 
     def can_access_page(self, page_key: str) -> bool:
         """Retourne True si le rôle courant peut accéder à la page."""

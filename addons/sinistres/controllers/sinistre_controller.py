@@ -767,6 +767,7 @@ class SinistreController(BaseController):
     
     def _serialize_mission(self, mission) -> dict:
         """Sérialise une mission d'expertise"""
+        print(f"Sérialisation de la mission: {mission}")
         return {
             'id': mission.id,
             'numero_mission': getattr(mission, 'numero_mission', None),

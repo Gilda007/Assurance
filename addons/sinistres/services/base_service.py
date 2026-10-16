@@ -6,6 +6,7 @@ from sqlalchemy import func
 from datetime import datetime
 from typing import Optional, List, Dict, Any, Type, TypeVar
 
+from addons.sinistres.models.expertise import LometaExpert
 from core.database import SessionLocal, ScopedSession, get_db, execute_with_retry
 from addons.sinistres.models.audit import LometaAuditLog
 from addons.Paramètres.models.models import User  # Votre modèle User existant
@@ -50,6 +51,17 @@ class BaseService:
         except Exception as e:
             self.session.rollback()
             raise e
+
+    def get_expert(self, user_id: int) -> Optional[LometaExpert]:
+            """Récupère un expert par son ID"""
+            try:
+                return self.session.query(LometaExpert).filter(
+                    LometaExpert.id == user_id,
+                    LometaExpert.est_actif == True
+                ).first()
+            except Exception as e:
+                self.session.rollback()
+                raise e
     
     def get_user_info(self, user_id: int) -> Dict[str, Any]:
         """Récupère les informations d'un utilisateur pour l'affichage"""

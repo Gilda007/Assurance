@@ -1373,6 +1373,7 @@ class GeneralTab(BaseTab):
             elif item.layout():
                 self._clear_layout(item.layout())
 
+
 class DommagesTab(BaseTab):
     """Onglet Dommages - Style fiche avec KPI et lignes pliables"""
     
@@ -1823,7 +1824,6 @@ class DommagesTab(BaseTab):
         )
         if dialog.exec():
             self.dossier_360.refresh()
-
 
 
 class ExpertisesTab(BaseTab):

@@ -42,7 +42,7 @@ class ExpertiseService(BaseService):
             
             # Vérifier que l'expert existe
             if data.get('expert_id'):
-                expert = self.get_user(data['expert_id'])
+                expert = self.get_expert(data['expert_id'])
                 if not expert:
                     raise ValueError("Expert non trouvé")
             
@@ -170,7 +170,7 @@ class ExpertiseService(BaseService):
             if mission.statut not in ["CREEE", "AFFECTEE"]:
                 raise ValueError("Cette mission ne peut plus être affectée")
             
-            expert = self.get_user(expert_id)
+            expert = self.get_expert(expert_id)
             if not expert:
                 raise ValueError("Expert non trouvé")
             

@@ -47,6 +47,7 @@ from module_detector import ModuleDetector
 
 from core.certificate_mode import get_certificate_mode_detector, CertificateMode, is_dev_mode
 
+
 # import addons.Automobiles.models as models
 
 
@@ -64,17 +65,25 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
     # Ne pas quitter immédiatement, laisser l'application gérer
     # sys.exit(1)
 
+
 # Installer le gestionnaire
+
+
 sys.excepthook = global_exception_handler
 
+
 # Gestionnaire pour les signaux Unix (segmentation fault)
+
+
 def signal_handler(signum, frame):
     logger.error(f"Signal reçu: {signum}")
     QMessageBox.critical(None, "Erreur système", 
                          "L'application a rencontré une erreur critique.\n"
                          "Veuillez redémarrer l'application.")
 
+
 signal.signal(signal.SIGSEGV, signal_handler)
+
 
 def db_operation_with_retry(max_retries=3, delay=1):
     """Décorateur pour les opérations DB avec réessai"""
@@ -108,6 +117,7 @@ def db_operation_with_retry(max_retries=3, delay=1):
 
 
 # main.py - Ajoutez cette fonction utilitaire
+
 
 def safe_emit(signal, *args, **kwargs):
     """
@@ -148,6 +158,8 @@ def safe_call(func, *args, default=None, **kwargs):
 
 
 # Décorateur pour sécuriser les méthodes Qt
+
+
 def safe_slot(func):
     """Décorateur pour sécuriser les slots Qt"""
     @wraps(func)
@@ -163,9 +175,6 @@ def safe_slot(func):
             logger.error(f"Erreur inattendue dans le slot {func.__name__}: {e}")
     return wrapper
 
-# main.py - Ajoutez cette classe après les imports
-
-# main.py - Ajouter après les imports
 
 class CertificateToast(QFrame):
     """Notification toast moderne pour les certificats - Support RSA 3.0.0"""
@@ -555,6 +564,7 @@ class CrashHandler:
             f.write(f"Platform: {platform.platform()}\n")
         logger.info(f"📄 Rapport de crash sauvegardé: {crash_file}")
 
+
 class SafeThread(QThread):
     """Thread sécurisé avec gestion des exceptions"""
     
@@ -575,7 +585,10 @@ class SafeThread(QThread):
             traceback.print_exc()
             self.error_occurred.emit(error_msg)
 
+
 # Palette de couleurs moderne
+
+
 class AppColors:
     PRIMARY = "#2563eb"
     PRIMARY_DARK = "#1e40af"
@@ -595,7 +608,11 @@ class AppColors:
     
     # Couleurs pour les graphiques
     CHART_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899", "#06b6d4"]
+
+
 # Style Sheet
+
+
 STYLE_SHEET = f"""
     QMainWindow {{
         background-color: {AppColors.BACKGROUND};
@@ -758,7 +775,7 @@ class UpdateChecker(QObject):
             self._threads.remove(thread)
             thread.deleteLater()
 
-    def check(self, server_url="http://localhost:8000"):
+    def check(self, server_url="http://http://192.168.100.89/:8000"):
         def safe_check():
             try:
                 client = UpdateClient(server_url=server_url)
@@ -777,6 +794,7 @@ class UpdateChecker(QObject):
         thread = SafeThread(target=safe_check)
         self._track_thread(thread)
         thread.start()
+
 
 class ModuleChecker(QObject):
     modules_found = Signal(object)
@@ -806,7 +824,7 @@ class ModuleChecker(QObject):
         def safe_check():
             try:
                 print(f"🔍 Vérification des modules...")
-                client = UpdateClient(server_url="http://localhost:8000", 
+                client = UpdateClient(server_url="http://http://192.168.100.89/:8000", 
                                      session_token=self.session_token)
                 code, modules = client.get_available_modules()
                 
@@ -820,6 +838,7 @@ class ModuleChecker(QObject):
         thread = SafeThread(target=safe_check)
         self._track_thread(thread)
         thread.start()
+
 
 class ModernChartWidget(QWidget):
     """Widget de graphique moderne avec pyqtgraph"""
@@ -2998,6 +3017,7 @@ class ModernDashboard(QWidget):
             QTimer.singleShot(i * 60, anim.start)
             # Garder une référence pour éviter le garbage collection
             card._anim = anim
+
 
 class AnimatedSidebar(QFrame):
     """Sidebar moderne sans contours arrondis et sans espaces"""
