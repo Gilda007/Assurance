@@ -26,60 +26,317 @@ class ExpertiseService(BaseService):
         super().__init__(session)
     
     # ============================================================
+    # ✅ RÉFÉRENTIEL TYPES DE MISSION (Tome 2)
+    # ============================================================
+
+    # ============================================================
+    # ✅ RÉFÉRENTIEL TYPES DE MISSION (via lometa_referentiels)
+    # ============================================================
+
+    def get_types_mission(self, actifs_only: bool = True) -> List[dict]:
+        """
+        Récupère les types de mission depuis le référentiel générique (Tome 2).
+        Retourne une liste de dicts prêts à l'emploi pour l'UI.
+        """
+        try:
+            from addons.sinistres.models.referentiel import LometaReferentiel
+            import json
+
+            q = self.session.query(LometaReferentiel).filter(
+                LometaReferentiel.famille == "types_mission",
+                LometaReferentiel.is_active == True,
+                LometaReferentiel.est_obsolete == False,
+            )
+            if actifs_only:
+                q = q.filter(LometaReferentiel.est_actif == True)
+
+            referentiels = q.all()
+
+            UI_DEFAULTS = {
+                "EXPERTISE":        {"prefixe_numero": "EXP", "couleur": "#2563eb"},
+                "GARAGISTE":        {"prefixe_numero": "GAR", "couleur": "#ea580c"},
+                "CONTRE_EXPERTISE": {"prefixe_numero": "CEX", "couleur": "#7c3aed"},
+                "MEDICALE":         {"prefixe_numero": "MED", "couleur": "#0891b2"},
+                "JUDICIAIRE":       {"prefixe_numero": "JUD", "couleur": "#dc2626"},
+            }
+
+            result = []
+            for ref in referentiels:
+                extra = {}
+                if ref.donnees_supplementaires:
+                    try:
+                        extra = json.loads(ref.donnees_supplementaires)
+                    except Exception:
+                        extra = {}
+
+                defaults = UI_DEFAULTS.get(ref.code, {"prefixe_numero": "EXP", "couleur": "#64748b"})
+
+                result.append({
+                    "code": ref.code,
+                    "libelle": ref.libelle,
+                    "description": ref.description,
+                    "prefixe_numero": extra.get("prefixe_numero", defaults["prefixe_numero"]),
+                    "couleur": extra.get("couleur", defaults["couleur"]),
+                    "necessite_mission_parente": bool(extra.get("necessite_mission_parente", False)),
+                    "type_mission_parente_code": extra.get("type_mission_parente_code"),
+                    "ordre": extra.get("ordre", 99),
+                    "est_actif": ref.est_actif,
+                })
+
+            # Tri par 'ordre' (champ extra) puis par libellé
+            result.sort(key=lambda t: (t["ordre"], t["libelle"]))
+            return result
+
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+
+    def get_type_mission_by_code(self, code: str) -> Optional[dict]:
+        """Récupère un type de mission par son code depuis lometa_referentiels"""
+        try:
+            from addons.sinistres.models.referentiel import LometaReferentiel
+            import json
+
+            ref = self.session.query(LometaReferentiel).filter(
+                LometaReferentiel.famille == "types_mission",
+                LometaReferentiel.code == code,
+                LometaReferentiel.is_active == True,
+                LometaReferentiel.est_obsolete == False,
+            ).first()
+
+            if not ref:
+                return None
+
+            extra = {}
+            if ref.donnees_supplementaires:
+                try:
+                    extra = json.loads(ref.donnees_supplementaires)
+                except Exception:
+                    extra = {}
+
+            UI_DEFAULTS = {
+                "EXPERTISE":        {"prefixe_numero": "EXP", "couleur": "#2563eb"},
+                "GARAGISTE":        {"prefixe_numero": "GAR", "couleur": "#ea580c"},
+                "CONTRE_EXPERTISE": {"prefixe_numero": "CEX", "couleur": "#7c3aed"},
+                "MEDICALE":         {"prefixe_numero": "MED", "couleur": "#0891b2"},
+                "JUDICIAIRE":       {"prefixe_numero": "JUD", "couleur": "#dc2626"},
+            }
+            defaults = UI_DEFAULTS.get(ref.code, {"prefixe_numero": "EXP", "couleur": "#64748b"})
+
+            return {
+                "code": ref.code,
+                "libelle": ref.libelle,
+                "description": ref.description,
+                "prefixe_numero": extra.get("prefixe_numero", defaults["prefixe_numero"]),
+                "couleur": extra.get("couleur", defaults["couleur"]),
+                "necessite_mission_parente": bool(extra.get("necessite_mission_parente", False)),
+                "type_mission_parente_code": extra.get("type_mission_parente_code"),
+                "ordre": extra.get("ordre", 99),
+                "est_actif": ref.est_actif,
+            }
+
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    # ============================================================
     # GESTION DES MISSIONS D'EXPERTISE
     # ============================================================
 
+    # def creer_mission(self, data: Dict[str, Any]) -> LometaExpertise:
+    #     """Crée une nouvelle mission d'expertise"""
+    #     try:
+    #         # Vérifier que le sinistre existe
+    #         sinistre = self.session.query(LometaSinistre).filter(
+    #             LometaSinistre.id == data.get('sinistre_id'),
+    #             LometaSinistre.is_active == True
+    #         ).first()
+    #         if not sinistre:
+    #             raise ValueError("Sinistre non trouvé")
+            
+    #         # Vérifier que l'expert existe
+    #         if data.get('expert_id'):
+    #             expert = self.get_expert(data['expert_id'])
+    #             if not expert:
+    #                 raise ValueError("Expert non trouvé")
+            
+    #         # ✅ CORRECTION : Utiliser LometaExpertise au lieu de LometaSinistre
+    #         numero = self.generate_numero("EXP", LometaExpertise, 'numero_mission')
+
+    #         if 'date_mission' not in data or not data['date_mission']:
+    #             raise ValueError("La date de mission est obligatoire")
+            
+    #         mission = LometaExpertise(
+    #             numero_mission=numero,
+    #             statut="CREEE",
+    #             **data
+    #         )
+            
+    #         self.session.add(mission)
+    #         self.session.flush()
+            
+    #         # Mettre à jour le statut du sinistre
+    #         if sinistre.statut not in ["EN_EXPERTISE", "CLOTURE"]:
+    #             sinistre.statut = "EN_EXPERTISE"
+    #             sinistre.updated_at = datetime.utcnow()
+    #             sinistre.updated_by = data.get('created_by')
+            
+    #         # Log d'audit
+    #         self.log_audit(
+    #             utilisateur_id=data.get('created_by'),
+    #             action="CREATION",
+    #             entite="Expertise",
+    #             entite_id=mission.id,
+    #             entite_nom=mission.numero_mission,
+    #             commentaire=f"Création de la mission {mission.numero_mission} pour le sinistre {sinistre.numero_sinistre}"
+    #         )
+            
+    #         self.session.commit()
+    #         return mission
+            
+    #     except Exception as e:
+    #         self.session.rollback()
+    #         raise e
+
     def creer_mission(self, data: Dict[str, Any]) -> LometaExpertise:
-        """Crée une nouvelle mission d'expertise"""
+        """
+        Crée une mission d'expertise (expertise, garagiste, contre-expertise…).
+        Les types de mission sont lus depuis le référentiel générique
+        (lometa_referentiels, famille='types_mission').
+        """
         try:
-            # Vérifier que le sinistre existe
+            # ----- Validations de base -----
             sinistre = self.session.query(LometaSinistre).filter(
                 LometaSinistre.id == data.get('sinistre_id'),
                 LometaSinistre.is_active == True
             ).first()
             if not sinistre:
                 raise ValueError("Sinistre non trouvé")
-            
-            # Vérifier que l'expert existe
+
+            if not data.get('date_mission'):
+                raise ValueError("La date de mission est obligatoire")
+            if not data.get('date_echeance'):
+                raise ValueError("La date d'échéance est obligatoire (EXP-004)")
+
             if data.get('expert_id'):
                 expert = self.get_expert(data['expert_id'])
                 if not expert:
                     raise ValueError("Expert non trouvé")
-            
-            # ✅ CORRECTION : Utiliser LometaExpertise au lieu de LometaSinistre
-            numero = self.generate_numero("EXP", LometaExpertise, 'numero_mission')
+                if not expert.est_actif:
+                    raise ValueError("L'expert sélectionné est inactif (EXP-003)")
 
-            if 'date_mission' not in data or not data['date_mission']:
-                raise ValueError("La date de mission est obligatoire")
-            
+            # ----- Type de mission via référentiel générique -----
+            type_code = data.get('type_mission_code') or 'EXPERTISE'
+            type_mission = self.get_type_mission_by_code(type_code)
+            if not type_mission:
+                raise ValueError(
+                    f"Type de mission '{type_code}' introuvable dans le référentiel"
+                )
+            if not type_mission.get('est_actif', True):
+                raise ValueError(f"Le type de mission '{type_code}' est désactivé")
+
+            # ----- Validation contre-expertise -----
+            parente = None
+            if type_mission.get('necessite_mission_parente'):
+                parent_id = data.get('mission_parente_id')
+                if not parent_id:
+                    raise ValueError(
+                        f"Une mission de type '{type_mission['libelle']}' "
+                        f"doit référencer une mission parente"
+                    )
+
+                parente = self.get_mission(parent_id)
+                if not parente:
+                    raise ValueError("Mission parente introuvable")
+                if parente.sinistre_id != sinistre.id:
+                    raise ValueError("La mission parente doit appartenir au même sinistre")
+
+                # Contrainte de type parente définie dans le référentiel
+                expected_parent_type = type_mission.get('type_mission_parente_code')
+                if expected_parent_type and parente.type_mission_code != expected_parent_type:
+                    raise ValueError(
+                        f"La mission parente doit être de type '{expected_parent_type}'"
+                    )
+
+                # La parente doit avoir un rapport reçu/validé
+                if parente.statut not in ("RAPPORT_RECU", "RAPPORT_REÇU", "VALIDE"):
+                    raise ValueError(
+                        "La mission parente doit avoir un rapport reçu avant contre-expertise"
+                    )
+
+                # Une seule contre-expertise active par parente
+                existing = [c for c in (parente.contre_expertises or []) if c.is_active]
+                if existing:
+                    raise ValueError(
+                        f"La mission {parente.numero_mission} a déjà une contre-expertise "
+                        f"({existing[0].numero_mission})"
+                    )
+
+                # Motif obligatoire
+                if not data.get('motif_contre_expertise'):
+                    raise ValueError("Le motif de la contre-expertise est obligatoire")
+
+            # ----- Numérotation dynamique depuis le référentiel -----
+            numero = self.generate_numero(
+                type_mission['prefixe_numero'] or "EXP",
+                LometaExpertise,
+                'numero_mission'
+            )
+
+            # ----- Création -----
             mission = LometaExpertise(
                 numero_mission=numero,
                 statut="CREEE",
-                **data
+                type_mission_code=type_mission['code'],
+                **{
+                    k: v for k, v in data.items()
+                    if k not in ('type_mission_code')
+                }
             )
-            
             self.session.add(mission)
             self.session.flush()
-            
-            # Mettre à jour le statut du sinistre
-            if sinistre.statut not in ["EN_EXPERTISE", "CLOTURE"]:
-                sinistre.statut = "EN_EXPERTISE"
-                sinistre.updated_at = datetime.utcnow()
-                sinistre.updated_by = data.get('created_by')
-            
-            # Log d'audit
+
+            # ----- Audit -----
+            commentaire = (
+                f"Création de la mission {mission.numero_mission} "
+                f"({type_mission['libelle']})"
+            )
+            if parente:
+                commentaire += f" — contre-expertise de {parente.numero_mission}"
+
             self.log_audit(
                 utilisateur_id=data.get('created_by'),
                 action="CREATION",
                 entite="Expertise",
                 entite_id=mission.id,
                 entite_nom=mission.numero_mission,
-                commentaire=f"Création de la mission {mission.numero_mission} pour le sinistre {sinistre.numero_sinistre}"
+                commentaire=commentaire,
             )
-            
+
+            # ----- Mise à jour statut sinistre (Tome 3) -----
+            if sinistre.statut not in ("EN_EXPERTISE", "CLOTURE"):
+                sinistre.statut = "EN_EXPERTISE"
+                sinistre.updated_at = datetime.utcnow()
+                sinistre.updated_by = data.get('created_by')
+            elif sinistre.statut == "CLOTURE" and type_mission['code'] == "CONTRE_EXPERTISE":
+                # Réouverture implicite tracée (SIN-106)
+                sinistre.statut = "EN_EXPERTISE"
+                self.log_audit(
+                    utilisateur_id=data.get('created_by'),
+                    action="REOUVERTURE",
+                    entite="Sinistre",
+                    entite_id=sinistre.id,
+                    entite_nom=sinistre.numero_sinistre,
+                    commentaire=(
+                        f"Réouverture implicite par contre-expertise "
+                        f"{mission.numero_mission}"
+                    ),
+                )
+
             self.session.commit()
             return mission
-            
+
         except Exception as e:
             self.session.rollback()
             raise e
@@ -101,6 +358,21 @@ class ExpertiseService(BaseService):
             return self.session.query(LometaExpertise).filter(
                 LometaExpertise.is_active == True
             ).order_by(LometaExpertise.created_at.desc()).all()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def get_missions_parentes_possibles(self, sinistre_id: int,
+                                    type_parent_code: str = "GARAGISTE") -> List[LometaExpertise]:
+        """Retourne les missions éligibles comme parentes pour une contre-expertise"""
+        try:
+            return self.session.query(LometaExpertise).filter(
+                LometaExpertise.sinistre_id == sinistre_id,
+                LometaExpertise.type_mission_code == type_parent_code,
+                LometaExpertise.is_active == True,
+                LometaExpertise.statut.in_(["RAPPORT_RECU", "RAPPORT_REÇU", "VALIDE"]),
+                ~LometaExpertise.contre_expertises.any(LometaExpertise.is_active == True),
+            ).order_by(LometaExpertise.date_mission.desc()).all()
         except Exception as e:
             self.session.rollback()
             raise e
@@ -175,7 +447,7 @@ class ExpertiseService(BaseService):
                 raise ValueError("Expert non trouvé")
             
             mission.expert_id = expert_id
-            mission.expert_nom = expert.full_name or expert.username
+            mission.expert_nom = expert.nom or expert.username
             mission.statut = "AFFECTEE"
             mission.updated_at = datetime.utcnow()
             mission.updated_by = utilisateur_id
@@ -187,7 +459,7 @@ class ExpertiseService(BaseService):
                 entite="Expertise",
                 entite_id=mission.id,
                 entite_nom=mission.numero_mission,
-                commentaire=f"Affectation de l'expert {expert.full_name} à la mission {mission.numero_mission}"
+                commentaire=f"Affectation de l'expert {expert.nom} à la mission {mission.numero_mission}"
             )
             
             self.session.commit()
@@ -800,3 +1072,19 @@ class ExpertiseService(BaseService):
         except Exception as e:
             self.session.rollback()
             raise e
+
+    def get_missions_parentes_possibles(self, sinistre_id: int,
+                                        type_parent_code: str = "GARAGISTE") -> List[LometaExpertise]:
+        """Retourne les missions éligibles comme parentes pour une contre-expertise"""
+        try:
+            return self.session.query(LometaExpertise).filter(
+                LometaExpertise.sinistre_id == sinistre_id,
+                LometaExpertise.type_mission_code == type_parent_code,
+                LometaExpertise.is_active == True,
+                LometaExpertise.statut.in_(["RAPPORT_RECU", "RAPPORT_REÇU", "VALIDE"]),
+                ~LometaExpertise.contre_expertises.any(LometaExpertise.is_active == True),
+            ).order_by(LometaExpertise.date_mission.desc()).all()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+

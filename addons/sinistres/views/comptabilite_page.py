@@ -819,16 +819,19 @@ class ComptabilitePage(QWidget):
                     "Validée" if e.get('est_valide') else "En attente"
                 )
             )
-            statut_item = QTableWidgetItem(statut)
             if e.get('est_annulee'):
-                statut_item.setForeground(QColor("#dc2626"))
+                statut, color = "Annulée", "#dc2626"
             elif e.get('est_rapprochee'):
-                statut_item.setForeground(QColor("#059669"))
+                statut, color = "Rapprochée", "#059669"
+            elif e.get('est_comptabilise'):
+                statut, color = "Comptabilisée", "#7c3aed"      # ✅ violet
             elif e.get('est_valide'):
-                statut_item.setForeground(QColor("#2563eb"))
+                statut, color = "Validée", "#2563eb"             # bleu
             else:
-                statut_item.setForeground(QColor("#f59e0b"))
-            
+                statut, color = "En attente", "#f59e0b"          # orange
+
+            statut_item = QTableWidgetItem(statut)
+            statut_item.setForeground(QColor(color))
             self.table_journal.setItem(i, 7, statut_item)
             
             # Stocker les données
@@ -1059,6 +1062,41 @@ class ComptabilitePage(QWidget):
             action_valider.triggered.connect(
                 lambda: self._valider_ecriture(ecriture_data)
             )
+
+        if (
+            not est_annulee
+            and est_valide
+            and not ecriture_data.get('est_comptabilise', False)
+        ):
+            action_compta = menu.addAction(
+                qta.icon('fa5s.book', color='#2563eb'),
+                "  Comptabiliser"
+            )
+            action_compta.triggered.connect(
+                lambda: self._comptabiliser_ecriture(ecriture_data)
+            )
+
+        if (
+            not est_annulee
+            and est_valide
+            and not ecriture_data.get('est_comptabilise', False)
+        ):
+            action_compta = menu.addAction(
+                qta.icon('fa5s.book', color='#2563eb'),
+                "  Comptabiliser"
+            )
+            action_compta.triggered.connect(
+                lambda: self._comptabiliser_ecriture(ecriture_data)
+            )
+
+        if est_valide and not ecriture_data.get('est_comptabilise'):
+            action_compta = menu.addAction(
+                qta.icon('fa5s.book', color='#2563eb'),
+                "  Comptabiliser"
+            )
+            action_compta.triggered.connect(
+                lambda: self._comptabiliser_ecriture(ecriture_data)
+            )
         
         # Annuler
         if not est_annulee:
@@ -1115,7 +1153,7 @@ class ComptabilitePage(QWidget):
         )
         
         menu.exec(self.table_rapprochement.viewport().mapToGlobal(position))
-    
+
     # ================================================================
     # ACTIONS
     # ================================================================
@@ -1150,6 +1188,19 @@ class ComptabilitePage(QWidget):
         if self.controller.valider_ecriture(data.get('id')):
             self._reload_journal()
             self._load_stats()
+
+    def _comptabiliser_ecriture(self, data: dict):
+        reply = QMessageBox.question(
+            self, "Confirmation",
+            f"Comptabiliser l'écriture {data.get('numero_ecriture')} ?",
+            QMessageBox.Yes | QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+        if self.controller.comptabiliser_ecriture(data.get('id')):
+            self._reload_journal()
+            self._load_stats()
+            self._load_balance()
     
     def _annuler_ecriture(self, data: dict):
         """Annule une écriture"""

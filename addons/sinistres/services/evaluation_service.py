@@ -20,60 +20,141 @@ class EvaluationService(BaseService):
     # CRUD PRINCIPAL
     # ============================================================
     
+    # def creer_evaluation(self, data: Dict[str, Any]) -> LometaEvaluation:
+    #     """Crée une nouvelle évaluation"""
+    #     try:
+    #         # Vérifier que le sinistre existe
+    #         sinistre = self.session.query(LometaSinistre).filter(
+    #             LometaSinistre.id == data.get('sinistre_id'),
+    #             LometaSinistre.is_active == True
+    #         ).first()
+    #         if not sinistre:
+    #             raise ValueError("Sinistre non trouvé")
+            
+    #         # Calculer le montant net
+    #         montant_brut = data.get('montant_brut', 0)
+    #         franchise = data.get('franchise', 0)
+    #         taux_responsabilite = data.get('taux_responsabilite', 1.0)
+    #         montant_net = self.calculer_montant_net(montant_brut, franchise, taux_responsabilite)
+            
+    #         # Générer le numéro
+    #         numero = self.generate_numero("EVAL", LometaEvaluation, 'numero_evaluation')
+            
+    #         evaluation = LometaEvaluation(
+    #             numero_evaluation=numero,
+    #             montant_expert=data.get('montant_expert'),
+    #             montant_net=montant_net,
+    #             date_evaluation=datetime.utcnow(),
+    #             statut="BROUILLON",
+    #             **data
+    #         )
+            
+    #         self.session.add(evaluation)
+    #         self.session.flush()
+            
+    #         # Mettre à jour le statut du sinistre
+    #         if sinistre.statut not in ["EN_EVALUATION", "VALIDE", "CLOTURE"]:
+    #             sinistre.statut = "EN_EVALUATION"
+    #             sinistre.updated_at = datetime.utcnow()
+    #             sinistre.updated_by = data.get('created_by')
+            
+    #         # Log d'audit
+    #         self.log_audit(
+    #             utilisateur_id=data.get('created_by'),
+    #             action="CREATION",
+    #             entite="Evaluation",
+    #             entite_id=evaluation.id,
+    #             entite_nom=evaluation.numero_evaluation,
+    #             commentaire=f"Création de l'évaluation {evaluation.numero_evaluation} - Montant net: {montant_net}"
+    #         )
+            
+    #         self.session.commit()
+    #         return evaluation
+            
+    #     except Exception as e:
+    #         self.session.rollback()
+    #         raise e
+    
     def creer_evaluation(self, data: Dict[str, Any]) -> LometaEvaluation:
-        """Crée une nouvelle évaluation"""
         try:
-            # Vérifier que le sinistre existe
+            # Validations...
             sinistre = self.session.query(LometaSinistre).filter(
                 LometaSinistre.id == data.get('sinistre_id'),
                 LometaSinistre.is_active == True
             ).first()
             if not sinistre:
                 raise ValueError("Sinistre non trouvé")
-            
-            # Calculer le montant net
-            montant_brut = data.get('montant_brut', 0)
-            franchise = data.get('franchise', 0)
-            taux_responsabilite = data.get('taux_responsabilite', 1.0)
-            montant_net = self.calculer_montant_net(montant_brut, franchise, taux_responsabilite)
-            
-            # Générer le numéro
-            numero = self.generate_numero("EVAL", LometaEvaluation, 'numero_evaluation')
-            
+
+            if not data.get('montant_brut') or float(data['montant_brut']) <= 0:
+                raise ValueError("Le montant brut doit être positif")
+
+            # Calcul du montant net selon la nouvelle formule :
+            # net = (brut + expert) - franchise
+            brut = float(data['montant_brut'])
+            expert_amt = float(data.get('montant_expert') or 0)
+            franchise = float(data.get('franchise') or 0)
+            montant_net = max(0, (brut + expert_amt) - franchise)
+
+            numero = self.generate_numero("EVA", LometaEvaluation, 'numero_evaluation')
+
+            # ✅ On construit explicitement l'objet avec les colonnes autorisées
+            #    et on exclut ces clés du **data pour éviter les doublons
+            known = {
+                'sinistre_id', 'dommage_id', 'type_evaluation', 'categorie',
+                'montant_brut', 'montant_expert', 'franchise',
+                'taux_responsabilite', 'details', 'mission_id',
+                'created_by', 'observations',
+            }
+
             evaluation = LometaEvaluation(
                 numero_evaluation=numero,
-                montant_net=montant_net,
-                date_evaluation=datetime.utcnow(),
                 statut="BROUILLON",
-                **data
+                sinistre_id=data['sinistre_id'],
+                dommage_id=data.get('dommage_id'),                # si dispo
+                type_evaluation=data['type_evaluation'],
+                categorie=data.get('categorie'),
+                montant_brut=brut,
+                montant_expert=expert_amt,                        # ✅ une seule fois
+                franchise=franchise,
+                taux_responsabilite=float(data.get('taux_responsabilite') or 1.0),
+                montant_net=montant_net,
+                details=data.get('details'),
+                mission_id=data.get('mission_id'),
+                date_evaluation=datetime.utcnow(),
+                created_by=data.get('created_by'),
+                **{k: v for k, v in data.items() if k not in known}   # ✅ exclut tout doublon
             )
-            
+
             self.session.add(evaluation)
             self.session.flush()
-            
-            # Mettre à jour le statut du sinistre
-            if sinistre.statut not in ["EN_EVALUATION", "VALIDE", "CLOTURE"]:
+
+            # 🔗 Mise à jour statut sinistre
+            if sinistre.statut not in ("EN_EVALUATION", "VALIDE", "CLOTURE"):
                 sinistre.statut = "EN_EVALUATION"
                 sinistre.updated_at = datetime.utcnow()
                 sinistre.updated_by = data.get('created_by')
-            
-            # Log d'audit
+
+            # 📝 Audit
             self.log_audit(
                 utilisateur_id=data.get('created_by'),
                 action="CREATION",
                 entite="Evaluation",
                 entite_id=evaluation.id,
                 entite_nom=evaluation.numero_evaluation,
-                commentaire=f"Création de l'évaluation {evaluation.numero_evaluation} - Montant net: {montant_net}"
+                commentaire=(
+                    f"Création évaluation {evaluation.numero_evaluation} : "
+                    f"brut={brut:,.0f}, expert={expert_amt:,.0f}, "
+                    f"franchise={franchise:,.0f}, net={montant_net:,.0f} FCFA"
+                ),
             )
-            
+
             self.session.commit()
             return evaluation
-            
+
         except Exception as e:
             self.session.rollback()
             raise e
-    
+
     def get_evaluation(self, evaluation_id: int) -> Optional[LometaEvaluation]:
         """Récupère une évaluation par son ID"""
         try:

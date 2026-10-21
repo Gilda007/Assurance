@@ -492,6 +492,40 @@ REFERENTIELS_INITIAUX = {
         },
     ],
 
+        # ============================================================
+    
+    "types_mission": [
+        {
+            "code": "EXPERTISE",
+            "libelle": "Expertise",
+            "description": "Mission d'expertise classique",
+            "donnees_supplementaires": '{"prefixe_numero": "EXP", "couleur": "#2563eb", "ordre": 1, "necessite_mission_parente": false, "type_mission_parente_code": null}'
+        },
+        {
+            "code": "GARAGISTE",
+            "libelle": "Mission garagiste",
+            "description": "Réparation / devis garagiste",
+            "donnees_supplementaires": '{"prefixe_numero": "GAR", "couleur": "#ea580c", "ordre": 2, "necessite_mission_parente": false, "type_mission_parente_code": null}'
+        },
+        {
+            "code": "CONTRE_EXPERTISE",
+            "libelle": "Contre-expertise",
+            "description": "Contre-expertise d\'une mission garagiste",
+            "donnees_supplementaires": '{"prefixe_numero": "CEX", "couleur": "#7c3aed", "ordre": 3, "necessite_mission_parente": true, "type_mission_parente_code": "GARAGISTE"}'
+        },
+        {
+            "code": "MEDICALE",
+            "libelle": "Expertise médicale",
+            "description": "Expertise médicale",
+            "donnees_supplementaires": '{"prefixe_numero": "MED", "couleur": "#0891b2", "ordre": 4, "necessite_mission_parente": false, "type_mission_parente_code": null}'
+        },
+        {
+            "code": "JUDICIAIRE",
+            "libelle": "Expertise judiciaire",
+            "description": "Expertise judiciaire",
+            "donnees_supplementaires": '{"prefixe_numero": "JUD", "couleur": "#dc2626", "ordre": 5, "necessite_mission_parente": false, "type_mission_parente_code": null}'
+        },
+    ],
 }
 
 

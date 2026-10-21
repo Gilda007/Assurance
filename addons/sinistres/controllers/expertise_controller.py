@@ -325,17 +325,75 @@ class ExpertiseController(BaseController):
     # MÉTHODE PRIVÉE
     # ============================================================
     
-    def _serialize_mission(self, mission) -> dict:
-        """Sérialise une mission en dictionnaire"""
+    # def _serialize_mission(self, mission) -> dict:
+    #     """Sérialise une mission en dictionnaire"""
 
-        # ✅ Récupérer le numéro du sinistre
+    #     # ✅ Récupérer le numéro du sinistre
+    #     sinistre_numero = None
+    #     if mission.sinistre_id:
+    #         sinistre = self.service.get_sinistre(mission.sinistre_id)
+    #         if sinistre:
+    #             sinistre_numero = sinistre.numero_sinistre
+
+    #     # Récupérer le nom de l'expert
+    #     expert_nom = None
+    #     if mission.expert_id:
+    #         expert = self.service.get_expert(mission.expert_id)
+    #         if expert:
+    #             nom = expert.nom or ''
+    #             prenom = getattr(expert, 'prenom', '') or ''
+    #             expert_nom = f"{nom} {prenom}".strip() or expert.code
+
+    #     parente_numero = None
+    #     parente_type = None
+    #     if mission.mission_parente_id:
+    #         parente = self.service.get_mission(mission.mission_parente_id)
+    #         if parente:
+    #             parente_numero = parente.numero_mission
+    #             parente_type = parente.type_mission
+        
+    #     # ✅ Compteur de contre-expertises enfants
+    #     nb_contre = len([c for c in (mission.contre_expertises or []) if c.is_active])
+        
+        
+    #     return {
+    #         'id': mission.id,
+    #         'numero_mission': mission.numero_mission,
+    #         'sinistre_id': mission.sinistre_id,
+    #         'sinistre_numero': sinistre_numero,
+    #         'expert_id': mission.expert_id,
+    #         'expert_nom': expert_nom,
+    #         'type_expertise': mission.type_expertise,
+    #         'domaine': mission.domaine,
+    #         'date_mission': mission.date_mission.isoformat() if mission.date_mission else None,
+    #         'date_echeance': mission.date_echeance.isoformat() if mission.date_echeance else None,
+    #         'date_reception_rapport': mission.date_reception_rapport.isoformat() if mission.date_reception_rapport else None,
+    #         'date_validation': mission.date_validation.isoformat() if mission.date_validation else None,
+    #         'statut': mission.statut,
+    #         'montant_estime': mission.montant_estime,
+    #         'observations': mission.observations,
+    #         'rapport_path': mission.rapport_path,
+    #         'created_at': mission.created_at.isoformat() if mission.created_at else None,
+    #         'created_by': mission.created_by,
+    #         'is_active': mission.is_active,
+    #         'type_mission': mission.type_mission,
+    #         'mission_parente_id': mission.mission_parente_id,
+    #         'mission_parente_numero': parente_numero,
+    #         'mission_parente_type': parente_type,
+    #         'nb_contre_expertises': nb_contre,
+    #         'est_contre_expertise': mission.type_mission == "CONTRE_EXPERTISE",
+    #         'est_garagiste': mission.type_mission == "GARAGISTE",
+    #         'montant_devis_garagiste': float(mission.montant_devis_garagiste) if mission.montant_devis_garagiste else None,
+    #         'motif_contre_expertise': mission.motif_contre_expertise,
+    #     }
+
+    def _serialize_mission(self, mission) -> dict:
         sinistre_numero = None
         if mission.sinistre_id:
             sinistre = self.service.get_sinistre(mission.sinistre_id)
             if sinistre:
                 sinistre_numero = sinistre.numero_sinistre
 
-        # Récupérer le nom de l'expert
         expert_nom = None
         if mission.expert_id:
             expert = self.service.get_expert(mission.expert_id)
@@ -343,8 +401,26 @@ class ExpertiseController(BaseController):
                 nom = expert.nom or ''
                 prenom = getattr(expert, 'prenom', '') or ''
                 expert_nom = f"{nom} {prenom}".strip() or expert.code
-        
-        
+
+        # ✅ Info mission parente
+        parente_numero = None
+        if mission.mission_parente_id:
+            parente = self.service.get_mission(mission.mission_parente_id)
+            if parente:
+                parente_numero = parente.numero_mission
+
+        # ✅ Compteur contre-expertises
+        nb_contre = len([c for c in (mission.contre_expertises or []) if c.is_active])
+
+        # ✅ Type de mission (avec libellé/couleur du référentiel)
+        type_libelle = None
+        type_couleur = None
+        if mission.type_mission_code:
+            t = self.service.get_type_mission_by_code(mission.type_mission_code)
+            if t:
+                type_libelle = t.get('libelle')
+                type_couleur = t.get('couleur')
+
         return {
             'id': mission.id,
             'numero_mission': mission.numero_mission,
@@ -359,14 +435,24 @@ class ExpertiseController(BaseController):
             'date_reception_rapport': mission.date_reception_rapport.isoformat() if mission.date_reception_rapport else None,
             'date_validation': mission.date_validation.isoformat() if mission.date_validation else None,
             'statut': mission.statut,
-            'montant_estime': mission.montant_estime,
+            'montant_estime': float(mission.montant_estime) if mission.montant_estime else None,
             'observations': mission.observations,
             'rapport_path': mission.rapport_path,
             'created_at': mission.created_at.isoformat() if mission.created_at else None,
             'created_by': mission.created_by,
-            'is_active': mission.is_active
+            'is_active': mission.is_active,
+            # ✅ NOUVEAUX CHAMPS
+            'type_mission_code': mission.type_mission_code,
+            'type_mission_libelle': type_libelle,
+            'type_mission_couleur': type_couleur,
+            'mission_parente_id': mission.mission_parente_id,
+            'mission_parente_numero': parente_numero,
+            'nb_contre_expertises': nb_contre,
+            'est_contre_expertise': mission.type_mission_code == "CONTRE_EXPERTISE",
+            'est_garagiste': mission.type_mission_code == "GARAGISTE",
+            'montant_devis_garagiste': float(mission.montant_devis_garagiste) if mission.montant_devis_garagiste else None,
+            'motif_contre_expertise': mission.motif_contre_expertise,
         }
-
 
     def get_sinistres_recents(self, limit: int = 50) -> List[dict]:
         """Récupère les sinistres récents (délégation vers SinistreController)"""
@@ -522,6 +608,26 @@ class ExpertiseController(BaseController):
             self.handle_error(e)
             return False
 
+    def get_missions_parentes_possibles(self, sinistre_id: int) -> List[dict]:
+        """Missions garagistes éligibles à une contre-expertise"""
+        try:
+            missions = self.service.get_missions_parentes_possibles(sinistre_id)
+            return [self._serialize_mission(m) for m in missions]
+        except Exception as e:
+            self.handle_error(e)
+            return []
+
+    def get_contre_expertises(self, mission_id: int) -> List[dict]:
+        """Contre-expertises d'une mission garagiste"""
+        try:
+            mission = self.service.get_mission(mission_id)
+            if not mission:
+                return []
+            return [self._serialize_mission(c) for c in mission.contre_expertises if c.is_active]
+        except Exception as e:
+            self.handle_error(e)
+            return []
+
     def get_experts_by_zone(self, zone: str) -> List[dict]:
         """Récupère les experts actifs intervenant dans une zone géographique"""
         try:
@@ -530,3 +636,31 @@ class ExpertiseController(BaseController):
         except Exception as e:
             self.handle_error(e)
             return []
+
+    # ============================================================
+    # ✅ RÉFÉRENTIEL TYPES DE MISSION
+    # ============================================================
+
+    # ============================================================
+    # ✅ RÉFÉRENTIEL TYPES DE MISSION
+    # Le service retourne déjà des dicts : on les transmet tels quels.
+    # ============================================================
+
+    def get_types_mission(self, actifs_only: bool = True) -> List[dict]:
+        """Récupère les types de mission du référentiel (déjà en dict)"""
+        try:
+            return self.service.get_types_mission(actifs_only=actifs_only)
+        except Exception as e:
+            self.handle_error(e)
+            return []
+
+    def get_type_mission_by_code(self, code: str) -> Optional[dict]:
+        """Récupère un type de mission par son code (déjà en dict)"""
+        try:
+            return self.service.get_type_mission_by_code(code)
+        except Exception as e:
+            self.handle_error(e)
+            return None
+
+
+    

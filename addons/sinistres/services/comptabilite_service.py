@@ -1,300 +1,3 @@
-# """
-# Service de comptabilisation automatique.
-# Génère les écritures comptables selon le CDC Tome 5 §11-12.
-# """
-# from sqlalchemy.orm import Session
-# from datetime import datetime
-# from typing import Optional, List, Dict, Any
-
-# from addons.sinistres.services.base_service import BaseService
-# from addons.sinistres.models.comptabilite import LometaEcritureComptable
-# from addons.sinistres.services.parametre_service import ParametreService
-
-
-# class ComptabiliteService(BaseService):
-#     """Service de comptabilisation automatique"""
-    
-#     def __init__(self, session: Session = None):
-#         super().__init__(session)
-#         self.parametre_service = ParametreService(session)
-    
-#     # ============================================================
-#     # GÉNÉRATION D'ÉCRITURES
-#     # ============================================================
-    
-#     def generer_numero_ecriture(self) -> str:
-#         """Génère un numéro d'écriture unique"""
-#         return self.generate_numero(
-#             "ECR",
-#             LometaEcritureComptable,
-#             'numero_ecriture'
-#         )
-    
-#     def creer_ecriture(
-#         self,
-#         journal: str,
-#         libelle: str,
-#         compte_debit: str,
-#         compte_credit: str,
-#         montant: float,
-#         reference_type: str,
-#         reference_id: int = None,
-#         reference_numero: str = None,
-#         sinistre_id: int = None,
-#         recours_id: int = None,
-#         reglement_id: int = None,
-#         utilisateur_id: int = None,
-#         observations: str = None,
-#     ) -> LometaEcritureComptable:
-#         """
-#         Crée une écriture comptable générique.
-        
-#         Args:
-#             journal: BANQUE, SINISTRES, RECOURS, REGULARISATIONS
-#             libelle: Libellé de l'écriture
-#             compte_debit: Numéro de compte à débiter
-#             compte_credit: Numéro de compte à créditer
-#             montant: Montant (positif)
-#             reference_type: REGLEMENT, ENCAISSEMENT_RECOURS, REVERSEMENT_CLIENT, HONORAIRES
-#             reference_id: ID de l'objet référencé
-#             ...
-#         """
-#         try:
-#             if montant <= 0:
-#                 raise ValueError("Le montant doit être positif")
-            
-#             numero = self.generer_numero_ecriture()
-            
-#             ecriture = LometaEcritureComptable(
-#                 numero_ecriture=numero,
-#                 date_ecriture=datetime.utcnow(),
-#                 journal=journal,
-#                 libelle=libelle,
-#                 compte_debit=compte_debit,
-#                 compte_credit=compte_credit,
-#                 montant=montant,
-#                 devise="XAF",
-#                 reference_type=reference_type,
-#                 reference_id=reference_id,
-#                 reference_numero=reference_numero,
-#                 sinistre_id=sinistre_id,
-#                 recours_id=recours_id,
-#                 reglement_id=reglement_id,
-#                 observations=observations,
-#                 is_active=True,
-#                 created_by=utilisateur_id,
-#             )
-            
-#             self.session.add(ecriture)
-#             self.session.flush()
-            
-#             # Log d'audit
-#             self.log_audit(
-#                 utilisateur_id=utilisateur_id,
-#                 action="CREATION",
-#                 entite="EcritureComptable",
-#                 entite_id=ecriture.id,
-#                 entite_nom=ecriture.numero_ecriture,
-#                 commentaire=f"Écriture {journal} : {libelle} ({montant:,.0f} FCFA)"
-#             )
-            
-#             return ecriture
-#         except Exception as e:
-#             self.session.rollback()
-#             raise e
-    
-#     # ============================================================
-#     # ÉCRITURES SPÉCIFIQUES
-#     # ============================================================
-    
-#     def ecriture_paiement_sinistre(
-#         self,
-#         reglement_id: int,
-#         numero_reglement: str,
-#         montant: float,
-#         sinistre_id: int,
-#         utilisateur_id: int,
-#     ) -> LometaEcritureComptable:
-#         """
-#         Paiement Sinistre :
-#         Débit  Charge Sinistre
-#         Crédit Banque
-#         """
-#         compte_charge = self.parametre_service.get_compte_comptable('COMPTE_CHARGE_SINISTRE') or '616000'
-#         compte_banque = self.parametre_service.get_compte_comptable('COMPTE_BANQUE') or '512000'
-        
-#         return self.creer_ecriture(
-#             journal="SINISTRES",
-#             libelle=f"Paiement sinistre - Règlement {numero_reglement}",
-#             compte_debit=compte_charge,
-#             compte_credit=compte_banque,
-#             montant=montant,
-#             reference_type="REGLEMENT",
-#             reference_id=reglement_id,
-#             reference_numero=numero_reglement,
-#             sinistre_id=sinistre_id,
-#             reglement_id=reglement_id,
-#             utilisateur_id=utilisateur_id,
-#         )
-    
-#     def ecriture_encaissement_recours(
-#         self,
-#         encaissement_id: int,
-#         numero_recours: str,
-#         montant: float,
-#         recours_id: int,
-#         sinistre_id: int,
-#         utilisateur_id: int,
-#     ) -> LometaEcritureComptable:
-#         """
-#         Encaissement Recours :
-#         Débit  Banque
-#         Crédit Compte Recours
-#         """
-#         compte_banque = self.parametre_service.get_compte_comptable('COMPTE_BANQUE') or '512000'
-#         compte_recours = self.parametre_service.get_compte_comptable('COMPTE_RECOURS') or '758000'
-        
-#         return self.creer_ecriture(
-#             journal="RECOURS",
-#             libelle=f"Encaissement recours {numero_recours}",
-#             compte_debit=compte_banque,
-#             compte_credit=compte_recours,
-#             montant=montant,
-#             reference_type="ENCAISSEMENT_RECOURS",
-#             reference_id=encaissement_id,
-#             reference_numero=numero_recours,
-#             sinistre_id=sinistre_id,
-#             recours_id=recours_id,
-#             utilisateur_id=utilisateur_id,
-#         )
-    
-#     def ecriture_reversement_client(
-#         self,
-#         reversement_id: int,
-#         numero_recours: str,
-#         montant: float,
-#         recours_id: int,
-#         sinistre_id: int,
-#         utilisateur_id: int,
-#     ) -> LometaEcritureComptable:
-#         """
-#         Reversement Client :
-#         Débit  Compte Recours Client
-#         Crédit Banque
-#         """
-#         compte_recours_client = self.parametre_service.get_compte_comptable('COMPTE_RECOURS_CLIENT') or '419000'
-#         compte_banque = self.parametre_service.get_compte_comptable('COMPTE_BANQUE') or '512000'
-        
-#         return self.creer_ecriture(
-#             journal="RECOURS",
-#             libelle=f"Reversement client - Recours {numero_recours}",
-#             compte_debit=compte_recours_client,
-#             compte_credit=compte_banque,
-#             montant=montant,
-#             reference_type="REVERSEMENT_CLIENT",
-#             reference_id=reversement_id,
-#             reference_numero=numero_recours,
-#             sinistre_id=sinistre_id,
-#             recours_id=recours_id,
-#             utilisateur_id=utilisateur_id,
-#         )
-    
-#     def ecriture_honoraires(
-#         self,
-#         repartition_id: int,
-#         numero_recours: str,
-#         montant: float,
-#         recours_id: int,
-#         sinistre_id: int,
-#         utilisateur_id: int,
-#     ) -> LometaEcritureComptable:
-#         """
-#         Honoraires :
-#         Débit  Compte Recours
-#         Crédit Produits Honoraires
-#         """
-#         compte_recours = self.parametre_service.get_compte_comptable('COMPTE_RECOURS') or '758000'
-#         compte_produits = self.parametre_service.get_compte_comptable('COMPTE_PRODUITS_HONORAIRES') or '708000'
-        
-#         return self.creer_ecriture(
-#             journal="RECOURS",
-#             libelle=f"Honoraires - Recours {numero_recours}",
-#             compte_debit=compte_recours,
-#             compte_credit=compte_produits,
-#             montant=montant,
-#             reference_type="HONORAIRES",
-#             reference_id=repartition_id,
-#             reference_numero=numero_recours,
-#             sinistre_id=sinistre_id,
-#             recours_id=recours_id,
-#             utilisateur_id=utilisateur_id,
-#         )
-    
-#     # ============================================================
-#     # CONSULTATION
-#     # ============================================================
-    
-#     def get_ecritures_by_recours(self, recours_id: int) -> List[LometaEcritureComptable]:
-#         """Récupère toutes les écritures liées à un recours"""
-#         try:
-#             return self.session.query(LometaEcritureComptable).filter(
-#                 LometaEcritureComptable.recours_id == recours_id,
-#                 LometaEcritureComptable.is_active == True,
-#                 LometaEcritureComptable.est_annulee == False,
-#             ).order_by(LometaEcritureComptable.date_ecriture).all()
-#         except Exception as e:
-#             self.session.rollback()
-#             raise e
-    
-#     def get_ecritures_by_journal(
-#         self,
-#         journal: str,
-#         date_debut: datetime = None,
-#         date_fin: datetime = None,
-#     ) -> List[LometaEcritureComptable]:
-#         """Récupère les écritures d'un journal avec filtre date"""
-#         try:
-#             query = self.session.query(LometaEcritureComptable).filter(
-#                 LometaEcritureComptable.journal == journal,
-#                 LometaEcritureComptable.is_active == True,
-#                 LometaEcritureComptable.est_annulee == False,
-#             )
-#             if date_debut:
-#                 query = query.filter(LometaEcritureComptable.date_ecriture >= date_debut)
-#             if date_fin:
-#                 query = query.filter(LometaEcritureComptable.date_ecriture <= date_fin)
-#             return query.order_by(LometaEcritureComptable.date_ecriture.desc()).all()
-#         except Exception as e:
-#             self.session.rollback()
-#             raise e
-    
-#     def valider_ecriture(self, ecriture_id: int, utilisateur_id: int) -> Optional[LometaEcritureComptable]:
-#         """Valide une écriture"""
-#         try:
-#             ecriture = self.session.query(LometaEcritureComptable).filter(
-#                 LometaEcritureComptable.id == ecriture_id,
-#                 LometaEcritureComptable.is_active == True
-#             ).first()
-            
-#             if not ecriture:
-#                 raise ValueError("Écriture non trouvée")
-            
-#             if ecriture.est_annulee:
-#                 raise ValueError("Impossible de valider une écriture annulée")
-            
-#             ecriture.est_valide = True
-#             ecriture.updated_at = datetime.utcnow()
-#             ecriture.updated_by = utilisateur_id
-            
-#             self.session.commit()
-#             return ecriture
-#         except Exception as e:
-#             self.session.rollback()
-#             raise e
-
-
-
-
 
 
 """
@@ -784,7 +487,56 @@ class ComptabiliteService(BaseService):
             provision_id=provision_id,
             utilisateur_id=utilisateur_id,
         )
-    
+
+    def comptabiliser_ecriture(
+        self,
+        ecriture_id: int,
+        utilisateur_id: int,
+    ) -> Optional[LometaEcritureComptable]:
+        """
+        Comptabilise une écriture déjà validée.
+        
+        Transition : est_valide=True → est_comptabilise=True
+        Règle Tome 5 §11 : l'écriture entre alors dans le grand livre.
+        """
+        try:
+            ecriture = self.get_ecriture(ecriture_id)
+            if not ecriture:
+                raise ValueError("Écriture non trouvée")
+
+            if ecriture.est_annulee:
+                raise ValueError("Impossible de comptabiliser une écriture annulée")
+
+            if not ecriture.est_valide:
+                raise ValueError(
+                    "L'écriture doit d'abord être validée avant comptabilisation"
+                )
+
+            if ecriture.est_comptabilise:
+                return ecriture  # idempotent
+
+            ecriture.est_comptabilise = True
+            ecriture.date_comptabilisation = datetime.utcnow()
+            ecriture.comptabilise_par = utilisateur_id
+            ecriture.updated_at = datetime.utcnow()
+            ecriture.updated_by = utilisateur_id
+
+            self.log_audit(
+                utilisateur_id=utilisateur_id,
+                action="COMPTABILISATION",
+                entite="EcritureComptable",
+                entite_id=ecriture.id,
+                entite_nom=ecriture.numero_ecriture,
+                commentaire=(
+                    f"Comptabilisation de l'écriture {ecriture.numero_ecriture}"
+                ),
+            )
+
+            self.session.commit()
+            return ecriture
+        except Exception as e:
+            self.session.rollback()
+            raise e
     # ============================================================
     # ✅ NOUVELLES ÉCRITURES : NOTES DE CRÉDIT (Tome 5 §10)
     # ============================================================

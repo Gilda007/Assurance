@@ -207,6 +207,58 @@ class EvaluationController(BaseController):
             self.handle_error(e)
             return []
 
+    def get_missions_validees(self, sinistre_id: int) -> List[dict]:
+        """
+        Missions d'expertise VALIDÉES (type EXPERTISE ou CONTRE_EXPERTISE)
+        rattachées au sinistre, pour servir de base à une évaluation.
+        """
+        try:
+            from addons.sinistres.services.expertise_service import ExpertiseService
+            svc = ExpertiseService()
+            missions = svc.get_missions_by_sinistre(sinistre_id)
+
+            result = []
+            for m in missions:
+                if m.statut != "VALIDE":
+                    continue
+                if m.type_mission_code not in ("EXPERTISE", "CONTRE_EXPERTISE", "GARAGISTE"):
+                    continue
+                # On ne prend que les missions qui portent un montant
+                if not m.montant_estime:
+                    continue
+                result.append(self._serialize_mission_basic(m))
+            return result
+        except Exception as e:
+            self.handle_error(e)
+            return []
+
+    def _serialize_mission_basic(self, m) -> dict:
+        """Sérialisation légère d'une mission pour le dialog d'évaluation."""
+        parent_num = None
+        if m.mission_parente_id:
+            from addons.sinistres.services.expertise_service import ExpertiseService
+            p = ExpertiseService().get_mission(m.mission_parente_id)
+            if p:
+                parent_num = p.numero_mission
+
+        return {
+            'id': m.id,
+            'numero_mission': m.numero_mission,
+            'type_mission_code': m.type_mission_code,
+            'type_mission_libelle': (
+                'Contre-expertise' if m.type_mission_code == 'CONTRE_EXPERTISE'
+                else 'Garagiste' if m.type_mission_code == 'GARAGISTE'
+                else 'Expertise'
+            ),
+            'type_expertise': m.type_expertise,
+            'expert_nom': m.expert_nom,
+            'montant_estime': float(m.montant_estime) if m.montant_estime else 0,
+            'date_validation': (
+                m.date_validation.isoformat() if m.date_validation else None
+            ),
+            'mission_parente_numero': parent_num,
+        }
+
     def get_evaluation_by_numero(self, numero: str) -> Optional[dict]:
         """Récupère une évaluation par son numéro"""
         try:
@@ -308,6 +360,7 @@ class EvaluationController(BaseController):
             'type_evaluation': evaluation.type_evaluation,
             'categorie': evaluation.categorie,
             'montant_brut': evaluation.montant_brut,
+            'montant_expert': float(evaluation.montant_expert) if evaluation.montant_expert else None,
             'franchise': evaluation.franchise,
             'taux_responsabilite': evaluation.taux_responsabilite,
             'montant_net': evaluation.montant_net,

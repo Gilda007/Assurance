@@ -676,6 +676,27 @@ class ComptabiliteController(BaseController):
         except Exception as e:
             self.handle_error(e)
             return None
+
+    def comptabiliser_ecriture(self, ecriture_id: int) -> bool:
+        """Comptabilise une écriture déjà validée (Tome 5 §11)"""
+        try:
+            if not self.get_current_user_id():
+                self.error_occurred.emit("Aucun utilisateur connecté")
+                return False
+
+            ecriture = self.service.comptabiliser_ecriture(
+                ecriture_id=ecriture_id,
+                utilisateur_id=self.get_current_user_id(),
+            )
+            if ecriture:
+                self.handle_success(
+                    f"Écriture {ecriture.numero_ecriture} comptabilisée"
+                )
+                return True
+            return False
+        except Exception as e:
+            self.handle_error(e)
+            return False
     
     # ============================================================
     # SÉRIALISATION
@@ -713,7 +734,11 @@ class ComptabiliteController(BaseController):
             'reglement_id': getattr(e, 'reglement_id', None),
             'provision_id': getattr(e, 'provision_id', None),
             'note_credit_id': getattr(e, 'note_credit_id', None),
+
+            # États
             'est_valide': e.est_valide,
+            'est_comptabilise': e.est_comptabilise,                          # ✅ NOUVEAU
+            'comptabilise_par': getattr(e, 'comptabilise_par', None),         # ✅ NOUVEAU
             'est_annulee': e.est_annulee,
             'est_rapprochee': getattr(e, 'est_rapprochee', False),
             'date_rapprochement': (
@@ -723,6 +748,7 @@ class ComptabiliteController(BaseController):
             'reference_bancaire': getattr(e, 'reference_bancaire', None),
             'motif_annulation': getattr(e, 'motif_annulation', None),
             'ecriture_contrepartie_id': getattr(e, 'ecriture_contrepartie_id', None),
+
             'observations': e.observations,
             'created_at': (
                 e.created_at.isoformat() if e.created_at else None
