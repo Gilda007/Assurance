@@ -1,0 +1,547 @@
+<?xml version='1.0' encoding='utf8'?>
+<nuitka-compilation-report nuitka_version="4.2.1" nuitka_commercial_version="not installed" mode="module" completion="error exit message (1)" exit_message="Failed unexpectedly in Scons C backend compilation.">
+  <scons_environment c_compiler="gcc" the_cc_name="gcc" the_compiler="gcc" />
+  <scons_error_reports>
+    <scons_error_report>
+      <command>gcc -o module.Paramètres.os -c -std=c11 -flto=12 -fuse-linker-plugin -fno-fat-lto-objects -fvisibility=hidden -fwrapv -pipe -Wno-unused-but-set-variable -fpartial-inlining -ftrack-macro-expansion=0 -Wno-deprecated-declarations -fno-var-tracking -fno-var-tracking-assignments -Wno-misleading-indentation -Wno-psabi -O3 -fPIC -D_NUITKA_MODULE_MODE -D__NUITKA_NO_ASSERT__ -D_NUITKA_CONSTANTS_FROM_CODE -D_NUITKA_ADAPTED_PYTHON_HEADERS -I/home/fearless/Documents/Assurance/.venv/lib/python3.14/site-packages/nuitka/build/inline_copy/zlib -I/home/fearless/.cache/Nuitka/adapted_headers/55dcabed309b52b51a18933f01a2dec7 -I/usr/include/python3.14 -I/usr/include/python3.14/internal/mimalloc -I. -I/home/fearless/Documents/Assurance/.venv/lib/python3.14/site-packages/nuitka/build/include -I/home/fearless/Documents/Assurance/.venv/lib/python3.14/site-packages/nuitka/build/static_src -I/home/fearless/Documents/Assurance/.venv/lib/python3.14/site-packages/nuitka/build/inline_copy/libbacktrace module.Paramètres.c</command>
+      <stderr>
+module.Paramètres.c:1303:35: error: expected '=', ',', ';', 'asm' or '__attribute__' before '-' token 1303 | static PyObject *PyInitU_Paramtres-43a_phase2(PyObject *module) {      |                                   ^module.Paramètres.c:1303:36: error: invalid suffix 'a_phase2' on integer constant 1303 | static PyObject *PyInitU_Paramtres-43a_phase2(PyObject *module) {      |                                    ^~~~~~~~~~module.Paramètres.c:1339:29: error: expected '=', ',', ';', 'asm' or '__attribute__' before '-' token 1339 | static int PyInitU_Paramtres-43a_slot(PyObject *module) {      |                             ^module.Paramètres.c:1339:30: error: invalid suffix 'a_slot' on integer constant 1339 | static int PyInitU_Paramtres-43a_slot(PyObject *module) {      |                              ^~~~~~~~module.Paramètres.c:1340:42: error: invalid suffix 'a_phase2' on integer constant 1340 |     PyObject *result = PyInitU_Paramtres-43a_phase2(module);      |                                          ^~~~~~~~~~module.Paramètres.c:1350:47: error: expected ')' before '-' token 1350 | NUITKA_MODULE_INIT_FUNCTION (PyInitU_Paramtres-43a)(void) {      |                                               ^      |                                               )module.Paramètres.c:1350:48: error: invalid suffix 'a' on integer constant 1350 | NUITKA_MODULE_INIT_FUNCTION (PyInitU_Paramtres-43a)(void) {      |                                                ^~~module.Paramètres.c:1387:49: error: invalid suffix 'a_slot' on integer constant 1387 |         {Py_mod_exec, (void *)PyInitU_Paramtres-43a_slot},      |                                                 ^~~~~~~~
+</stderr>
+    </scons_error_report>
+  </scons_error_reports>
+  <module name="Paramètres" kind="CompiledPythonPackage" usage="root_module" reason="Root module" source_path="${cwd}/addons_compiled/Paramètres/__init__.py">
+    <optimization-time pass="1" time="0.0006" micro_passes="2" />
+    <optimization-time pass="2" time="0.0002" micro_passes="1" />
+    <code-generation-time time="0.0549" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres" kind="CompiledPythonPackage" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/__init__.py">
+    <optimization-time pass="1" time="0.0011" micro_passes="2" />
+    <optimization-time pass="2" time="0.0003" micro_passes="1" />
+    <code-generation-time time="0.0030" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.controllers" kind="CompiledPythonNamespacePackage" usage="import" reason="Module None instructed by user to follow to." source_path="${cwd}/addons/Paramètres/controllers">
+    <optimization-time pass="1" time="0.0010" micro_passes="3" max_branch_merge="1" merged_total="2" />
+    <optimization-time pass="2" time="0.0002" micro_passes="1" />
+    <code-generation-time time="0.0028" />
+    <module_usages>
+      <module_usage name="_frozen_importlib_external" finding="absolute" line="1" />
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.controllers.controller" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/controllers/controller.py">
+    <optimization-time pass="1" time="0.0710" micro_passes="4" max_branch_merge="32" merged_total="1198" />
+    <optimization-time pass="2" time="0.0129" micro_passes="1" max_branch_merge="32" merged_total="272" />
+    <code-generation-time time="0.0671" />
+    <module_usages>
+      <module_usage name="core.database" finding="absolute" line="7" />
+      <module_usage name="core.local_db" finding="absolute" line="8" />
+      <module_usage name="addons.Paramètres.models.models" finding="absolute" line="9" />
+      <module_usage name="socket" finding="excluded" line="10" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="threading" finding="excluded" line="11" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="12" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="time" finding="absolute" line="75" />
+      <module_usage name="time" finding="absolute" line="87" />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="118" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.controllers.login_controller" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/controllers/login_controller.py">
+    <optimization-time pass="1" time="0.0244" micro_passes="3" max_branch_merge="20" merged_total="324" />
+    <optimization-time pass="2" time="0.0056" micro_passes="1" max_branch_merge="20" merged_total="104" />
+    <code-generation-time time="0.0284" />
+    <module_usages>
+      <module_usage name="PySide6.QtCore" finding="excluded" line="2" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="datetime" finding="excluded" line="3" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="core.database" finding="absolute" line="4" />
+      <module_usage name="core.alerts" finding="absolute" line="5" />
+      <module_usage name="core.session" finding="absolute" line="6" />
+      <module_usage name="core.logger" finding="absolute" line="7" />
+      <module_usage name="addons.Paramètres.models.models" finding="relative" line="8" />
+      <module_usage name="socket" finding="excluded" line="9" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="requests" finding="absolute" line="10" />
+      <module_usage name="addons.Paramètres.models.models" finding="relative" line="73" />
+      <module_usage name="bcrypt" finding="absolute" line="131" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.controllers.module_controller" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/controllers/module_controller.py">
+    <optimization-time pass="1" time="0.0384" micro_passes="5" max_branch_merge="9" merged_total="469" />
+    <optimization-time pass="2" time="0.0049" micro_passes="1" max_branch_merge="9" merged_total="88" />
+    <code-generation-time time="0.0224" />
+    <module_usages>
+      <module_usage name="json" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="os" finding="excluded" line="2" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="shutil" finding="excluded" line="3" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="23" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="26" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="59" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="73" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="74" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.controllers.setup_controller" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/controllers/setup_controller.py">
+    <optimization-time pass="1" time="0.0223" micro_passes="4" max_branch_merge="10" merged_total="233" />
+    <optimization-time pass="2" time="0.0031" micro_passes="1" max_branch_merge="10" merged_total="56" />
+    <code-generation-time time="0.0149" />
+    <module_usages>
+      <module_usage name="PySide6.QtCore" finding="excluded" line="1" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="core.database" finding="absolute" line="2" />
+      <module_usage name="core.alerts" finding="absolute" line="3" />
+      <module_usage name="core.logger" finding="absolute" line="4" />
+      <module_usage name="addons.Paramètres.models.models" finding="relative" line="5" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.main_ui" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/main_ui.py">
+    <optimization-time pass="1" time="0.0184" micro_passes="4" max_branch_merge="10" merged_total="224" />
+    <optimization-time pass="2" time="0.0048" micro_passes="1" max_branch_merge="10" merged_total="54" />
+    <code-generation-time time="0.0220" />
+    <module_usages>
+      <module_usage name="core.base_module" finding="absolute" line="90" />
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="91" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="92" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="addons.Paramètres.views.views" finding="absolute" line="93" />
+      <module_usage name="addons.Paramètres.controllers.controller" finding="absolute" line="94" />
+      <module_usage name="core.alerts" finding="absolute" line="95" />
+      <module_usage name="icons" finding="absolute" line="96" />
+      <module_usage name="icons.get_icon" finding="not-found" line="96" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.models" kind="CompiledPythonNamespacePackage" usage="import path parent" reason="Module None instructed by user to follow to." source_path="${cwd}/addons/Paramètres/models">
+    <optimization-time pass="1" time="0.0014" micro_passes="3" max_branch_merge="1" merged_total="2" />
+    <optimization-time pass="2" time="0.0003" micro_passes="1" />
+    <code-generation-time time="0.0025" />
+    <module_usages>
+      <module_usage name="_frozen_importlib_external" finding="absolute" line="1" />
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.models.models" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/models/models.py">
+    <optimization-time pass="1" time="0.0230" micro_passes="3" max_branch_merge="17" merged_total="360" />
+    <optimization-time pass="2" time="0.0107" micro_passes="1" max_branch_merge="17" merged_total="117" />
+    <code-generation-time time="0.0249" />
+    <module_usages>
+      <module_usage name="sqlalchemy" finding="absolute" line="1" />
+      <module_usage name="sqlalchemy.Column" finding="not-found" line="1" />
+      <module_usage name="sqlalchemy.Integer" finding="not-found" line="1" />
+      <module_usage name="sqlalchemy.String" finding="not-found" line="1" />
+      <module_usage name="sqlalchemy.Boolean" finding="not-found" line="1" />
+      <module_usage name="sqlalchemy.DateTime" finding="not-found" line="1" />
+      <module_usage name="sqlalchemy.ForeignKey" finding="not-found" line="1" />
+      <module_usage name="sqlalchemy.Text" finding="not-found" line="1" />
+      <module_usage name="sqlalchemy.func" finding="not-found" line="1" />
+      <module_usage name="datetime" finding="excluded" line="2" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="sqlalchemy.orm" finding="absolute" line="3" />
+      <module_usage name="sqlalchemy.orm.relationship" finding="not-found" line="3" />
+      <module_usage name="bcrypt" finding="absolute" line="4" />
+      <module_usage name="core.database" finding="absolute" line="5" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.reports" kind="CompiledPythonNamespacePackage" usage="import path parent" reason="Module None instructed by user to follow to." source_path="${cwd}/addons/Paramètres/reports">
+    <optimization-time pass="1" time="0.0012" micro_passes="3" max_branch_merge="1" merged_total="2" />
+    <optimization-time pass="2" time="0.0003" micro_passes="1" />
+    <code-generation-time time="0.0025" />
+    <module_usages>
+      <module_usage name="_frozen_importlib_external" finding="absolute" line="1" />
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.reports.audit_exporter" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/reports/audit_exporter.py">
+    <optimization-time pass="1" time="0.0141" micro_passes="4" max_branch_merge="6" merged_total="184" />
+    <optimization-time pass="2" time="0.0040" micro_passes="1" max_branch_merge="5" merged_total="42" />
+    <code-generation-time time="0.0093" />
+    <module_usages>
+      <module_usage name="csv" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="os" finding="excluded" line="2" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="datetime" finding="excluded" line="3" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="10" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="11" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.security" kind="CompiledPythonNamespacePackage" usage="package" reason="Containing package of 'addons.Paramètres.security.access_control'." source_path="${cwd}/addons/Paramètres/security">
+    <optimization-time pass="1" time="0.0011" micro_passes="3" max_branch_merge="1" merged_total="2" />
+    <optimization-time pass="2" time="0.0003" micro_passes="1" />
+    <code-generation-time time="0.0023" />
+    <module_usages>
+      <module_usage name="_frozen_importlib_external" finding="absolute" line="1" />
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.security.access_control" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/security/access_control.py">
+    <optimization-time pass="1" time="0.0011" micro_passes="2" />
+    <optimization-time pass="2" time="0.0002" micro_passes="1" />
+    <code-generation-time time="0.0014" />
+    <module_usages />
+  </module>
+  <module name="addons.Paramètres.seed_db" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/seed_db.py">
+    <optimization-time pass="1" time="0.0079" micro_passes="3" max_branch_merge="5" merged_total="68" />
+    <optimization-time pass="2" time="0.0020" micro_passes="1" max_branch_merge="5" merged_total="22" />
+    <code-generation-time time="0.0093" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="core.database" finding="absolute" line="2" />
+      <module_usage name="addons.Paramètres.models" finding="absolute" line="3" />
+      <module_usage name="addons.Paramètres.models.User" finding="not-found" line="3" />
+      <module_usage name="core.logger" finding="absolute" line="4" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.tests" kind="CompiledPythonPackage" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/tests/__init__.py">
+    <optimization-time pass="1" time="0.0006" micro_passes="2" />
+    <optimization-time pass="2" time="0.0002" micro_passes="1" />
+    <code-generation-time time="0.0042" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.tests.integration" kind="CompiledPythonPackage" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/tests/integration/__init__.py">
+    <optimization-time pass="1" time="0.0007" micro_passes="2" />
+    <optimization-time pass="2" time="0.0002" micro_passes="1" />
+    <code-generation-time time="0.0038" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.tests.test_models" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/tests/test_models.py">
+    <optimization-time pass="1" time="0.0003" micro_passes="2" />
+    <optimization-time pass="2" time="0.0001" micro_passes="1" />
+    <code-generation-time time="0.0013" />
+    <module_usages />
+  </module>
+  <module name="addons.Paramètres.tests.unit" kind="CompiledPythonPackage" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/tests/unit/__init__.py">
+    <optimization-time pass="1" time="0.0007" micro_passes="2" />
+    <optimization-time pass="2" time="0.0003" micro_passes="1" />
+    <code-generation-time time="0.0035" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.tests.unit.test_user_logic" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/tests/unit/test_user_logic.py">
+    <optimization-time pass="1" time="0.0246" micro_passes="3" max_branch_merge="11" merged_total="239" />
+    <optimization-time pass="2" time="0.0045" micro_passes="1" max_branch_merge="11" merged_total="81" />
+    <code-generation-time time="0.0245" />
+    <module_usages>
+      <module_usage name="unittest" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="core.database" finding="absolute" line="2" />
+      <module_usage name="addons.Paramètres.controllers.controller" finding="absolute" line="3" />
+      <module_usage name="addons.Paramètres.models.models" finding="absolute" line="4" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views" kind="CompiledPythonNamespacePackage" usage="package" reason="Containing package of 'addons.Paramètres.views.widgets'." source_path="${cwd}/addons/Paramètres/views">
+    <optimization-time pass="1" time="0.0013" micro_passes="3" max_branch_merge="1" merged_total="2" />
+    <optimization-time pass="2" time="0.0002" micro_passes="1" />
+    <code-generation-time time="0.0025" />
+    <module_usages>
+      <module_usage name="_frozen_importlib_external" finding="absolute" line="1" />
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.about_us_view" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/about_us_view.py">
+    <optimization-time pass="1" time="0.0268" micro_passes="4" max_branch_merge="16" merged_total="333" />
+    <optimization-time pass="2" time="0.0050" micro_passes="1" max_branch_merge="16" merged_total="84" />
+    <code-generation-time time="0.0218" />
+    <module_usages>
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="3" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="4" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.accout_setting_view" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/accout_setting_view.py">
+    <optimization-time pass="1" time="0.0207" micro_passes="3" max_branch_merge="20" merged_total="216" />
+    <optimization-time pass="2" time="0.0040" micro_passes="1" max_branch_merge="20" merged_total="72" />
+    <code-generation-time time="0.0225" />
+    <module_usages>
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="3" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="4" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.dialog_form" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/dialog_form.py">
+    <optimization-time pass="1" time="0.0187" micro_passes="4" max_branch_merge="13" merged_total="280" />
+    <optimization-time pass="2" time="0.0041" micro_passes="1" max_branch_merge="13" merged_total="64" />
+    <code-generation-time time="0.0272" />
+    <module_usages>
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="3" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.loggin_view" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/loggin_view.py">
+    <optimization-time pass="1" time="0.1244" micro_passes="6" max_branch_merge="31" merged_total="1712" />
+    <optimization-time pass="2" time="0.0180" micro_passes="1" max_branch_merge="31" merged_total="278" />
+    <code-generation-time time="0.1096" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="7" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="8" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="13" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="17" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="qtawesome" finding="absolute" line="22" />
+      <module_usage name="random" finding="excluded" line="23" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="glob" finding="excluded" line="24" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="106" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="107" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="108" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="119" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="122" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="153" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.parametre_module_view" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/parametre_module_view.py">
+    <optimization-time pass="1" time="0.2969" micro_passes="5" max_branch_merge="69" merged_total="4519" />
+    <optimization-time pass="2" time="0.0536" micro_passes="1" max_branch_merge="69" merged_total="883" />
+    <code-generation-time time="0.2039" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="json" finding="excluded" line="2" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="zipfile" finding="excluded" line="3" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="shutil" finding="excluded" line="4" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="datetime" finding="excluded" line="5" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="6" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="10" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="11" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="update_manager" finding="absolute" line="14" />
+      <module_usage name="version_manager" finding="absolute" line="15" />
+      <module_usage name="server.config" finding="absolute" line="16" />
+      <module_usage name="subprocess" finding="excluded" line="35" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="sys" finding="absolute" line="36" />
+      <module_usage name="subprocess" finding="excluded" line="65" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="sys" finding="absolute" line="66" />
+      <module_usage name="posixpath" finding="excluded" line="134" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="tempfile" finding="excluded" line="137" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="shutil" finding="excluded" line="143" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="146" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="shutil" finding="excluded" line="147" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="162" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="version_manager" finding="absolute" line="184" />
+      <module_usage name="traceback" finding="excluded" line="207" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="subprocess" finding="excluded" line="213" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="sys" finding="absolute" line="214" />
+      <module_usage name="posixpath" finding="excluded" line="585" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="586" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="server.config" finding="absolute" line="664" />
+      <module_usage name="subprocess" finding="excluded" line="1065" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="sys" finding="absolute" line="1066" />
+      <module_usage name="posixpath" finding="excluded" line="1083" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="server.config" finding="absolute" line="1096" />
+      <module_usage name="posixpath" finding="excluded" line="1110" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="os" finding="excluded" line="1256" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="1260" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="posixpath" finding="excluded" line="1264" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1279" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="1280" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="sys" finding="absolute" line="1364" />
+      <module_usage name="subprocess" finding="excluded" line="1365" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1366" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.setup_view" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/setup_view.py">
+    <optimization-time pass="1" time="0.0273" micro_passes="3" max_branch_merge="15" merged_total="312" />
+    <optimization-time pass="2" time="0.0062" micro_passes="1" max_branch_merge="15" merged_total="99" />
+    <code-generation-time time="0.0409" />
+    <module_usages>
+      <module_usage name="sys" finding="absolute" line="1" />
+      <module_usage name="os" finding="excluded" line="2" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="3" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="6" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="7" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="posixpath" finding="excluded" line="24" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.user_from" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/user_from.py">
+    <optimization-time pass="1" time="0.0175" micro_passes="4" max_branch_merge="12" merged_total="263" />
+    <optimization-time pass="2" time="0.0042" micro_passes="1" max_branch_merge="12" merged_total="61" />
+    <code-generation-time time="0.0241" />
+    <module_usages>
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="3" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="4" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.user_list_view" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/user_list_view.py">
+    <optimization-time pass="1" time="0.0702" micro_passes="4" max_branch_merge="16" merged_total="955" />
+    <optimization-time pass="2" time="0.0140" micro_passes="1" max_branch_merge="16" merged_total="240" />
+    <code-generation-time time="0.0574" />
+    <module_usages>
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="3" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="4" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="addons.Paramètres.views.dialog_form" finding="absolute" line="5" />
+      <module_usage name="addons.Paramètres.views.user_from" finding="absolute" line="6" />
+      <module_usage name="addons.Paramètres.reports.audit_exporter" finding="absolute" line="7" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.views" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/views.py">
+    <optimization-time pass="1" time="0.1105" micro_passes="4" max_branch_merge="32" merged_total="1738" />
+    <optimization-time pass="2" time="0.0253" micro_passes="1" max_branch_merge="32" merged_total="425" />
+    <code-generation-time time="0.1041" />
+    <module_usages>
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="1" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="3" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="4" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="addons.Paramètres.views.widgets.loading_page" finding="absolute" line="5" />
+      <module_usage name="addons.Paramètres.controllers" finding="absolute" line="6" />
+      <module_usage name="addons.Paramètres.controllers.controller" finding="relative" line="6" />
+      <module_usage name="addons.Paramètres.views.dialog_form" finding="absolute" line="7" />
+      <module_usage name="addons.Paramètres.views.user_from" finding="absolute" line="8" />
+      <module_usage name="addons.Paramètres.reports.audit_exporter" finding="absolute" line="9" />
+      <module_usage name="addons.Paramètres.views.parametre_module_view" finding="absolute" line="10" />
+      <module_usage name="addons.Paramètres.views.accout_setting_view" finding="absolute" line="11" />
+      <module_usage name="addons.Paramètres.views.about_us_view" finding="absolute" line="12" />
+      <module_usage name="addons.Paramètres.views.user_list_view" finding="absolute" line="13" />
+      <module_usage name="addons.Paramètres.controllers.module_controller" finding="absolute" line="156" />
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="595" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="traceback" finding="excluded" line="602" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="traceback" finding="excluded" line="630" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="addons.Paramètres.controllers.module_controller" finding="absolute" line="718" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.widgets" kind="CompiledPythonPackage" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/widgets/__init__.py">
+    <optimization-time pass="1" time="0.0039" micro_passes="2" />
+    <optimization-time pass="2" time="0.0006" micro_passes="1" />
+    <code-generation-time time="0.0038" />
+    <module_usages>
+      <module_usage name="os" finding="excluded" line="1" exclusion_reason="Not following into stdlib unless standalone or requested to follow into stdlib." />
+      <module_usage name="addons.Paramètres.views.widgets.loading_page" finding="relative" line="1" />
+    </module_usages>
+  </module>
+  <module name="addons.Paramètres.views.widgets.loading_page" kind="CompiledPythonModule" usage="root_module" reason="Root module" source_path="${cwd}/addons/Paramètres/views/widgets/loading_page.py">
+    <optimization-time pass="1" time="0.0807" micro_passes="4" max_branch_merge="23" merged_total="1361" />
+    <optimization-time pass="2" time="0.0270" micro_passes="1" max_branch_merge="23" merged_total="288" />
+    <code-generation-time time="0.0987" />
+    <module_usages>
+      <module_usage name="PySide6.QtWidgets" finding="excluded" line="5" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtCore" finding="excluded" line="10" exclusion_reason="Extension modules cannot be inspected." />
+      <module_usage name="PySide6.QtGui" finding="excluded" line="14" exclusion_reason="Extension modules cannot be inspected." />
+    </module_usages>
+  </module>
+  <performance>
+    <memory_usage name="after_launch" value="50835456" />
+    <memory_usage name="before_c_code_generation" value="66568192" />
+    <memory_usage name="before_running_scons" value="74629120" />
+  </performance>
+  <data_file name="addons/Paramètres/certificate.json" source="${cwd}/addons/Paramètres/certificate.json" size="4031" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/certificate.pem" source="${cwd}/addons/Paramètres/certificate.pem" size="1647" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/manifest.json" source="${cwd}/addons/Paramètres/manifest.json" size="1034" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/static/logo.png" source="${cwd}/addons/Paramètres/static/logo.png" size="186180" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/OIP.webp" source="${cwd}/addons/Paramètres/views/OIP.webp" size="1924" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg.jpg" source="${cwd}/addons/Paramètres/views/login_bg.jpg" size="3410718" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_10.jpg" source="${cwd}/addons/Paramètres/views/login_bg_10.jpg" size="3541159" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_2.jpg" source="${cwd}/addons/Paramètres/views/login_bg_2.jpg" size="3186473" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_3.jpg" source="${cwd}/addons/Paramètres/views/login_bg_3.jpg" size="2807456" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_4.jpg" source="${cwd}/addons/Paramètres/views/login_bg_4.jpg" size="2714096" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_5.jpg" source="${cwd}/addons/Paramètres/views/login_bg_5.jpg" size="2639686" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_6.jpg" source="${cwd}/addons/Paramètres/views/login_bg_6.jpg" size="3218199" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_7.jpg" source="${cwd}/addons/Paramètres/views/login_bg_7.jpg" size="3152579" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_8.jpg" source="${cwd}/addons/Paramètres/views/login_bg_8.jpg" size="3419510" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/login_bg_9.jpg" source="${cwd}/addons/Paramètres/views/login_bg_9.jpg" size="3344251" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/logo.webp" source="${cwd}/addons/Paramètres/views/logo.webp" size="72432" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_file name="addons/Paramètres/views/test.txt" source="${cwd}/addons/Paramètres/views/test.txt" size="9769" reason="package 'addons.Paramètres' package data" tags="user,package_data,copy" />
+  <data_composer blob_size="115967" total="3746">
+    <module_data filename="__bytecode.const" blob_name=".bytecode" blob_size="3" input_size="0" />
+    <module_data filename="__constants.const" blob_name="" blob_size="916" input_size="2270" />
+    <module_data filename="module.Paramètres.const" blob_name="Paramètres" blob_size="184" input_size="825" />
+    <module_data filename="module.addons.Paramètres.const" blob_name="addons.Paramètres" blob_size="240" input_size="902" />
+    <module_data filename="module.addons.Paramètres.controllers.const" blob_name="addons.Paramètres.controllers" blob_size="329" input_size="1013" />
+    <module_data filename="module.addons.Paramètres.controllers.controller.const" blob_name="addons.Paramètres.controllers.controller" blob_size="10293" input_size="17438" />
+    <module_data filename="module.addons.Paramètres.controllers.login_controller.const" blob_name="addons.Paramètres.controllers.login_controller" blob_size="3495" input_size="6617" />
+    <module_data filename="module.addons.Paramètres.controllers.module_controller.const" blob_name="addons.Paramètres.controllers.module_controller" blob_size="1737" input_size="3346" />
+    <module_data filename="module.addons.Paramètres.controllers.setup_controller.const" blob_name="addons.Paramètres.controllers.setup_controller" blob_size="1510" input_size="3138" />
+    <module_data filename="module.addons.Paramètres.main_ui.const" blob_name="addons.Paramètres.main_ui" blob_size="2231" input_size="4027" />
+    <module_data filename="module.addons.Paramètres.models.const" blob_name="addons.Paramètres.models" blob_size="304" input_size="983" />
+    <module_data filename="module.addons.Paramètres.models.models.const" blob_name="addons.Paramètres.models.models" blob_size="1397" input_size="3381" />
+    <module_data filename="module.addons.Paramètres.reports.audit_exporter.const" blob_name="addons.Paramètres.reports.audit_exporter" blob_size="635" input_size="1708" />
+    <module_data filename="module.addons.Paramètres.reports.const" blob_name="addons.Paramètres.reports" blob_size="309" input_size="989" />
+    <module_data filename="module.addons.Paramètres.security.access_control.const" blob_name="addons.Paramètres.security.access_control" blob_size="131" input_size="728" />
+    <module_data filename="module.addons.Paramètres.security.const" blob_name="addons.Paramètres.security" blob_size="314" input_size="995" />
+    <module_data filename="module.addons.Paramètres.seed_db.const" blob_name="addons.Paramètres.seed_db" blob_size="804" input_size="1954" />
+    <module_data filename="module.addons.Paramètres.tests.const" blob_name="addons.Paramètres.tests" blob_size="323" input_size="1018" />
+    <module_data filename="module.addons.Paramètres.tests.integration.const" blob_name="addons.Paramètres.tests.integration" blob_size="454" input_size="1188" />
+    <module_data filename="module.addons.Paramètres.tests.test_models.const" blob_name="addons.Paramètres.tests.test_models" blob_size="119" input_size="710" />
+    <module_data filename="module.addons.Paramètres.tests.unit.const" blob_name="addons.Paramètres.tests.unit" blob_size="412" input_size="1139" />
+    <module_data filename="module.addons.Paramètres.tests.unit.test_user_logic.const" blob_name="addons.Paramètres.tests.unit.test_user_logic" blob_size="2044" input_size="4190" />
+    <module_data filename="module.addons.Paramètres.views.about_us_view.const" blob_name="addons.Paramètres.views.about_us_view" blob_size="2818" input_size="4933" />
+    <module_data filename="module.addons.Paramètres.views.accout_setting_view.const" blob_name="addons.Paramètres.views.accout_setting_view" blob_size="3135" input_size="5389" />
+    <module_data filename="module.addons.Paramètres.views.const" blob_name="addons.Paramètres.views" blob_size="299" input_size="977" />
+    <module_data filename="module.addons.Paramètres.views.dialog_form.const" blob_name="addons.Paramètres.views.dialog_form" blob_size="3305" input_size="5978" />
+    <module_data filename="module.addons.Paramètres.views.loggin_view.const" blob_name="addons.Paramètres.views.loggin_view" blob_size="12939" input_size="21125" />
+    <module_data filename="module.addons.Paramètres.views.parametre_module_view.const" blob_name="addons.Paramètres.views.parametre_module_view" blob_size="23606" input_size="35586" />
+    <module_data filename="module.addons.Paramètres.views.setup_view.const" blob_name="addons.Paramètres.views.setup_view" blob_size="4450" input_size="8104" />
+    <module_data filename="module.addons.Paramètres.views.user_from.const" blob_name="addons.Paramètres.views.user_from" blob_size="3318" input_size="5915" />
+    <module_data filename="module.addons.Paramètres.views.user_list_view.const" blob_name="addons.Paramètres.views.user_list_view" blob_size="7377" input_size="12141" />
+    <module_data filename="module.addons.Paramètres.views.views.const" blob_name="addons.Paramètres.views.views" blob_size="13460" input_size="21842" />
+    <module_data filename="module.addons.Paramètres.views.widgets.const" blob_name="addons.Paramètres.views.widgets" blob_size="472" input_size="1220" />
+    <module_data filename="module.addons.Paramètres.views.widgets.loading_page.const" blob_name="addons.Paramètres.views.widgets.loading_page" blob_size="11329" input_size="20735" />
+  </data_composer>
+  <performance-totals>
+    <optimization-time pass="1" time="1.0527" module_count="32" />
+    <optimization-time pass="2" time="0.2173" module_count="32" />
+    <optimization-time pass="all" time="1.2700" module_count="32" />
+    <code-generation-time time="1.0218" module_count="32" />
+  </performance-totals>
+  <python_binary filename="${cwd}/addons_compiled/Paramètres/_build/Paramètres.cpython-314-x86_64-linux-gnu.so" backend_resource_mode="c23_embed" reproducible="yes" />
+  <command_line>
+    <option value="--module" />
+    <option value="--assume-yes-for-downloads" />
+    <option value="--enable-plugin=pyside6" />
+    <option value="--nofollow-import-to=pytest" />
+    <option value="--nofollow-import-to=tkinter" />
+    <option value="--nofollow-import-to=PyQt5" />
+    <option value="--nofollow-import-to=PyQt6" />
+    <option value="--nofollow-import-to=matplotlib" />
+    <option value="--include-package=addons.Paramètres" />
+    <option value="--include-package=addons.Paramètres.tests" />
+    <option value="--include-package=addons.Paramètres.tests.integration" />
+    <option value="--include-package=addons.Paramètres.tests.unit" />
+    <option value="--include-package=addons.Paramètres.views.widgets" />
+    <option value="--include-module=addons.Paramètres.controllers.controller" />
+    <option value="--include-module=addons.Paramètres.controllers.login_controller" />
+    <option value="--include-module=addons.Paramètres.controllers.module_controller" />
+    <option value="--include-module=addons.Paramètres.controllers.setup_controller" />
+    <option value="--include-module=addons.Paramètres.main_ui" />
+    <option value="--include-module=addons.Paramètres.models.models" />
+    <option value="--include-module=addons.Paramètres.reports.audit_exporter" />
+    <option value="--include-module=addons.Paramètres.security.access_control" />
+    <option value="--include-module=addons.Paramètres.seed_db" />
+    <option value="--include-module=addons.Paramètres.views.about_us_view" />
+    <option value="--include-module=addons.Paramètres.views.accout_setting_view" />
+    <option value="--include-module=addons.Paramètres.views.dialog_form" />
+    <option value="--include-module=addons.Paramètres.views.loggin_view" />
+    <option value="--include-module=addons.Paramètres.views.parametre_module_view" />
+    <option value="--include-module=addons.Paramètres.views.setup_view" />
+    <option value="--include-module=addons.Paramètres.views.user_from" />
+    <option value="--include-module=addons.Paramètres.views.user_list_view" />
+    <option value="--include-module=addons.Paramètres.views.views" />
+    <option value="--include-module=addons.Paramètres.views.widgets.loading_page" />
+    <option value="--include-package=addons.Paramètres.controllers" />
+    <option value="--include-package=addons.Paramètres.models" />
+    <option value="--include-package=addons.Paramètres.reports" />
+    <option value="--include-package=addons.Paramètres.security" />
+    <option value="--include-package=addons.Paramètres.static" />
+    <option value="--include-package=addons.Paramètres.views" />
+    <option value="--include-package-data=addons.Paramètres" />
+    <option value="--output-dir=/home/fearless/Documents/Assurance/addons_compiled/Paramètres/_build" />
+    <option value="--no-pyi-file" />
+    <option value="/home/fearless/Documents/Assurance/addons_compiled/Paramètres" />
+  </command_line>
+  <plugins>
+    <plugin name="anti-bloat" user_enabled="no" />
+    <plugin name="gi" user_enabled="no" />
+    <plugin name="implicit-imports" user_enabled="no" />
+    <plugin name="options-nanny" user_enabled="no" />
+    <plugin name="pkg-resources" user_enabled="no" />
+    <plugin name="pyside6" user_enabled="yes" />
+    <plugin name="transformers" user_enabled="no" />
+  </plugins>
+  <distributions />
+  <python python_exe="${sys.prefix}/bin/python3" python_flavor="Debian Python" python_version="3.14.7" os_name="Linux" os_release="Kali-Debian-2026.3" arch_name="x86_64" filesystem_encoding="utf-8" gil="yes">
+    <search_path>
+      <path value="${cwd}" />
+      <path value="${cwd}/addons_compiled" />
+      <path value="${sys.real_prefix}/lib/python3.14" />
+      <path value="${sys.real_prefix}/lib/python3.14/lib-dynload" />
+      <path value="${sys.prefix}/lib/python3.14/site-packages" />
+    </search_path>
+  </python>
+  <output run_filename="${cwd}/addons_compiled/Paramètres/_build/Paramètres.cpython-314-x86_64-linux-gnu.so" />
+</nuitka-compilation-report>

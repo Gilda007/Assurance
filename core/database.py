@@ -153,7 +153,7 @@ def init_db():
     """Initialise la base de données avec les modèles"""
     try:
         # Importer les modèles (forcer leur enregistrement)
-        from addons.Paramètres.models.models import User
+        from addons.Parametres.models.models import User
         from addons.Automobiles import models as automobiles_models
         from addons.sinistres import models as sinistres_models
         # Ajoutez vos autres modèles ici si besoin

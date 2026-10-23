@@ -90,8 +90,8 @@
 from core.base_module import BaseModule
 from PySide6.QtWidgets import QPushButton
 from PySide6.QtCore import Qt, QSize
-from addons.Paramètres.views.views import ParametreMainView
-from addons.Paramètres.controllers.controller import UserController
+from addons.Parametres.views.views import ParametreMainView
+from addons.Parametres.controllers.controller import UserController
 from core.alerts import AlertManager
 from icons import get_icon
 

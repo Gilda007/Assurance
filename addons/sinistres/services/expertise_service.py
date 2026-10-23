@@ -14,7 +14,7 @@ from addons.sinistres.models.expertise import (
     LometaProvision, LometaMouvementProvision
 )
 from addons.sinistres.models.sinistre import LometaSinistre
-from addons.Paramètres.models.models import User
+from addons.Parametres.models.models import User
 from addons.sinistres.services.file_service import UPLOAD_ROOT, get_file_service
 from addons.sinistres.models.expertise import LometaAvocat
 

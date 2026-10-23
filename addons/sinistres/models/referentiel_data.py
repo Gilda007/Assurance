@@ -163,6 +163,21 @@ REFERENTIELS_INITIAUX = {
         {"code": "COURRIER", "libelle": "Courrier", "description": "Courrier"},
         {"code": "JUGEMENT", "libelle": "Jugement", "description": "Jugement"},
         {"code": "ASSIGNATION", "libelle": "Assignation", "description": "Assignation"},
+        {
+            "code": "PROPOSITION_EVALUATION",
+            "libelle": "Proposition d'évaluation",
+            "description": "Lettre de proposition d'indemnisation envoyée au client",
+        },
+        {
+            "code": "AVIS_CLIENT",
+            "libelle": "Avis du client",
+            "description": "Pièce jointe de l'avis client (acceptation ou refus signé)",
+        },
+        {
+            "code": "LETTRE_PROPOSITION",
+            "libelle": "Lettre de proposition",
+            "description": "Document PDF de proposition généré automatiquement",
+        },
     ],
     
     # ============================================================
@@ -225,6 +240,11 @@ REFERENTIELS_INITIAUX = {
         {"code": "CLOTURE", "libelle": "Clôturé", "description": "Dossier clôturé"},
         {"code": "REOUVERT", "libelle": "Réouvert", "description": "Dossier réouvert"},
         {"code": "REJETE", "libelle": "Rejeté", "description": "Dossier rejeté"},
+        {
+            "code": "ATTENTE_AVIS_CLIENT",
+            "libelle": "Attente avis client",
+            "description": "Proposition envoyée au client, en attente de son avis",
+        },
     ],
     
     "transitions_workflow": [
@@ -360,11 +380,123 @@ REFERENTIELS_INITIAUX = {
     ],
 
     "statuts_evaluation": [
-        {"code": "BROUILLON", "libelle": "Brouillon", "description": "Évaluation en brouillon"},
-        {"code": "A_VALIDER", "libelle": "À valider", "description": "En attente de validation"},
-        {"code": "VALIDEE", "libelle": "Validée", "description": "Évaluation validée"},
-        {"code": "REJETEE", "libelle": "Rejetée", "description": "Évaluation rejetée"},
-        {"code": "ANNULEE", "libelle": "Annulée", "description": "Évaluation annulée"},
+        {
+            "code": "BROUILLON",
+            "libelle": "Brouillon",
+            "description": "Évaluation en cours de rédaction",
+            "ordre": 1,
+        },
+        {
+            "code": "AVIS_CLIENT_EN_ATTENTE",
+            "libelle": "Avis du client en attente",
+            "description": "Lettre de proposition envoyée, en attente de la réponse du client",
+            "ordre": 2,
+        },
+        {
+            "code": "CLIENT_ACCEPTE",
+            "libelle": "Acceptée par le client",
+            "description": "Le client a accepté la proposition (pièce jointe fournie)",
+            "ordre": 3,
+        },
+        {
+            "code": "CLIENT_REFUSE",
+            "libelle": "Refusée par le client",
+            "description": "Le client a refusé la proposition (pièce jointe fournie)",
+            "ordre": 4,
+        },
+        {
+            "code": "VALIDEE",
+            "libelle": "Validée",
+            "description": "Évaluation validée en interne par LOMETA",
+            "ordre": 5,
+        },
+        {
+            "code": "REVISEE",
+            "libelle": "Révisée",
+            "description": "Évaluation révisée après validation",
+            "ordre": 6,
+        },
+        {
+            "code": "ANNULEE",
+            "libelle": "Annulée",
+            "description": "Évaluation annulée",
+            "ordre": 7,
+        },
+    ],
+
+    "types_avis_client": [
+        {
+            "code": "ACCEPTE",
+            "libelle": "Accepté",
+            "description": "Le client accepte la proposition d'indemnisation",
+            "donnees_supplementaires": '{"couleur": "#059669", "icone": "fa5s.check-circle"}',
+        },
+        {
+            "code": "REFUSE",
+            "libelle": "Refusé",
+            "description": "Le client refuse la proposition d'indemnisation",
+            "donnees_supplementaires": '{"couleur": "#dc2626", "icone": "fa5s.times-circle"}',
+        },
+    ],
+
+    "types_piece_jointe_client": [
+        {
+            "code": "PDF",
+            "libelle": "Document PDF",
+            "description": "Fichier PDF signé",
+            "donnees_supplementaires": '{"mime_types": ["application/pdf"], "extensions": [".pdf"], "taille_max_mb": 10}',
+        },
+        {
+            "code": "IMAGE",
+            "libelle": "Photo / Image",
+            "description": "Photo de la décision signée (JPEG, PNG)",
+            "donnees_supplementaires": '{"mime_types": ["image/jpeg", "image/png", "image/webp"], "extensions": [".jpg", ".jpeg", ".png", ".webp"], "taille_max_mb": 10}',
+        },
+        {
+            "code": "SCAN",
+            "libelle": "Scan de document",
+            "description": "Scan d'un document papier signé",
+            "donnees_supplementaires": '{"mime_types": ["application/pdf", "image/jpeg", "image/png"], "extensions": [".pdf", ".jpg", ".jpeg", ".png"], "taille_max_mb": 15}',
+        },
+    ],
+
+    "transitions_evaluation": [
+        {
+            "code": "BROUILLON->AVIS_CLIENT_EN_ATTENTE",
+            "libelle": "Envoyer la proposition au client",
+            "description": "Génère la lettre de proposition et passe en attente d'avis",
+            "donnees_supplementaires": '{"action": "ENVOYER_PROPOSITION", "role_requis": "GESTIONNAIRE"}',
+        },
+        {
+            "code": "AVIS_CLIENT_EN_ATTENTE->CLIENT_ACCEPTE",
+            "libelle": "Enregistrer l'acceptation du client",
+            "description": "Le client accepte (pièce jointe obligatoire)",
+            "donnees_supplementaires": '{"action": "ACCEPTER", "role_requis": "GESTIONNAIRE", "piece_jointe_obligatoire": true}',
+        },
+        {
+            "code": "AVIS_CLIENT_EN_ATTENTE->CLIENT_REFUSE",
+            "libelle": "Enregistrer le refus du client",
+            "description": "Le client refuse (pièce jointe obligatoire)",
+            "donnees_supplementaires": '{"action": "REFUSER", "role_requis": "GESTIONNAIRE", "piece_jointe_obligatoire": true}',
+        },
+        {
+            "code": "CLIENT_ACCEPTE->VALIDEE",
+            "libelle": "Valider l'évaluation",
+            "description": "Validation interne LOMETA après acceptation du client",
+            "donnees_supplementaires": '{"action": "VALIDER", "role_requis": "VALIDEUR"}',
+        },
+        {
+            "code": "CLIENT_REFUSE->REVISEE",
+            "libelle": "Réviser l'évaluation",
+            "description": "Révision après refus du client",
+            "donnees_supplementaires": '{"action": "REVISER", "role_requis": "GESTIONNAIRE"}',
+        },
+        {
+            "code": "REVISEE->AVIS_CLIENT_EN_ATTENTE",
+            "libelle": "Renvoyer une nouvelle proposition",
+            "description": "Nouvelle lettre de proposition après révision",
+            "donnees_supplementaires": '{"action": "RENVOYER_PROPOSITION", "role_requis": "GESTIONNAIRE"}',
+        },
     ],
 
     "statuts_dommage": [

@@ -12,7 +12,7 @@ Modèles LOMETA - Tous les modèles SQLAlchemy
 8. Audit
 """
 from core.database import Base, AuditableMixin
-from addons.Paramètres.models.models import User 
+from addons.Parametres.models.models import User 
 
 # ============================================================
 # 1. MODÈLES EXTERNES (référencés par FK)

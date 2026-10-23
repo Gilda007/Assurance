@@ -28,7 +28,7 @@ def service():
 @pytest.fixture
 def test_user(db_session):
     """Utilisateur de test"""
-    from addons.Paramètres.models.models import User
+    from addons.Parametres.models.models import User
     
     user = User(
         username="rbac_test_user",

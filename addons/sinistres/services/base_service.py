@@ -9,7 +9,7 @@ from typing import Optional, List, Dict, Any, Type, TypeVar
 from addons.sinistres.models.expertise import LometaExpert
 from core.database import SessionLocal, ScopedSession, get_db, execute_with_retry
 from addons.sinistres.models.audit import LometaAuditLog
-from addons.Paramètres.models.models import User  # Votre modèle User existant
+from addons.Parametres.models.models import User  # Votre modèle User existant
 
 T = TypeVar('T')
 

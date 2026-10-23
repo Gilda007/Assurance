@@ -4,6 +4,7 @@ Service de gestion des évaluations (Tome 4 du CDC)
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+import os
 
 from addons.sinistres.services.base_service import BaseService, func
 from addons.sinistres.models.expertise import LometaEvaluation, LometaProvision, LometaRevisionEvaluation
@@ -21,63 +22,88 @@ class EvaluationService(BaseService):
     # ============================================================
     
     # def creer_evaluation(self, data: Dict[str, Any]) -> LometaEvaluation:
-    #     """Crée une nouvelle évaluation"""
     #     try:
-    #         # Vérifier que le sinistre existe
+    #         # Validations...
     #         sinistre = self.session.query(LometaSinistre).filter(
     #             LometaSinistre.id == data.get('sinistre_id'),
     #             LometaSinistre.is_active == True
     #         ).first()
     #         if not sinistre:
     #             raise ValueError("Sinistre non trouvé")
-            
-    #         # Calculer le montant net
-    #         montant_brut = data.get('montant_brut', 0)
-    #         franchise = data.get('franchise', 0)
-    #         taux_responsabilite = data.get('taux_responsabilite', 1.0)
-    #         montant_net = self.calculer_montant_net(montant_brut, franchise, taux_responsabilite)
-            
-    #         # Générer le numéro
-    #         numero = self.generate_numero("EVAL", LometaEvaluation, 'numero_evaluation')
-            
+
+    #         if not data.get('montant_brut') or float(data['montant_brut']) <= 0:
+    #             raise ValueError("Le montant brut doit être positif")
+
+    #         # Calcul du montant net selon la nouvelle formule :
+    #         # net = (brut + expert) - franchise
+    #         brut = float(data['montant_brut'])
+    #         expert_amt = float(data.get('montant_expert') or 0)
+    #         franchise = float(data.get('franchise') or 0)
+    #         montant_net = max(0, (brut + expert_amt) - franchise)
+
+    #         numero = self.generate_numero("EVA", LometaEvaluation, 'numero_evaluation')
+
+    #         # ✅ On construit explicitement l'objet avec les colonnes autorisées
+    #         #    et on exclut ces clés du **data pour éviter les doublons
+    #         known = {
+    #             'sinistre_id', 'dommage_id', 'type_evaluation', 'categorie',
+    #             'montant_brut', 'montant_expert', 'franchise',
+    #             'taux_responsabilite', 'details', 'mission_id',
+    #             'created_by', 'observations',
+    #         }
+
     #         evaluation = LometaEvaluation(
     #             numero_evaluation=numero,
-    #             montant_expert=data.get('montant_expert'),
-    #             montant_net=montant_net,
-    #             date_evaluation=datetime.utcnow(),
     #             statut="BROUILLON",
-    #             **data
+    #             sinistre_id=data['sinistre_id'],
+    #             dommage_id=data.get('dommage_id'),                # si dispo
+    #             type_evaluation=data['type_evaluation'],
+    #             categorie=data.get('categorie'),
+    #             montant_brut=brut,
+    #             montant_expert=expert_amt,                        # ✅ une seule fois
+    #             franchise=franchise,
+    #             taux_responsabilite=float(data.get('taux_responsabilite') or 1.0),
+    #             montant_net=montant_net,
+    #             details=data.get('details'),
+    #             mission_id=data.get('mission_id'),
+    #             date_evaluation=datetime.utcnow(),
+    #             created_by=data.get('created_by'),
+    #             **{k: v for k, v in data.items() if k not in known}   # ✅ exclut tout doublon
     #         )
-            
+
     #         self.session.add(evaluation)
     #         self.session.flush()
-            
-    #         # Mettre à jour le statut du sinistre
-    #         if sinistre.statut not in ["EN_EVALUATION", "VALIDE", "CLOTURE"]:
+
+    #         # 🔗 Mise à jour statut sinistre
+    #         if sinistre.statut not in ("EN_EVALUATION", "VALIDE", "CLOTURE"):
     #             sinistre.statut = "EN_EVALUATION"
     #             sinistre.updated_at = datetime.utcnow()
     #             sinistre.updated_by = data.get('created_by')
-            
-    #         # Log d'audit
+
+    #         # 📝 Audit
     #         self.log_audit(
     #             utilisateur_id=data.get('created_by'),
     #             action="CREATION",
     #             entite="Evaluation",
     #             entite_id=evaluation.id,
     #             entite_nom=evaluation.numero_evaluation,
-    #             commentaire=f"Création de l'évaluation {evaluation.numero_evaluation} - Montant net: {montant_net}"
+    #             commentaire=(
+    #                 f"Création évaluation {evaluation.numero_evaluation} : "
+    #                 f"brut={brut:,.0f}, expert={expert_amt:,.0f}, "
+    #                 f"franchise={franchise:,.0f}, net={montant_net:,.0f} FCFA"
+    #             ),
     #         )
-            
+
     #         self.session.commit()
     #         return evaluation
-            
+
     #     except Exception as e:
     #         self.session.rollback()
     #         raise e
-    
+
     def creer_evaluation(self, data: Dict[str, Any]) -> LometaEvaluation:
         try:
-            # Validations...
+            # ... validations existantes ...
             sinistre = self.session.query(LometaSinistre).filter(
                 LometaSinistre.id == data.get('sinistre_id'),
                 LometaSinistre.is_active == True
@@ -88,8 +114,6 @@ class EvaluationService(BaseService):
             if not data.get('montant_brut') or float(data['montant_brut']) <= 0:
                 raise ValueError("Le montant brut doit être positif")
 
-            # Calcul du montant net selon la nouvelle formule :
-            # net = (brut + expert) - franchise
             brut = float(data['montant_brut'])
             expert_amt = float(data.get('montant_expert') or 0)
             franchise = float(data.get('franchise') or 0)
@@ -97,8 +121,6 @@ class EvaluationService(BaseService):
 
             numero = self.generate_numero("EVA", LometaEvaluation, 'numero_evaluation')
 
-            # ✅ On construit explicitement l'objet avec les colonnes autorisées
-            #    et on exclut ces clés du **data pour éviter les doublons
             known = {
                 'sinistre_id', 'dommage_id', 'type_evaluation', 'categorie',
                 'montant_brut', 'montant_expert', 'franchise',
@@ -106,15 +128,16 @@ class EvaluationService(BaseService):
                 'created_by', 'observations',
             }
 
+            # ✅ NOUVEAU : statut initial = AVIS_CLIENT_EN_ATTENTE
             evaluation = LometaEvaluation(
                 numero_evaluation=numero,
-                statut="BROUILLON",
+                statut="AVIS_CLIENT_EN_ATTENTE",     # ← modifié
                 sinistre_id=data['sinistre_id'],
-                dommage_id=data.get('dommage_id'),                # si dispo
+                dommage_id=data.get('dommage_id'),
                 type_evaluation=data['type_evaluation'],
                 categorie=data.get('categorie'),
                 montant_brut=brut,
-                montant_expert=expert_amt,                        # ✅ une seule fois
+                montant_expert=expert_amt,
                 franchise=franchise,
                 taux_responsabilite=float(data.get('taux_responsabilite') or 1.0),
                 montant_net=montant_net,
@@ -122,13 +145,13 @@ class EvaluationService(BaseService):
                 mission_id=data.get('mission_id'),
                 date_evaluation=datetime.utcnow(),
                 created_by=data.get('created_by'),
-                **{k: v for k, v in data.items() if k not in known}   # ✅ exclut tout doublon
+                **{k: v for k, v in data.items() if k not in known}
             )
 
             self.session.add(evaluation)
             self.session.flush()
 
-            # 🔗 Mise à jour statut sinistre
+            # 🔗 Statut sinistre
             if sinistre.statut not in ("EN_EVALUATION", "VALIDE", "CLOTURE"):
                 sinistre.statut = "EN_EVALUATION"
                 sinistre.updated_at = datetime.utcnow()
@@ -144,7 +167,8 @@ class EvaluationService(BaseService):
                 commentaire=(
                     f"Création évaluation {evaluation.numero_evaluation} : "
                     f"brut={brut:,.0f}, expert={expert_amt:,.0f}, "
-                    f"franchise={franchise:,.0f}, net={montant_net:,.0f} FCFA"
+                    f"franchise={franchise:,.0f}, net={montant_net:,.0f} FCFA — "
+                    f"En attente de l'avis du client"
                 ),
             )
 
@@ -165,6 +189,178 @@ class EvaluationService(BaseService):
         except Exception as e:
             self.session.rollback()
             raise e
+
+    # ══════════════════════════════════════════════════════════════════
+    # ✅ NOUVEAU : Gestion de l'avis du client
+    # ══════════════════════════════════════════════════════════════════
+
+    def enregistrer_avis_client(
+        self,
+        evaluation_id: int,
+        avis: str,                         # "ACCEPTE" | "REFUSE"
+        piece_jointe_path: str,
+        piece_jointe_nom: str,
+        piece_jointe_type: str,
+        commentaire: str = None,
+        utilisateur_id: int = None,
+    ) -> Optional[LometaEvaluation]:
+        """
+        Enregistre l'avis du client (acceptation ou refus) avec pièce jointe.
+
+        Règles :
+        - L'évaluation doit être en statut AVIS_CLIENT_EN_ATTENTE
+        - La pièce jointe est obligatoire (photo ou PDF)
+        - Le document de proposition reste disponible après l'avis
+        """
+        try:
+            if avis not in ("ACCEPTE", "REFUSE"):
+                raise ValueError("L'avis doit être 'ACCEPTE' ou 'REFUSE'")
+
+            evaluation = self.get_evaluation(evaluation_id)
+            if not evaluation:
+                raise ValueError(f"Évaluation ID {evaluation_id} introuvable")
+
+            if evaluation.statut != "AVIS_CLIENT_EN_ATTENTE":
+                raise ValueError(
+                    f"Cette évaluation n'attend pas d'avis (statut actuel : {evaluation.statut})"
+                )
+
+            if not piece_jointe_path or not os.path.exists(piece_jointe_path):
+                raise ValueError("La pièce jointe est obligatoire et doit exister")
+
+            # Enregistrer l'avis
+            evaluation.avis_client = avis
+            evaluation.date_avis_client = datetime.utcnow()
+            evaluation.commentaire_client = commentaire
+            evaluation.piece_jointe_client_path = piece_jointe_path
+            evaluation.piece_jointe_client_nom = piece_jointe_nom
+            evaluation.piece_jointe_client_type = piece_jointe_type
+
+            # Nouveau statut
+            if avis == "ACCEPTE":
+                evaluation.statut = "CLIENT_ACCEPTE"
+            else:
+                evaluation.statut = "CLIENT_REFUSE"
+
+            evaluation.updated_at = datetime.utcnow()
+            evaluation.updated_by = utilisateur_id
+
+            self.session.flush()
+
+            # Audit
+            self.log_audit(
+                utilisateur_id=utilisateur_id,
+                action="AVIS_CLIENT",
+                entite="Evaluation",
+                entite_id=evaluation.id,
+                entite_nom=evaluation.numero_evaluation,
+                champ_modifie="avis_client",
+                nouvelle_valeur=avis,
+                commentaire=(
+                    f"Avis client enregistré : {avis} — "
+                    f"Pièce jointe : {piece_jointe_nom}"
+                ),
+            )
+
+            self.session.commit()
+            return evaluation
+
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def get_document_proposition_path(self, evaluation_id: int) -> Optional[str]:
+        """
+        Retourne le chemin du document de proposition (toujours disponible).
+        """
+        try:
+            evaluation = self.get_evaluation(evaluation_id)
+            if not evaluation:
+                return None
+            return evaluation.document_proposition_path
+        except Exception:
+            return None
+
+    def get_piece_jointe_client(self, evaluation_id: int) -> Optional[dict]:
+        """
+        Retourne les métadonnées de la pièce jointe client.
+        """
+        try:
+            evaluation = self.get_evaluation(evaluation_id)
+            if not evaluation or not evaluation.piece_jointe_client_path:
+                return None
+            return {
+                'path': evaluation.piece_jointe_client_path,
+                'nom': evaluation.piece_jointe_client_nom,
+                'type': evaluation.piece_jointe_client_type,
+            }
+        except Exception:
+            return None
+
+
+    # ══════════════════════════════════════════════════════════════════
+    # Helpers privés pour la génération de PDF
+    # ══════════════════════════════════════════════════════════════════
+
+    def _get_client_info(self, sinistre) -> dict:
+        """Récupère les infos client depuis le sinistre"""
+        try:
+            # Adapter selon votre modèle (contact, client, assuré...)
+            # Exemple générique :
+            client = getattr(sinistre, 'client', None) or getattr(sinistre, 'assure', None)
+            if client:
+                return {
+                    'nom': getattr(client, 'nom', ''),
+                    'prenom': getattr(client, 'prenom', ''),
+                    'adresse': getattr(client, 'adresse', ''),
+                    'ville': getattr(client, 'ville', ''),
+                    'telephone': getattr(client, 'telephone', ''),
+                }
+        except Exception:
+            pass
+        return {'nom': 'Client', 'prenom': '', 'adresse': '', 'ville': ''}
+
+    def _get_mission_info(self, mission_id: int) -> dict:
+        """Récupère les infos de la mission d'expertise"""
+        if not mission_id:
+            return None
+        try:
+            from addons.sinistres.models.expertise import LometaExpertise
+            mission = self.session.query(LometaExpertise).filter(
+                LometaExpertise.id == mission_id
+            ).first()
+            if mission:
+                return {
+                    'numero_mission': mission.numero_mission,
+                    'expert_nom': mission.expert_nom,
+                    'type_expertise': mission.type_expertise,
+                    'montant_estime': float(mission.montant_estime or 0),
+                }
+        except Exception:
+            pass
+        return None
+
+    def _get_sinistre_info_dict(self, sinistre) -> dict:
+        """Convertit un sinistre en dict pour le PDF"""
+        return {
+            'numero_sinistre': getattr(sinistre, 'numero_sinistre', 'N/A'),
+            'date_sinistre': (
+                sinistre.date_sinistre.strftime('%d/%m/%Y')
+                if getattr(sinistre, 'date_sinistre', None) else 'N/A'
+            ),
+        }
+
+    def _evaluation_to_dict(self, evaluation) -> dict:
+        """Convertit une évaluation en dict pour le PDF"""
+        return {
+            'numero_evaluation': evaluation.numero_evaluation,
+            'type_evaluation': evaluation.type_evaluation,
+            'montant_brut': float(evaluation.montant_brut or 0),
+            'montant_expert': float(evaluation.montant_expert or 0),
+            'franchise': float(evaluation.franchise or 0),
+            'taux_responsabilite': float(evaluation.taux_responsabilite or 1.0),
+            'montant_net': float(evaluation.montant_net or 0),
+        }
     
     def get_evaluation_by_numero(self, numero: str) -> Optional[LometaEvaluation]:
         """Récupère une évaluation par son numéro"""
@@ -173,6 +369,87 @@ class EvaluationService(BaseService):
                 LometaEvaluation.numero_evaluation == numero,
                 LometaEvaluation.is_active == True
             ).first()
+        except Exception as e:
+            self.session.rollback()
+            raise e
+
+    def _get_utilisateur_info(self, user_id: int) -> dict:
+        """Récupère nom/prénom de l'utilisateur pour la signature PDF."""
+        if not user_id:
+            return {}
+        try:
+            from addons.Parametres.models.models import Utilisateur
+            u = self.session.query(Utilisateur).filter(Utilisateur.id == user_id).first()
+            if u:
+                return {
+                    'nom': getattr(u, 'nom', ''),
+                    'prenom': getattr(u, 'prenom', ''),
+                }
+        except Exception:
+            pass
+        return {}
+
+    def generer_document_proposition(
+        self, evaluation_id: int, utilisateur_id: int = None
+    ) -> Optional[str]:
+        """
+        Génère (ou régénère) le PDF de proposition pour une évaluation.
+        Retourne le chemin du PDF, ou None si échec.
+
+        Le PDF est TOUJOURS régénéré à l'appel (pour refléter les révisions
+        éventuelles de l'évaluation). L'ancien fichier n'est pas supprimé
+        (versionnage par timestamp dans le nom).
+        """
+        try:
+            evaluation = self.get_evaluation(evaluation_id)
+            if not evaluation:
+                raise ValueError(f"Évaluation {evaluation_id} introuvable")
+
+            sinistre = self.session.query(LometaSinistre).filter(
+                LometaSinistre.id == evaluation.sinistre_id,
+                LometaSinistre.is_active == True,
+            ).first()
+            if not sinistre:
+                raise ValueError("Sinistre associé introuvable")
+
+            # Charger les données nécessaires au PDF
+            client_info = self._get_client_info(sinistre)
+            mission_info = self._get_mission_info(evaluation.mission_id)
+            sinistre_info = self._get_sinistre_info_dict(sinistre)
+            evaluation_dict = self._evaluation_to_dict(evaluation)
+            user_info = self._get_utilisateur_info(utilisateur_id or evaluation.created_by)
+
+            # Appeler le générateur
+            from addons.sinistres.reports.lettre_proposition import (
+                generer_lettre_proposition,
+            )
+
+            pdf_path = generer_lettre_proposition(
+                evaluation=evaluation_dict,
+                sinistre=sinistre_info,
+                client=client_info,
+                mission=mission_info,
+                utilisateur=user_info,
+            )
+
+            # Persister le chemin + horodatage
+            evaluation.document_proposition_path = pdf_path
+            evaluation.document_proposition_generee_le = datetime.utcnow()
+            evaluation.updated_at = datetime.utcnow()
+            evaluation.updated_by = utilisateur_id
+
+            self.log_audit(
+                utilisateur_id=utilisateur_id,
+                action="GENERATION_DOCUMENT",
+                entite="Evaluation",
+                entite_id=evaluation.id,
+                entite_nom=evaluation.numero_evaluation,
+                commentaire=f"Lettre de proposition générée : {pdf_path}",
+            )
+
+            self.session.commit()
+            return pdf_path
+
         except Exception as e:
             self.session.rollback()
             raise e
@@ -305,6 +582,17 @@ class EvaluationService(BaseService):
             
             if evaluation.est_validee:
                 raise ValueError("Cette évaluation est déjà validée")
+
+            if evaluation.avis_client != "ACCEPTE":
+                if evaluation.avis_client is None:
+                    raise ValueError(
+                        "Impossible de valider : l'avis du client n'a pas été reçu. "
+                        "Le client doit d'abord accepter la proposition."
+                    )
+                raise ValueError(
+                    f"Impossible de valider : le client a refusé la proposition "
+                    f"({evaluation.statut})."
+                )
             
             # ============================================================
             # 1. Valider l'évaluation

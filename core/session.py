@@ -146,7 +146,7 @@ class Session:
             session_token = cls._fernet.decrypt(encrypted_token.encode()).decode()
             
             # Vérifier le token en base
-            from addons.Paramètres.models.models import Session as SessionModel
+            from addons.Parametres.models.models import Session as SessionModel
             session_record = db_session.query(SessionModel).filter(
                 SessionModel.token_encrypted == encrypted_token,
                 SessionModel.expires_at > datetime.now()
@@ -157,7 +157,7 @@ class Session:
                 return False
             
             # Récupérer l'utilisateur
-            from addons.Paramètres.models.models import User
+            from addons.Parametres.models.models import User
             user = db_session.query(User).filter(
                 User.id == session_record.user_id,
                 User.is_active == True
@@ -333,7 +333,7 @@ class Session:
             
             # Mettre à jour en base si nécessaire
             if cls._session_token:
-                from addons.Paramètres.models.models import Session as SessionModel
+                from addons.Parametres.models.models import Session as SessionModel
                 session_record = db_session.query(SessionModel).filter(
                     SessionModel.token_encrypted == cls.get_session_token()
                 ).first()

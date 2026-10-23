@@ -142,14 +142,21 @@ class StatCard(QFrame):
 class StatusBadge(QLabel):
     """Badge arrondi pour le statut de validation avec icône FontAwesome"""
     
-    def __init__(self, is_valid: bool, parent=None):
+    def __init__(self, statut: str, parent=None):
         super().__init__(parent)
-        
-        if is_valid:
-            bg, fg, label, icon_name = "#d1fae5", "#065f46", "Validée", "fa5s.check-circle"
-        else:
-            bg, fg, label, icon_name = "#fed7aa", "#9a3412", "En attente", "fa5s.hourglass-half"
-        
+        config = {
+            'BROUILLON':             ("#e2e8f0", "#475569", "Brouillon",      "fa5s.pencil-alt"),
+            'AVIS_CLIENT_EN_ATTENTE':("#fef3c7", "#92400e", "Avis en attente","fa5s.hourglass-half"),
+            'CLIENT_ACCEPTE':         ("#d1fae5", "#065f46", "Acceptée",        "fa5s.check"),
+            'CLIENT_REFUSE':          ("#fee2e2", "#991b1b", "Refusée",         "fa5s.times"),
+            'ACCEPTEE': ("#d1fae5", "#065f46", "Acceptée", "fa5s.check"),
+            'REFUSEE':  ("#fee2e2", "#991b1b", "Refusée",  "fa5s.times"),   
+            'VALIDEE':               ("#dbeafe", "#1e40af", "Validée",        "fa5s.check-double"),
+            'ANNULEE':               ("#f1f5f9", "#64748b", "Annulée",        "fa5s.ban"),
+        }
+        bg, fg, label, icon = config.get(
+            statut, ("#e2e8f0", "#475569", statut, "fa5s.circle")
+        )
         self.setText(f"  {label}  ")
         self.setAlignment(Qt.AlignCenter)
         self.setStyleSheet(f"""
@@ -1040,6 +1047,24 @@ class EvaluationsPage(QWidget):
         self.btn_valider_eval.clicked.connect(self.valider_evaluation)
         self.btn_valider_eval.setEnabled(False)
         layout.addWidget(self.btn_valider_eval)
+
+        # ✅ Bouton Télécharger proposition
+        self.btn_pdf_prop = QPushButton("  Proposition PDF")
+        self.btn_pdf_prop.setIcon(qta.icon('fa5s.file-pdf', color='#dc2626'))
+        self.btn_pdf_prop.setIconSize(QSize(14, 14))
+        self.btn_pdf_prop.setStyleSheet(btn_style % ("#ef4444", "#dc2626"))
+        self.btn_pdf_prop.clicked.connect(self._telecharger_proposition_selectionnee)
+        self.btn_pdf_prop.setEnabled(False)
+        layout.addWidget(self.btn_pdf_prop)
+
+        # ✅ Bouton Avis client
+        self.btn_avis_client = QPushButton("  Avis client")
+        self.btn_avis_client.setIcon(qta.icon('fa5s.user-check', color='#2563eb'))
+        self.btn_avis_client.setIconSize(QSize(14, 14))
+        self.btn_avis_client.setStyleSheet(btn_style % ("#3b82f6", "#1d4ed8"))
+        self.btn_avis_client.clicked.connect(self._gerer_avis_client)
+        self.btn_avis_client.setEnabled(False)
+        layout.addWidget(self.btn_avis_client)
         
         layout.addStretch()
         
@@ -1094,6 +1119,47 @@ class EvaluationsPage(QWidget):
             self._process_evaluations(evaluations)
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Erreur chargement évaluations: {str(e)}")
+
+    def _telecharger_proposition_selectionnee(self):
+        """Télécharge le PDF proposition de l'évaluation sélectionnée."""
+        row = self.table_evaluations.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner une évaluation")
+            return
+
+        item = self.table_evaluations.item(row, 0)
+        if not item:
+            return
+        eval_data = item.data(Qt.UserRole)
+        if not eval_data:
+            return
+
+        self._ouvrir_pdf_proposition(eval_data)
+
+    def _gerer_avis_client(self):
+        """Ouvre le dialog d'avis client pour l'évaluation sélectionnée."""
+        row = self.table_evaluations.currentRow()
+        if row < 0:
+            QMessageBox.warning(self, "Attention", "Veuillez sélectionner une évaluation")
+            return
+
+        item = self.table_evaluations.item(row, 0)
+        if not item:
+            return
+        eval_data = item.data(Qt.UserRole)
+        if not eval_data:
+            return
+
+        statut = eval_data.get('statut', '')
+        if statut == 'AVIS_CLIENT_EN_ATTENTE':
+            self._ouvrir_dialog_avis(eval_data)
+        elif eval_data.get('avis_client'):
+            self._ouvrir_document_avis(eval_data)
+        else:
+            QMessageBox.information(
+                self, "Info",
+                "Cette évaluation n'a pas encore de proposition à envoyer au client."
+            )
     
     def _process_evaluations(self, evaluations: list):
         query = self.eval_search.text().strip().lower() if hasattr(self, 'eval_search') else ""
@@ -1171,7 +1237,7 @@ class EvaluationsPage(QWidget):
         self.table_evaluations.setItem(row, 5, net_item)
         
         # 6. Statut (badge)
-        badge = StatusBadge(_safe_bool(ev.get('est_validee')))
+        badge = StatusBadge(ev.get('statut', 'BROUILLON')) 
         badge_container = QWidget()
         badge_layout = QHBoxLayout(badge_container)
         badge_layout.setContentsMargins(4, 6, 4, 6)
@@ -1540,6 +1606,26 @@ class EvaluationsPage(QWidget):
             menu.addAction(action_supprimer)
         
         menu.addSeparator()
+
+        action_pdf = menu.addAction(
+            qta.icon('fa5s.file-pdf', color='#dc2626'),
+            "  Télécharger la proposition"
+        )
+        action_pdf.triggered.connect(lambda: self._ouvrir_pdf_proposition(eval_data))
+
+        # ─── Déposer / consulter l'avis client ───
+        if eval_data.get('statut') == 'AVIS_CLIENT_EN_ATTENTE':
+            action_avis = menu.addAction(
+                qta.icon('fa5s.user-check', color='#2563eb'),
+                "  Déposer l'avis du client"
+            )
+            action_avis.triggered.connect(lambda: self._ouvrir_dialog_avis(eval_data))
+        else:
+            action_avis = menu.addAction(
+                qta.icon('fa5s.file-contract', color='#64748b'),
+                "  Voir le document d'avis"
+            )
+            action_avis.triggered.connect(lambda: self._ouvrir_document_avis(eval_data))
         
         # ✅ Copier
         action_copy = QAction(
@@ -1677,6 +1763,26 @@ class EvaluationsPage(QWidget):
             action_valider.triggered.connect(lambda: self._valider_from_menu(ev))
         
         menu.addSeparator()
+
+        action_pdf = menu.addAction(
+            qta.icon('fa5s.file-pdf', color='#dc2626'),
+            "  Télécharger la proposition"
+        )
+        action_pdf.triggered.connect(lambda: self._ouvrir_pdf_proposition(ev))
+
+        # ─── Déposer / consulter l'avis client ───
+        if ev.get('statut') == 'AVIS_CLIENT_EN_ATTENTE':
+            action_avis = menu.addAction(
+                qta.icon('fa5s.user-check', color='#2563eb'),
+                "  Déposer l'avis du client"
+            )
+            action_avis.triggered.connect(lambda: self._ouvrir_dialog_avis(ev))
+        else:
+            action_avis = menu.addAction(
+                qta.icon('fa5s.file-contract', color='#64748b'),
+                "  Voir le document d'avis"
+            )
+            action_avis.triggered.connect(lambda: self._ouvrir_document_avis(ev))
         
         if not est_validee and self.permissions_ui.peut('evaluation', 'DELETE'):
             action_supp = menu.addAction(
@@ -1930,6 +2036,58 @@ class EvaluationsPage(QWidget):
     # ACTIONS MÉTIER — inchangées
     # ═══════════════════════════════════════════════════════════════
     
+    def _ouvrir_pdf_proposition(self, ev: dict):
+        """
+        Génère (ou régénère) le PDF de proposition au clic, puis l'ouvre.
+        """
+        eval_id = ev.get('id')
+        if not eval_id:
+            QMessageBox.warning(self, "Erreur", "ID d'évaluation manquant")
+            return
+
+        # Curseur d'attente (la génération peut prendre 1–2 s)
+        from PySide6.QtGui import QGuiApplication, QCursor
+        from PySide6.QtCore import Qt as _Qt
+        QGuiApplication.setOverrideCursor(QCursor(_Qt.WaitCursor))
+        try:
+            path = self.controller.generer_document_proposition(eval_id)
+        finally:
+            QGuiApplication.restoreOverrideCursor()
+
+        if not path:
+            QMessageBox.warning(
+                self, "Erreur de génération",
+                "Le PDF de proposition n'a pas pu être généré.\n"
+                "Consultez les logs pour plus de détails.",
+            )
+            return
+
+        # Ouvrir avec le lecteur système
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+        # Rafraîchir la ligne pour refléter le nouveau chemin
+        self._reload_evaluations()
+
+    def _ouvrir_document_avis(self, ev: dict):
+        """Ouvre le document d'avis client (photo ou PDF)."""
+        path = self.controller.get_avis_client_document_path(ev.get('id'))
+        if not path:
+            QMessageBox.warning(self, "Document introuvable",
+                                "Aucun document d'avis n'est enregistré.")
+            return
+        from PySide6.QtCore import QUrl
+        from PySide6.QtGui import QDesktopServices
+        QDesktopServices.openUrl(QUrl.fromLocalFile(path))
+
+    def _ouvrir_dialog_avis(self, ev: dict):
+        """Ouvre le dialog pour enregistrer l'avis client."""
+        from addons.sinistres.views.avis_client_dialog import AvisClientDialog
+        dialog = AvisClientDialog(ev, self.controller, self)
+        if dialog.exec():
+            self._reload_evaluations()
+
     def creer_evaluation(self):
         if not self.current_sinistre_id:
             QMessageBox.warning(self, "Attention", "Veuillez sélectionner un sinistre")
@@ -1961,33 +2119,49 @@ class EvaluationsPage(QWidget):
     def _on_evaluation_created(self, data: dict):
         self._reload_evaluations()
         QMessageBox.information(self, "Succès", "Évaluation créée avec succès !")
+
+        # ✅ Sélectionner automatiquement la nouvelle ligne
+        if data and data.get('numero_evaluation'):
+            numero = data.get('numero_evaluation')
+            for row in range(self.table_evaluations.rowCount()):
+                item = self.table_evaluations.item(row, 0)
+                if item and item.text() == numero:
+                    self.table_evaluations.selectRow(row)
+                    break
     
     def _on_evaluation_selection_changed(self):
         row = self.table_evaluations.currentRow()
-        
+
         if row < 0:
             self.btn_reviser_eval.setEnabled(False)
             self.btn_valider_eval.setEnabled(False)
+            self.btn_pdf_prop.setEnabled(False)
+            self.btn_avis_client.setEnabled(False)
             return
-        
+
         item = self.table_evaluations.item(row, 0)
         if not item:
             return
         eval_data = item.data(Qt.UserRole)
         if not eval_data:
             return
-        
+
         est_validee = _safe_bool(eval_data.get('est_validee'))
         peut_reviser = self.permissions_ui.peut('evaluation', 'UPDATE')
         peut_valider = self.permissions_ui.peut('evaluation', 'VALIDATE')
-        
-        self.btn_reviser_eval.setEnabled(
-            bool(peut_reviser and not est_validee)
-        )
-        self.btn_valider_eval.setEnabled(
-            bool(peut_valider and not est_validee)
-        )
-    
+        statut = eval_data.get('statut', '')
+
+        self.btn_reviser_eval.setEnabled(bool(peut_reviser and not est_validee))
+        self.btn_valider_eval.setEnabled(bool(peut_valider and not est_validee))
+
+        # ✅ PDF toujours générable → bouton toujours actif sur une ligne sélectionnée
+        self.btn_pdf_prop.setEnabled(True)
+
+        # ✅ Avis client actif selon le statut
+        self.btn_avis_client.setEnabled(statut in (
+            'AVIS_CLIENT_EN_ATTENTE', 'CLIENT_ACCEPTE', 'CLIENT_REFUSE'
+        ))
+
     def reviser_evaluation(self):
         row = self.table_evaluations.currentRow()
         if row < 0:

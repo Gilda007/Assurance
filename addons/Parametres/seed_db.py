@@ -1,6 +1,6 @@
 import os
 from core.database import SessionLocal, engine, Base
-from addons.Paramètres.models import User
+from addons.Parametres.models import User
 from core.logger import logger
 
 def seed():

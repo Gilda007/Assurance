@@ -183,6 +183,20 @@ class LometaEvaluation(Base, AuditableMixin):
     montant_net = Column(Numeric, nullable=False)
     details = Column(Text, nullable=True)
 
+    # Document de proposition (PDF généré, toujours disponible)
+    document_proposition_path = Column(String(500), nullable=True)
+    document_proposition_generee_le = Column(DateTime, nullable=True)
+
+    # Avis du client
+    avis_client = Column(String(20), nullable=True)  # "ACCEPTE" | "REFUSE"
+    date_avis_client = Column(DateTime, nullable=True)
+    commentaire_client = Column(Text, nullable=True)
+
+    # Pièce jointe du client (photo ou PDF)
+    piece_jointe_client_path = Column(String(500), nullable=True)
+    piece_jointe_client_nom = Column(String(255), nullable=True)
+    piece_jointe_client_type = Column(String(50), nullable=True)  # MIME type
+
     est_validee = Column(Boolean, default=False, index=True)
     validee_par = Column(Integer, nullable=True)
     date_validation = Column(DateTime, nullable=True)

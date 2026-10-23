@@ -3,7 +3,7 @@ Contrôleur de base - Pont entre l'UI et les services
 """
 from PySide6.QtCore import QObject, Signal
 from typing import Optional, Dict, Any, List
-from addons.Paramètres.models.models import User
+from addons.Parametres.models.models import User
 
 
 class BaseController(QObject):
@@ -49,7 +49,7 @@ class BaseController(QObject):
     def heartbeat(self, user_id: int) -> bool:
         """Met à jour last_activity de la session active la plus récente."""
         try:
-            from addons.Paramètres.models.models import Session as UserSession
+            from addons.Parametres.models.models import Session as UserSession
             from datetime import datetime
             
             sess = self.session.query(UserSession).filter(

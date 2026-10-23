@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from core.database import SessionLocal
-from addons.Paramètres.models.models import User
+from addons.Parametres.models.models import User
 from addons.sinistres.services.permission_service import PermissionService
 
 

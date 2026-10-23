@@ -2,15 +2,15 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QTableWidgetItem, QHeaderView, QLabel, QPushButton, QListWidgetItem, QStackedWidget, QListWidget, QFrame, QMessageBox, QDialog, QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QIcon, QFont
-from addons.Paramètres.views.widgets.loading_page import LoadingPage
-from addons.Paramètres.controllers import controller
-from addons.Paramètres.views.dialog_form import UserDialog
-from addons.Paramètres.views.user_from import CustomUserForm
-from addons.Paramètres.reports.audit_exporter import AuditReporter
-from addons.Paramètres.views.parametre_module_view import ParametreModuleWidget
-from addons.Paramètres.views.accout_setting_view import AccountSettingsView
-from addons.Paramètres.views.about_us_view import AboutUsView
-from addons.Paramètres.views.user_list_view import UserListPage
+from addons.Parametres.views.widgets.loading_page import LoadingPage
+from addons.Parametres.controllers import controller
+from addons.Parametres.views.dialog_form import UserDialog
+from addons.Parametres.views.user_from import CustomUserForm
+from addons.Parametres.reports.audit_exporter import AuditReporter
+from addons.Parametres.views.parametre_module_view import ParametreModuleWidget
+from addons.Parametres.views.accout_setting_view import AccountSettingsView
+from addons.Parametres.views.about_us_view import AboutUsView
+from addons.Parametres.views.user_list_view import UserListPage
 
 class ParametreMainView(QWidget):
     def __init__(self, controller=None, user=None):
@@ -153,7 +153,7 @@ class ParametreMainView(QWidget):
                 
             # Dans views.py, à l'intérieur de display_page
             elif key == "modules":
-                from addons.Paramètres.controllers.module_controller import ModuleController
+                from addons.Parametres.controllers.module_controller import ModuleController
     
                 # On crée le bon contrôleur (Cerveau)
                 # On récupère la session depuis le contrôleur principal
@@ -715,7 +715,7 @@ class ParametreMainView(QWidget):
 
     def _make_modules(self):
         """Page Modules."""
-        from addons.Paramètres.controllers.module_controller import ModuleController
+        from addons.Parametres.controllers.module_controller import ModuleController
 
         db_session = getattr(self.controller, 'session', None)
         m_ctrl = ModuleController(db_session)

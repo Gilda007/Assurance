@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Optional, Any
 
 from addons.sinistres.services.base_service import BaseService
-from addons.Paramètres.models.models import User, Session as UserSession
+from addons.Parametres.models.models import User, Session as UserSession
 from addons.sinistres.models.audit import LometaAuditLog
 
 

@@ -266,7 +266,7 @@ class PermissionController(BaseController):
         """Récupère tous les utilisateurs (pour l'onglet Utilisateurs)"""
         try:
             # Adapter selon votre modèle User
-            from addons.Paramètres.models.models import User
+            from addons.Parametres.models.models import User
             users = self.service.session.query(User).all()
             
             result = []
@@ -301,7 +301,7 @@ class PermissionController(BaseController):
     def toggle_user_active(self, user_id: int, active: bool) -> bool:
         """Active/désactive un utilisateur"""
         try:
-            from addons.Paramètres.models.models import User
+            from addons.Parametres.models.models import User
             user = self.service.session.query(User).filter_by(id=user_id).first()
             if not user:
                 return False
@@ -335,7 +335,7 @@ class PermissionController(BaseController):
             )
             
             # ✅ Adapter au modèle User de votre projet
-            from addons.Paramètres.models.models import User
+            from addons.Parametres.models.models import User
             user = self.service.session.query(User).filter_by(id=user_id).first()
             if not user:
                 return None

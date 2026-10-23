@@ -366,6 +366,20 @@ class EvaluationController(BaseController):
             'montant_net': evaluation.montant_net,
             'details': evaluation.details,
             'statut': getattr(evaluation, 'statut', 'BROUILLON'),  # ✅ NOUVEAU
+            'document_proposition_path': evaluation.document_proposition_path,
+            'document_proposition_generee_le': (
+                evaluation.document_proposition_generee_le.isoformat()
+                if evaluation.document_proposition_generee_le else None
+            ),
+            'avis_client': evaluation.avis_client,
+            'piece_jointe_client_path': evaluation.piece_jointe_client_path,
+            'piece_jointe_client_type': evaluation.piece_jointe_client_type,
+            'piece_jointe_client_nom': evaluation.piece_jointe_client_nom,
+            'commentaire_client': evaluation.commentaire_client,
+            'date_avis_client': (
+                evaluation.date_avis_client.isoformat()
+                if evaluation.date_avis_client else None
+            ),
             'est_validee': evaluation.est_validee,
             'validee_par': evaluation.validee_par,
             'date_validation': evaluation.date_validation.isoformat() if evaluation.date_validation else None,
@@ -544,5 +558,84 @@ class EvaluationController(BaseController):
             'comptabilise_par': getattr(provision, 'comptabilise_par', None),
             'motif': getattr(provision, 'motif', ''),
         }
+
+    def enregistrer_avis_client(
+        self,
+        evaluation_id: int,
+        avis: str,
+        piece_jointe_path: str,
+        piece_jointe_nom: str = None,
+        piece_jointe_type: str = None,
+        commentaire: str = None,
+    ) -> bool:
+        """Enregistre l'avis du client (ACCEPTE / REFUSE)."""
+        try:
+            if not self.get_current_user_id():
+                self.error_occurred.emit("Aucun utilisateur connecté")
+                return False
+
+            evaluation = self.service.enregistrer_avis_client(
+                evaluation_id=evaluation_id,
+                avis=avis,
+                piece_jointe_path=piece_jointe_path,
+                piece_jointe_nom=piece_jointe_nom,
+                piece_jointe_type=piece_jointe_type,
+                commentaire=commentaire,
+                utilisateur_id=self.get_current_user_id(),
+            )
+
+            if evaluation:
+                self.evaluation_updated.emit(self._serialize_evaluation(evaluation))
+                self.handle_success(
+                    f"✅ Avis client enregistré : "
+                    f"{'ACCEPTÉ' if avis == 'ACCEPTE' else 'REFUSÉ'}"
+                )
+                return True
+            return False
+
+        except Exception as e:
+            self.handle_error(e)
+            return False
+    
+    def get_pdf_proposition_path(self, evaluation_id: int) -> Optional[str]:
+        """Retourne le chemin du PDF proposition (toujours disponible)."""
+        try:
+            return self.service.get_pdf_proposition_path(evaluation_id)
+        except Exception as e:
+            self.handle_error(e)
+            return None
+
+    def generer_document_proposition(self, evaluation_id: int) -> Optional[str]:
+        """Génère (ou régénère) le PDF de proposition et retourne son chemin."""
+        try:
+            if not self.get_current_user_id():
+                self.error_occurred.emit("Aucun utilisateur connecté")
+                return None
+
+            path = self.service.generer_document_proposition(
+                evaluation_id=evaluation_id,
+                utilisateur_id=self.get_current_user_id(),
+            )
+
+            if path:
+                self.handle_success(f"Document de proposition généré : {path}")
+            return path
+
+        except Exception as e:
+            self.handle_error(e)
+            return None
+
+    def get_avis_client_document_path(self, evaluation_id: int) -> Optional[str]:
+        """Retourne le chemin du document d'avis client (photo/PDF)."""
+        try:
+            evaluation = self.service.get_evaluation(evaluation_id)
+            if evaluation and evaluation.piece_jointe_client_path:
+                import os
+                if os.path.exists(evaluation.piece_jointe_client_path):
+                    return evaluation.piece_jointe_client_path
+            return None
+        except Exception as e:
+            self.handle_error(e)
+            return None
 
     

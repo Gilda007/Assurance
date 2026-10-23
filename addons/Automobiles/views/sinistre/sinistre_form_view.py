@@ -1095,7 +1095,7 @@ class SinistreFormView(QDialog):
     def load_assignees(self):
         """Charge les utilisateurs disponibles"""
         try:
-            from addons.Paramètres.models.models import User
+            from addons.Parametres.models.models import User
             users = self.controller.session.query(User).all()
             for user in users:
                 self.assignee_combo.addItem(f"{user.username} ({user.role})", user.id)

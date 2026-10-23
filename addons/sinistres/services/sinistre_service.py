@@ -12,7 +12,7 @@ from addons.sinistres.models.sinistre import (
     LometaSinistre, LometaDommage, LometaTiers, LometaCommentaireSinistre, LometaHistoriqueSinistre
 )
 from addons.sinistres.models.referentiel import LometaReferentiel
-from addons.Paramètres.models.models import User
+from addons.Parametres.models.models import User
 
 
 class SinistreService(BaseService):

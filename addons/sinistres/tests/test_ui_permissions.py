@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from addons.sinistres.services.permission_service import PermissionService
 from addons.sinistres.security.permissions_helper import PermissionsUI
-from addons.Paramètres.models.models import User
+from addons.Parametres.models.models import User
 
 
 class FakeUser:

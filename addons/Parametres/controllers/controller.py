@@ -6,7 +6,7 @@ Contrôleur utilisateur optimisé - Retourne des objets SQLAlchemy
 
 from core.database import SessionLocal
 from core.local_db import cache
-from addons.Paramètres.models.models import User, AuditUserLog
+from addons.Parametres.models.models import User, AuditUserLog
 import socket
 import threading
 from PySide6.QtCore import QObject, Signal

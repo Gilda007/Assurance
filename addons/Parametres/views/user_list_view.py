@@ -2,9 +2,9 @@ from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
                              QTableWidgetItem, QHeaderView, QLabel, QPushButton, QFrame, QMessageBox, QDialog)
 from PySide6.QtCore import Qt, QSize
 from PySide6.QtGui import QColor, QIcon, QFont
-from addons.Paramètres.views.dialog_form import UserDialog
-from addons.Paramètres.views.user_from import CustomUserForm
-from addons.Paramètres.reports.audit_exporter import AuditReporter
+from addons.Parametres.views.dialog_form import UserDialog
+from addons.Parametres.views.user_from import CustomUserForm
+from addons.Parametres.reports.audit_exporter import AuditReporter
 
 
 class UserListPage(QWidget):

@@ -49,6 +49,18 @@ class ReferentielService(BaseService):
             LometaReferentiel.est_actif == True,
             LometaReferentiel.is_active == True
         ).first()
+
+    def get_by_code(self, famille: str, code: str):
+        """Récupère un référentiel par sa famille et son code"""
+        try:
+            return self.session.query(LometaReferentiel).filter(
+                LometaReferentiel.famille == famille,
+                LometaReferentiel.code == code,
+                LometaReferentiel.is_active == True,
+            ).first()
+        except Exception as e:
+            self.session.rollback()
+            raise e
     
     def get_referentiels_by_famille(self, famille: str) -> List[LometaReferentiel]:
         """Récupère tous les référentiels d'une famille"""

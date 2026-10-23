@@ -52,7 +52,7 @@ def db_session(engine) -> Generator[Session, None, None]:
 @pytest.fixture
 def sample_user(db_session):
     """Utilisateur de test"""
-    from addons.Paramètres.models.models import User
+    from addons.Parametres.models.models import User
     
     user = User(
         username="test_user",

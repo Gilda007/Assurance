@@ -22,7 +22,16 @@ import signal
 from functools import wraps
 from sqlalchemy.exc import SQLAlchemyError, OperationalError
 import time
+from pathlib import Path
+from dotenv import load_dotenv
 
+
+if "__compiled__" in globals():
+    base_dir = Path(sys.argv[0]).resolve().parent
+else:
+    base_dir = Path(__file__).resolve().parent
+
+load_dotenv(dotenv_path=base_dir / ".env")
 # Imports pour les graphiques
 try:
     import pyqtgraph as pg
@@ -32,12 +41,12 @@ except ImportError:
     print("Pour de meilleurs graphiques: pip install pyqtgraph")
 
 # Imports des modules
-from addons.Paramètres.views.setup_view import SetupView
-from addons.Paramètres.controllers.setup_controller import SetupController
-from addons.Paramètres.views.loggin_view import LoginView
-from addons.Paramètres.controllers.login_controller import LoginController
+from addons.Parametres.views.setup_view import SetupView
+from addons.Parametres.controllers.setup_controller import SetupController
+from addons.Parametres.views.loggin_view import LoginView
+from addons.Parametres.controllers.login_controller import LoginController
 from icons import ICONS, get_icon, get_icon_pixmap, COLORS, ThemeManager, ThemeType
-from addons.Paramètres.models.models import User
+from addons.Parametres.models.models import User
 from update_manager import UpdateManager
 from update_client import UpdateClient
 from update_widget import UpdateWidget
@@ -3820,7 +3829,7 @@ class MainWindow(QMainWindow):
     def _get_user_session_token(self):
         """Récupère le token de session de l'utilisateur connecté"""
         from core.database import SessionLocal
-        from addons.Paramètres.models.models import Session
+        from addons.Parametres.models.models import Session
         from datetime import datetime
         
         db = SessionLocal()
