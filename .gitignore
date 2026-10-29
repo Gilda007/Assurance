@@ -9,8 +9,10 @@ addons_backup/
 addons_original_backup/
 _internal/
 dist_compiled/
+addons_compiled/
 dist_secure/
 src_clean/
+build_addons/
 
 # Python compiled files
 __pycache__/
