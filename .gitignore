@@ -316,4 +316,9 @@ lometa_module_generator/developer_private_key.pem
 # Uploads utilisateurs
 uploads/
 !uploads/.gitkeep
-.git
+.gitaddons_compiled/
+dist_secure/
+build/
+*.dist/
+src_clean/
+*.log
