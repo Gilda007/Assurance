@@ -86,7 +86,7 @@ DATA_ARGS=()
 
 
 
-set +e
+set +egit 
 $PYTHON -m nuitka \
     --standalone \
     --assume-yes-for-downloads \
