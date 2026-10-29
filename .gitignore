@@ -9,10 +9,8 @@ addons_backup/
 addons_original_backup/
 _internal/
 dist_compiled/
-addons_compiled/
 dist_secure/
 src_clean/
-build_addons/
 
 # Python compiled files
 __pycache__/
@@ -24,6 +22,9 @@ logs/
 uploads/
 *.log
 *backup_*
+
+build_addons/
+addons_compiled/
 
 # Editor settings
 .vscode/
