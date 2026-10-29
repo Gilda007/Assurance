@@ -50,6 +50,14 @@ class ContactDetailView(QDialog):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+        self.setStyleSheet("""
+            QToolTip {
+                color: #333333;              /* Couleur du texte */
+                background-color: #333333; /* Couleur de fond */
+                border: 1px solid #3498db; /* Bordure (optionnel) */
+                padding: 4px;
+            }
+        """)
 
         # En-tête
         header = self._create_header()
@@ -1299,6 +1307,7 @@ class ContactDetailView(QDialog):
                 background-color: #3498db;
                 color: white;
             }
+            
         """)
         btn_view.clicked.connect(lambda: self._view_vehicle_detail(vehicle))
         

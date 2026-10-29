@@ -22,7 +22,7 @@ NC='\033[0m' # No Color
 MODULE_NAME="Automobiles"
 NEW_VERSION="1.2.0"
 PROJECT_DIR="/home/fearless/Documents/Assurance"
-SERVER_URL="http://192.168.100.89:5000"
+SERVER_URL="localhost:5000"
 
 # Options
 CREATE_ZIP=true
@@ -310,7 +310,7 @@ if [[ $REPLY =~ ^[OoYy]$ ]]; then
     print_status "Redémarrage du serveur..."
     
     # Arrêt du serveur existant
-    pkill -f "python3.*api.py" 2>/dev/null || true
+    pkill -f "python *server/api.py" 2>/dev/null || true
     sleep 1
     
     # Démarrage du serveur
@@ -320,7 +320,7 @@ if [[ $REPLY =~ ^[OoYy]$ ]]; then
     sleep 2
     
     # Vérification
-    if pgrep -f "python3.*server/api.py" > /dev/null; then
+    if pgrep -f "python *server/api.py" > /dev/null; then
         print_success "Serveur redémarré avec succès"
         print_status "Logs: tail -f $PROJECT_DIR/server/server.log"
     else

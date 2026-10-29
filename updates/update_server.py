@@ -1841,7 +1841,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Serveur de modules LOMETA')
     
     parser.add_argument('port', type=int, nargs='?', default=8000, help='Port')
-    parser.add_argument('--host', type=str, default='192.168.100.89', help='Hôte')
+    parser.add_argument('--host', type=str, default='localhost', help='Hôte')
     parser.add_argument('--upload', action='store_true', help='Activer upload')
     parser.add_argument('--auth', action='store_true', help='Activer authentification')
     parser.add_argument('--max-size', type=int, default=100, help='Taille max MB')

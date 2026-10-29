@@ -192,7 +192,6 @@ else
         name=$(basename "$pkg")
         if [ ! -f "$pkg/__init__.py" ]; then
             echo -e "${YELLOW}  ⚠ $name/__init__.py absent — création${NC}"
-            printf '# Auto-generated for Nuitka --module\n' > "$pkg/__init__.py"
         fi
     done
 

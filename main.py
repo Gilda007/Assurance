@@ -784,7 +784,7 @@ class UpdateChecker(QObject):
             self._threads.remove(thread)
             thread.deleteLater()
 
-    def check(self, server_url="http://http://192.168.100.89/:8000"):
+    def check(self, server_url="http://http://localhost/:8000"):
         def safe_check():
             try:
                 client = UpdateClient(server_url=server_url)
@@ -833,7 +833,7 @@ class ModuleChecker(QObject):
         def safe_check():
             try:
                 print(f"🔍 Vérification des modules...")
-                client = UpdateClient(server_url="http://http://192.168.100.89/:8000", 
+                client = UpdateClient(server_url="http://http://localhost:5000.100.89/:8000", 
                                      session_token=self.session_token)
                 code, modules = client.get_available_modules()
                 
@@ -3713,7 +3713,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(title)
         
         self.resize(1280, 800)
-        self.setMinimumSize(1200, 800)
+        self.setMinimumSize(1400, 800)
         
         # ✅ Appliquer le thème actif AVANT de configurer l'UI
         # from icons.theme import theme_manager, ThemeType
@@ -5251,6 +5251,17 @@ if __name__ == "__main__":
         sys.exit(1)
     
     app = QApplication(sys.argv)
+    app.setStyleSheet("""
+        QToolTip {
+            color: #000000;
+            background-color: #eaf4fc;
+            border: 1px solid #b8d8f0;
+            border-radius: 8px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+    """)
     font = QFont("Segoe UI", 10)
     app.setFont(font)
     

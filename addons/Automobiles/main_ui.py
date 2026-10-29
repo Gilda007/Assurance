@@ -443,43 +443,6 @@ class AutomobileModule(BaseModule):
         if parent:
             self._loading_overlay = LoadingOverlay(parent)
         return self._loading_overlay
-        
-    # def activate_module(self):
-    #     """Active le module - UI reste complètement réactive"""
-    #     # ✅ Si déjà chargé, afficher directement
-    #     if self._is_loaded and self._view:
-    #         self._show_existing_view()
-    #         return
-        
-    #     # ✅ Éviter les chargements multiples
-    #     if self._is_loading:
-    #         return
-        
-    #     loader = self._ensure_loading_overlay()
-    #     if loader:
-    #         # ✅ Supprimer simulate=True
-    #         loader.show_loading("Chargement du module Automobile...", "Initialisation")
-        
-    #     # Forcer l'update UI (non bloquant)
-    #     QApplication.processEvents()
-        
-    #     current_user = self._get_current_user()
-    #     if not current_user:
-    #         self._hide_loader_and_show_error(loader, "Accès Refusé", "Veuillez vous connecter.")
-    #         return
-        
-    #     content_stack = self._get_content_area()
-    #     if not content_stack:
-    #         self._hide_loader_and_show_error(loader, "Erreur", "Zone de contenu introuvable.")
-    #         return
-        
-    #     # ✅ Marquer comme en cours de chargement
-    #     self._is_loading = True
-        
-    #     if not self._view or not self._controller:
-    #         self._init_module_async(current_user, content_stack, loader)
-    #     else:
-    #         self._show_module(content_stack, loader)
 
     def activate_module(self):
         """Active le module — la vue gère elle-même son LoadingPage."""
@@ -525,15 +488,6 @@ class AutomobileModule(BaseModule):
             traceback.print_exc()
             AlertManager.show_error(self.main_window, "Erreur", f"Erreur: {e}")
 
-    # def _init_module_async(self, current_user, content_stack, loader):
-    #     """Initialisation dans un thread - UI reste réactive"""
-    #     self._init_thread = ModuleInitThread(self.db_session, current_user)
-    #     self._init_thread.finished.connect(
-    #         lambda controller: self._on_module_initialized(controller, current_user, content_stack, loader)
-    #     )
-    #     self._init_thread.error.connect(lambda error: self._on_init_error(error, loader))
-    #     self._init_thread.progress.connect(lambda value, step: self._on_progress(loader, value, step))
-    #     self._init_thread.start()
         
     def _on_progress(self, loader, value, step):
         """Mise à jour progression (thread-safe)"""

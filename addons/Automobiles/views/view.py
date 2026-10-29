@@ -265,11 +265,7 @@ class VehicleMainView(QWidget):
         self.load_initial_data()
   
     def setup_ui(self):
-        self.setStyleSheet(f"""
-            QWidget {{
-                background-color: {Colors.BACKGROUND};
-            }}
-        """)
+        
 
         # ✅ Utiliser self.main_layout
         self.main_layout = QHBoxLayout(self)
@@ -308,7 +304,6 @@ class VehicleMainView(QWidget):
         """Récupération + mise à jour en plusieurs cycles Qt."""
         try:
             self._fetch_data()
-            from PySide6.QtWidgets import QApplication
             QApplication.processEvents()
 
             self._update_main_chart()
@@ -1024,7 +1019,6 @@ class VehicleMainView(QWidget):
 
     def _create_page_async(self, page_id: str):
         """Crée la page en différé — l'UI reste fluide."""
-        from PySide6.QtWidgets import QApplication
 
         try:
             # Étape 1 : Créer le widget (peut être lent, mais l'UI est déjà peinte)

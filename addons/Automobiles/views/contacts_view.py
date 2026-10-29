@@ -93,6 +93,8 @@ class ContactListView(QWidget):
         'user_astronaut': 'mdi.rocket',
     }
 
+    
+
     def __init__(self, controller, current_user):
         super().__init__()
         self.controller = controller
@@ -112,13 +114,15 @@ class ContactListView(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
-        self.setStyleSheet(f"""
-            QWidget {{
-                background: {self.COLORS['bg']};
-                font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            }}
+        self.setStyleSheet("""
+            QToolTip {
+                color: white;              /* Couleur du texte */
+                background-color: #333333; /* Couleur de fond */
+                border: 1px solid #3498db; /* Bordure (optionnel) */
+                padding: 4px;
+            }
         """)
-        
+                
         # Scroll area
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -148,75 +152,7 @@ class ContactListView(QWidget):
         
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
-    
-    # def _create_header(self, parent_layout):
-    #     """Crée l'en-tête avec style moderne"""
-    #     header = QFrame()
-    #     header.setStyleSheet(f"""
-    #         QFrame {{
-    #             background: {self.COLORS['white']};
-    #             border-radius: 16px;
-    #             border: 1px solid {self.COLORS['border']};
-    #             padding: 20px 28px;
-    #         }}
-    #     """)
-        
-    #     layout = QHBoxLayout(header)
-    #     layout.setSpacing(24)
-        
-    #     # Titre avec icône
-    #     title_layout = QVBoxLayout()
-    #     title_layout.setSpacing(4)
-        
-    #     title_widget = QWidget()
-    #     title_widget_layout = QHBoxLayout(title_widget)
-    #     title_widget_layout.setContentsMargins(0, 0, 0, 0)
-    #     title_widget_layout.setSpacing(12)
-        
-    #     icon_label = QLabel()
-    #     icon_label.setPixmap(qta.icon(self.ICONS['address_book'], color=self.COLORS['primary']).pixmap(32, 32))
-    #     title_widget_layout.addWidget(icon_label)
-        
-    #     title = QLabel("Contacts")
-    #     title.setStyleSheet(f"""
-    #         font-size: 24px;
-    #         font-weight: 700;
-    #         color: {self.COLORS['dark']};
-    #         background: transparent;
-    #         border: none;
-    #         letter-spacing: -0.5px;
-    #     """)
-    #     title_widget_layout.addWidget(title)
-    #     title_widget_layout.addStretch()
-        
-    #     subtitle = QLabel("Gérez vos contacts, clients et prospects")
-    #     subtitle.setStyleSheet(f"""
-    #         font-size: 14px;
-    #         color: {self.COLORS['gray']};
-    #         background: transparent;
-    #         border: none;
-    #         padding-left: 44px;
-    #     """)
-        
-    #     title_layout.addWidget(title_widget)
-    #     title_layout.addWidget(subtitle)
-        
-    #     # Compteurs
-    #     counter_layout = QHBoxLayout()
-    #     counter_layout.setSpacing(24)
-        
-    #     self.total_label = self._create_counter('users', "0", "Total")
-    #     self.active_label = self._create_counter('user_check', "0", "Actifs")
-        
-    #     counter_layout.addWidget(self.total_label)
-    #     counter_layout.addWidget(self.active_label)
-        
-    #     layout.addLayout(title_layout)
-    #     layout.addStretch()
-    #     layout.addLayout(counter_layout)
-        
-    #     parent_layout.addWidget(header)
-    
+     
     def _create_counter(self, icon_name, count, label):
         """Crée un compteur moderne"""
         container = QFrame()
@@ -264,14 +200,15 @@ class ContactListView(QWidget):
     def _create_toolbar(self, parent_layout):
         """Crée la barre d'outils moderne et professionnelle"""
         toolbar = QFrame()
-        toolbar.setStyleSheet(f"""
-            QFrame {{
-                background: {self.COLORS['white']};
-                border-radius: 16px;
-                border: 1px solid {self.COLORS['border']};
-                padding: 8px 16px;
-            }}
-        """)
+        toolbar.setObjectName("ModernToolbar")
+        # toolbar.setStyleSheet(f"""
+        #     QFrame#ModernToolbar {{
+        #         background: {self.COLORS['white']};
+        #         border-radius: 16px;
+        #         border: 1px solid {self.COLORS['border']};
+        #         padding: 8px 16px;
+        #     }}
+        # """)
         
         layout = QHBoxLayout(toolbar)
         layout.setSpacing(6)
@@ -468,7 +405,6 @@ class ContactListView(QWidget):
         
         parent_layout.addWidget(toolbar)
 
-
     def _create_action_btn(self, text, color, icon_name, is_small=False, icon_only=False, shortcut=None, tooltip=None):
         """
         Crée un bouton d'action stylisé avec icône QtAwesome
@@ -545,7 +481,6 @@ class ContactListView(QWidget):
             btn.setToolTip(tooltip)
         
         return btn
-
 
     def _darken_color(self, hex_color, amount):
         """Assombrit une couleur hexadécimale"""
@@ -981,68 +916,6 @@ class ContactListView(QWidget):
         """)
         return avatar
     
-    # def _create_action_buttons(self, item):
-    #     """Crée les boutons d'action modernes avec QtAwesome"""
-    #     container = QWidget()
-    #     layout = QHBoxLayout(container)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-    #     layout.setSpacing(2)
-    #     layout.setAlignment(Qt.AlignCenter)
-        
-    #     btn_style = """
-    #         QPushButton {
-    #             background: transparent;
-    #             border-radius: 8px;
-    #             padding: 6px;
-    #             min-width: 36px;
-    #             min-height: 36px;
-    #             border: none;
-    #             font-size: 14px;
-    #         }
-    #         QPushButton:hover {
-    #             background: %s;
-    #         }
-    #     """
-        
-    #     # ✅ Voir
-    #     btn_view = QPushButton()
-    #     btn_view.setIcon(qta.icon(self.ICONS['eye'], color=self.COLORS['gray']))
-    #     btn_view.setIconSize(QSize(16, 16))
-    #     btn_view.setToolTip("Voir les détails")
-    #     btn_view.setStyleSheet(btn_style % self.COLORS['primary_light'])
-    #     btn_view.clicked.connect(lambda: self.view_contact(item))
-        
-    #     # ✅ Modifier
-    #     btn_edit = QPushButton()
-    #     btn_edit.setIcon(qta.icon(self.ICONS['pen'], color=self.COLORS['gray']))
-    #     btn_edit.setIconSize(QSize(14, 14))
-    #     btn_edit.setToolTip("Modifier")
-    #     btn_edit.setStyleSheet(btn_style % self.COLORS['warning_light'])
-    #     btn_edit.clicked.connect(lambda: self.edit_contact(item))
-        
-    #     # ✅ Note
-    #     btn_note = QPushButton()
-    #     btn_note.setIcon(qta.icon(self.COLORS['note_sticky'], color=self.COLORS['gray']))
-    #     btn_note.setIconSize(QSize(14, 14))
-    #     btn_note.setToolTip("Ajouter une note")
-    #     btn_note.setStyleSheet(btn_style % self.COLORS['success_light'])
-    #     btn_note.clicked.connect(lambda: self.add_quick_note(item))
-        
-    #     # ✅ Supprimer
-    #     btn_delete = QPushButton()
-    #     btn_delete.setIcon(qta.icon('trash_can', color=self.COLORS['gray']))
-    #     btn_delete.setIconSize(QSize(14, 14))
-    #     btn_delete.setToolTip("Supprimer")
-    #     btn_delete.setStyleSheet(btn_style % self.COLORS['danger_light'])
-    #     btn_delete.clicked.connect(lambda: self.delete_contact(item))
-        
-    #     layout.addWidget(btn_view)
-    #     layout.addWidget(btn_edit)
-    #     layout.addWidget(btn_note)
-    #     layout.addWidget(btn_delete)
-        
-    #     return container
-
     def _create_action_buttons(self, item):
         """Crée les boutons d'action modernes avec QtAwesome"""
         container = QWidget()
@@ -1104,7 +977,6 @@ class ContactListView(QWidget):
         layout.addWidget(btn_delete)
         
         return container
-
 
     def load_contacts(self):
         """Charge les contacts (souscripteurs + chauffeurs)"""
@@ -1849,38 +1721,6 @@ class ContactListView(QWidget):
             "Suspendu": QColor(self.COLORS['warning'])
         }
         return colors.get(status, QColor(self.COLORS['gray']))
-    
-    # def set_status(self, message, msg_type="info"):
-    #     """Définit le message de statut"""
-    #     icons = {
-    #         "success": qta.icon(self.ICONS['circle_check'], color=self.COLORS['success']),
-    #         "error": qta.icon('circle_xmark', color=self.COLORS['danger']),
-    #         "info": qta.icon('circle_info', color=self.COLORS['primary']),
-    #         "warning": qta.icon('triangle-exclamation', color=self.COLORS['warning'])
-    #     }
-    #     colors = {
-    #         "success": self.COLORS['success'],
-    #         "error": self.COLORS['danger'],
-    #         "info": self.COLORS['primary'],
-    #         "warning": self.COLORS['warning']
-    #     }
-        
-    #     # Mettre à jour l'icône de statut
-    #     status_indicator = self.status_label.parent().findChildren(QLabel)[0] if self.status_label.parent() else None
-    #     if status_indicator and msg_type in icons:
-    #         status_indicator.setPixmap(icons[msg_type].pixmap(16, 16))
-        
-    #     self.status_label.setText(message)
-    #     self.status_label.setStyleSheet(f"""
-    #         color: {colors.get(msg_type, self.COLORS['gray'])};
-    #         font-size: 13px;
-    #         font-weight: 500;
-    #         background: transparent;
-    #         border: none;
-    #     """)
-        
-    #     if msg_type != "error":
-    #         QTimer.singleShot(3000, self._reset_status)
 
     def set_status(self, message, msg_type="info"):
         """Définit le message de statut"""

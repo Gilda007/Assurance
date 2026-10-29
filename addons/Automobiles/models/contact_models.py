@@ -114,7 +114,7 @@ class Contact(Base):
     date_naissance = Column(Date)
     nationalite = Column(String(100))
     num_contribuable = Column(String(100))
-    cat_socio_prof = Column(String(10))
+    cat_socio_prof = Column(String(100))
     libelle_socio_prof = Column(String(100))
     profession = Column(String(100))
 
