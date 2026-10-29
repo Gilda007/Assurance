@@ -84,6 +84,8 @@ DATA_ARGS=()
 [ -d "$PROJECT_ROOT/icons" ] && DATA_ARGS+=(--include-data-dir="$PROJECT_ROOT/icons=icons")
 [ -f "$PROJECT_ROOT/module_registry.json" ] && DATA_ARGS+=(--include-data-file="$PROJECT_ROOT/module_registry.json=.")
 
+
+
 set +e
 $PYTHON -m nuitka \
     --standalone \
