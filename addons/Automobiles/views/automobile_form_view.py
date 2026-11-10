@@ -149,23 +149,56 @@ class VehicleForm(QDialog):
     }
     
     ASAC_VEHICLE_USAGES = {
-        "UV01": "Promenade ou Affaire",
-        "UV02": "Transport pour propre compte",
-        "UV03": "Transport privé de voyageurs",
-        "UV04": "Transport public de marchandises",
-        "UV05": "Transport public de voyageurs",
-        "UV06": "Véhicules Auto-école",
-        "UV07": "Véhicules de Location",
-        "UV08": "Véhicules Spéciaux",
-        "UV09": "Engin de Chantier",
-        "UV10": "Véhicule motorisé 2 à 3 roues"
+        "UV001": "Promenade ou Affaire",
+        "UV201": "Transport Privé de Marchandises",
+        "UV202": "Transport Privé de Produits",
+        "UV203": "Vehicule Utilitaire",
+        "UV204": "Vehicule Utilitaire Autre carrosserie",
+        "UV301": "Commercial",
+        "UV302": "Remorque",
+        "UV303": "TRACTEUR",
+        "UV304": "Transport Public de Marchandises",
+        "UV305": "Transport Public de Produits",
+        "UV601": "WW' Garage",
+        "UV701": "Auto-école",
+        "UV702": "Avec Double Commande",
+        "UV703": "Sans Double Commande",
+        "UV704": "Vehicule de Tourisme Avec Double Commande",
+        "UV705": "Vehicule de Tourisme Sans Double Commande",
+        "UV706": "Vehicule Utilitaire Avec Double Commande",
+        "UV707": "Vehicule Utilitaire Sans Double Commande",
+        "UV801": "Location",
+        "UV901": "Engin de Chantier",
+        "UV902": "Engins Portuaires et de Manutention",
+        "UV903": "Tracteur Agricole Normal",
+        "UV904": "Tracteur Agricole Spécial",
+        "UV905": "Travaux de Chantiers",
+        "UV906": "Travaux en Aérodromes",
+        "UV907": "Vehicules pour la traction des avions",
+        "UV101": "Ambulance",
+        "UV102": "Corbillard",
+        "UV103": "Fourgon Funéraire",
+        "UV104": "Ramassage de Produits",
+        "UV105": "Travaux Agricoles, Forestiers",
+        "UV106": "Véhicule Collectivité Publique,Voitures de Vidange",
+        "UV4A01": "Transport Public de Personnes",
+        "UV4B01": "Tranport de passagers à titre Onéreux",
+        "UV4B02": "Transport Public de Voyageurs",
+        "UV4C01": "Transport Elèves",
+        "UV4C02": "Transport Personnel",
+        "UV4C03": "Transport Privé d'élèves",
+        "UV5A01": "Deux Roues Personnel & Privés",
+        "UV5B01": "Deux Roues Commercial",
+        "UV5B02": "Moto-Taxi",
     }
     
     ASAC_VEHICLE_ENERGIES = {
-        "SEE": "Essence",
-        "SED": "Diesel",
-        "SEL": "Électrique",
-        "SEHY": "Hybride"
+        "SEES": "Essence",
+        "SEDI": "Diesel",
+        "SEEL": "Electrique = Tarif diesel",
+        "SEHY": "Hybride",
+        "SEHY-ES": "Hybride-Essence  = Tarif essence",
+        "SEHY-DI": "Hybride-Diesel = Tarif diesel",
     }
     
     ASAC_CIRCULATION_ZONES = {
@@ -189,12 +222,48 @@ class VehicleForm(QDialog):
         "ST12": "Autre profession"
     }
     
+    # def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
+    #     super().__init__()
+      
+    #     self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
+    #     self.setAttribute(Qt.WA_TranslucentBackground)
+        
+    #     self.controller = controller
+    #     self.contacts = contacts_list or []
+    #     self.current_user = current_user
+    #     self.mode = mode
+    #     self.initial_data = data
+    #     self.vehicle_to_edit = vehicle_to_edit
+    #     self.vehicle_id = vehicle_to_edit.id if hasattr(vehicle_to_edit, 'id') else None
+    #     self.selected_cie_id = None
+    #     self.old_pos = None
+    #     self.is_maximized = False
+    #     self.normal_geometry = None
+    #     self.preselected_owner_id = data.get('owner_id') if data else None
+        
+    #     # Dictionnaire pour stocker les champs de garanties
+    #     self.garanties_widgets = {}
+        
+    #     self.setup_ui()
+
+    #     if vehicle_to_edit:
+    #         self.load_existing_data(vehicle_to_edit)
+
+    #     if self.initial_data:
+    #         self.fill_form(self.initial_data)
+        
+    #     if self.mode == "view":
+    #         self.freeze_ui()
+            
+    #     # Connecter les signaux pour les calculs automatiques
+    #     self._connect_signals()
+
     def __init__(self, controller, contacts_list=None, current_user=None, data=None, mode="add", vehicle_to_edit=None):
         super().__init__()
-      
+
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Dialog)
         self.setAttribute(Qt.WA_TranslucentBackground)
-        
+
         self.controller = controller
         self.contacts = contacts_list or []
         self.current_user = current_user
@@ -207,23 +276,24 @@ class VehicleForm(QDialog):
         self.is_maximized = False
         self.normal_geometry = None
         self.preselected_owner_id = data.get('owner_id') if data else None
-        
-        # Dictionnaire pour stocker les champs de garanties
+        self._pending_tarif_data = None
+
         self.garanties_widgets = {}
-        
+
         self.setup_ui()
 
+        # ✅ 1. Connecter les signaux AVANT de charger les données
+        self._connect_signals()
+
+        # ✅ 2. Charger les données du véhicule
         if vehicle_to_edit:
             self.load_existing_data(vehicle_to_edit)
 
         if self.initial_data:
             self.fill_form(self.initial_data)
-        
+
         if self.mode == "view":
             self.freeze_ui()
-            
-        # Connecter les signaux pour les calculs automatiques
-        self._connect_signals()
 
     def _connect_signals(self):
         """Connecte les signaux pour les calculs automatiques"""
@@ -452,15 +522,16 @@ class VehicleForm(QDialog):
                 border-color: #3498db;
             }
         """)
-        self.check_remorque.stateChanged.connect(self.on_remorque_changed)
+        # self.check_remorque.stateChanged.connect(self.on_remorque_changed)
         options_layout.addWidget(self.check_remorque, 0, 0)
         
         # Immatriculation remorque
         options_layout.addWidget(self._create_label("🔢", "Immatriculation Remorque"), 1, 0)
         self.remorque_immat = QLineEdit()
         self.remorque_immat.setPlaceholderText("Immatriculation de la remorque")
+        # self.remorque_immat.setText(self.immat_input.textChanged())
         self.remorque_immat.setStyleSheet(field_style)
-        self.remorque_immat.setEnabled(False)
+        # self.remorque_immat.setEnabled(False)
         options_layout.addWidget(self.remorque_immat, 2, 0)
         
         # Matières inflammables
@@ -479,11 +550,11 @@ class VehicleForm(QDialog):
                 border: 2px solid #cbd5e0;
             }
             QCheckBox::indicator:checked {
-                background-color: #e74c3c;
-                border-color: #e74c3c;
+                background-color: #3498db;
+                border-color: #3498db;
             }
         """)
-        self.check_inflammable.setEnabled(False)
+        # self.check_inflammable.setEnabled(False)
         options_layout.addWidget(self.check_inflammable, 0, 1)
         
         # Double commande (auto-école)
@@ -576,7 +647,7 @@ class VehicleForm(QDialog):
         try:
             d_debut = self.date_debut.date().toPython()
             d_fin = self.date_fin.date().toPython()
-            nbr_jr = (max(0, (d_fin - d_debut).days))+1
+            nbr_jr = (max(0, (d_fin - d_debut).days))
             
             self.nbr_jour.setText(str(nbr_jr))
             return nbr_jr / 365.0 if nbr_jr > 0 else 1
@@ -779,12 +850,6 @@ class VehicleForm(QDialog):
                 color: {Colors.TEXT_PRIMARY};
             }}
         """
-
-    def on_remorque_changed(self, state):
-        """Active/désactive les champs liés à la remorque"""
-        enabled = state == Qt.CheckState.Checked
-        self.remorque_immat.setEnabled(enabled)
-        self.check_inflammable.setEnabled(enabled)
 
     def calculate_tva(self):
         """Calcule la TVA (19.25%)"""
@@ -1532,10 +1597,10 @@ class VehicleForm(QDialog):
         self.lbl_customer_name.setText(name)
         
         info = f"""📌 Type: {contact.nature or 'Particulier'}
-📞 Tél: {contact.telephone or 'N/A'}
-📧 Email: {contact.email or 'N/A'}
-🆔 code: {contact.code_client or 'N/A'}
-📍 adresse: {contact.adresse or 'N/A'}"""
+        📞 Tél: {contact.telephone or 'N/A'}
+        📧 Email: {contact.email or 'N/A'}
+        🆔 code: {contact.code_client or 'N/A'}
+        📍 adresse: {contact.adresse or 'N/A'}"""
         self.lbl_customer_info.setText(info)
         
         initials = f"{contact.nom[0]}{contact.prenom[0] if contact.prenom else ''}".upper()
@@ -1626,17 +1691,11 @@ class VehicleForm(QDialog):
         list_widget.setCurrentItem(item)
 
     def load_owner_details_by_id(self, owner_id):
-        """Charge les détails du propriétaire par son ID"""
-        try:
-            contact = self.controller.contacts.get_contact_by_id(owner_id)
-            if not contact:
-                return
-            
-            self._add_contact_to_list(contact, self.customer_list)
-            self._add_contact_to_list(contact, self.driver_list)
-            
-        except Exception as e:
-            print(f"Erreur chargement propriétaire: {e}")
+        """Charge les détails du propriétaire par son ID (souscripteur ET assuré)."""
+        if not owner_id:
+            return
+        self._load_contact_for_list(owner_id, self.customer_list)
+        self._load_insured_for_list(owner_id, self.driver_list)
 
     def load_tarif_codes_async(self):
         """Charge les codes tarif de manière asynchrone"""
@@ -1657,20 +1716,53 @@ class VehicleForm(QDialog):
 
     def _on_tarif_codes_loaded(self, codes):
         get_global_loader().hide_loading()
-        
+
         if hasattr(self, 'code_tarif'):
             self.code_tarif.clear()
             self.code_tarif.addItem("", "")
-        
+
         if hasattr(self, 'combo_fleet'):
             self.combo_fleet.clear()
             self.combo_fleet.addItem("", "")
-        
+
         for code, libelle in codes:
             if hasattr(self, 'code_tarif'):
                 self.code_tarif.addItem(code, {"code": code, "libelle": libelle})
             if hasattr(self, 'combo_fleet'):
                 self.combo_fleet.addItem(libelle, {"code": code, "libelle": libelle})
+
+        # ✅ Restaurer les valeurs mémorisées (mode édition)
+        if self._pending_tarif_data:
+            self._apply_pending_tarif_selection()
+            self._pending_tarif_data = None
+
+    def _apply_pending_tarif_selection(self):
+        """Applique les code_tarif et libele_tarif mémorisés après chargement."""
+        if not self._pending_tarif_data:
+            return
+
+        data = self._pending_tarif_data
+        code_tarif = data.get("code_tarif")
+        libele_tarif = data.get("libele_tarif")
+
+        # Code tarif
+        if hasattr(self, 'code_tarif') and code_tarif:
+            idx = self.code_tarif.findText(str(code_tarif))
+            if idx >= 0:
+                self.code_tarif.setCurrentIndex(idx)
+            else:
+                # Ajouter l'entrée si elle n'existe pas dans la liste
+                self.code_tarif.addItem(str(code_tarif), {"code": code_tarif, "libelle": libele_tarif})
+                self.code_tarif.setCurrentIndex(self.code_tarif.count() - 1)
+
+        # Libellé tarif
+        if hasattr(self, 'combo_fleet') and libele_tarif:
+            idx = self.combo_fleet.findText(str(libele_tarif))
+            if idx >= 0:
+                self.combo_fleet.setCurrentIndex(idx)
+            else:
+                self.combo_fleet.addItem(str(libele_tarif), {"code": code_tarif, "libelle": libele_tarif})
+                self.combo_fleet.setCurrentIndex(self.combo_fleet.count() - 1)
 
     def _on_tarif_codes_error(self, error):
         get_global_loader().hide_loading()
@@ -1679,6 +1771,15 @@ class VehicleForm(QDialog):
     def _on_immat_change(self, text):
         """Formate l'immatriculation en majuscules"""
         self.immat_input.setText(text.upper())
+
+    def _on_tarif_codes_error(self, error):
+        get_global_loader().hide_loading()
+        print(f"Erreur chargement tarifs: {error}")
+
+        # ✅ Restaurer quand même ce qu'on avait en mémoire
+        if self._pending_tarif_data:
+            self._apply_pending_tarif_selection()
+            self._pending_tarif_data = None
 
     # ============================================================
     # MÉTHODES DE GESTION DES GARANTIES (simplifiées)
@@ -1692,12 +1793,43 @@ class VehicleForm(QDialog):
                 self.update_garantie_price(key, 2)
 
     def update_garantie_price(self, key, state):
-        """Met à jour le prix d'une garantie"""
+        if not state:
+            return
         garantie = self.garanties_widgets.get(key)
         if not garantie:
             return
-        # Implémentation simplifiée - à compléter selon vos besoins
-        pass
+
+        try:
+            prorata = self.calculate_prorata()
+
+            if key == 'ipt':
+                current = garantie['montant_brut_input'].text().strip()
+                current = current.replace(" ", "").replace(",", ".")
+                try:
+                    current_val = float(current) if current else 0.0
+                except ValueError:
+                    current_val = 0.0
+
+                if current_val <= 0:
+                    default_brut = self.calculate_garantie_amount(key, prorata)
+                    garantie['montant_brut_input'].setText(
+                        f"{default_brut:,.0f}".replace(",", " ")
+                    )
+            else:
+                montant_brut = self.calculate_garantie_amount(key, prorata)
+                garantie['montant_brut_label'].setText(
+                    f"{montant_brut:,.0f} FCFA".replace(",", " ")
+                )
+
+            garantie['montant_brut_container'].setVisible(True)
+            garantie['taux'].setVisible(True)
+            garantie['montant_taux'].setVisible(True)
+            garantie['montant_net'].setVisible(True)
+
+            self.update_net_amount(key)
+            self.calculate_total_premium()
+        except Exception as e:
+            print(f"Erreur update_garantie_price({key}): {e}")
 
     def update_rc_calculation_async(self):
         """Met à jour le calcul de la RC en tâche de fond"""
@@ -1916,32 +2048,59 @@ class VehicleForm(QDialog):
             # ============================================================
             # 5. CODES TARIFAIRES
             # ============================================================
-            if hasattr(self, 'code_tarif') and vehicle.code_tarif:
-                for i in range(self.code_tarif.count()):
-                    item_text = self.code_tarif.itemText(i)
-                    if vehicle.code_tarif in item_text or vehicle.code_tarif == item_text:
-                        self.code_tarif.setCurrentIndex(i)
-                        break
+            # if hasattr(self, 'code_tarif') and vehicle.code_tarif:
+            #     for i in range(self.code_tarif.count()):
+            #         item_text = self.code_tarif.itemText(i)
+            #         if vehicle.code_tarif in item_text or vehicle.code_tarif == item_text:
+            #             self.code_tarif.setCurrentIndex(i)
+            #             break
             
-            if hasattr(self, 'combo_fleet') and vehicle.libele_tarif:
-                for i in range(self.combo_fleet.count()):
-                    item_text = self.combo_fleet.itemText(i)
-                    if vehicle.libele_tarif in item_text or vehicle.libele_tarif == item_text:
-                        self.combo_fleet.setCurrentIndex(i)
-                        break
+            # if hasattr(self, 'combo_fleet') and vehicle.libele_tarif:
+            #     for i in range(self.combo_fleet.count()):
+            #         item_text = self.combo_fleet.itemText(i)
+            #         if vehicle.libele_tarif in item_text or vehicle.libele_tarif == item_text:
+            #             self.combo_fleet.setCurrentIndex(i)
+            #             break
             
-            if hasattr(self, 'code_assure') and vehicle.code_assure:
-                self.code_assure.setText(vehicle.code_assure)
-            
+            # if hasattr(self, 'code_assure') and vehicle.code_assure:
+            #     self.code_assure.setText(vehicle.code_assure)
+
+            self._pending_tarif_data = {
+                "code_tarif": getattr(vehicle, 'code_tarif', None) or "",
+                "libele_tarif": getattr(vehicle, 'libele_tarif', None) or "",
+                "code_assure": getattr(vehicle, 'code_assure', None) or "",
+            }
+
+            if hasattr(self, 'code_assure'):
+                self.code_assure.setText(self._pending_tarif_data["code_assure"])
+            self._apply_pending_tarif_selection()
             # ============================================================
             # 6. PROPRIÉTAIRES (Souscripteur et Assuré)
             # ============================================================
-            if hasattr(self, 'owner_id') and vehicle.owner_id:
-                self.selected_customer_id = vehicle.owner_id
-                self.selected_insured_id = vehicle.owner_id
+            # if hasattr(self, 'owner_id') and vehicle.owner_id:
+            #     self.selected_customer_id = vehicle.owner_id
+            #     self.selected_insured_id = vehicle.owner_id
                 
-                # Charger les détails du propriétaire
-                self.load_owner_details_by_id(vehicle.owner_id)
+            #     # Charger les détails du propriétaire
+            #     self.load_owner_details_by_id(vehicle.owner_id)
+
+            owner_id = getattr(vehicle, 'owner_id', None)
+            customer_id = getattr(vehicle, 'customer_id', None) or owner_id
+            insured_id = getattr(vehicle, 'insured_id', None) or owner_id
+
+            if customer_id:
+                self.selected_customer_id = customer_id
+
+            if insured_id:
+                self.selected_insured_id = insured_id
+
+            # Charger le souscripteur (contact)
+            if customer_id:
+                self._load_contact_for_list(customer_id, self.customer_list)
+
+            # Charger l'assuré / chauffeur (Driver ou Contact)
+            if insured_id:
+                self._load_insured_for_list(insured_id, self.driver_list)
             
             # ============================================================
             # 7. COMPAGNIE
@@ -1956,27 +2115,19 @@ class VehicleForm(QDialog):
             # ============================================================
 
             if hasattr(vehicle, 'driver') and vehicle.driver is not None:
-                driver = vehicle.driver  # ✅ C'est un objet Driver
-                
+                driver = vehicle.driver
+                self.selected_driver_id = getattr(driver, 'id', None)
+
                 if hasattr(self, 'driver_list'):
-                    display = f"{driver.nom} - {driver.num_permis or ''}"
-                    item = QListWidgetItem(display)
-                    item.setData(Qt.UserRole, driver)
-                    self.driver_list.addItem(item)
-                    self.driver_list.setCurrentItem(item)
-                    
-                    self.selected_driver_id = driver.id
-                    self.lbl_driver_name.setText(driver.nom)
+                    self._load_insured_for_list(driver.id, self.driver_list)
+
+                if hasattr(self, 'lbl_driver_name'):
+                    self.lbl_driver_name.setText(getattr(driver, 'driver_name', '') or getattr(driver, 'nom', ''))
 
             # ============================================================
             # 9. GARANTIES
             # ============================================================
-            if hasattr(vehicle, 'guarantees') and vehicle.guarantees:
-                g = vehicle.guarantees
-                self._load_guarantee_values(g)
-            elif hasattr(vehicle, 'guarantee') and vehicle.guarantee:
-                g = vehicle.guarantee
-                self._load_guarantee_values(g)
+            self._load_guarantee_values(vehicle)
             
             # ============================================================
             # 10. DATES
@@ -2043,380 +2194,217 @@ class VehicleForm(QDialog):
             import traceback
             traceback.print_exc()
 
-
-    def _load_guarantee_values(self, guarantees):
+    def _load_guarantee_values(self, vehicle):
         """
-        Charge les valeurs des garanties dans le formulaire.
-        Seul le champ 'ipt' (Indiv. Personnes Transportées) a un montant brut modifiable.
+        Charge les valeurs des garanties depuis l'objet Vehicle.
         
-        Args:
-            guarantees: Objet garantie (VehicleGuarantee)
+        Structure attendue :
+        - vehicle.guarantees            : VehicleGuarantee (montants bruts)
+        - vehicle.guarantee_reductions  : VehicleGuaranteeReduction (montants de réduction)
+        - vehicle.guarantee_rates       : VehicleGuaranteeRate (taux %)
+        - vehicle.guarantee_options     : VehicleGuaranteeOption (checkboxes)
+        - vehicle.fleet_guarantees      : VehicleFleetGuarantee (garanties flotte)
         """
         try:
-            # Mapping des clés garantie
-            guarantee_map = {
-                'rc': ('RC', 'Responsabilité Civile'),
-                'dr': ('DR', 'Défense Recours'),
-                'vol': ('VOL', 'Vol/Vol partie'),
-                'vb': ('VB', 'Vol/Braquage'),
-                'in': ('INC', 'Incendie'),
-                'bris': ('BG', 'Bris de Glace'),
-                'ar': ('AR', 'Assistance Réparation'),
-                'dta': ('DTA', 'Dommages'),
-                'ipt': ('IPT', 'Indiv. Personnes Transportées')
+            guarantees         = getattr(vehicle, 'guarantees', None)
+            reductions         = getattr(vehicle, 'guarantee_reductions', None)
+            rates              = getattr(vehicle, 'guarantee_rates', None)
+            options            = getattr(vehicle, 'guarantee_options', None)
+
+            # Mapping clé formulaire → nom d'attribut dans le modèle
+            mapping = {
+                'rc': 'rc',
+                'dr': 'dr',
+                'vol': 'vol',
+                'vb': 'vb',
+                'in': 'in_garantie',
+                'bris': 'bris',
+                'ar': 'ar',
+                'dta': 'dta',
+                'ipt': 'ipt',
             }
-            
-            for key, (code, label) in guarantee_map.items():
-                if key not in self.garanties_widgets:
+
+            for form_key, model_key in mapping.items():
+                if form_key not in self.garanties_widgets:
                     continue
-                
-                garantie_widgets = self.garanties_widgets[key]
-                checkbox = garantie_widgets['checkbox']
-                montant_brut = garantie_widgets['montant_brut']
-                taux_input = garantie_widgets['taux']
-                montant_taux = garantie_widgets['montant_taux']
-                montant_net = garantie_widgets['montant_net']
-                
-                # Récupérer les valeurs depuis l'objet garantie
-                valeur_brute = getattr(guarantees, key, 0) or 0
-                valeur_taux = getattr(guarantees, f'red_{key}', 0) or 0
-                valeur_net = getattr(guarantees, f'net_{key}', 0) or 0
-                valeur_reduction = getattr(guarantees, f'reduction_{key}', 0) or 0
-                
-                # ✅ Si la valeur brute est > 0, activer la garantie
+
+                g = self.garanties_widgets[form_key]
+
+                valeur_brute = float(getattr(guarantees, model_key, 0) or 0) if guarantees else 0.0
+                valeur_taux  = float(getattr(rates, model_key, 0) or 0) if rates else 0.0
+                valeur_red   = float(getattr(reductions, model_key, 0) or 0) if reductions else 0.0
+
+                # Une garantie est "active" si elle a un montant brut > 0
                 if valeur_brute > 0:
-                    checkbox.setChecked(True)
-                    montant_brut.setText(f"{valeur_brute:,.0f} FCFA".replace(",", " "))
-                    montant_brut.setVisible(True)
-                    
-                    if valeur_taux > 0:
-                        taux_input.setText(f"{valeur_taux}")
-                    taux_input.setVisible(True)
-                    
-                    if valeur_reduction > 0:
-                        montant_taux.setText(f"{valeur_reduction:,.0f} FCFA".replace(",", " "))
-                    montant_taux.setVisible(True)
-                    
-                    if valeur_net > 0:
-                        montant_net.setText(f"{valeur_net:,.0f} FCFA".replace(",", " "))
-                    montant_net.setVisible(True)
-                    
-                    # ============================================================
-                    # ✅ RENDRE MODIFIABLE UNIQUEMENT POUR 'ipt'
-                    # ============================================================
-                    if key == 'ipt':
-                        # ✅ Montant brut modifiable (QLineEdit au lieu de QLabel)
-                        self._make_brut_editable(montant_brut, key)
-                        
-                        # ✅ Taux modifiable
-                        taux_input.setReadOnly(False)
-                        taux_input.setStyleSheet("""
-                            QLineEdit {
-                                border: 2px solid #3498db;
-                                border-radius: 8px;
-                                padding: 6px 10px;
-                                font-size: 12px;
-                                max-width: 80px;
-                                background-color: #f0f9ff;
-                            }
-                            QLineEdit:focus {
-                                border-color: #2563eb;
-                                background-color: #ffffff;
-                            }
-                        """)
-                        # Connecter le signal pour recalculer le net
-                        try:
-                            taux_input.textChanged.disconnect()
-                        except:
-                            pass
-                        taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
-                        
-                        # ✅ Rendre la réduction et le net non modifiables (lecture seule)
-                        montant_taux.setStyleSheet("""
-                            color: #e67e22;
-                            font-weight: bold;
-                            padding: 4px 8px;
-                            border-radius: 6px;
-                            background-color: #f1f5f9;
-                        """)
-                        montant_net.setStyleSheet("""
-                            color: #2563eb;
-                            font-weight: bold;
-                            padding: 4px 8px;
-                            border-radius: 6px;
-                            background-color: #f1f5f9;
-                        """)
-                        
+                    # 1. Cocher sans déclencher le handler
+                    g['checkbox'].blockSignals(True)
+                    g['checkbox'].setChecked(True)
+                    g['checkbox'].blockSignals(False)
+
+                    # 2. Configurer l'UI
+                    self.handle_garantie_click(form_key, Qt.CheckState.Checked.value)
+
+                    # 3. Récupérer les références fraîches (le widget IPT a pu être remplacé)
+                    g = self.garanties_widgets[form_key]
+
+                    # 4. Injecter les valeurs
+                    if form_key == 'ipt':
+                        g['montant_brut_input'].setText(
+                            f"{valeur_brute:,.0f}".replace(",", " ")
+                        )
+                        g['montant_brut_label'].hide()
+                        g['montant_brut_input'].show()
                     else:
-                        # ❌ Pour les autres garanties : tout est en lecture seule
-                        self._make_brut_readonly(montant_brut)
-                        
-                        # ❌ Taux non modifiable
-                        taux_input.setReadOnly(True)
-                        taux_input.setStyleSheet("""
-                            QLineEdit {
-                                border: 2px solid #e2e8f0;
-                                border-radius: 8px;
-                                padding: 6px 10px;
-                                font-size: 12px;
-                                max-width: 80px;
-                                background-color: #f1f5f9;
-                                color: #64748b;
-                            }
-                        """)
+                        g['montant_brut_label'].setText(
+                            f"{valeur_brute:,.0f} FCFA".replace(",", " ")
+                        )
+                        g['montant_brut_input'].hide()
+                        g['montant_brut_label'].show()
+
+                    g['taux'].setText(f"{valeur_taux:.0f}" if valeur_taux > 0 else "")
+                    g['montant_taux'].setText(f"{valeur_red:,.0f} FCFA".replace(",", " "))
+
+                    # Recalculer le net pour cohérence
+                    self.update_net_amount(form_key)
                 else:
-                    checkbox.setChecked(False)
-                    montant_brut.setVisible(False)
-                    taux_input.setVisible(False)
-                    montant_taux.setVisible(False)
-                    montant_net.setVisible(False)
-                    
-                    # Réinitialiser les valeurs
-                    # ✅ Pour 'ipt', on remet un QLabel en lecture seule
-                    if key == 'ipt':
-                        # Remplacer le QLineEdit par un QLabel pour le montant brut
-                        self._make_brut_readonly(montant_brut)
-                        # Mettre à jour la référence dans le dictionnaire
-                        self.garanties_widgets[key]['montant_brut'] = montant_brut
-                    
-                    montant_brut.setText("0 FCFA")
-                    montant_taux.setText("0 FCFA")
-                    montant_net.setText("0 FCFA")
-                    taux_input.setText("")
-                            
+                    g['checkbox'].blockSignals(True)
+                    g['checkbox'].setChecked(False)
+                    g['checkbox'].blockSignals(False)
+                    g['montant_brut_container'].setVisible(False)
+                    g['taux'].setVisible(False)
+                    g['montant_taux'].setVisible(False)
+                    g['montant_net'].setVisible(False)
+
         except Exception as e:
-            print(f"❌ Erreur lors du chargement des garanties: {e}")
+            print(f"Erreur _load_guarantee_values: {e}")
             import traceback
             traceback.print_exc()
-
-
-    def _make_brut_editable(self, widget, key):
-        """
-        Transforme un QLabel en QLineEdit modifiable pour le montant brut.
-        Utilisé uniquement pour la garantie 'ipt'.
-        
-        Args:
-            widget: Le widget actuel (QLabel ou QLineEdit)
-            key: Clé de la garantie
-        """
-        try:
-            # ✅ Si c'est déjà un QLineEdit, ne rien faire
-            if isinstance(widget, QLineEdit):
-                return
-            
-            # Récupérer la valeur actuelle
-            current_text = widget.text()
-            if current_text.endswith(" FCFA"):
-                current_text = current_text.replace(" FCFA", "")
-            current_text = current_text.replace(" ", "").replace(",", ".")
-            
-            # Créer un QLineEdit à la place du QLabel
-            line_edit = QLineEdit()
-            line_edit.setText(current_text)
-            line_edit.setAlignment(Qt.AlignRight)
-            line_edit.setStyleSheet("""
-                QLineEdit {
-                    border: 2px solid #3498db;
-                    border-radius: 8px;
-                    padding: 6px 10px;
-                    font-size: 13px;
-                    max-width: 120px;
-                    background-color: #f0f9ff;
-                    color: #1e40af;
-                    font-weight: bold;
-                }
-                QLineEdit:focus {
-                    border-color: #2563eb;
-                    background-color: #ffffff;
-                }
-            """)
-            line_edit.setToolTip("Modifier le montant brut de l'IPT")
-            
-            # Connecter le signal pour mettre à jour le total
-            line_edit.textChanged.connect(lambda text, k=key: self._on_ipt_brut_changed(k, text))
-            
-            # Remplacer le widget dans le layout
-            layout = widget.parent().layout()
-            if layout:
-                # Trouver l'index du widget
-                for i in range(layout.count()):
-                    item = layout.itemAt(i)
-                    if item and item.widget() == widget:
-                        # Remplacer par le nouveau widget
-                        layout.replaceWidget(widget, line_edit)
-                        widget.setParent(None)  # Ne pas supprimer, Qt le gère
-                        
-                        # Mettre à jour la référence dans le dictionnaire
-                        self.garanties_widgets[key]['montant_brut'] = line_edit
-                        break
-            
-        except Exception as e:
-            print(f"❌ Erreur lors du remplacement du widget: {e}")
-            import traceback
-            traceback.print_exc()
-
-
-    def _make_brut_readonly(self, widget):
-        """
-        Transforme un widget en QLabel en lecture seule pour le montant brut.
-        
-        Args:
-            widget: Le widget actuel (QLineEdit ou QLabel)
-        """
-        try:
-            # ✅ Si c'est déjà un QLabel, ne rien faire
-            if isinstance(widget, QLabel):
-                return widget
-                
-            # Si c'est un QLineEdit, le remplacer par un QLabel
-            if isinstance(widget, QLineEdit):
-                current_text = widget.text()
-                
-                label = QLabel(current_text)
-                label.setStyleSheet("""
-                    color: #27ae60;
-                    font-weight: bold;
-                    padding: 4px 8px;
-                    border-radius: 6px;
-                """)
-                label.setAlignment(Qt.AlignRight)
-                
-                # Remplacer le widget dans le layout
-                layout = widget.parent().layout()
-                if layout:
-                    for i in range(layout.count()):
-                        item = layout.itemAt(i)
-                        if item and item.widget() == widget:
-                            layout.replaceWidget(widget, label)
-                            widget.setParent(None)  # Ne pas supprimer, Qt le gère
-                            break
-                return label
-        except Exception as e:
-            print(f"❌ Erreur lors du passage en lecture seule: {e}")
-            import traceback
-            traceback.print_exc()
-        return widget
-
 
     def _on_ipt_brut_changed(self, key, text):
+        """Appelée quand l'utilisateur modifie le montant brut de l'IPT."""
+        if key != 'ipt':
+            return
+
+        # Ne pas reformater pendant la frappe — juste recalculer
+        self.update_net_amount(key)
+
+    def _format_brut_on_finish(self, key, widget):
         """
-        Gère le changement du montant brut pour l'IPT.
-        Recalcule le net et met à jour le total.
-        
+        Reformate le montant brut de l'IPT à la sortie du champ.
+        Évite de perturber la frappe (contrairement à un formatage en temps réel).
+
         Args:
             key: Clé de la garantie (doit être 'ipt')
-            text: Nouvelle valeur saisie
+            widget: Le QLineEdit concerné
         """
         if key != 'ipt':
             return
-        
-        try:
-            # Nettoyer le texte
-            clean_text = text.strip().replace(" ", "").replace(",", ".")
-            if not clean_text:
-                clean_text = "0"
-            
-            value = float(clean_text) if clean_text else 0
-            
-            # Mettre à jour le montant brut
-            garantie = self.garanties_widgets.get(key)
-            if garantie:
-                # Mettre à jour l'affichage
-                garantie['montant_brut'].setText(f"{value:,.0f}".replace(",", " "))
-                
-                # Recalculer le net avec le nouveau brut
-                self.update_net_amount(key)
-                
-                # Mettre à jour le total
-                self.calculate_total_premium()
-                
-        except ValueError as e:
-            print(f"⚠️ Valeur invalide pour l'IPT: {e}")
 
+        try:
+            # Nettoyer la saisie
+            text = widget.text().strip().replace(" ", "").replace(",", ".").replace("FCFA", "")
+            try:
+                val = float(text) if text else 0.0
+            except ValueError:
+                val = 0.0
+
+            # Reformater proprement (ex: "15000" -> "15 000")
+            formatted = f"{val:,.0f}".replace(",", " ")
+
+            # Bloquer les signaux le temps d'écrire (évite un rappel de textChanged)
+            widget.blockSignals(True)
+            widget.setText(formatted)
+            widget.blockSignals(False)
+
+            # Recalculer le net avec la valeur finale
+            self.update_net_amount(key)
+
+        except Exception as e:
+            print(f"⚠️ Erreur lors du formatage du montant brut IPT: {e}")
 
     def update_net_amount(self, key):
-        """
-        Met à jour le montant net après application du taux
-        Seul 'ipt' est modifiable, les autres sont en lecture seule
-        """
         garantie = self.garanties_widgets.get(key)
         if not garantie:
             return
-        
         try:
-            # Récupérer le montant brut
-            brut_widget = garantie['montant_brut']
-            brut_text = ""
-            if isinstance(brut_widget, QLineEdit):
-                brut_text = brut_widget.text()
+            if key == 'ipt':
+                brut_text = garantie['montant_brut_input'].text() or "0"
             else:
-                brut_text = brut_widget.text()
-            
+                brut_text = garantie['montant_brut_label'].text() or "0 FCFA"
+
             brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
-            montant_brut = float(brut_text) if brut_text else 0
-            
-            # Récupérer le taux
+            try:
+                montant_brut = float(brut_text) if brut_text else 0.0
+            except ValueError:
+                montant_brut = 0.0
+
             taux_text = garantie['taux'].text().strip()
             if taux_text.endswith('%'):
                 taux_text = taux_text[:-1]
-            taux = float(taux_text) if taux_text else 0
-            
-            # Calculer la réduction et le montant net
+            try:
+                taux = float(taux_text) if taux_text else 0.0
+            except ValueError:
+                taux = 0.0
+
             if taux > 0:
-                reduction = montant_brut * (taux / 100)
+                reduction = montant_brut * (taux / 100.0)
                 montant_net = montant_brut - reduction
             else:
-                reduction = 0
+                reduction = 0.0
                 montant_net = montant_brut
-            
-            # Mettre à jour les labels
+
             garantie['montant_taux'].setText(f"{reduction:,.0f} FCFA".replace(",", " "))
             garantie['montant_net'].setText(f"{montant_net:,.0f} FCFA".replace(",", " "))
-            
-            # Mettre à jour le total
             self.calculate_total_premium()
-            
         except Exception as e:
-            print(f"⚠️ Erreur lors de la mise à jour du net pour {key}: {e}")
+            print(f"Erreur update_net_amount({key}): {e}")
 
     def _load_company_by_id(self, compagny_id):
-        """
-        Charge les détails d'une compagnie par son ID.
-        
-        Args:
-            compagny_id: ID de la compagnie
-        """
+        """Charge les détails d'une compagnie par son ID."""
         try:
-            # Récupérer la compagnie depuis le contrôleur
             compagny = self.controller.vehicles.get_compagnie_by_id(compagny_id)
             if not compagny:
                 return
-            
-            # Afficher dans la liste
+
+            # ✅ Vérifier si la compagnie est déjà dans la liste
+            found = False
             if hasattr(self, 'company_list'):
                 for i in range(self.company_list.count()):
                     item = self.company_list.item(i)
                     if item and item.data(Qt.UserRole):
-                        if item.data(Qt.UserRole).id == compagny_id:
+                        if getattr(item.data(Qt.UserRole), 'id', None) == compagny_id:
                             self.company_list.setCurrentItem(item)
+                            found = True
                             break
-            
-            # Mettre à jour les détails
+
+                # ✅ Si absente, l'ajouter à la liste
+                if not found:
+                    display = f"{compagny.nom} - {compagny.code or ''}"
+                    item = QListWidgetItem(display)
+                    item.setData(Qt.UserRole, compagny)
+                    self.company_list.addItem(item)
+                    self.company_list.setCurrentItem(item)
+
+            # Mettre à jour les détails (même si display_company_details
+            # est appelé par le signal currentRowChanged)
             if hasattr(self, 'lbl_company_name'):
                 self.lbl_company_name.setText(compagny.nom.upper())
-            
+
             if hasattr(self, 'lbl_company_info'):
                 info = f"""📌 Code: {compagny.code or 'N/A'}
     📞 Tél: {compagny.telephone or 'N/A'}
     📧 Email: {compagny.email or 'N/A'}
     📍 Adresse: {compagny.adresse or 'N/A'}"""
                 self.lbl_company_info.setText(info)
-            
+
             # Charger les tarifs de la compagnie
+            self.selected_cie_id = compagny.id
             self.load_tarif_codes_async()
-            
+
         except Exception as e:
-            print(f"Erreur chargement compagnie {compagny_id}: {e}")
+            print(f"❌ Erreur chargement compagnie {compagny_id}: {e}")
+            import traceback
+            traceback.print_exc()
 
     def freeze_ui(self):
         """Désactive tous les champs pour la consultation"""
@@ -2825,8 +2813,10 @@ class VehicleForm(QDialog):
         # ============================================================
         for key, garantie in self.garanties_widgets.items():
             if garantie['checkbox'].isChecked():
-                # Montant brut
-                brut_text = garantie['montant_brut'].text()
+                if key == 'ipt':
+                    brut_text = garantie['montant_brut_input'].text() or "0"
+                else:
+                    brut_text = garantie['montant_brut_label'].text() or "0 FCFA"
                 brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
                 data[f"amt_{key}_brut"] = float(brut_text) if brut_text else 0
                 
@@ -3059,6 +3049,8 @@ class VehicleForm(QDialog):
         success = result[0]
         if success:
             message = result[1] if len(result) > 1 else "Véhicule enregistré avec succès"
+            if self.vehicle_id:
+                self.controller.vehicles.invalidate_all_cache()
             QMessageBox.information(self, "Succès", message)
             self.accept()
             return
@@ -3208,8 +3200,129 @@ class VehicleForm(QDialog):
         self.date_mise_circulation.setDate(QDate.currentDate().addYears(-5))
         self.date_mise_circulation.setStyleSheet(field_style)
         id_layout.addWidget(self.date_mise_circulation, 5, 0)
-        
+
+
+        fleet_selector = QGroupBox("🔑 Attribution de flotte")
+        fleet_selector.setStyleSheet(group_style)
+        fleet_selector_layout = QVBoxLayout(fleet_selector)
+        fleet_selector_layout.setSpacing(12)
+        fleet_selector_layout.setContentsMargins(20, 20, 20, 20)
+
+        #Recherche des flottes
+        search_fleet_layout = QHBoxLayout()
+        search_fleet_layout.setSpacing(10)
+        self.search_fleet = QLineEdit()
+        self.search_fleet.setPlaceholderText("Lier ce véhicule à une flotte existante")
+        self.search_fleet.setStyleSheet(field_style)
+        self.search_fleet.textChanged.connect(self.filter_fleets)
+        search_fleet_layout.addWidget(self.search_fleet, 1)
+
+        new_fleet_btn = QPushButton("Ajouter flotte")
+        new_fleet_btn.setStyleSheet(f"""
+            QPusButton{{
+                background: {Colors.SUCCESS};
+                color: {Colors.WHITE};
+                border-radius: 8px;
+                padding: 8px;
+                font_weight: 600;
+                font-size: 12px
+            }}
+        """)
+
+        new_fleet_btn.clicked.connect(self._open_new_fleet_dialog)
+        search_fleet_layout.addWidget(new_fleet_btn)
+
+        fleet_selector_layout.addLayout(search_fleet_layout)
+
+        #SEPARATEUR
+        fleet_sep = QFrame()
+        # fleet_sep(QFrame.HLine)
+        fleet_sep.setStyleSheet(f"background: {Colors.BORDER}; margin: 4px 0;")
+        fleet_selector_layout.addWidget(fleet_sep)
+
+        #Contenu principal : Liste + Détails
+        fleet_content = QHBoxLayout()
+        fleet_content.setSpacing(15)
+
+        # Liste des flottes disponibles
+        self.fleet_list = QListWidget()
+        self.fleet_list.setFixedWidth(200)
+        self.fleet_list.setMinimumHeight(150)
+        self.fleet_list.setStyleSheet(f"""
+            QListWidget {{
+                border: 2px solid {Colors.BORDER};
+                border-radius: 10px;
+                background: {Colors.WHITE};
+                outline: none;
+                padding: 4px;
+            }}
+            QListWidget::item {{
+                padding: 10px 12px;
+                border-radius: 6px;
+                margin: 1px;
+                font-size: 12px;
+            }}
+            QListWidget::item:hover {{
+                background: {Colors.GRAY_100};
+            }}
+            QListWidget::item:selected {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {Colors.PRIMARY}, stop:1 {Colors.PRIMARY_DARK});
+                color: {Colors.WHITE};
+            }}
+        """)
+
+        self.fleet_list.currentRowChanged.connect(self.display_fleet_details)
+        fleet_content.addWidget(self.fleet_list)
+        fleet_selector_layout.addLayout(fleet_content)
+
+        #Carte de visualisation de détails
+        self.fleet_detail_card = QFrame()
+        self.fleet_detail_card.setObjectName("FleetCard")
+        self.fleet_detail_card.setStyleSheet(f"""
+             QFrame#FleetCard {{
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 {Colors.GRAY_50}, stop:1 {Colors.GRAY_100});
+                    border-radius: 12px;
+                    border: 2px solid {Colors.BORDER};
+                    padding: 16px;
+                }}
+        """)
+
+
+        fleet_card_layout = QHBoxLayout(self.fleet_detail_card)
+        fleet_card_layout.setSpacing(15)
+
+        #information
+        information_fleet_widget = QWidget()
+        info_fleet_layout = QVBoxLayout(information_fleet_widget)
+        info_fleet_layout.setSpacing(6)
+        info_fleet_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.lbl_fleet_name = QLabel("Aucune flotte sélectionnée")
+        self.lbl_fleet_name.setStyleSheet(f"""
+            font-size: 15px;
+            font-weight: 700;
+            color: {Colors.TEXT_PRIMARY};
+        """)
+
+        self.lbl_fleet_info= QLabel("Sélectionnez une flotte dans la liste")
+        self.lbl_fleet_info.setStyleSheet(f"""
+            font-size: 12px;
+            color: {Colors.TEXT_MUTED};
+            line-height: 1.6;
+        """)
+        self.lbl_fleet_info.setWordWrap(True)
+
+        info_fleet_layout.addWidget(self.lbl_fleet_name)
+        info_fleet_layout.addWidget(self.lbl_fleet_info)
+        info_fleet_layout.addStretch()
+
+        fleet_card_layout.addWidget(information_fleet_widget, 1)
+        fleet_content.addWidget(self.fleet_detail_card, 1)
+
         content_layout.addWidget(group_id)
+        content_layout.addWidget(fleet_selector)
         
         content_layout.addStretch()
         
@@ -3377,213 +3490,174 @@ class VehicleForm(QDialog):
         
         return tab
 
+    def _load_contact_for_list(self, contact_id, list_widget):
+        """Charge un contact (souscripteur) et le sélectionne dans la liste."""
+        try:
+            contact = self.controller.contacts.get_contact_by_id(contact_id)
+            if not contact:
+                return
+
+            # Vérifier s'il est déjà dans la liste
+            for i in range(list_widget.count()):
+                item = list_widget.item(i)
+                if item and item.data(Qt.UserRole):
+                    data = item.data(Qt.UserRole)
+                    if getattr(data, 'id', None) == contact.id:
+                        list_widget.setCurrentItem(item)
+                        return
+
+            # Ajouter et sélectionner
+            display = f"{contact.nom} {contact.prenom or ''} - {contact.telephone or ''}"
+            item = QListWidgetItem(display)
+            item.setData(Qt.UserRole, contact)
+            list_widget.addItem(item)
+            list_widget.setCurrentItem(item)
+
+        except Exception as e:
+            print(f"❌ Erreur chargement contact {contact_id}: {e}")
+
+
+    def _load_insured_for_list(self, insured_id, list_widget):
+        """
+        Charge l'assuré.
+        - Si c'est un Driver → cherche dans la table Driver.
+        - Sinon → cherche dans Contact.
+        """
+        try:
+            driver = None
+            contact = None
+
+            # Essayer Driver d'abord
+            driver = self.controller.contacts.get_driver_by_id(insured_id)
+
+            if driver:
+                # Vérifier s'il est déjà dans la liste
+                for i in range(list_widget.count()):
+                    item = list_widget.item(i)
+                    if item and item.data(Qt.UserRole):
+                        data = item.data(Qt.UserRole)
+                        if hasattr(data, 'id') and data.id == driver.id and \
+                        type(data).__name__ == 'Driver':
+                            list_widget.setCurrentItem(item)
+                            return
+
+                display = f"{driver.nom} - {driver.num_permis or ''}"
+                item = QListWidgetItem(display)
+                item.setData(Qt.UserRole, driver)
+                list_widget.addItem(item)
+                list_widget.setCurrentItem(item)
+                return
+
+            # Sinon, essayer Contact
+            contact = self.controller.contacts.get_contact_by_id(insured_id)
+            if contact:
+                for i in range(list_widget.count()):
+                    item = list_widget.item(i)
+                    if item and item.data(Qt.UserRole):
+                        data = item.data(Qt.UserRole)
+                        if getattr(data, 'id', None) == contact.id and \
+                        type(data).__name__ == 'Contact':
+                            list_widget.setCurrentItem(item)
+                            return
+
+                display = f"{contact.nom} {contact.prenom or ''} - {contact.telephone or ''}"
+                item = QListWidgetItem(display)
+                item.setData(Qt.UserRole, contact)
+                list_widget.addItem(item)
+                list_widget.setCurrentItem(item)
+
+        except Exception as e:
+            print(f"❌ Erreur chargement assuré {insured_id}: {e}")
+
     def handle_garantie_click(self, key, state):
         """
-        Gère le clic sur une garantie
-        
-        Args:
-            key: Identifiant de la garantie (rc, dr, vol, etc.)
-            state: État de la checkbox (0=décoché, 2=coché)
+        Active/désactive une garantie.
+
+        Règles :
+        - Le Taux est TOUJOURS éditable tant que la garantie est active.
+        - Le montant brut IPT est TOUJOURS éditable (input visible).
+        - Les autres montants bruts sont calculés (label visible).
         """
-        is_checked = state == 2  # Qt.Checked
-        
+        is_checked = (state == Qt.CheckState.Checked.value or state == 2)
+
         garantie = self.garanties_widgets.get(key)
         if not garantie:
             return
-        
-        # Récupérer les widgets
-        montant_brut = garantie['montant_brut']
-        taux_input = garantie['taux']
+
+        container    = garantie['montant_brut_container']
+        label        = garantie['montant_brut_label']
+        input_w      = garantie['montant_brut_input']
+        taux_input   = garantie['taux']
         montant_taux = garantie['montant_taux']
-        montant_net = garantie['montant_net']
-        
-        if is_checked:
-            # ✅ Garantie activée - Afficher tous les champs
-            montant_brut.setVisible(True)
-            taux_input.setVisible(True)
-            montant_taux.setVisible(True)
-            montant_net.setVisible(True)
-            
-            # ============================================================
-            # ✅ RENDRE MODIFIABLE UNIQUEMENT POUR 'ipt'
-            # ============================================================
-            if key == 'ipt':
-                # ✅ Vérifier si le widget est déjà un QLineEdit
-                if not isinstance(montant_brut, QLineEdit):
-                    # ✅ Montant brut modifiable (QLineEdit au lieu de QLabel)
-                    self._make_brut_editable(montant_brut, key)
-                    # Mettre à jour la référence
-                    montant_brut = self.garanties_widgets[key]['montant_brut']
-                
-                # ✅ Taux modifiable
-                taux_input.setReadOnly(False)
-                taux_input.setStyleSheet("""
-                    QLineEdit {
-                        border: 2px solid #3498db;
-                        border-radius: 8px;
-                        padding: 6px 10px;
-                        font-size: 12px;
-                        max-width: 80px;
-                        background-color: #f0f9ff;
-                    }
-                    QLineEdit:focus {
-                        border-color: #2563eb;
-                        background-color: #ffffff;
-                    }
-                """)
-                # Connecter le signal pour recalculer le net
-                try:
-                    taux_input.textChanged.disconnect()
-                except:
-                    pass
-                taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
-                
-                # ✅ Rendre la réduction et le net non modifiables (lecture seule)
-                montant_taux.setStyleSheet("""
-                    color: #e67e22;
-                    font-weight: bold;
-                    padding: 4px 8px;
-                    border-radius: 6px;
-                    background-color: #f1f5f9;
-                """)
-                montant_net.setStyleSheet("""
-                    color: #2563eb;
-                    font-weight: bold;
-                    padding: 4px 8px;
-                    border-radius: 6px;
-                    background-color: #f1f5f9;
-                """)
-                
-            else:
-                # ❌ Pour les autres garanties : tout est en lecture seule
-                self._make_brut_readonly(montant_brut)
-                
-                # ❌ Taux non modifiable
-                taux_input.setReadOnly(True)
-                taux_input.setStyleSheet("""
-                    QLineEdit {
-                        border: 2px solid #e2e8f0;
-                        border-radius: 8px;
-                        padding: 6px 10px;
-                        font-size: 12px;
-                        max-width: 80px;
-                        background-color: #f1f5f9;
-                        color: #64748b;
-                    }
-                """)
-            
-            # Calculer le montant brut (appel à la méthode de calcul)
-            self.update_garantie_price(key, state)
-            
-        else:
-            # ❌ Garantie désactivée - Cacher tous les champs
-            montant_brut.setVisible(False)
+        montant_net  = garantie['montant_net']
+
+        if not is_checked:
+            container.setVisible(False)
             taux_input.setVisible(False)
             montant_taux.setVisible(False)
             montant_net.setVisible(False)
-            
-            # Réinitialiser les valeurs
-            # ✅ Vérifier le type du widget avant de modifier le texte
-            if isinstance(montant_brut, QLineEdit):
-                montant_brut.setText("0")
-            else:
-                montant_brut.setText("0 FCFA")
-            
+            label.setText("0 FCFA")
+            input_w.setText("0")
             montant_taux.setText("0 FCFA")
             montant_net.setText("0 FCFA")
             taux_input.setText("")
-            
-            # Restaurer le style par défaut pour 'ipt' si désactivé
-            if key == 'ipt':
-                # ✅ Remplacer le QLineEdit par un QLabel pour le montant brut
-                new_widget = self._make_brut_readonly(montant_brut)
-                if new_widget:
-                    self.garanties_widgets[key]['montant_brut'] = new_widget
-            
-            # Mettre à jour le total
             self.calculate_total_premium()
+            return
 
-    def update_garantie_price(self, key, state):
-        """
-        Met à jour le prix d'une garantie
-        
-        Args:
-            key: Identifiant de la garantie
-            state: État de la checkbox
-        """
-        if not state:  # Si désactivé
-            return
-        
-        garantie = self.garanties_widgets.get(key)
-        if not garantie:
-            return
-        
+        # ── Activation ──
+        container.setVisible(True)
+        taux_input.setVisible(True)
+        montant_taux.setVisible(True)
+        montant_net.setVisible(True)
+
+        # Taux : TOUJOURS éditable
+        taux_input.setReadOnly(False)
+        taux_input.setEnabled(True)
+        taux_input.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #3498db;
+                border-radius: 8px;
+                padding: 6px 10px;
+                font-size: 12px;
+                max-width: 80px;
+                background-color: #f0f9ff;
+            }
+            QLineEdit:focus {
+                border-color: #2563eb;
+                background-color: #ffffff;
+            }
+        """)
         try:
-            # Calculer le prorata
-            prorata = self.calculate_prorata()
-            
-            # Calculer le montant brut
-            montant_brut = self.calculate_garantie_amount(key, prorata)
-            
-            # Mettre à jour le label du montant brut
-            garantie['montant_brut'].setText(f"{montant_brut:,.0f} FCFA".replace(",", " "))
-            garantie['montant_brut'].setVisible(True)
-            
-            # Activer les autres champs
-            garantie['taux'].setVisible(True)
-            garantie['montant_taux'].setVisible(True)
-            garantie['montant_net'].setVisible(True)
-            
-            # Calculer le montant net initial (sans réduction)
-            self.update_net_amount(key)
-            
-            # Mettre à jour le total
-            self.calculate_total_premium()
-            
-        except Exception as e:
-            print(f"Erreur lors du calcul de la garantie {key}: {e}")
+            taux_input.textChanged.disconnect()
+        except (TypeError, RuntimeError):
+            pass
+        taux_input.textChanged.connect(lambda text, k=key: self.update_net_amount(k))
 
-    def update_net_amount(self, key):
-        """
-        Met à jour le montant net après application du taux
-        
-        Args:
-            key: Identifiant de la garantie
-        """
-        garantie = self.garanties_widgets.get(key)
-        if not garantie:
-            return
-        
-        try:
-            # Récupérer le montant brut
-            brut_text = garantie['montant_brut'].text()
-            brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
-            montant_brut = float(brut_text) if brut_text else 0
-            
-            # Récupérer le taux
-            taux_text = garantie['taux'].text().strip()
-            if taux_text.endswith('%'):
-                taux_text = taux_text[:-1]
-            taux = float(taux_text) if taux_text else 0
-            
-            # Calculer la réduction et le montant net
-            if taux > 0:
-                reduction = montant_brut * (taux / 100)
-                montant_net = montant_brut - reduction
-            else:
-                reduction = 0
-                montant_net = montant_brut
-            
-            # Mettre à jour les labels
-            garantie['montant_taux'].setText(f"{reduction:,.0f} FCFA".replace(",", " "))
-            garantie['montant_net'].setText(f"{montant_net:,.0f} FCFA".replace(",", " "))
-            
-            # Mettre à jour le total
-            self.calculate_total_premium()
-            
-        except Exception as e:
-            print(f"Erreur lors de la mise à jour du net pour {key}: {e}")
+        # Montant brut : IPT = input, autres = label
+        if key == 'ipt':
+            label.hide()
+            input_w.show()
 
+            try:
+                input_w.textChanged.disconnect()
+            except (TypeError, RuntimeError):
+                pass
+            try:
+                input_w.editingFinished.disconnect()
+            except (TypeError, RuntimeError):
+                pass
+            input_w.textChanged.connect(
+                lambda text, k=key: self._on_ipt_brut_changed(k, text)
+            )
+            input_w.editingFinished.connect(
+                lambda k=key, w=input_w: self._format_brut_on_finish(k, w)
+            )
+        else:
+            input_w.hide()
+            label.show()
+
+        self.update_garantie_price(key, state)
+    
     def calculate_total_premium(self):
         """
         Calcule le total des primes (brut, net, réduction)
@@ -3594,10 +3668,11 @@ class VehicleForm(QDialog):
             total_reduction = 0
             
             for key, garantie in self.garanties_widgets.items():
-                # Vérifier si la garantie est active
                 if garantie['checkbox'].isChecked():
-                    # Brut
-                    brut_text = garantie['montant_brut'].text()
+                    if key == 'ipt':
+                        brut_text = garantie['montant_brut_input'].text() or "0"
+                    else:
+                        brut_text = garantie['montant_brut_label'].text() or "0 FCFA"
                     brut_text = brut_text.replace(" FCFA", "").replace(" ", "").replace(",", ".")
                     montant_brut = float(brut_text) if brut_text else 0
                     total_brut += montant_brut
@@ -3847,6 +3922,7 @@ class VehicleForm(QDialog):
                     border-color: #3498db;
                 }
             """)
+            
             checkbox.stateChanged.connect(lambda state, k=key: self.handle_garantie_click(k, state))
             setattr(self, f"check_{key}", checkbox)
             garanties_layout.addWidget(checkbox, row, 0)
@@ -3857,29 +3933,31 @@ class VehicleForm(QDialog):
             garanties_layout.addWidget(code_label, row, 1)
             
             # Montant brut
-            montant_brut = QLabel("0 FCFA")
-            montant_brut.setStyleSheet("""
-                color: #27ae60;
-                font-weight: bold;
-                padding: 4px 8px;
-                border-radius: 6px;
-            """)
-            montant_brut.setVisible(False)
-            garanties_layout.addWidget(montant_brut, row, 2)
+            # montant_brut = QLabel("0 FCFA")
+            # montant_brut.setStyleSheet("""
+            #     color: #27ae60;
+            #     font-weight: bold;
+            #     padding: 4px 8px;
+            #     border-radius: 6px;
+            # """)
+            # montant_brut.setVisible(False)
+            # garanties_layout.addWidget(montant_brut, row, 2)
             
-            # Taux
+            # # Taux
             taux_input = QLineEdit()
             taux_input.setPlaceholderText("0")
             taux_input.setStyleSheet("""
                 QLineEdit {
-                    border: 2px solid #e2e8f0;
+                    border: 2px solid #3498db;
                     border-radius: 8px;
                     padding: 6px 10px;
                     font-size: 12px;
                     max-width: 80px;
+                    background-color: #f0f9ff;
                 }
                 QLineEdit:focus {
-                    border-color: #3498db;
+                    border-color: #2563eb;
+                    background-color: #ffffff;
                 }
             """)
             taux_input.setVisible(False)
@@ -3897,6 +3975,7 @@ class VehicleForm(QDialog):
             montant_taux.setVisible(False)
             garanties_layout.addWidget(montant_taux, row, 4)
             
+            
             # Montant net
             montant_net = QLabel("0 FCFA")
             montant_net.setStyleSheet("""
@@ -3908,13 +3987,67 @@ class VehicleForm(QDialog):
             montant_net.setVisible(False)
             garanties_layout.addWidget(montant_net, row, 5)
             
+            # # Stocker les références
+            # self.garanties_widgets[key] = {
+            #     'checkbox': checkbox,
+            #     'montant_brut': montant_brut,
+            #     'taux': taux_input,
+            #     'montant_taux': montant_taux,
+            #     'montant_net': montant_net
+            # }
+
+            # ── Montant brut : label + input dans un container ──
+            montant_brut_label = QLabel("0 FCFA")
+            montant_brut_label.setStyleSheet("""
+                color: #27ae60;
+                font-weight: bold;
+                padding: 4px 8px;
+                border-radius: 6px;
+            """)
+            montant_brut_label.setAlignment(Qt.AlignRight)
+
+            montant_brut_input = QLineEdit("0")
+            montant_brut_input.setAlignment(Qt.AlignRight)
+            montant_brut_input.setStyleSheet("""
+                QLineEdit {
+                    border: 2px solid #3498db;
+                    border-radius: 8px;
+                    padding: 6px 10px;
+                    font-size: 13px;
+                    max-width: 140px;
+                    background-color: #f0f9ff;
+                    color: #1e40af;
+                    font-weight: bold;
+                }
+                QLineEdit:focus {
+                    border-color: #2563eb;
+                    background-color: #ffffff;
+                }
+            """)
+            montant_brut_input.setToolTip("Modifier le montant brut de l'IPT")
+
+            # Container : les deux widgets cohabitent, on en affiche un seul
+            montant_brut_container = QWidget()
+            montant_brut_container.setStyleSheet("background: transparent;")
+            container_layout = QHBoxLayout(montant_brut_container)
+            container_layout.setContentsMargins(0, 0, 0, 0)
+            container_layout.setSpacing(0)
+            container_layout.addWidget(montant_brut_label)
+            container_layout.addWidget(montant_brut_input)
+            montant_brut_input.hide()  # Par défaut, seul le label est visible
+            montant_brut_container.setVisible(False)
+
+            garanties_layout.addWidget(montant_brut_container, row, 2)
+
             # Stocker les références
             self.garanties_widgets[key] = {
                 'checkbox': checkbox,
-                'montant_brut': montant_brut,
+                'montant_brut_container': montant_brut_container,
+                'montant_brut_label': montant_brut_label,
+                'montant_brut_input': montant_brut_input,
                 'taux': taux_input,
                 'montant_taux': montant_taux,
-                'montant_net': montant_net
+                'montant_net': montant_net,
             }
         
         content_layout.addWidget(group_garanties)
@@ -4021,115 +4154,7 @@ class VehicleForm(QDialog):
         if cc <= 625:
             return "501-625"
         return ">625"
-
-    # def calculate_rc_brut(self) -> float:
-    #     """
-    #     Calcule le montant brut de la RC SANS passer par la BDD.
-    #     Les montants du recueil ASAC sont exprimés en milliers de FCFA,
-    #     on multiplie par 1000 pour obtenir le montant réel.
-    #     """
-    #     from addons.Automobiles.views.tarifs_rc import TARIFS_RC, MAPPING_CATEGORIE_VERS_TARIF
-
-    #     try:
-    #         # ─── Récupération des paramètres saisis ───
-    #         code_tarif = (self.code_tarif.currentText().strip()
-    #                     if hasattr(self, 'code_tarif') else "")
-    #         categorie = (self.combo_cat.currentData()
-    #                     or self.combo_cat.currentText().strip()
-    #                     if hasattr(self, 'combo_cat') else "")
-    #         zone = (self.combo_zone.currentData()
-    #                 or self.combo_zone.currentText().strip()[-1:]
-    #                 if hasattr(self, 'combo_zone') else "A")
-    #         energie = (self.combo_energie.currentData()
-    #                 or self.combo_energie.currentText().strip()
-    #                 if hasattr(self, 'combo_energie') else "SEE")
-    #         cv = self.get_int_value(self.usage_input)
-    #         cylindree = self.get_int_value(getattr(self, 'cylindree_input', None))
-    #         places = self.get_int_value(self.places_input)
-    #         avec_remorque = (self.check_remorque.isChecked()
-    #                         if hasattr(self, 'check_remorque') else False)
-
-    #         # Normalisation
-    #         zone = zone.upper() if zone else "A"
-    #         if zone not in ("A", "B", "C"):
-    #             zone = "A"
-    #         energie = "diesel" if energie in ("SED", "SEL", "SEHY") or "DIESEL" in energie.upper() else "essence"
-
-    #         # ─── Choix du tarif ───
-    #         tarif_key = None
-    #         if code_tarif:
-    #             for k in TARIFS_RC.keys():
-    #                 if k.lower() == code_tarif.lower():
-    #                     tarif_key = k
-    #                     break
-    #         if not tarif_key:
-    #             tarif_key = MAPPING_CATEGORIE_VERS_TARIF.get(categorie, "I")
-
-    #         tarif = TARIFS_RC.get(tarif_key)
-    #         if not tarif:
-    #             return 0.0
-
-    #         montant = 0.0
-
-    #         # ─── Tarif I / II / III : CV + énergie ───
-    #         if tarif_key in ("I", "II", "III"):
-    #             cv_key = self._cv_to_intervalle(cv)
-    #             zone_data = tarif.get(zone, {})
-    #             ligne = zone_data.get(cv_key)
-    #             if not ligne:
-    #                 return 0.0
-
-    #             if tarif_key == "I":
-    #                 sous_cle = "avec_remorque" if avec_remorque else "sans_remorque"
-    #                 montant = float(ligne.get(sous_cle, {}).get(energie, 0.0))
-    #             else:
-    #                 montant = float(ligne.get(energie, 0.0))
-
-    #         # ─── Tarif IV BIS : nombre de places ───
-    #         elif tarif_key == "IV_BIS":
-    #             zone_data = tarif.get(zone, {})
-    #             cle_places = "9-19" if places <= 19 else str(places)
-    #             montant = float(zone_data.get(cle_places, 0.0))
-
-    #         # ─── Tarif V / VII : cylindrée ───
-    #         elif tarif_key in ("V", "VII"):
-    #             cc_key = self._cylindree_to_intervalle(cylindree)
-    #             montant = float(tarif.get(zone, {}).get(cc_key, 0.0))
-
-    #         # ─── Tarif VI : garagistes ───
-    #         elif tarif_key == "VI":
-    #             nombre_cartes = 1
-    #             zone_data = tarif.get(zone, {})
-    #             sous_cle = "<50" if cylindree < 50 else ">50"
-    #             montant = float(zone_data.get(nombre_cartes, {}).get(sous_cle, 0.0))
-
-    #         # ─── Tarif VIII : location ───
-    #         elif tarif_key == "VIII":
-    #             cv_key = self._cv_to_intervalle(cv)
-    #             sous_cle = "cat1"
-    #             montant = float(tarif.get(zone, {}).get(cv_key, {}).get(sous_cle, 0.0))
-
-    #         # ─── Tarif IX : engins ───
-    #         elif tarif_key == "IX":
-    #             cv_key = self._cv_to_intervalle(cv)
-    #             sous_cle = "avec_remorque" if avec_remorque else "sans_remorque"
-    #             montant = float(tarif.get(zone, {}).get(cv_key, {}).get(sous_cle, 0.0))
-
-    #         # ─── Tarif X : ambulances, collectivités ───
-    #         elif tarif_key == "X":
-    #             cv_key = self._cv_to_intervalle(cv)
-    #             sous_cle = "ambulances"
-    #             montant = float(tarif.get(zone, {}).get(cv_key, {}).get(sous_cle, 0.0))
-
-    #         # ─── Conversion milliers → FCFA ───
-    #         return montant * 1000.0
-
-    #     except Exception as e:
-    #         print(f"❌ Erreur calculate_rc_brut : {e}")
-    #         import traceback
-    #         traceback.print_exc()
-    #         return 0.0
-    
+   
     def _create_financial_tab(self):
         """Crée l'onglet financier avec ScrollArea"""
         tab = QWidget()
@@ -4314,8 +4339,8 @@ class VehicleForm(QDialog):
         # ============================================================
         # NOUVEAU : Exonéré de DTA
         # ============================================================
-        recap_layout.addWidget(self._create_label("🛡️", "Exonéré de DTA"), 6, 0)
-        self.check_exonere_dta = QCheckBox("Exonéré de DTA")
+        recap_layout.addWidget(self._create_label("🛡️", "Appliquer la DTA"), 6, 0)
+        self.check_exonere_dta = QCheckBox("Appliquer la DTA")
         self.check_exonere_dta.setStyleSheet("""
             QCheckBox {
                 font-size: 13px;
@@ -4478,5 +4503,82 @@ class VehicleForm(QDialog):
 
         if current_value:
             self.combo_cat.setCurrentText(current_value)
+
+    def display_fleet_details(self, row):
+        """ Afficher les informations sur la flotte """
+        if row < 0:
+            return
+        
+        item = self.fleet_list.currentItem()
+        if not item or not item.data(Qt.UserRole):
+            return
+
+        fleet = item.data(Qt.UserRole)
+        self.fleet_selcted_id = fleet.id
+
+        name = f"{fleet.nom_flotte} {fleet.code_flotte}"
+        self.lbl_fleet_name.setText(name)
+
+        info = f""" Type: {fleet.assureur}
+            Compagnie: {fleet.compagnie or 'N/A'}
+            prime_totale : {fleet.total_pttc or 'N/A'}
+            date_debut : {fleet.date_debut}
+            date_fin : {fleet.date_fin}"""
+        self.lbl_fleet_info.setText(info)
+
+        # initials = f"{fleet.nom_flotte[0]}{fleet.code_flotte[0] if fleet.code_flotte else ''}".upper()
+        # self.fleet_photo.setText(initials)
+        # self.fleet_photo.setStyleSheet(f"""
+        #     font-size: 24px;
+        #     color: {Colors.WHITE};
+        #     background: transparent;
+        # """)
+
+    def filter_fleets(self, text):
+            """Filtre les flottes selon la recherche"""
+            self.fleet_list.clear()
+            if len(text) < 2:
+                item = QListWidgetItem("🔍 Saisissez au moins 2 caractères")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.fleet_list.addItem(item)
+                return
+            
+            try:
+                fleets = self.controller.fleets.search_fleets(text)
+                if not fleets:
+                    item = QListWidgetItem("Aucune flotte trouvée")
+                    item.setFlags(Qt.ItemFlag.NoItemFlags)
+                    self.fleet_list.addItem(item)
+                    return
+                
+                for fleet in fleets:
+                    display = f"{fleet.nom_flotte} {fleet.code_flotte or ''} - {fleet.total_pttc or ''}"
+                    item = QListWidgetItem(display)
+                    item.setData(Qt.UserRole, fleet)
+                    self.fleet_list.addItem(item)
+            except Exception as e:
+                print(f"Erreur filtrage flottes: {e}")
+                item = QListWidgetItem(f"Erreur: {str(e)}")
+                item.setFlags(Qt.ItemFlag.NoItemFlags)
+                self.fleet_list.addItem(item)
+
+    def _open_new_fleet_dialog(self):
+            """Ouvre le dialogue de création d'une nouvelle flotte"""
+            try:
+                from addons.Automobiles.views.flotte_form_view import FleetForm
+                
+                dialog = FleetForm(self.controller, current_user=self.current_user)
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    if hasattr(self, 'search_customer'):
+                        self.filter_customers(self.search_customer.text())
+                    if hasattr(self, 'search_insured'):
+                        self.filter_insured(self.search_insured.text())
+                    QMessageBox.information(self, "Succès", "Flotte créée avec succès")
+            except ImportError:
+                QMessageBox.information(self, "Nouvelle flotte", 
+                    "Veuillez créer la flotte depuis l'onglet 'Flottes'")
+            except Exception as e:
+                QMessageBox.warning(self, "Erreur", f"Erreur lors de la création: {str(e)}")
+    
 
     

@@ -38,12 +38,12 @@ class Contrat(Base):
     numero_police = Column(String(50), unique=True, nullable=False)
 
     # --- Finances ---
-    prime_pure = Column(Float, default=0.0)
-    accessoires = Column(Float, default=0.0)
-    taxes_totales = Column(Float, default=0.0)
-    commission_intermediaire = Column(Float, default=0.0)
-    prime_totale_ttc = Column(Float, default=0.0)
-    montant_paye = Column(Float, default=0.0)
+    prime_pure = Column(Integer, default=0.0)
+    accessoires = Column(Integer, default=0.0)
+    taxes_totales = Column(Integer, default=0.0)
+    commission_intermediaire = Column(Integer, default=0.0)
+    prime_totale_ttc = Column(Integer, default=0.0)
+    montant_paye = Column(Integer, default=0.0)
     statut_paiement = Column(String(20), default="NON_PAYE")
     
     

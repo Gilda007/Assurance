@@ -33,7 +33,7 @@ class BatchPrintDialog(QDialog):
         layout.addWidget(header)
         
         # Description
-        desc = QLabel("Cochez les documents que vous souhaitez générer pour chaque véhicule sélectionné.")
+        desc = QLabel("Cochez les documents à traiter pour chaque véhicule. Le mode de sortie sera demandé ensuite.")
         desc.setStyleSheet("color: #64748b; font-size: 12px; margin-bottom: 10px;")
         layout.addWidget(desc)
         
@@ -89,7 +89,7 @@ class BatchPrintDialog(QDialog):
         layout.addWidget(group)
         
         # Information
-        info = QLabel("ℹ️ Les documents seront générés un par un et ouverts automatiquement.")
+        info = QLabel("ℹ️ Vous pourrez exporter tous les documents en PDF dans un dossier ou lancer l'impression papier.")
         info.setStyleSheet("color: #64748b; font-size: 11px; margin-top: 5px;")
         layout.addWidget(info)
         

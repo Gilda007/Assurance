@@ -4,13 +4,14 @@ Vue détaillée d'un contact avec onglets modernes
 """
 
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
+    QComboBox, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QTabWidget, QTableWidget, QTableWidgetItem,
     QHeaderView, QMessageBox, QScrollArea, QGridLayout,
-    QDialog, QGraphicsDropShadowEffect, QApplication
+    QDialog, QGraphicsDropShadowEffect, QApplication, QLineEdit, QCheckBox
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QFont, QColor
+import qtawesome as qta
 from addons.Automobiles.views.automobile_form_view import VehicleForm
 from addons.Automobiles.views.flotte_form_view import FleetForm
 
@@ -98,11 +99,26 @@ class ContactDetailView(QDialog):
             }
         """)
 
-        self.tab_widget.addTab(self._create_info_tab(), "👤  Informations")
-        self.tab_widget.addTab(self._create_contrats_tab(), "📄  Contrats")
-        self.tab_widget.addTab(self._create_vehicules_tab(), "🚗  Véhicules")
-        self.tab_widget.addTab(self._create_flottes_tab(), "🚛  Flottes")
-        self.tab_widget.addTab(self._create_documents_tab(), "📎  Documents")
+        self.tab_widget.addTab(
+            self._create_info_tab(),
+            qta.icon('mdi.account', color='#2563eb'), "Informations"
+        )
+        self.tab_widget.addTab(
+            self._create_contrats_tab(),
+            qta.icon('mdi.file-document', color='#64748b'), "Contrats"
+        )
+        self.tab_widget.addTab(
+            self._create_vehicules_tab(),
+            qta.icon('mdi.car', color='#64748b'), "Véhicules"
+        )
+        self.tab_widget.addTab(
+            self._create_flottes_tab(),
+            qta.icon('mdi.truck', color='#64748b'), "Flottes"
+        )
+        self.tab_widget.addTab(
+            self._create_documents_tab(),
+            qta.icon('mdi.paperclip', color='#64748b'), "Documents"
+        )
 
         content_layout.addWidget(self.tab_widget)
 
@@ -113,147 +129,179 @@ class ContactDetailView(QDialog):
         main_layout.addWidget(content_widget)
 
     def _create_header(self):
-        """Crée l'en-tête"""
+        """Crée l'en-tête fidèle à la maquette avec icônes qtawesome"""
         header = QFrame()
-        header.setFixedHeight(140)
+        header.setFixedHeight(160)
         header.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #ffffff, stop:1 #f8fafc);
+                background: white;
+                border-bottom: 1px solid #e2e8f0;
             }
         """)
 
-        layout = QHBoxLayout(header)
+        layout = QVBoxLayout(header)
         layout.setContentsMargins(40, 20, 40, 20)
+        layout.setSpacing(15)
 
-        # ✅ Récupérer le nom correctement selon le type
-        if self.source_type == 'driver':
-            nom = getattr(self.real_contact, 'nom', '')
-            prenom = getattr(self.real_contact, 'prenom', '')
-        else:
-            nom = getattr(self.real_contact, 'nom', '')
-            prenom = getattr(self.real_contact, 'prenom', '')
-        
-        name = f"{nom} {prenom}".strip()
-        title = QLabel(name or "Contact sans nom")
+        # 1. Fil d'Ariane
+        breadcrumb = QLabel("Gestion des Clients / Fiches contacts")
+        breadcrumb.setStyleSheet("color: #64748b; font-size: 13px; background: transparent;")
+        layout.addWidget(breadcrumb)
 
-        # Avatar
+        # 2. Ligne principale (Avatar + Nom + Infos + Code)
+        main_row = QHBoxLayout()
+        main_row.setSpacing(24)
+
+        # ============================
+        # AVATAR
+        # ============================
         avatar = QLabel()
-        avatar.setFixedSize(80, 80)
+        avatar.setFixedSize(90, 90)
         avatar.setAlignment(Qt.AlignCenter)
-        if self.source_type == 'driver':
-            nom = getattr(self.real_contact, 'driver_name', 'Chauffeur')
-            prenom = ''
-        else:
-            nom = getattr(self.real_contact, 'nom', 'Contact')
-            prenom = getattr(self.real_contact, 'prenom', '')
 
+        nom = getattr(self.real_contact, 'nom', 'Contact')
+        prenom = getattr(self.real_contact, 'prenom', '')
         initials = (nom[0].upper() if nom else "C")
         if prenom:
             initials += prenom[0].upper()
-        avatar.setText(initials or "C")
+
+        avatar.setText(initials)
         avatar.setStyleSheet("""
             font-size: 32px;
             font-weight: bold;
             color: white;
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                stop:0 #2563eb, stop:1 #7c3aed);
-            border-radius: 40px;
+                stop:0 #4f46e5, stop:1 #7c3aed);
+            border-radius: 45px;
         """)
+        main_row.addWidget(avatar)
 
-        # Infos
-        info_container = QVBoxLayout()
-        info_container.setSpacing(6)
+        # ============================
+        # INFOS CONTACT
+        # ============================
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(8)
 
-        if self.source_type == 'driver':
-            nom = getattr(self.real_contact, 'driver_name', 'Chauffeur')
-            prenom = ''
-        else:
-            nom = getattr(self.real_contact, 'nom', 'Contact')
-            prenom = getattr(self.real_contact, 'prenom', '')
-        name = QLabel(f"{nom} {prenom}".strip() or "Contact sans nom")
-        name.setStyleSheet("font-size: 24px; font-weight: 700; color: #0f172a;")
+        # Ligne Nom + Badge
+        name_row = QHBoxLayout()
+        name_row.setSpacing(10)
 
-        # Badges
-        badges = QHBoxLayout()
-        badges.setSpacing(8)
-
-        # ✅ Type badge
-        type_text = self.source_type.capitalize()
-        type_badge = QLabel(type_text)
-        type_badge.setStyleSheet("""
-            background: #dbeafe;
-            color: #1d4ed8;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
+        name_lbl = QLabel(f"{nom} {prenom}".strip())
+        name_lbl.setStyleSheet("""
+            font-size: 26px;
+            font-weight: 800;
+            color: #0f172a;
+            background: transparent;
         """)
+        name_row.addWidget(name_lbl)
 
-        # ✅ Statut badge - utiliser real_contact
-        if self.source_type == 'driver':
-            status_text = "Actif"
-        else:
-            status_text = getattr(self.real_contact, 'statut', 'Actif') or 'Actif'
-
-        status_badge = QLabel(status_text)
+        # Badge Statut avec icône check
+        status_text = getattr(self.real_contact, 'statut', 'Actif') or 'Actif'
+        status_badge = QLabel(f"  {status_text}")
+        status_badge.setPixmap(qta.icon('mdi.check-circle', color='white').pixmap(12, 12))
         status_badge.setStyleSheet("""
-            background: #dcfce7;
-            color: #15803d;
+            background: #10b981;
+            color: white;
             padding: 4px 12px;
-            border-radius: 20px;
+            border-radius: 12px;
             font-size: 11px;
             font-weight: 600;
         """)
+        name_row.addWidget(status_badge)
+        name_row.addStretch()
+        info_layout.addLayout(name_row)
 
-        badges.addWidget(type_badge)
-        badges.addWidget(status_badge)
+        # Ligne Téléphone + Email
+        contact_row = QHBoxLayout()
+        contact_row.setSpacing(8)
 
-        # Contact rapide
-        contact_info = QHBoxLayout()
-        contact_info.setSpacing(20)
-        
-        phone = getattr(self.real_contact, 'telephone', 'Tél. non renseigné')
-        phone_label = QLabel(f"📞 {phone or 'Tél. non renseigné'}")
-        phone_label.setStyleSheet("color: #475569; font-size: 13px;")
-        
-        email = getattr(self.real_contact, 'email', 'Email non renseigné')
-        email_label = QLabel(f"✉️ {email or 'Email non renseigné'}")
-        email_label.setStyleSheet("color: #475569; font-size: 13px;")
-        
-        contact_info.addWidget(phone_label)
-        contact_info.addWidget(email_label)
+        phone = getattr(self.real_contact, 'telephone', None) or "Non renseigné"
+        phone_icon = QLabel()
+        phone_icon.setPixmap(qta.icon('mdi.phone', color='#475569').pixmap(16, 16))
+        phone_icon.setStyleSheet("background: transparent;")
+        phone_lbl = QLabel(phone)
+        phone_lbl.setStyleSheet("color: #475569; font-size: 14px; background: transparent;")
 
-        info_container.addLayout(contact_info)
+        email = getattr(self.real_contact, 'email', None) or "Non renseigné"
+        email_icon = QLabel()
+        email_icon.setPixmap(qta.icon('mdi.email-outline', color='#475569').pixmap(16, 16))
+        email_icon.setStyleSheet("background: transparent;")
+        email_lbl = QLabel(email)
+        email_lbl.setStyleSheet("color: #475569; font-size: 14px; background: transparent;")
 
-        layout.addWidget(avatar)
-        layout.addSpacing(20)
-        layout.addLayout(info_container)
-        layout.addStretch()
+        contact_row.addWidget(phone_icon)
+        contact_row.addWidget(phone_lbl)
+        contact_row.addSpacing(20)
+        contact_row.addWidget(email_icon)
+        contact_row.addWidget(email_lbl)
+        contact_row.addStretch()
+        info_layout.addLayout(contact_row)
 
-        # Code client
+        main_row.addLayout(info_layout)
+        main_row.addStretch()
+
+        # ============================
+        # CODE CLIENT + BOUTON COPIER
+        # ============================
         code_container = QFrame()
         code_container.setStyleSheet("""
             QFrame {
                 background: #f1f5f9;
                 border-radius: 12px;
-                padding: 8px 20px;
+                padding: 12px 20px;
             }
         """)
         code_layout = QVBoxLayout(code_container)
-        code_layout.setSpacing(2)
-        
-        code_label = QLabel("CODE CLIENT")
-        code_label.setStyleSheet("color: #64748b; font-size: 10px; font-weight: 600;")
-        
-        code_value = QLabel(f"LMT-CLT-0000{self.contact.id}" or "NON ATTRIBUÉ")
-        code_value.setStyleSheet("color: #1e293b; font-size: 16px; font-weight: 700;")
-        
-        code_layout.addWidget(code_label)
-        code_layout.addWidget(code_value)
+        code_layout.setSpacing(4)
 
-        layout.addWidget(code_container)
+        code_title = QLabel("CODE CLIENT")
+        code_title.setStyleSheet("""
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            background: transparent;
+        """)
 
+        code_row = QHBoxLayout()
+        code_row.setSpacing(8)
+
+        code_val = QLabel(f"LMT-CLT-{self.real_contact.id:05d}")
+        code_val.setStyleSheet("""
+            color: #0f172a;
+            font-size: 18px;
+            font-weight: 800;
+            background: transparent;
+        """)
+
+        btn_copy = QPushButton()
+        btn_copy.setIcon(qta.icon('mdi.content-copy', color='#64748b'))
+        btn_copy.setIconSize(QSize(16, 16))
+        btn_copy.setFixedSize(24, 24)
+        btn_copy.setCursor(Qt.PointingHandCursor)
+        btn_copy.setToolTip("Copier le code client")
+        btn_copy.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                border: none;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background: #e2e8f0;
+            }
+        """)
+        btn_copy.clicked.connect(lambda: QApplication.clipboard().setText(code_val.text()))
+
+        code_row.addWidget(code_val)
+        code_row.addWidget(btn_copy)
+        code_row.addStretch()
+
+        code_layout.addWidget(code_title)
+        code_layout.addLayout(code_row)
+
+        main_row.addWidget(code_container)
+
+        layout.addLayout(main_row)
         return header
 
     def _create_summary_cards(self):
@@ -262,10 +310,10 @@ class ContactDetailView(QDialog):
         layout.setSpacing(16)
 
         cards = [
-            ("📄", "Contrats", "0", "#3b82f6"),
-            ("🚗", "Véhicules", "0", "#10b981"),
-            ("🚛", "Flottes", "0", "#8b5cf6"),
-            ("💰", "Primes totales", "0 FCFA", "#f59e0b")
+            ("mdi.file-document-outline", "Contrats",       "0", "#3b82f6"),
+            ("mdi.car",                   "Véhicules",      "0", "#10b981"),
+            ("mdi.truck",                 "Flottes",        "0", "#8b5cf6"),
+            ("mdi.cash-multiple",         "Primes totales", "0 FCFA", "#f59e0b"),
         ]
 
         self.summary_labels = {}
@@ -278,64 +326,55 @@ class ContactDetailView(QDialog):
         layout.addStretch()
         return layout
 
-    def _create_card(self, icon, label, value, color):
-        """Crée une carte individuelle"""
+    def _create_card(self, icon_name, label, value, color):
         card = QFrame()
-        card.setFixedHeight(90)
-        card.setStyleSheet(f"""
-            QFrame {{
+        card.setFixedHeight(100)
+        bg_colors = {
+            "#3b82f6": "#eff6ff",
+            "#10b981": "#ecfdf5",
+            "#8b5cf6": "#f5f3ff",
+            "#f59e0b": "#fffbeb",
+        }
+        bg_color = bg_colors.get(color, "#f8fafc")
+
+        card.setStyleSheet("""
+            QFrame {
                 background: white;
                 border-radius: 16px;
-            }}
+                border: 1px solid #f1f5f9;
+            }
         """)
-        
+
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(15)
-        shadow.setColor(QColor(0, 0, 0, 20))
-        shadow.setOffset(0, 2)
+        shadow.setColor(QColor(0, 0, 0, 15))
+        shadow.setOffset(0, 4)
         card.setGraphicsEffect(shadow)
 
         layout = QHBoxLayout(card)
         layout.setContentsMargins(20, 15, 20, 15)
         layout.setSpacing(15)
 
-        # Icône
         icon_bg = QFrame()
         icon_bg.setFixedSize(50, 50)
-        icon_bg.setStyleSheet(f"""
-            QFrame {{
-                background: {color}10;
-                border-radius: 14px;
-            }}
-        """)
+        icon_bg.setStyleSheet(f"background: {bg_color}; border-radius: 12px;")
         icon_layout = QVBoxLayout(icon_bg)
         icon_layout.setAlignment(Qt.AlignCenter)
-        icon_lbl = QLabel(icon)
-        icon_lbl.setStyleSheet(f"font-size: 22px;")
+
+        icon_lbl = QLabel()
+        icon_lbl.setPixmap(qta.icon(icon_name, color=color).pixmap(24, 24))
+        icon_lbl.setStyleSheet("background: transparent;")
         icon_layout.addWidget(icon_lbl)
 
-        # Texte
         text_layout = QVBoxLayout()
-        text_layout.setSpacing(4)
+        text_layout.setSpacing(2)
 
-        # ⚠️ IMPORTANT: Définir l'objectName avec la bonne clé
         value_lbl = QLabel(value)
-        # Nettoyer la clé : enlever les accents, remplacer les espaces par des underscores
-        clean_label = label.lower().replace(" ", "_").replace("é", "e").replace("è", "e").replace("ê", "e")
-        value_lbl.setObjectName(f"summary_{clean_label}")
-        value_lbl.setStyleSheet(f"""
-            font-size: 22px;
-            font-weight: 800;
-            color: {color};
-        """)
+        value_lbl.setObjectName(f"summary_{label.lower().replace(' ', '_')}")
+        value_lbl.setStyleSheet(f"font-size: 24px; font-weight: 800; color: {color}; background: transparent;")
 
         title_lbl = QLabel(label.upper())
-        title_lbl.setStyleSheet("""
-            font-size: 10px;
-            color: #64748b;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        """)
+        title_lbl.setStyleSheet("font-size: 11px; color: #64748b; font-weight: 600; letter-spacing: 0.5px; background: transparent;")
 
         text_layout.addWidget(value_lbl)
         text_layout.addWidget(title_lbl)
@@ -343,7 +382,6 @@ class ContactDetailView(QDialog):
         layout.addWidget(icon_bg)
         layout.addLayout(text_layout)
         layout.addStretch()
-
         return card
 
     def _create_info_tab(self):
@@ -555,12 +593,13 @@ class ContactDetailView(QDialog):
         return tab
 
     def _create_vehicules_tab(self):
-        """Onglet véhicules avec boutons d'import et création"""
+        """Onglet véhicules fidèle à la maquette"""
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
 
-        # Barre d'outils
+        # ─── BARRE D'OUTILS ───
         toolbar = QFrame()
         toolbar.setStyleSheet("""
             QFrame {
@@ -570,101 +609,204 @@ class ContactDetailView(QDialog):
             }
         """)
         toolbar_layout = QHBoxLayout(toolbar)
-        toolbar_layout.setContentsMargins(15, 10, 15, 10)
+        toolbar_layout.setContentsMargins(16, 10, 16, 10)
+        toolbar_layout.setSpacing(12)
 
-        title = QLabel("🚗 Véhicules du client")
-        title.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b;")
 
-        toolbar_layout.addWidget(title)
+        title_icon = QLabel()
+        title_icon.setPixmap(qta.icon('mdi.car', color='#0f172a').pixmap(18, 18))
+        title_icon.setStyleSheet("background: transparent;")
+        title = QLabel("Véhicules du client")
+        title.setStyleSheet("font-size: 15px; font-weight: 700; color: #0f172a; background: transparent;")
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+        title_row.addWidget(title_icon)
+        title_row.addWidget(title)
+        toolbar_layout.addLayout(title_row)
         toolbar_layout.addStretch()
 
-        # Bouton Nouveau véhicule
-        self.btn_new_vehicle = QPushButton("+ Nouveau véhicule")
-        self.btn_new_vehicle.setCursor(Qt.PointingHandCursor)
-        self.btn_new_vehicle.setStyleSheet("""
-            QPushButton {
-                background-color: #3b82f6;
-                color: white;
-                border: none;
+        # Barre de recherche
+        self.search_vehicle_input = QLineEdit()
+        self.search_vehicle_input.setPlaceholderText("Rechercher un véhicule...")
+        self.search_vehicle_input.setFixedWidth(250)
+        self.search_vehicle_input.setStyleSheet("""
+            QLineEdit {
+                border: 1px solid #e2e8f0;
                 border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: 600;
-                font-size: 12px;
+                padding: 8px 12px;
+                background: #f8fafc;
+                font-size: 13px;
             }
-            QPushButton:hover {
-                background-color: #2563eb;
-            }
+            QLineEdit:focus { border-color: #3b82f6; background: white; }
         """)
-        self.btn_new_vehicle.clicked.connect(self._on_new_vehicle)
+        self.search_vehicle_input.textChanged.connect(self._apply_vehicle_filters)
+        toolbar_layout.addWidget(self.search_vehicle_input)
 
-        # ⭐ NOUVEAU: Bouton Impression groupée
-        self.btn_batch_print = QPushButton("🖨️ Impression groupée")
+        #filtrage par flotte
+        self.search_flotte_input = QComboBox()
+        self.search_flotte_input.setPlaceholderText("Filtrage par flotte")
+        self.search_flotte_input.setFixedWidth(250)
+        self.search_flotte_input.setStyleSheet("""
+            QComboBox {
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 8px 12px;
+                background: #f8fafc;
+                font-size: 13px;
+            }
+            QComboBox:focus { border-color: #3b82f6; background: white; }
+        """)
+        self.search_flotte_input.currentIndexChanged.connect(self._apply_vehicle_filters)
+        toolbar_layout.addWidget(self.search_flotte_input)
+
+        # Bouton Nouveau (Bleu)
+        btn_new = QPushButton("  Nouveau véhicule")
+        btn_new.setIcon(qta.icon('mdi.plus', color='white'))
+        btn_new.setIconSize(QSize(16, 16))
+        btn_new.setCursor(Qt.PointingHandCursor)
+        btn_new.setStyleSheet("""
+            QPushButton {
+                background: #3b82f6; color: white; border: none;
+                border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px;
+            }
+            QPushButton:hover { background: #2563eb; }
+        """)
+        btn_new.clicked.connect(self._on_new_vehicle)
+        toolbar_layout.addWidget(btn_new)
+
+        # Bouton Impression groupée (Gris)
+        self.btn_batch_print = QPushButton("  Impression groupée")
+        self.btn_batch_print.setIcon(qta.icon('mdi.printer', color='#475569'))
+        self.btn_batch_print.setIconSize(QSize(16, 16))
         self.btn_batch_print.setCursor(Qt.PointingHandCursor)
-        self.btn_batch_print.setEnabled(False)  # Désactivé par défaut
+        self.btn_batch_print.setEnabled(False)
         self.btn_batch_print.setStyleSheet("""
             QPushButton {
-                background-color: #8b5cf6;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: 600;
-                font-size: 12px;
+                background: white; color: #475569; border: 1px solid #e2e8f0;
+                border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px;
             }
-            QPushButton:hover {
-                background-color: #7c3aed;
-            }
-            QPushButton:disabled {
-                background-color: #cbd5e1;
-            }
+            QPushButton:hover { background: #f8fafc; }
+            QPushButton:disabled { background: #f1f5f9; color: #94a3b8; }
         """)
         self.btn_batch_print.clicked.connect(self._on_batch_print)
-
-        # Bouton Importer
-        self.btn_import_vehicle = QPushButton("📥 Importer")
-        self.btn_import_vehicle.setCursor(Qt.PointingHandCursor)
-        self.btn_import_vehicle.setStyleSheet("""
-            QPushButton {
-                background-color: #10b981;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: 600;
-                font-size: 12px;
-            }
-            QPushButton:hover {
-                background-color: #059669;
-            }
-        """)
-        self.btn_import_vehicle.clicked.connect(self._on_import_vehicle)
-
-        toolbar_layout.addWidget(self.btn_new_vehicle)
         toolbar_layout.addWidget(self.btn_batch_print)
-        toolbar_layout.addWidget(self.btn_import_vehicle)
+
+        # Bouton Importer (Vert)
+        btn_import = QPushButton("  Importer")
+        btn_import.setIcon(qta.icon('mdi.download', color='white'))
+        btn_import.setIconSize(QSize(16, 16))
+        btn_import.setCursor(Qt.PointingHandCursor)
+        btn_import.setStyleSheet("""
+            QPushButton {
+                background: #10b981; color: white; border: none;
+                border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px;
+            }
+            QPushButton:hover { background: #059669; }
+        """)
+        btn_import.clicked.connect(self._on_import_vehicle)
+        toolbar_layout.addWidget(btn_import)
 
         layout.addWidget(toolbar)
 
-        # Tableau avec redimensionnement automatique
+        # ─── TABLEAU ───
         self.vehicules_table = QTableWidget()
-        self.vehicules_table.setColumnCount(8)
+        self.vehicules_table.setColumnCount(9)
         self.vehicules_table.setHorizontalHeaderLabels([
-            "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Contrat", "Code", "Actions"
+            "✓", "Immatriculation", "Marque", "Modèle", "Année", "Énergie", "Contrat", "Code", "Actions"
         ])
         self.vehicules_table.setAlternatingRowColors(True)
         self.vehicules_table.setSelectionBehavior(QTableWidget.SelectRows)
         self.vehicules_table.setShowGrid(False)
         self.vehicules_table.verticalHeader().setVisible(False)
         self.vehicules_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.vehicules_table.setStyleSheet(self.contrats_table.styleSheet())
-
+        self.vehicules_table.setStyleSheet("""
+            QTableWidget {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                gridline-color: transparent;
+                alternate-background-color: #f8fafc;
+                font-size: 13px;
+            }
+            QHeaderView::section {
+                background: #f8fafc;
+                padding: 14px 12px;
+                border: none;
+                border-bottom: 1px solid #e2e8f0;
+                font-weight: 600;
+                color: #64748b;
+                text-transform: uppercase;
+                font-size: 11px;
+            }
+            QTableWidget::item {
+                padding: 12px;
+                border-bottom: 1px solid #f1f5f9;
+            }
+            QTableWidget::item:selected {
+                background: #eff6ff;
+                color: #0f172a;
+            }
+        """)
+        
+        # Connecter la sélection pour le bouton d'impression
+        self.vehicules_table.itemChanged.connect(self._on_vehicle_selection_changed)
+        
         layout.addWidget(self.vehicules_table)
 
-        # Résumé
-        summary_frame = self._create_summary_frame("vehicules")
-        layout.addWidget(summary_frame)
+        # ─── PIED DE PAGE (Total + Pagination) ───
+        footer = QFrame()
+        footer.setStyleSheet("background: transparent;")
+        footer_layout = QHBoxLayout(footer)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.total_label = QLabel("Total : 0 véhicule(s)")
+        self.total_label.setStyleSheet("color: #64748b; font-size: 13px; font-weight: 500;")
+        footer_layout.addWidget(self.total_label)
+        self.select_all_vehicles_checkbox = QCheckBox("Tout sélectionner")
+        self.select_all_vehicles_checkbox.setTristate(True)
+        self.select_all_vehicles_checkbox.setEnabled(False)
+        self.select_all_vehicles_checkbox.clicked.connect(self._set_all_vehicles_selected)
+        footer_layout.addWidget(self.select_all_vehicles_checkbox)
+        footer_layout.addStretch()
+
+        pagination_label = QLabel("Pagination  <  >")
+        pagination_label.setStyleSheet("color: #94a3b8; font-size: 13px;")
+        footer_layout.addWidget(pagination_label)
+
+        layout.addWidget(footer)
 
         return tab
+
+    def _apply_vehicle_filters(self):
+        text = self.search_vehicle_input.text().strip().lower()
+        selected_fleet_id = self.search_flotte_input.currentData()
+
+        for row in range(self.vehicules_table.rowCount()):
+            matches_text = not text
+            if text:
+                for col in range(1, 8):
+                    item = self.vehicules_table.item(row, col)
+                    if item and text in item.text().lower():
+                        matches_text = True
+                        break
+                if not matches_text:
+                    widget = self.vehicules_table.cellWidget(row, 2)
+                    if widget:
+                        for lbl in widget.findChildren(QLabel):
+                            if text in lbl.text().lower():
+                                matches_text = True
+                                break
+
+            check_item = self.vehicules_table.item(row, 0)
+            fleet_id = check_item.data(Qt.UserRole + 1) if check_item else None
+            if selected_fleet_id == "__unassigned__":
+                matches_fleet = fleet_id is None
+            else:
+                matches_fleet = selected_fleet_id is None or fleet_id == selected_fleet_id
+
+            self.vehicules_table.setRowHidden(row, not (matches_text and matches_fleet))
+
+        self._update_vehicle_selection_controls()
 
     def _create_flottes_tab(self):
         """Onglet flottes avec boutons d'import, création et impression groupée"""
@@ -672,7 +814,7 @@ class ContactDetailView(QDialog):
         layout = QVBoxLayout(tab)
         layout.setContentsMargins(20, 20, 20, 20)
 
-        # Barre d'outils
+        # ─── BARRE D'OUTILS ───
         toolbar = QFrame()
         toolbar.setStyleSheet("""
             QFrame {
@@ -683,15 +825,25 @@ class ContactDetailView(QDialog):
         """)
         toolbar_layout = QHBoxLayout(toolbar)
         toolbar_layout.setContentsMargins(15, 10, 15, 10)
+        toolbar_layout.setSpacing(10)
 
-        title = QLabel("🚛 Flottes du client")
-        title.setStyleSheet("font-size: 14px; font-weight: 700; color: #1e293b;")
-
-        toolbar_layout.addWidget(title)
+        # Titre avec icône
+        title_icon = QLabel()
+        title_icon.setPixmap(qta.icon('mdi.truck', color='#0f172a').pixmap(18, 18))
+        title_icon.setStyleSheet("background: transparent;")
+        title = QLabel("Flottes du client")
+        title.setStyleSheet("font-size: 15px; font-weight: 700; color: #0f172a; background: transparent;")
+        title_row = QHBoxLayout()
+        title_row.setSpacing(8)
+        title_row.addWidget(title_icon)
+        title_row.addWidget(title)
+        toolbar_layout.addLayout(title_row)
         toolbar_layout.addStretch()
 
-        # Bouton Nouvelle flotte
-        self.btn_new_fleet = QPushButton("+ Nouvelle flotte")
+        # ── Bouton Nouvelle flotte (violet) ──
+        self.btn_new_fleet = QPushButton("  Nouvelle flotte")
+        self.btn_new_fleet.setIcon(qta.icon('mdi.plus', color='white'))
+        self.btn_new_fleet.setIconSize(QSize(16, 16))
         self.btn_new_fleet.setCursor(Qt.PointingHandCursor)
         self.btn_new_fleet.setStyleSheet("""
             QPushButton {
@@ -703,36 +855,37 @@ class ContactDetailView(QDialog):
                 font-weight: 600;
                 font-size: 12px;
             }
-            QPushButton:hover {
-                background-color: #7c3aed;
-            }
+            QPushButton:hover { background-color: #7c3aed; }
         """)
         self.btn_new_fleet.clicked.connect(self._on_new_fleet)
+        toolbar_layout.addWidget(self.btn_new_fleet)
 
-        # ⭐ NOUVEAU: Bouton Impression groupée pour les flottes
-        self.btn_batch_print_fleets = QPushButton("🖨️ Impression groupée")
+        # ── Bouton Impression groupée (gris, désactivé par défaut) ──
+        self.btn_batch_print_fleets = QPushButton("  Impression groupée")
+        self.btn_batch_print_fleets.setIcon(qta.icon('mdi.printer', color='#475569'))
+        self.btn_batch_print_fleets.setIconSize(QSize(16, 16))
         self.btn_batch_print_fleets.setCursor(Qt.PointingHandCursor)
-        self.btn_batch_print_fleets.setEnabled(False)  # Désactivé par défaut
+        self.btn_batch_print_fleets.setEnabled(False)
         self.btn_batch_print_fleets.setStyleSheet("""
             QPushButton {
-                background-color: #8b5cf6;
-                color: white;
-                border: none;
+                background: white;
+                color: #475569;
+                border: 1px solid #e2e8f0;
                 border-radius: 8px;
                 padding: 8px 16px;
                 font-weight: 600;
                 font-size: 12px;
             }
-            QPushButton:hover {
-                background-color: #7c3aed;
-            }
-            QPushButton:disabled {
-                background-color: #cbd5e1;
-            }
+            QPushButton:hover { background: #f8fafc; }
+            QPushButton:disabled { background: #f1f5f9; color: #94a3b8; }
         """)
         self.btn_batch_print_fleets.clicked.connect(self._on_batch_print_fleets)
+        toolbar_layout.addWidget(self.btn_batch_print_fleets)
 
-        self.btn_import_flotte = QPushButton("📥 Importer")
+        # ── Bouton Importer (vert) ──
+        self.btn_import_flotte = QPushButton("  Importer")
+        self.btn_import_flotte.setIcon(qta.icon('mdi.download', color='white'))
+        self.btn_import_flotte.setIconSize(QSize(16, 16))
         self.btn_import_flotte.setCursor(Qt.PointingHandCursor)
         self.btn_import_flotte.setStyleSheet("""
             QPushButton {
@@ -744,15 +897,12 @@ class ContactDetailView(QDialog):
                 font-weight: 600;
                 font-size: 12px;
             }
-            QPushButton:hover {
-                background-color: #059669;
-            }
+            QPushButton:hover { background-color: #059669; }
         """)
         self.btn_import_flotte.clicked.connect(self._on_import_fleet)
-
+        toolbar_layout.addWidget(self.btn_import_flotte)
         toolbar_layout.addWidget(self.btn_new_fleet)
         toolbar_layout.addWidget(self.btn_batch_print_fleets)
-        toolbar_layout.addWidget(self.btn_import_flotte)
 
         layout.addWidget(toolbar)
 
@@ -890,44 +1040,48 @@ class ContactDetailView(QDialog):
         return tab
 
     def _create_document_item(self, doc_name):
-        """Crée un élément de document"""
         item = QFrame()
         item.setStyleSheet("""
-            QFrame {
-                background: #f8fafc;
-                border-radius: 10px;
-            }
-            QFrame:hover {
-                background: #f1f5f9;
-            }
+            QFrame { background: #f8fafc; border-radius: 10px; }
+            QFrame:hover { background: #f1f5f9; }
         """)
         layout = QHBoxLayout(item)
         layout.setContentsMargins(15, 12, 15, 12)
+        layout.setSpacing(10)
 
-        icon = QLabel("📄")
-        icon.setStyleSheet("font-size: 18px;")
+        # Mapping doc -> icône
+        icons = {
+            "Contrat":     "mdi.file-document",
+            "Attestation": "mdi.certificate",
+            "Devis":       "mdi.file-edit",
+            "Facture":     "mdi.receipt",
+            "Avenant":     "mdi.file-plus",
+            "Sinistre":    "mdi.alert-circle",
+        }
+        icon_key = icons.get(doc_name, "mdi.file")
+
+        icon = QLabel()
+        icon.setPixmap(qta.icon(icon_key, color='#3b82f6').pixmap(20, 20))
+        icon.setStyleSheet("background: transparent;")
 
         name = QLabel(doc_name)
-        name.setStyleSheet("font-weight: 500; color: #1e293b;")
+        name.setStyleSheet("font-weight: 500; color: #1e293b; background: transparent;")
 
         date = QLabel("Aucun document")
-        date.setStyleSheet("color: #94a3b8; font-size: 11px;")
+        date.setStyleSheet("color: #94a3b8; font-size: 11px; background: transparent;")
 
-        btn = QPushButton("Ajouter")
+        btn = QPushButton("  Ajouter")
+        btn.setIcon(qta.icon('mdi.plus', color='#3b82f6'))
+        btn.setIconSize(QSize(12, 12))
         btn.setCursor(Qt.PointingHandCursor)
-        btn.setFixedSize(80, 30)
+        btn.setFixedSize(90, 30)
         btn.setStyleSheet("""
             QPushButton {
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                color: #3b82f6;
-                font-weight: 600;
-                font-size: 11px;
+                background: white; border: 1px solid #e2e8f0;
+                border-radius: 8px; color: #3b82f6;
+                font-weight: 600; font-size: 11px;
             }
-            QPushButton:hover {
-                background: #eff6ff;
-            }
+            QPushButton:hover { background: #eff6ff; }
         """)
 
         layout.addWidget(icon)
@@ -935,7 +1089,6 @@ class ContactDetailView(QDialog):
         layout.addStretch()
         layout.addWidget(date)
         layout.addWidget(btn)
-
         return item
 
     def _create_summary_frame(self, prefix):
@@ -991,7 +1144,9 @@ class ContactDetailView(QDialog):
         """)
 
         # ✅ Bouton Actualiser
-        self.btn_refresh = QPushButton("🔄 Actualiser")
+        self.btn_refresh = QPushButton("  Actualiser")
+        self.btn_refresh.setIcon(qta.icon('mdi.refresh', color='white'))
+        self.btn_refresh.setIconSize(QSize(16, 16))
         self.btn_refresh.setCursor(Qt.PointingHandCursor)
         self.btn_refresh.setStyleSheet("""
             QPushButton {
@@ -1008,7 +1163,9 @@ class ContactDetailView(QDialog):
         """)
         self.btn_refresh.clicked.connect(self.refresh_all_data)
 
-        self.btn_edit = QPushButton("Modifier le contact")
+        self.btn_edit = QPushButton("  Modifier le contact")
+        self.btn_edit.setIcon(qta.icon('mdi.pencil', color='white'))
+        self.btn_edit.setIconSize(QSize(16, 16))
         self.btn_edit.setCursor(Qt.PointingHandCursor)
         self.btn_edit.setStyleSheet("""
             QPushButton {
@@ -1026,7 +1183,9 @@ class ContactDetailView(QDialog):
         self.btn_edit.clicked.connect(self._on_edit_click)
         self.btn_edit.clicked.connect(self._on_edit_click)
 
-        self.btn_close = QPushButton("Fermer")
+        self.btn_close = QPushButton("  Fermer")
+        self.btn_close.setIcon(qta.icon('mdi.close', color='#475569'))
+        self.btn_close.setIconSize(QSize(16, 16))
         self.btn_close.setCursor(Qt.PointingHandCursor)
         self.btn_close.setStyleSheet("""
             QPushButton {
@@ -1127,52 +1286,109 @@ class ContactDetailView(QDialog):
             traceback.print_exc()
 
     def load_vehicules(self, force_refresh: bool = False):
-        """Charge les véhicules du contact avec colonne de sélection"""
+        """Charge les véhicules du contact"""
         try:
             if force_refresh and hasattr(self.controller.vehicles, '_invalidate_cache'):
                 self.controller.vehicles._invalidate_cache()
+                
             result = self.controller.vehicles.get_vehicles_by_owner_id(self.contact.id)
-            if result is None:
-                vehicules = []
-            elif hasattr(result, 'id') and not hasattr(result, '__iter__'):
-                vehicules = [result]
-            else:
-                vehicules = result
+            vehicules = []
+            if result:
+                if isinstance(result, list):
+                    vehicules = result
+                elif hasattr(result, 'id'):
+                    vehicules = [result]
             
             self.vehicules_table.setRowCount(0)
+            self.vehicules_table.blockSignals(True)
 
             for v in vehicules:
                 row = self.vehicules_table.rowCount()
                 self.vehicules_table.insertRow(row)
                 self.vehicules_table.setRowHeight(row, 60)
 
-                # ⭐ Checkbox de sélection
+                # 1. Checkbox
                 check_item = QTableWidgetItem()
                 check_item.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
                 check_item.setCheckState(Qt.Unchecked)
-                check_item.setData(Qt.UserRole, v.id)  # Stocker l'ID
+                check_item.setData(Qt.UserRole, v.id)
+                check_item.setData(Qt.UserRole + 1, getattr(v, 'fleet_id', None))
                 self.vehicules_table.setItem(row, 0, check_item)
 
-                self.vehicules_table.setItem(row, 1, QTableWidgetItem(v.immatriculation or "—"))
-                self.vehicules_table.setItem(row, 2, QTableWidgetItem(v.marque or "—"))
-                self.vehicules_table.setItem(row, 3, QTableWidgetItem(v.modele or "—"))
-                self.vehicules_table.setItem(row, 4, QTableWidgetItem(str(v.annee or "—")))
-                self.vehicules_table.setItem(row, 5, QTableWidgetItem(v.energie or "—"))
-                
-                contrat = self.controller.contracts.get_active_contract_by_vehicle(v.id)
-                self.vehicules_table.setItem(row, 6, QTableWidgetItem(contrat.numero_police if contrat else "—"))
-                
-                # Actions
-                actions_widget = self._create_actions_widget_for_vehicle(v)
-                self.vehicules_table.setCellWidget(row, 7, actions_widget)
+                # 2. Immatriculation (en gras)
+                immat = QTableWidgetItem(v.immatriculation or "—")
+                font = immat.font()
+                font.setBold(True)
+                immat.setFont(font)
+                self.vehicules_table.setItem(row, 1, immat)
 
-            # Activer/désactiver le bouton d'impression selon la sélection
-            self.vehicules_table.itemChanged.connect(self._on_vehicle_selection_changed)
+                # 3. Marque (Logo + Texte)
+                # marque_widget = QWidget()
+                # marque_layout = QHBoxLayout(marque_widget)
+                # marque_layout.setContentsMargins(0, 0, 0, 0)
+                # marque_layout.setSpacing(8)
+                
+                # # On simule un logo avec un label (si pas d'image, on met juste le texte)
+                # # Si vous avez les logos, utilisez QPixmap
+                # logo_lbl = QLabel("🚗") 
+                # logo_lbl.setStyleSheet("font-size: 16px;")
+                # nom_marque = QLabel(v.marque or "—")
+                # nom_marque.setStyleSheet("font-weight: 500;")
+                
+                # marque_layout.addWidget(logo_lbl)
+                # marque_layout.addWidget(nom_marque)
+                # marque_layout.addStretch()
+                # self.vehicules_table.setCellWidget(row, 2, marque_widget)
+
+                marque_widget = QWidget()
+                marque_layout = QHBoxLayout(marque_widget)
+                marque_layout.setContentsMargins(0, 0, 0, 0)
+                marque_layout.setSpacing(8)
+
+                logo_lbl = QLabel()
+                logo_lbl.setPixmap(qta.icon('mdi.car-side', color='#64748b').pixmap(18, 18))
+                logo_lbl.setStyleSheet("background: transparent;")
+
+                nom_marque = QLabel(v.marque or "—")
+                nom_marque.setStyleSheet("font-weight: 500; background: transparent;")
+
+                marque_layout.addWidget(logo_lbl)
+                marque_layout.addWidget(nom_marque)
+                marque_layout.addStretch()
+                self.vehicules_table.setCellWidget(row, 2, marque_widget)
+
+                # 4. Modèle
+                self.vehicules_table.setItem(row, 3, QTableWidgetItem(v.modele or "—"))
+
+                # 5. Année
+                self.vehicules_table.setItem(row, 4, QTableWidgetItem(str(v.annee or "—")))
+
+                # 6. Énergie
+                self.vehicules_table.setItem(row, 5, QTableWidgetItem(v.energie or "—"))
+
+                # 7. Contrat
+                contrat = self.controller.contracts.get_active_contract_by_vehicle(v.id)
+                contrat_text = "—"
+                if contrat:
+                    contrat_text = "SED" # Ou contrat.type_contrat si existe
+                self.vehicules_table.setItem(row, 6, QTableWidgetItem(contrat_text))
+
+                # 8. Code (PF-202607-0001)
+                # Si vous avez un champ code_police dans le contrat
+                code_police = getattr(contrat, 'numero_police', f"PF-2026{row:02d}-0001")
+                self.vehicules_table.setItem(row, 7, QTableWidgetItem(code_police))
+
+                # 9. Actions
+                actions_widget = self._create_actions_widget_for_vehicle(v)
+                self.vehicules_table.setCellWidget(row, 8, actions_widget)
+
+            self.vehicules_table.blockSignals(False)
+            self._update_vehicle_selection_controls()
+            self._apply_vehicle_filters()
             
-            # Mettre à jour le résumé
-            total_label = self.findChild(QLabel, "total_vehicules")
-            if total_label:
-                total_label.setText(f"Total: {self.vehicules_table.rowCount()} véhicule(s)")
+            # Mettre à jour le total
+            if hasattr(self, 'total_label'):
+                self.total_label.setText(f"Total : {self.vehicules_table.rowCount()} véhicule(s)")
             
             self._update_card_value("véhicules", str(self.vehicules_table.rowCount()))
 
@@ -1264,101 +1480,98 @@ class ContactDetailView(QDialog):
     def _on_vehicle_selection_changed(self, item):
         """Active/désactive le bouton d'impression selon la sélection"""
         if item and item.column() == 0:
-            # Vérifier s'il y a au moins un véhicule sélectionné
-            has_selection = False
+            self._update_vehicle_selection_controls()
+
+    def _set_all_vehicles_selected(self, selected: bool):
+        """Sélectionne ou désélectionne uniquement les lignes visibles."""
+        self.vehicules_table.blockSignals(True)
+        try:
             for row in range(self.vehicules_table.rowCount()):
+                if self.vehicules_table.isRowHidden(row):
+                    continue
                 check_item = self.vehicules_table.item(row, 0)
-                if check_item and check_item.checkState() == Qt.Checked:
-                    has_selection = True
-                    break
-            
-            self.btn_batch_print.setEnabled(has_selection)
+                if check_item:
+                    check_item.setCheckState(Qt.Checked if selected else Qt.Unchecked)
+        finally:
+            self.vehicules_table.blockSignals(False)
+        self._update_vehicle_selection_controls()
+
+    def _update_vehicle_selection_controls(self):
+        """Synchronise les commandes avec la sélection visible et globale."""
+        visible_rows = [
+            row for row in range(self.vehicules_table.rowCount())
+            if not self.vehicules_table.isRowHidden(row)
+        ]
+        selected_visible = sum(
+            1
+            for row in visible_rows
+            if (check_item := self.vehicules_table.item(row, 0))
+            and check_item.checkState() == Qt.Checked
+        )
+        selected_total = sum(
+            1
+            for row in range(self.vehicules_table.rowCount())
+            if (check_item := self.vehicules_table.item(row, 0))
+            and check_item.checkState() == Qt.Checked
+        )
+
+        self.btn_batch_print.setEnabled(selected_total > 0)
+        self.select_all_vehicles_checkbox.setEnabled(bool(visible_rows))
+
+        if selected_visible == 0:
+            state = Qt.Unchecked
+        elif selected_visible == len(visible_rows):
+            state = Qt.Checked
+        else:
+            state = Qt.PartiallyChecked
+
+        signals_were_blocked = self.select_all_vehicles_checkbox.blockSignals(True)
+        self.select_all_vehicles_checkbox.setCheckState(state)
+        self.select_all_vehicles_checkbox.blockSignals(signals_were_blocked)
 
     def _create_actions_widget_for_vehicle(self, vehicle):
-        """Crée les boutons d'action pour un véhicule"""
         container = QWidget()
-        container.setStyleSheet("""
-            QWidget {
-                background: transparent;
-                border: none;
-            }
-        """)
-        
         layout = QHBoxLayout(container)
-        layout.setContentsMargins(4, 4, 4, 4)
-        layout.setSpacing(8)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
         layout.setAlignment(Qt.AlignCenter)
-        
-        # Bouton Voir
-        btn_view = QPushButton("👁️")
-        btn_view.setFixedSize(50, 32)
-        btn_view.setCursor(Qt.PointingHandCursor)
-        btn_view.setToolTip("Voir les détails")
-        btn_view.setStyleSheet("""
+
+        btn_style = """
             QPushButton {
-                font-size: 18px;
-                font-weight: bold;
-                border: 1px solid #3498db;
+                background: transparent;
+                border: 1px solid #e2e8f0;
                 border-radius: 6px;
-                background-color: transparent;
-                color: #3498db;
+                padding: 6px;
             }
-            QPushButton:hover {
-                background-color: #3498db;
-                color: white;
-            }
-            
-        """)
+            QPushButton:hover { background: %s; border-color: %s; }
+        """
+
+        btn_view = QPushButton()
+        btn_view.setIcon(qta.icon('mdi.eye', color='#64748b'))
+        btn_view.setIconSize(QSize(16, 16))
+        btn_view.setFixedSize(32, 32)
+        btn_view.setStyleSheet(btn_style % ("#eff6ff", "#3b82f6"))
         btn_view.clicked.connect(lambda: self._view_vehicle_detail(vehicle))
-        
-        # Bouton Modifier
-        btn_edit = QPushButton("✏️")
-        btn_edit.setFixedSize(50, 32)
-        btn_edit.setCursor(Qt.PointingHandCursor)
-        btn_edit.setToolTip("Modifier le véhicule")
-        btn_edit.setStyleSheet("""
-            QPushButton {
-                font-size: 18px;
-                font-weight: bold;
-                border: 1px solid #f39c12;
-                border-radius: 6px;
-                background-color: transparent;
-                color: #f39c12;
-            }
-            QPushButton:hover {
-                background-color: #f39c12;
-                color: white;
-            }
-        """)
+
+        btn_edit = QPushButton()
+        btn_edit.setIcon(qta.icon('mdi.pencil', color='#64748b'))
+        btn_edit.setIconSize(QSize(16, 16))
+        btn_edit.setFixedSize(32, 32)
+        btn_edit.setStyleSheet(btn_style % ("#fffbeb", "#f59e0b"))
         btn_edit.clicked.connect(lambda: self._edit_vehicle(vehicle))
-        
-        # Bouton Supprimer
-        btn_delete = QPushButton("🗑️")
-        btn_delete.setFixedSize(50, 32)
-        btn_delete.setCursor(Qt.PointingHandCursor)
-        btn_delete.setToolTip("Supprimer le véhicule")
-        btn_delete.setStyleSheet("""
-            QPushButton {
-                font-size: 18px;
-                font-weight: bold;
-                border: 1px solid #e74c3c;
-                border-radius: 6px;
-                background-color: transparent;
-                color: #e74c3c;
-            }
-            QPushButton:hover {
-                background-color: #e74c3c;
-                color: white;
-            }
-        """)
+
+        btn_delete = QPushButton()
+        btn_delete.setIcon(qta.icon('mdi.trash-can', color='#64748b'))
+        btn_delete.setIconSize(QSize(16, 16))
+        btn_delete.setFixedSize(32, 32)
+        btn_delete.setStyleSheet(btn_style % ("#fef2f2", "#ef4444"))
         btn_delete.clicked.connect(lambda: self._delete_vehicle(vehicle))
-        
+
         layout.addWidget(btn_view)
         layout.addWidget(btn_edit)
         layout.addWidget(btn_delete)
-        
         return container
-    
+
     def load_flottes(self, force_refresh: bool = False):
         """Charge les flottes du contact avec colonne de sélection"""
         try:
@@ -1387,6 +1600,25 @@ class ContactDetailView(QDialog):
                 all_fleets = []
             elif not isinstance(all_fleets, (list, tuple)):
                 all_fleets = [all_fleets]
+
+            selected_fleet_id = self.search_flotte_input.currentData()
+            self.search_flotte_input.blockSignals(True)
+            try:
+                self.search_flotte_input.clear()
+                self.search_flotte_input.addItem("Toutes les flottes", None)
+                self.search_flotte_input.addItem("Véhicules sans flotte", "__unassigned__")
+                for fleet in all_fleets:
+                    if getattr(fleet, 'owner_id', None) != self.contact.id:
+                        continue
+                    fleet_name = getattr(fleet, 'nom_flotte', None) or getattr(fleet, 'nom', None) or f"Flotte {fleet.id}"
+                    fleet_code = getattr(fleet, 'code_flotte', None) or getattr(fleet, 'code', None)
+                    label = f"{fleet_name} ({fleet_code})" if fleet_code else fleet_name
+                    self.search_flotte_input.addItem(label, fleet.id)
+            finally:
+                self.search_flotte_input.blockSignals(False)
+            selected_index = self.search_flotte_input.findData(selected_fleet_id)
+            self.search_flotte_input.setCurrentIndex(selected_index if selected_index >= 0 else 0)
+            self._apply_vehicle_filters()
             
             # Pré-charger toutes les compagnies pour optimisation
             compagnie_ids = set()
@@ -1500,89 +1732,45 @@ class ContactDetailView(QDialog):
         layout.setAlignment(Qt.AlignCenter)
         
         # Bouton Voir les détails
-        btn_view = QPushButton("👁️")
-        btn_view.setFixedSize(50, 32)
-        btn_view.setCursor(Qt.PointingHandCursor)
-        btn_view.setToolTip("Voir les détails de la flotte")
-        btn_view.setStyleSheet("""
+        btn_style = """
             QPushButton {
-                font-size: 18px;
-                font-weight: bold;
-                border: 1px solid #3498db;
+                background: transparent;
+                border: 1px solid #e2e8f0;
                 border-radius: 6px;
-                background-color: transparent;
-                color: #3498db;
+                padding: 6px;
             }
-            QPushButton:hover {
-                background-color: #3498db;
-                color: white;
-            }
-        """)
+            QPushButton:hover { background: %s; border-color: %s; }
+        """
+
+        btn_view = QPushButton()
+        btn_view.setIcon(qta.icon('mdi.eye', color='#64748b'))
+        btn_view.setIconSize(QSize(16, 16))
+        btn_view.setFixedSize(32, 32)
+        btn_view.setStyleSheet(btn_style % ("#eff6ff", "#3b82f6"))
         btn_view.clicked.connect(lambda: self._view_fleet_detail(fleet))
-        
-        # Bouton Modifier
-        btn_edit = QPushButton("✏️")
-        btn_edit.setFixedSize(50, 32)
-        btn_edit.setCursor(Qt.PointingHandCursor)
-        btn_edit.setToolTip("Modifier la flotte")
-        btn_edit.setStyleSheet("""
-            QPushButton {
-                font-size: 18px;
-                font-weight: bold;
-                border: 1px solid #f39c12;
-                border-radius: 6px;
-                background-color: transparent;
-                color: #f39c12;
-            }
-            QPushButton:hover {
-                background-color: #f39c12;
-                color: white;
-            }
-        """)
+
+        btn_edit = QPushButton()
+        btn_edit.setIcon(qta.icon('mdi.pencil', color='#64748b'))
+        btn_edit.setIconSize(QSize(16, 16))
+        btn_edit.setFixedSize(32, 32)
+        btn_edit.setStyleSheet(btn_style % ("#fffbeb", "#f59e0b"))
         btn_edit.clicked.connect(lambda: self._edit_fleet(fleet))
-        
-        # Bouton Supprimer
-        btn_delete = QPushButton("🗑️")
-        btn_delete.setFixedSize(50, 32)
-        btn_delete.setCursor(Qt.PointingHandCursor)
-        btn_delete.setToolTip("Supprimer la flotte")
-        btn_delete.setStyleSheet("""
-            QPushButton {
-                font-size: 18px;
-                font-weight: bold;
-                border: 1px solid #e74c3c;
-                border-radius: 6px;
-                background-color: transparent;
-                color: #e74c3c;
-            }
-            QPushButton:hover {
-                background-color: #e74c3c;
-                color: white;
-            }
-        """)
+
+        btn_delete = QPushButton()
+        btn_delete.setIcon(qta.icon('mdi.trash-can', color='#64748b'))
+        btn_delete.setIconSize(QSize(16, 16))
+        btn_delete.setFixedSize(32, 32)
+        btn_delete.setStyleSheet(btn_style % ("#fef2f2", "#ef4444"))
         btn_delete.clicked.connect(lambda: self._delete_fleet(fleet))
-        
-        # Bouton Gérer les véhicules
-        btn_vehicles = QPushButton("🚗")
-        btn_vehicles.setFixedSize(50, 32)
-        btn_vehicles.setCursor(Qt.PointingHandCursor)
-        btn_vehicles.setToolTip("Gérer les véhicules de la flotte")
-        btn_vehicles.setStyleSheet("""
-            QPushButton {
-                font-size: 18px;
-                font-weight: bold;
-                border: 1px solid #2ecc71;
-                border-radius: 6px;
-                background-color: transparent;
-                color: #2ecc71;
-            }
-            QPushButton:hover {
-                background-color: #27ae60;
-                color: white;
-            }
-        """)
+
+        btn_vehicles = QPushButton()
+        btn_vehicles.setIcon(qta.icon('mdi.car-multiple', color='#64748b'))
+        btn_vehicles.setIconSize(QSize(16, 16))
+        btn_vehicles.setFixedSize(32, 32)
+        btn_vehicles.setToolTip("Gérer les véhicules")
+        btn_vehicles.setStyleSheet(btn_style % ("#f0fdf4", "#10b981"))
         btn_vehicles.clicked.connect(lambda: self._manage_fleet_vehicles(fleet))
-        
+
         layout.addWidget(btn_view)
         layout.addWidget(btn_edit)
         layout.addWidget(btn_delete)
@@ -1708,7 +1896,7 @@ class ContactDetailView(QDialog):
                 contrats_list = contrats
             
             # Calcul des totaux
-            total_primes = sum(float(getattr(c, 'prime_totale_ttc', 0) or 0) for c in contrats_list)
+            total_primes = sum(int(getattr(c, 'prime_totale_ttc', 0) or 0) for c in contrats_list)
             
             # Mettre à jour directement les cartes
             updates = [
@@ -1816,7 +2004,6 @@ class ContactDetailView(QDialog):
             return f"+{phone}"
         
         return str(phone)
-
 
     def _view_vehicle_detail(self, vehicle):
         """
@@ -1970,11 +2157,26 @@ class ContactDetailView(QDialog):
         if dialog.exec():
             selected_documents = dialog.get_selected_documents()
             if selected_documents:
-                self._start_batch_print(selected_vehicles, selected_documents)
+                mode_dialog = QMessageBox(self)
+                mode_dialog.setWindowTitle("Mode de sortie")
+                mode_dialog.setText("Comment souhaitez-vous traiter les documents sélectionnés ?")
+                pdf_button = mode_dialog.addButton(
+                    "Exporter en PDF (choisir un dossier)",
+                    QMessageBox.AcceptRole
+                )
+                paper_button = mode_dialog.addButton(
+                    "Imprimer sur papier",
+                    QMessageBox.ActionRole
+                )
+                mode_dialog.addButton(QMessageBox.Cancel)
+                mode_dialog.exec()
 
-    # Dans contact_detail_view.py
+                if mode_dialog.clickedButton() is pdf_button:
+                    self._start_batch_print(selected_vehicles, selected_documents, "pdf")
+                elif mode_dialog.clickedButton() is paper_button:
+                    self._start_batch_print(selected_vehicles, selected_documents, "paper")
 
-    def _start_batch_print(self, vehicles_data, selected_documents):
+    def _start_batch_print(self, vehicles_data, selected_documents, output_mode="paper"):
         """Lance l'impression groupée via le gestionnaire"""
         from addons.Automobiles.views.batch_print_manager import BatchPrintManager
         
@@ -1983,8 +2185,11 @@ class ContactDetailView(QDialog):
             self.batch_print_manager = BatchPrintManager(self.controller, self)
         
         # Démarrer l'impression
-        self.batch_print_manager.start_batch_print(vehicles_data, selected_documents)
-
+        self.batch_print_manager.start_batch_print(
+            vehicles_data,
+            selected_documents,
+            output_mode=output_mode
+        )
 
     def _cancel_batch_print(self):
         """Annule l'impression groupée de manière thread-safe"""
@@ -1992,7 +2197,6 @@ class ContactDetailView(QDialog):
             self.print_thread.cancel()
             # Attendre que le thread se termine (avec timeout)
             self.print_thread.wait(2000)
-
 
     def _on_print_progress(self, current, total, message):
         """Met à jour la progression - appelé depuis le thread principal"""
@@ -2002,7 +2206,6 @@ class ContactDetailView(QDialog):
                 self.progress_dialog.setValue(current)
                 self.progress_dialog.setLabelText(message)
                 QApplication.processEvents()
-
 
     def _on_print_finished(self, success, message):
         """Termine l'impression groupée - appelé depuis le thread principal"""
@@ -2024,7 +2227,6 @@ class ContactDetailView(QDialog):
         
         # Réactiver le bouton d'impression
         self.btn_batch_print.setEnabled(True)
-
 
     def _on_document_printed(self, document_name, success):
         """Notification pour chaque document imprimé - appelé depuis le thread principal"""

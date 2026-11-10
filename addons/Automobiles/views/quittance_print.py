@@ -292,40 +292,7 @@ class QuittanceGenerator:
         
         doc.build(elements)
         return output_path
-    
-    # def _build_company_header(self):
-    #     """Construit l'en-tête avec les informations de la compagnie - Compact"""
-    #     elements = []
-        
-    #     company_name = self.company.get('nom', 'AMS INSURANCES')
-    #     company_address = self.company.get('adresse', 'BP 3073 DLA')
-    #     company_phone = self.company.get('telephone', '98 76 85 43')
-        
-    #     header_data = [
-    #         [
-    #             Paragraph(f"<font size=14 color='#1a365d'><b>{company_name}</b></font>", self.styles['center']),
-    #             Paragraph(f"<font size=9 color='#4a5568'>Agence: {self.company.get('agence', 'Yaoundé')}</font>", self.styles['center']),
-    #             Paragraph(f"<font size=9 color='#4a5568'>Apporteur: {self.contract.get('apporteur', 'TH')}</font>", self.styles['center'])
-    #         ],
-    #         [
-    #             Paragraph(f"<font size=8 color='#4a5568'>{company_address}</font>", self.styles['center']),
-    #             Paragraph(f"<font size=8 color='#4a5568'>Tél: {company_phone}</font>", self.styles['center']),
-    #             Paragraph(f"<font size=8 color='#4a5568'>Code: {self.company.get('code_agence', '1020')}</font>", self.styles['center'])
-    #         ]
-    #     ]
-        
-    #     header_table = Table(header_data, colWidths=[6*cm, 6*cm, 6*cm])
-    #     header_table.setStyle(TableStyle([
-    #         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-    #         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    #         ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-    #         ('LINEABOVE', (0, 0), (-1, 0), 1.5, colors.HexColor(self.COLORS['primary'])),
-    #         ('LINEBELOW', (0, -1), (-1, -1), 1, colors.HexColor(self.COLORS['border'])),
-    #     ]))
-    #     elements.append(header_table)
-        
-    #     return elements
-    
+   
     def _build_company_header(self):
         """Construit l'en-tête avec les informations de la compagnie - Textbox alignée à droite"""
         elements = []
@@ -408,7 +375,6 @@ class QuittanceGenerator:
         
         return elements
        
-
     def _build_contract_info(self):
         """Construit la zone d'informations du contrat - Style zone unique"""
         elements = []
@@ -456,7 +422,6 @@ class QuittanceGenerator:
         
         return elements
 
-
     def _build_insured_info(self):
         """Construit la zone des informations de l'assuré - Style zone unique"""
         elements = []
@@ -498,7 +463,6 @@ class QuittanceGenerator:
         elements.append(insured_table)
         
         return elements
-
 
     def _build_insured_info_combined(self):
         """

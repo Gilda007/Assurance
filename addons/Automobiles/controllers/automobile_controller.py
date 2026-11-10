@@ -689,8 +689,11 @@ class VehicleController:
             
             # Mettre à jour les champs du véhicule
             vehicle_columns = Vehicle.__table__.columns.keys()
+            classification_fields = {
+                'categorie', 'genre', 'type_vehicule', 'usage', 'energie', 'zone'
+            }
             for key, value in new_data.items():
-                if key in vehicle_columns and key != 'id':
+                if (key in vehicle_columns and key != 'id') or key in classification_fields:
                     setattr(vehicle, key, value)
             
             # ============================================================
@@ -704,31 +707,27 @@ class VehicleController:
                     # Mettre à jour le conducteur existant
                     driver = self.session.query(Driver).filter(Driver.id == vehicle.driver_id).first()
                     if driver:
-                        # ✅ Utiliser les noms de colonnes du modèle Driver
-                        driver.driver_name = driver_data.get('nom', driver.nom)
-                        # Si le formulaire envoie 'prenom', on l'ajoute au nom
-                        if driver_data.get('prenom'):
-                            driver.driver_name = f"{driver_data.get('nom', '')} {driver_data.get('prenom', '')}".strip()
-                        driver.driver_birth_date = driver_data.get('date_naissance', driver.date_naissance)
-                        driver.driver_licence_number = driver_data.get('num_permis', driver.num_permis)
-                        driver.driver_licence_category = driver_data.get('categorie_permis', driver.cat_permis)
-                        driver.driver_licence_issued_at = driver_data.get('date_permis', driver.date_permis)
+                        driver.nom = driver_data.get('nom', driver.nom)
+                        driver.prenom = driver_data.get('prenom', driver.prenom)
+                        driver.date_naissance = driver_data.get('date_naissance', driver.date_naissance)
+                        driver.num_permis = driver_data.get('num_permis', driver.num_permis)
+                        driver.cat_permis = driver_data.get(
+                            'categorie_permis', driver_data.get('cat_permis', driver.cat_permis)
+                        )
+                        driver.date_permis = driver_data.get('date_permis', driver.date_permis)
                         driver.updated_at = datetime.now()
                         print(f"✓ Conducteur mis à jour: {driver.id}")
                 else:
-                    # ✅ Créer un nouveau conducteur avec les colonnes du modèle
-                    # Combiner nom et prénom si les deux sont présents
-                    full_name = driver_data.get('nom', '')
-                    if driver_data.get('prenom'):
-                        full_name = f"{full_name} {driver_data.get('prenom', '')}".strip()
-                    
                     new_driver = Driver(
-                        driver_name=full_name,
-                        driver_birth_date=driver_data.get('date_naissance'),
-                        driver_licence_number=driver_data.get('num_permis', ''),
-                        driver_licence_category=driver_data.get('categorie_permis', ''),
-                        driver_licence_issued_at=driver_data.get('date_permis'),
-                        driver_licence_issued_by=driver_data.get('autorite_delivrance', '')
+                        nom=driver_data.get('nom', ''),
+                        prenom=driver_data.get('prenom', ''),
+                        date_naissance=driver_data.get('date_naissance'),
+                        num_permis=driver_data.get('num_permis', ''),
+                        cat_permis=driver_data.get(
+                            'categorie_permis', driver_data.get('cat_permis', '')
+                        ),
+                        date_permis=driver_data.get('date_permis'),
+                        subscriber_id=vehicle.owner_id
                     )
                     self.session.add(new_driver)
                     self.session.flush()
@@ -745,6 +744,7 @@ class VehicleController:
             
             self.session.commit()
             self.session.refresh(vehicle)
+            self.invalidate_all_cache()
             
             return True, "Véhicule mis à jour avec succès"
             
@@ -757,31 +757,47 @@ class VehicleController:
 
     def _update_vehicle_guarantees(self, vehicle, data):
         """Met à jour les garanties du véhicule."""
-        try:
-            from addons.Automobiles.models.automobile_models import (
-                VehicleGuarantee,
-                VehicleGuaranteeReduction,
-                VehicleGuaranteeRate,
-                VehicleGuaranteeOption,
-                VehicleFleetGuarantee
+        from addons.Automobiles.models.automobile_models import (
+            VehicleGuarantee,
+            VehicleGuaranteeReduction,
+            VehicleGuaranteeRate,
+        )
+
+        missing = object()
+        guarantee_keys = {
+            'rc': 'rc',
+            'dr': 'dr',
+            'vol': 'vol',
+            'vb': 'vb',
+            'in': 'in_garantie',
+            'bris': 'bris',
+            'ar': 'ar',
+            'dta': 'dta',
+            'ipt': 'ipt',
+        }
+
+        for form_key, model_key in guarantee_keys.items():
+            gross = data.get(
+                f'amt_{form_key}_brut',
+                data.get(f'amt_{form_key}', data.get(f'guarantees_{form_key}', missing))
             )
-            
-            # Mise à jour des garanties brutes
-            if vehicle.guarantees:
-                for key in ['rc', 'dr', 'vol', 'vb', 'ipt', 'bris', 'ar', 'dta', 'in_garantie']:
-                    value = data.get(f'amt_{key}', data.get(f'guarantees_{key}', 0))
-                    if hasattr(vehicle.guarantees, key):
-                        setattr(vehicle.guarantees, key, float(value or 0))
-            
-            # Mise à jour des réductions
-            if vehicle.guarantee_reductions:
-                for key in ['rc', 'dr', 'vol', 'vb', 'ipt', 'bris', 'ar', 'dta', 'in_garantie']:
-                    value = data.get(f'red_{key}', data.get(f'reduction_{key}', 0))
-                    if hasattr(vehicle.guarantee_reductions, key):
-                        setattr(vehicle.guarantee_reductions, key, float(value or 0))
-            
-        except Exception as e:
-            print(f"Erreur mise à jour garanties: {e}")
+            reduction = data.get(f'amt_{form_key}_red', missing)
+            rate = data.get(f'red_{form_key}', missing)
+
+            if gross is not missing:
+                if vehicle.guarantees is None:
+                    vehicle.guarantees = VehicleGuarantee()
+                setattr(vehicle.guarantees, model_key, float(gross or 0))
+
+            if reduction is not missing:
+                if vehicle.guarantee_reductions is None:
+                    vehicle.guarantee_reductions = VehicleGuaranteeReduction()
+                setattr(vehicle.guarantee_reductions, model_key, float(reduction or 0))
+
+            if rate is not missing:
+                if vehicle.guarantee_rates is None:
+                    vehicle.guarantee_rates = VehicleGuaranteeRate()
+                setattr(vehicle.guarantee_rates, model_key, float(rate or 0))
 
     def get_audit_logs(self, module_name):
         """
@@ -1560,7 +1576,7 @@ class VehicleController:
 
     # Dans automobile_controller.py, après la méthode print_devis (vers la fin du fichier)
 
-    def print_quittance(self, vehicle_data, parent_widget=None):
+    def print_quittance(self, vehicle_data, parent_widget=None, output_path=None):
         """
         Gère la génération et l'impression de la quittance (conditions particulières).
         """
@@ -1706,10 +1722,6 @@ class VehicleController:
                 'owner_city': owner_city,
             }
             
-            # ✅ Debug
-            print(f"🔍 print_quittance - owner_data: {owner_data}")
-            print(f"🔍 print_quittance - vehicle_data_for_pdf owner: {vehicle_data_for_pdf.get('owner')}")
-            
             # 5. Génération du PDF
             generator = QuittanceGenerator(contract_data, vehicle_data_for_pdf, owner_data, company_data)
             
@@ -1722,7 +1734,7 @@ class VehicleController:
                 except Exception as e:
                     print(f"Impossible de créer le dossier d'export : {e}")
             
-            if parent_widget:
+            if output_path is None and parent_widget:
                 output_path, _ = QFileDialog.getSaveFileName(
                     parent_widget,
                     "Enregistrer la quittance",
@@ -1731,8 +1743,6 @@ class VehicleController:
                 )
                 if not output_path:
                     return False
-            else:
-                output_path = None
             
             # 7. Générer le PDF
             file_path = generator.generate(output_path)
@@ -2165,10 +2175,13 @@ class VehicleController:
         from core.local_db import cache
         
         # Supprimer tout le module
-        cache.clear_module("automobiles")
+        cache.delete_by_module("automobiles")
         
         # Supprimer aussi le cache mémoire
         self._invalidate_cache()
+        self._vehicle_cache.clear()
+        query_cache.invalidate("vehicles_by_owner_")
+        self.session.expire_all()
         
         logger.info("🗑️ Cache SQLite du module automobiles invalidé")
     

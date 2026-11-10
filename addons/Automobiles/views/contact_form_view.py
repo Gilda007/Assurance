@@ -4,7 +4,7 @@ import os
 import uuid 
 from datetime import datetime
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, 
+    QCheckBox, QDialog, QVBoxLayout, QHBoxLayout, QLineEdit, 
     QComboBox, QPushButton, QLabel, QFrame, QGridLayout, 
     QScrollArea, QDateEdit, QMessageBox, QWidget,
     QSplitter, QSizePolicy, QStackedWidget, QGroupBox,
@@ -500,6 +500,35 @@ class ContactForm(QDialog):
         self.charge_client = QLineEdit()
         self.charge_client.setPlaceholderText("Chargé de clientèle")
         self._add_field("Chargé de clientèle", self.charge_client, row, 2)
+        row += 1
+
+
+        # === CASE À COCHER : SOUSCRIPTEUR AUSSI CHAUFFEUR ===
+        self.is_subscriber_also_driver = QCheckBox(
+            "Ce souscripteur est aussi chauffeur (enregistrer dans Driver + Contacts)"
+        )
+        self.is_subscriber_also_driver.setStyleSheet("""
+            QCheckBox {
+                color: #1e293b;
+                font-weight: 600;
+                font-size: 13px;
+                spacing: 8px;
+                padding: 6px 0;
+            }
+            QCheckBox::indicator {
+                width: 18px;
+                height: 18px;
+                border-radius: 4px;
+                border: 2px solid #cbd5e1;
+                background: white;
+            }
+            QCheckBox::indicator:checked {
+                background: #2563eb;
+                border-color: #2563eb;
+            }
+        """)
+        self.is_subscriber_also_driver.toggled.connect(self._on_subscriber_also_driver_toggled)
+        self.form_layout.addWidget(self.is_subscriber_also_driver, row, 0, 1, 3)
         row += 1
         
         # === SECTION 3: IDENTITÉ ===
@@ -1051,31 +1080,72 @@ class ContactForm(QDialog):
     # LOGIQUE D'AFFICHAGE
     # ============================================================
     
-    def _update_visibility(self):
-        """Met à jour la visibilité des champs"""
-        is_driver = self.type_client.currentIndex() == 1
-        is_societe = self.nature.currentIndex() == 1
+    # def _update_visibility(self):
+    #     """Met à jour la visibilité des champs"""
+    #     is_driver = self.type_client.currentIndex() == 1
+    #     is_societe = self.nature.currentIndex() == 1
 
-        self.permis_container.setVisible(is_driver)
-        # Champs à cacher pour les sociétés
+    #     self.permis_container.setVisible(is_driver)
+    #     # Champs à cacher pour les sociétés
+    #     self.prenom.setVisible(not is_societe)
+    #     self.date_naiss.setVisible(not is_societe)
+    #     self.nationalite.setVisible(not is_societe)
+        
+    #     # Champs souscripteur (cachés pour les sociétés)
+    #     if self.type_client.currentIndex() == 0:
+    #         self.profession.setVisible(not is_societe)
+    #         self.cat_socio_prof.setVisible(not is_societe)
+        
+    #     # Permis (caché pour les souscripteurs sociétés)
+    #     if not is_driver and is_societe:
+    #         self.cat_permis.setVisible(False)
+    #         self.num_permis.setVisible(False)
+    #         self.date_permis.setVisible(False)
+    #     else:
+    #         self.cat_permis.setVisible(True)
+    #         self.num_permis.setVisible(True)
+    #         self.date_permis.setVisible(True)
+    #     self.nom.setVisible(True)
+
+    def _update_visibility(self):
+        """Met à jour la visibilité des champs selon type, nature et checkbox."""
+        is_driver_type = self.type_client.currentText() == "Chauffeur"
+        is_societe = self.nature.currentIndex() == 1
+        also_driver = self._is_subscriber_also_driver()
+
+        # --- La case "souscripteur aussi chauffeur" n'apparaît que pour un Souscripteur Particulier ---
+        self.is_subscriber_also_driver.setVisible(
+            self.type_client.currentText() == "Souscripteur" and not is_societe
+        )
+
+        # --- Section Permis : visible si Chauffeur OU si souscripteur aussi chauffeur ---
+        show_permis = is_driver_type or also_driver
+        self.permis_container.setVisible(show_permis)
+
+        # --- Champs spécifiques : Souscripteur vs Chauffeur ---
+        # Si type = Souscripteur ET case cochée → on affiche les champs chauffeur
+        # Sinon on reste sur le stack selon le type.
+        if also_driver:
+            self.specific_stack.setCurrentIndex(1)  # index 1 = driver_widget
+        else:
+            self.specific_stack.setCurrentIndex(
+                self.type_client.currentIndex()  # 0 = subscriber, 1 = driver
+            )
+
+        # --- Champs identité pour sociétés ---
         self.prenom.setVisible(not is_societe)
         self.date_naiss.setVisible(not is_societe)
         self.nationalite.setVisible(not is_societe)
-        
-        # Champs souscripteur (cachés pour les sociétés)
-        if self.type_client.currentIndex() == 0:
+
+        # --- Champs souscripteur (profession, cat socio pro) ---
+        if self.type_client.currentText() == "Souscripteur" and not also_driver:
             self.profession.setVisible(not is_societe)
             self.cat_socio_prof.setVisible(not is_societe)
-        
-        # Permis (caché pour les souscripteurs sociétés)
-        if not is_driver and is_societe:
-            self.cat_permis.setVisible(False)
-            self.num_permis.setVisible(False)
-            self.date_permis.setVisible(False)
         else:
-            self.cat_permis.setVisible(True)
-            self.num_permis.setVisible(True)
-            self.date_permis.setVisible(True)
+            # En mode chauffeur ou souscripteur-chauffeur, on masque ces champs
+            self.profession.setVisible(False)
+            self.cat_socio_prof.setVisible(False)
+
         self.nom.setVisible(True)
 
     def _add_field_to_layout(self, layout, label_text, widget, row, col, colspan=1):
@@ -1137,106 +1207,300 @@ class ContactForm(QDialog):
                 self.driver_subscriber_link.clear()
                 self.driver_subscriber_link.addItem("Erreur de chargement", None)
 
+    def _on_subscriber_also_driver_toggled(self, checked: bool):
+        """Affiche/masque les champs chauffeur quand la case est cochée."""
+        self._update_visibility()
+
+
+    def _is_subscriber_also_driver(self) -> bool:
+        """Retourne True si l'utilisateur veut qu'un souscripteur soit aussi chauffeur."""
+        return (
+            self.type_client.currentText() == "Souscripteur"
+            and hasattr(self, 'is_subscriber_also_driver')
+            and self.is_subscriber_also_driver.isChecked()
+        )
 
     def _load_subscribers_for_driver(self):
         """Alias pour _load_subscribers"""
         self._load_subscribers()
 
+    # def _load_data(self):
+    #     """Charge les données existantes"""
+    #     if not self.contact_data:
+    #         if self.type_client.currentIndex() == 0:
+    #             self._generate_and_set_client_code()
+    #         return
+        
+    #     # ✅ Déterminer si c'est un chauffeur ou un souscripteur
+    #     is_driver = hasattr(self.contact_data, 'type_client') and self.contact_data.type_client == "Chauffeur"
+
+    #     data_obj = self.contact_data.data if is_driver else self.contact_data
+        
+    #     # --- SECTION 1: TYPE DE CLIENT ---
+    #     if hasattr(self.contact_data, 'type_client'):
+    #         idx = self.type_client.findText(self.contact_data.type_client)
+    #         if idx >= 0:
+    #             self.type_client.setCurrentIndex(idx)
+        
+    #     self._on_type_changed(self.type_client.currentIndex())
+        
+    #     # --- SECTION 2: ADMINISTRATION ---
+    #     if hasattr(self.contact_data, 'nature'):
+    #         idx = self.nature.findText(self.contact_data.nature)
+    #         if idx >= 0:
+    #             self.nature.setCurrentIndex(idx)
+        
+    #     # ✅ Gestion du statut (pour Contact et Driver)
+    #     if hasattr(self.contact_data, 'statut'):
+    #         idx = self.statut.findText(self.contact_data.statut)
+    #         if idx >= 0:
+    #             self.statut.setCurrentIndex(idx)
+        
+    #     if hasattr(self.contact_data, 'charge_clientele'):
+    #         self.charge_client.setText(self.contact_data.charge_clientele or '')
+        
+    #     self._update_visibility()
+        
+    #     # --- SECTION 3: IDENTITÉ ---
+    #     self.nom.setText(getattr(self.contact_data, 'nom', ''))
+    #     self.prenom.setText(getattr(self.contact_data, 'prenom', ''))
+        
+    #     if hasattr(self.contact_data, 'civilite'):
+    #         idx = self.civilite.findText(self.contact_data.civilite)
+    #         if idx >= 0:
+    #             self.civilite.setCurrentIndex(idx)
+        
+    #     if hasattr(self.contact_data, 'date_naissance') and self.contact_data.date_naissance:
+    #         self.date_naiss.setDate(self._to_qdate(self.contact_data.date_naissance))
+        
+    #     if hasattr(self.contact_data, 'nationalite') and self.contact_data.nationalite:
+    #         # Trouver l'index du pays dans la combo
+    #         index = self.nationalite.findText(self.contact_data.nationalite)
+    #         if index >= 0:
+    #             self.nationalite.setCurrentIndex(index)
+    #         else:
+    #             # Si le pays n'existe pas dans la liste, l'ajouter
+    #             self.nationalite.addItem(self.contact_data.nationalite)
+    #             self.nationalite.setCurrentText(self.contact_data.nationalite)
+
+    #     self.num_contribuable.setText(getattr(self.contact_data, 'num_contribuable', ''))
+        
+    #     # --- SECTION 5: COORDONNÉES ---
+    #     self.tel.setText(getattr(self.contact_data, 'telephone', ''))
+    #     self.fax.setText(getattr(self.contact_data, 'fax', ''))
+    #     self.email.setText(getattr(self.contact_data, 'email', ''))
+    #     self.adresse.setText(getattr(self.contact_data, 'adresse', ''))
+    #     if hasattr(self.contact_data, 'ville') and self.contact_data.ville:
+    #         # Forcer la mise à jour des villes
+    #         self._update_cities(self.nationalite.currentText())
+            
+    #         # Sélectionner la ville
+    #         index = self.ville.findText(self.contact_data.ville)
+    #         if index >= 0:
+    #             self.ville.setCurrentIndex(index)
+    #         else:
+    #             self.ville.addItem(self.contact_data.ville)
+    #             self.ville.setCurrentText(self.contact_data.ville)
+        
+    #     # --- SECTION 6: PERMIS ---
+    #     self.num_permis.setText(getattr(self.contact_data, 'num_permis', ''))
+    #     if hasattr(self.contact_data, 'cat_permis'):
+    #         idx = self.cat_permis.findText(self.contact_data.cat_permis or 'B')
+    #         if idx >= 0:
+    #             self.cat_permis.setCurrentIndex(idx)
+    #     if hasattr(self.contact_data, 'date_permis') and self.contact_data.date_permis:
+    #         self.date_permis.setDate(self._to_qdate(self.contact_data.date_permis))
+        
+    #     # --- SECTION 7: NOTES ---
+    #     self.notes.setText(getattr(self.contact_data, 'notes', ''))
+        
+    #     # --- SECTION 4: INFORMATIONS SPÉCIFIQUES ---
+    #     if not is_driver:
+    #         # ✅ Souscripteur
+    #         if hasattr(self, 'subscriber_code'):
+    #             existing_code = getattr(self.contact_data, 'code_client', '')
+    #             if existing_code:
+    #                 self.subscriber_code.setText(existing_code)
+    #                 self.subscriber_code.setStyleSheet("""
+    #                     QLineEdit#readonly {
+    #                         background: #f1f5f9;
+    #                         color: #2563eb;
+    #                         font-weight: bold;
+    #                         border: 2px solid #2563eb;
+    #                         border-radius: 8px;
+    #                         padding: 9px 14px;
+    #                     }
+    #                 """)
+    #             else:
+    #                 # Si le contact n'a pas de code, en générer un
+    #                 self._generate_and_set_client_code()
+            
+    #         if hasattr(self, 'profession'):
+    #             profession = getattr(self.contact_data, 'profession', '')
+    #             idx = self.profession.findText(profession)
+    #             if idx >= 0:
+    #                 self.profession.setCurrentIndex(idx)
+    #             elif profession:
+    #                 self.profession.setCurrentText(profession)
+            
+    #         if hasattr(self, 'cat_socio_prof'):
+    #             cat_socio = getattr(self.contact_data, 'cat_socio_prof', '')
+    #             idx = self.cat_socio_prof.findText(cat_socio)
+    #             if idx >= 0:
+    #                 self.cat_socio_prof.setCurrentIndex(idx)
+    #             elif cat_socio:
+    #                 self.cat_socio_prof.setCurrentText(cat_socio)
+    #     else:
+    #         # ✅ Chauffeur
+    #         if is_driver:
+    #             # ✅ Chauffeur
+    #             if hasattr(self, 'driver_code'):
+    #                 code = getattr(self.contact_data, 'code_chauffeur', '')
+    #                 if code:
+    #                     self.driver_code.setText(code)
+    #                 else:
+    #                     # Si pas de code, afficher un placeholder
+    #                     self.driver_code.setText("Généré automatiquement")
+            
+    #         if hasattr(self, 'driver_specialite'):
+    #             specialite = getattr(self.contact_data, 'specialite', '')
+    #             idx = self.driver_specialite.findText(specialite)
+    #             if idx >= 0:
+    #                 self.driver_specialite.setCurrentIndex(idx)
+    #             elif specialite:
+    #                 self.driver_specialite.setCurrentText(specialite)
+            
+    #         if hasattr(self, 'driver_experience'):
+    #             experience = str(getattr(self.contact_data, 'annees_experience', 0))
+    #             idx = self.driver_experience.findText(experience)
+    #             if idx >= 0:
+    #                 self.driver_experience.setCurrentIndex(idx)
+    #             else:
+    #                 self.driver_experience.setCurrentText(experience)
+            
+    #         # Charger le souscripteur associé
+    #         if hasattr(self, 'driver_subscriber_link'):
+    #             subscriber_id = getattr(self.contact_data, 'subscriber_id', None)
+    #             if subscriber_id:
+    #                 for i in range(self.driver_subscriber_link.count()):
+    #                     if self.driver_subscriber_link.itemData(i) == subscriber_id:
+    #                         self.driver_subscriber_link.setCurrentIndex(i)
+    #                         break
+    
     def _load_data(self):
-        """Charge les données existantes"""
+        """Charge les données existantes (Contact et/ou Driver)."""
         if not self.contact_data:
-            if self.type_client.currentIndex() == 0:
+            # Mode création : générer un code par défaut
+            if self.type_client.currentText() == "Souscripteur":
                 self._generate_and_set_client_code()
             return
-        
-        # ✅ Déterminer si c'est un chauffeur ou un souscripteur
-        is_driver = hasattr(self.contact_data, 'type_client') and self.contact_data.type_client == "Chauffeur"
 
-        data_obj = self.contact_data.data if is_driver else self.contact_data
-        
-        # --- SECTION 1: TYPE DE CLIENT ---
+        # ─────────────────────────────────────────────
+        # 1. Déterminer la source de données
+        # ─────────────────────────────────────────────
+        is_driver_type = (
+            hasattr(self.contact_data, 'type_client')
+            and self.contact_data.type_client == "Chauffeur"
+        )
+
+        # Pour un ContactListItem (wrapper), .data contient l'objet réel
+        if hasattr(self.contact_data, 'data') and hasattr(self.contact_data, 'source_type'):
+            data_obj = self.contact_data.data
+        else:
+            data_obj = self.contact_data
+
+        # ─────────────────────────────────────────────
+        # 2. Section "Type de client"
+        # ─────────────────────────────────────────────
         if hasattr(self.contact_data, 'type_client'):
             idx = self.type_client.findText(self.contact_data.type_client)
             if idx >= 0:
                 self.type_client.setCurrentIndex(idx)
-        
+
         self._on_type_changed(self.type_client.currentIndex())
-        
-        # --- SECTION 2: ADMINISTRATION ---
-        if hasattr(self.contact_data, 'nature'):
-            idx = self.nature.findText(self.contact_data.nature)
+
+        # ─────────────────────────────────────────────
+        # 3. Section Administration
+        # ─────────────────────────────────────────────
+        if hasattr(data_obj, 'nature'):
+            idx = self.nature.findText(data_obj.nature)
             if idx >= 0:
                 self.nature.setCurrentIndex(idx)
-        
-        # ✅ Gestion du statut (pour Contact et Driver)
-        if hasattr(self.contact_data, 'statut'):
-            idx = self.statut.findText(self.contact_data.statut)
+
+        if hasattr(data_obj, 'statut'):
+            idx = self.statut.findText(data_obj.statut)
             if idx >= 0:
                 self.statut.setCurrentIndex(idx)
-        
-        if hasattr(self.contact_data, 'charge_clientele'):
-            self.charge_client.setText(self.contact_data.charge_clientele or '')
-        
-        self._update_visibility()
-        
-        # --- SECTION 3: IDENTITÉ ---
-        self.nom.setText(getattr(self.contact_data, 'nom', ''))
-        self.prenom.setText(getattr(self.contact_data, 'prenom', ''))
-        
-        if hasattr(self.contact_data, 'civilite'):
-            idx = self.civilite.findText(self.contact_data.civilite)
+
+        if hasattr(data_obj, 'charge_clientele'):
+            self.charge_client.setText(data_obj.charge_clientele or '')
+
+        # ─────────────────────────────────────────────
+        # 4. Section Identité
+        # ─────────────────────────────────────────────
+        self.nom.setText(getattr(data_obj, 'nom', '') or '')
+        self.prenom.setText(getattr(data_obj, 'prenom', '') or '')
+
+        if hasattr(data_obj, 'civilite'):
+            idx = self.civilite.findText(data_obj.civilite)
             if idx >= 0:
                 self.civilite.setCurrentIndex(idx)
-        
-        if hasattr(self.contact_data, 'date_naissance') and self.contact_data.date_naissance:
-            self.date_naiss.setDate(self._to_qdate(self.contact_data.date_naissance))
-        
-        if hasattr(self.contact_data, 'nationalite') and self.contact_data.nationalite:
-            # Trouver l'index du pays dans la combo
-            index = self.nationalite.findText(self.contact_data.nationalite)
+
+        if hasattr(data_obj, 'date_naissance') and data_obj.date_naissance:
+            self.date_naiss.setDate(self._to_qdate(data_obj.date_naissance))
+
+        if hasattr(data_obj, 'nationalite') and data_obj.nationalite:
+            index = self.nationalite.findText(data_obj.nationalite)
             if index >= 0:
                 self.nationalite.setCurrentIndex(index)
             else:
-                # Si le pays n'existe pas dans la liste, l'ajouter
-                self.nationalite.addItem(self.contact_data.nationalite)
-                self.nationalite.setCurrentText(self.contact_data.nationalite)
+                self.nationalite.addItem(data_obj.nationalite)
+                self.nationalite.setCurrentText(data_obj.nationalite)
 
-        self.num_contribuable.setText(getattr(self.contact_data, 'num_contribuable', ''))
-        
-        # --- SECTION 5: COORDONNÉES ---
-        self.tel.setText(getattr(self.contact_data, 'telephone', ''))
-        self.fax.setText(getattr(self.contact_data, 'fax', ''))
-        self.email.setText(getattr(self.contact_data, 'email', ''))
-        self.adresse.setText(getattr(self.contact_data, 'adresse', ''))
-        if hasattr(self.contact_data, 'ville') and self.contact_data.ville:
-            # Forcer la mise à jour des villes
+        self.num_contribuable.setText(getattr(data_obj, 'num_contribuable', '') or '')
+
+        # ─────────────────────────────────────────────
+        # 5. Section Coordonnées
+        # ─────────────────────────────────────────────
+        self.tel.setText(getattr(data_obj, 'telephone', '') or '')
+        self.fax.setText(getattr(data_obj, 'fax', '') or '')
+        self.email.setText(getattr(data_obj, 'email', '') or '')
+        self.adresse.setText(getattr(data_obj, 'adresse', '') or '')
+
+        if hasattr(data_obj, 'ville') and data_obj.ville:
+            # Forcer la mise à jour des villes selon la nationalité
             self._update_cities(self.nationalite.currentText())
-            
-            # Sélectionner la ville
-            index = self.ville.findText(self.contact_data.ville)
+            index = self.ville.findText(data_obj.ville)
             if index >= 0:
                 self.ville.setCurrentIndex(index)
             else:
-                self.ville.addItem(self.contact_data.ville)
-                self.ville.setCurrentText(self.contact_data.ville)
-        
-        # --- SECTION 6: PERMIS ---
-        self.num_permis.setText(getattr(self.contact_data, 'num_permis', ''))
-        if hasattr(self.contact_data, 'cat_permis'):
-            idx = self.cat_permis.findText(self.contact_data.cat_permis or 'B')
+                self.ville.addItem(data_obj.ville)
+                self.ville.setCurrentText(data_obj.ville)
+
+        # ─────────────────────────────────────────────
+        # 6. Section Notes
+        # ─────────────────────────────────────────────
+        self.notes.setText(getattr(data_obj, 'notes', '') or '')
+
+        # ─────────────────────────────────────────────
+        # 7. Section Permis (chargement commun)
+        # ─────────────────────────────────────────────
+        self.num_permis.setText(getattr(data_obj, 'num_permis', '') or '')
+        if hasattr(data_obj, 'cat_permis') and data_obj.cat_permis:
+            idx = self.cat_permis.findText(data_obj.cat_permis)
             if idx >= 0:
                 self.cat_permis.setCurrentIndex(idx)
-        if hasattr(self.contact_data, 'date_permis') and self.contact_data.date_permis:
-            self.date_permis.setDate(self._to_qdate(self.contact_data.date_permis))
-        
-        # --- SECTION 7: NOTES ---
-        self.notes.setText(getattr(self.contact_data, 'notes', ''))
-        
-        # --- SECTION 4: INFORMATIONS SPÉCIFIQUES ---
-        if not is_driver:
-            # ✅ Souscripteur
+        if hasattr(data_obj, 'date_permis') and data_obj.date_permis:
+            self.date_permis.setDate(self._to_qdate(data_obj.date_permis))
+
+        # ─────────────────────────────────────────────
+        # 8. Champs spécifiques selon le type
+        # ─────────────────────────────────────────────
+        if not is_driver_type:
+            # ═════════ SOUSCRIPTEUR ═════════
+            # Code client
             if hasattr(self, 'subscriber_code'):
-                existing_code = getattr(self.contact_data, 'code_client', '')
+                existing_code = getattr(data_obj, 'code_client', '')
                 if existing_code:
                     self.subscriber_code.setText(existing_code)
                     self.subscriber_code.setStyleSheet("""
@@ -1250,60 +1514,122 @@ class ContactForm(QDialog):
                         }
                     """)
                 else:
-                    # Si le contact n'a pas de code, en générer un
                     self._generate_and_set_client_code()
-            
+
+            # Profession / Catégorie socio-professionnelle
             if hasattr(self, 'profession'):
-                profession = getattr(self.contact_data, 'profession', '')
+                profession = getattr(data_obj, 'profession', '') or ''
                 idx = self.profession.findText(profession)
                 if idx >= 0:
                     self.profession.setCurrentIndex(idx)
                 elif profession:
                     self.profession.setCurrentText(profession)
-            
+
             if hasattr(self, 'cat_socio_prof'):
-                cat_socio = getattr(self.contact_data, 'cat_socio_prof', '')
+                cat_socio = getattr(data_obj, 'cat_socio_prof', '') or ''
                 idx = self.cat_socio_prof.findText(cat_socio)
                 if idx >= 0:
                     self.cat_socio_prof.setCurrentIndex(idx)
                 elif cat_socio:
                     self.cat_socio_prof.setCurrentText(cat_socio)
-        else:
-            # ✅ Chauffeur
-            if is_driver:
-                # ✅ Chauffeur
-                if hasattr(self, 'driver_code'):
-                    code = getattr(self.contact_data, 'code_chauffeur', '')
-                    if code:
-                        self.driver_code.setText(code)
+
+            # ═════════ DÉTECTION "AUSSI CHAUFFEUR" ═════════
+            # Vérifier si un Driver est déjà associé à ce souscripteur
+            contact_id = getattr(data_obj, 'id', None)
+            existing_driver = None
+            if contact_id:
+                try:
+                    existing_driver = self.controller.contacts.get_driver_by_subscriber(contact_id)
+                except Exception as e:
+                    print(f"⚠️ Impossible de vérifier le driver associé : {e}")
+                    existing_driver = None
+
+            if existing_driver:
+                # ✅ Cocher la case — cela déclenchera _update_visibility
+                self.is_subscriber_also_driver.setChecked(True)
+
+                # Pré-remplir les champs chauffeur avec les données du Driver
+                self.num_permis.setText(
+                    getattr(existing_driver, 'num_permis', '') or ''
+                )
+                if hasattr(existing_driver, 'cat_permis') and existing_driver.cat_permis:
+                    idx = self.cat_permis.findText(existing_driver.cat_permis)
+                    if idx >= 0:
+                        self.cat_permis.setCurrentIndex(idx)
+                if hasattr(existing_driver, 'date_permis') and existing_driver.date_permis:
+                    self.date_permis.setDate(self._to_qdate(existing_driver.date_permis))
+
+                if hasattr(self, 'driver_specialite') and hasattr(existing_driver, 'specialite'):
+                    spec = existing_driver.specialite or ''
+                    idx = self.driver_specialite.findText(spec)
+                    if idx >= 0:
+                        self.driver_specialite.setCurrentIndex(idx)
+                    elif spec:
+                        self.driver_specialite.setCurrentText(spec)
+
+                if hasattr(self, 'driver_experience') and hasattr(existing_driver, 'annees_experience'):
+                    exp = str(getattr(existing_driver, 'annees_experience', 0) or 0)
+                    idx = self.driver_experience.findText(exp)
+                    if idx >= 0:
+                        self.driver_experience.setCurrentIndex(idx)
                     else:
-                        # Si pas de code, afficher un placeholder
-                        self.driver_code.setText("Généré automatiquement")
-            
+                        self.driver_experience.setCurrentText(exp)
+
+                if hasattr(self, 'driver_code'):
+                    code = getattr(existing_driver, 'code_chauffeur', '') or 'Généré automatiquement'
+                    self.driver_code.setText(code)
+
+                # Remplir la combo "souscripteur associé" avec le contact lui-même
+                # (utile si jamais on bascule en mode chauffeur pur plus tard)
+                if hasattr(self, 'driver_subscriber_link'):
+                    for i in range(self.driver_subscriber_link.count()):
+                        if self.driver_subscriber_link.itemData(i) == contact_id:
+                            self.driver_subscriber_link.setCurrentIndex(i)
+                            break
+
+        else:
+            # ═════════ CHAUFFEUR PUR ═════════
+            # Code chauffeur
+            if hasattr(self, 'driver_code'):
+                code = getattr(data_obj, 'code_chauffeur', '')
+                if code:
+                    self.driver_code.setText(code)
+                else:
+                    self.driver_code.setText("Généré automatiquement")
+
             if hasattr(self, 'driver_specialite'):
-                specialite = getattr(self.contact_data, 'specialite', '')
-                idx = self.driver_specialite.findText(specialite)
+                spec = getattr(data_obj, 'specialite', '') or ''
+                idx = self.driver_specialite.findText(spec)
                 if idx >= 0:
                     self.driver_specialite.setCurrentIndex(idx)
-                elif specialite:
-                    self.driver_specialite.setCurrentText(specialite)
-            
+                elif spec:
+                    self.driver_specialite.setCurrentText(spec)
+
             if hasattr(self, 'driver_experience'):
-                experience = str(getattr(self.contact_data, 'annees_experience', 0))
-                idx = self.driver_experience.findText(experience)
+                exp = str(getattr(data_obj, 'annees_experience', 0) or 0)
+                idx = self.driver_experience.findText(exp)
                 if idx >= 0:
                     self.driver_experience.setCurrentIndex(idx)
                 else:
-                    self.driver_experience.setCurrentText(experience)
-            
-            # Charger le souscripteur associé
+                    self.driver_experience.setCurrentText(exp)
+
+            # Souscripteur associé (chauffeur pur → obligatoire)
             if hasattr(self, 'driver_subscriber_link'):
-                subscriber_id = getattr(self.contact_data, 'subscriber_id', None)
+                # S'assurer que la liste est chargée avant de sélectionner
+                if self.driver_subscriber_link.count() <= 1:
+                    self._load_subscribers()
+                subscriber_id = getattr(data_obj, 'subscriber_id', None)
                 if subscriber_id:
                     for i in range(self.driver_subscriber_link.count()):
                         if self.driver_subscriber_link.itemData(i) == subscriber_id:
                             self.driver_subscriber_link.setCurrentIndex(i)
                             break
+
+        # ─────────────────────────────────────────────
+        # 9. Rafraîchir la visibilité après tous les chargements
+        # ─────────────────────────────────────────────
+        self._update_visibility()
+    
     # ============================================================
     # CAMÉRA
     # ============================================================
@@ -1452,25 +1778,43 @@ class ContactForm(QDialog):
     #         self.nom.setPlaceholderText("Nom complet du chauffeur")
     #         self.nom.setVisible(True)
     
-    def _on_type_changed(self, index):
-        """Gère le changement de type de client"""
-        self.specific_stack.setCurrentIndex(index)
-        self._update_visibility()
+    # def _on_type_changed(self, index):
+    #     """Gère le changement de type de client"""
+    #     self.specific_stack.setCurrentIndex(index)
+    #     self._update_visibility()
         
+    #     if index == 1:  # Chauffeur
+    #         self._load_subscribers()
+    #         # ✅ Générer le code chauffeur automatiquement
+    #         self._generate_and_set_driver_code()
+    #     else:  # Souscripteur
+    #         # ✅ Générer le code client automatiquement
+    #         self._generate_and_set_client_code()
+        
+    #     # Mettre à jour le placeholder
+    #     if index == 0:
+    #         self.nom.setPlaceholderText("Nom / Raison sociale")
+    #     else:
+    #         self.nom.setPlaceholderText("Nom complet du chauffeur")
+    #     self.nom.setVisible(True)
+
+    def _on_type_changed(self, index):
+        """Gère le changement de type de client."""
+        self._update_visibility()
+
         if index == 1:  # Chauffeur
             self._load_subscribers()
-            # ✅ Générer le code chauffeur automatiquement
             self._generate_and_set_driver_code()
         else:  # Souscripteur
-            # ✅ Générer le code client automatiquement
             self._generate_and_set_client_code()
-        
-        # Mettre à jour le placeholder
+            # Quand on repasse en souscripteur, on décoche la case par sécurité
+            if hasattr(self, 'is_subscriber_also_driver'):
+                self.is_subscriber_also_driver.setChecked(False)
+
         if index == 0:
             self.nom.setPlaceholderText("Nom / Raison sociale")
         else:
             self.nom.setPlaceholderText("Nom complet du chauffeur")
-        self.nom.setVisible(True)
     # ============================================================
     # GESTION DE LA FENÊTRE
     # ============================================================
@@ -1550,150 +1894,208 @@ class ContactForm(QDialog):
     #         traceback.print_exc()
 
     def validate_and_save(self):
-        """Valide et sauvegarde"""
+        """Valide et sauvegarde — délègue la logique au contrôleur."""
         errors = self._validate()
-        
         if errors:
-            QMessageBox.warning(self, "⚠️ Champs obligatoires",
-                f"Veuillez corriger les erreurs suivantes :\n\n" + "\n".join(errors))
+            QMessageBox.warning(
+                self, "⚠️ Champs obligatoires",
+                "Veuillez corriger les erreurs suivantes :\n\n" + "\n".join(errors)
+            )
             return
-        
+
         try:
             data = self._get_data()
-            
-            # ✅ Déterminer la table de destination en fonction du type
+
+            # ✅ Cas chauffeur pur (type_client == "Chauffeur")
             if self.type_client.currentText() == "Chauffeur":
-                # ✅ Générer un code chauffeur si absent ou placeholder
-                code_chauffeur = data.get('code_chauffeur', '')
-                if not code_chauffeur or code_chauffeur == "Généré automatiquement":
-                    # Récupérer le code du champ si déjà généré
-                    if hasattr(self, 'driver_code') and self.driver_code.text() and self.driver_code.text() != "Généré automatiquement":
-                        data['code_chauffeur'] = self.driver_code.text()
-                    else:
-                        # Générer un nouveau code chauffeur
-                        data['code_chauffeur'] = self._generate_driver_code()
-                
-                # ✅ Sauvegarder dans Driver
                 if self.mode == "edit" and self.contact_data:
-                    # Pour l'édition d'un chauffeur
-                    if hasattr(self.controller, 'drivers'):
-                        result = self.controller.drivers.update_driver(self.contact_data.id, data)
-                    else:
-                        result = self.controller.contacts.update_driver(self.contact_data.id, data)
+                    result = self.controller.drivers.update_driver(self.contact_data.id, data)
                 else:
-                    # Création d'un nouveau chauffeur
-                    if hasattr(self.controller, 'drivers'):
-                        result = self.controller.drivers.create_driver(data)
-                    else:
-                        result = self.controller.contacts.create_driver(data)
+                    result = self.controller.drivers.create_driver(data)
             else:
-                # ✅ Souscripteur - Générer un code client si absent ou placeholder
-                code_client = data.get('code_client', '')
-                if not code_client or code_client == "Généré automatiquement":
-                    # Récupérer le code du champ si déjà généré
-                    if hasattr(self, 'subscriber_code') and self.subscriber_code.text():
-                        data['code_client'] = self.subscriber_code.text()
-                    else:
-                        # Générer un nouveau code client
-                        data['code_client'] = self._generate_client_code()
-                
-                # ✅ Sauvegarder dans Contact (Souscripteur)
-                if self.mode == "edit" and self.contact_data:
-                    result = self.controller.contacts.update_contact(self.contact_data.id, data)
-                else:
-                    result = self.controller.contacts.create_contact(data)
-            
-            # ✅ Vérifier le résultat (objet, success, message)
-            if result and result[1]:  # (objet, success, message)
+                # ✅ Cas souscripteur (avec ou sans case "aussi chauffeur")
+                result = self.controller.contacts.create_or_update_contact(
+                    data,
+                    contact_id=(
+                        self.contact_data.id
+                        if self.mode == "edit" and self.contact_data
+                        else None
+                    ),
+                )
+
+            if result and result[1]:
                 self.contact_saved.emit(result[0])
                 QMessageBox.information(self, "✅ Succès", result[2])
                 self.accept()
             else:
-                QMessageBox.critical(self, "❌ Erreur", result[2] if result else "Erreur inconnue")
-                    
+                QMessageBox.critical(
+                    self, "❌ Erreur",
+                    result[2] if result else "Erreur inconnue"
+                )
+
         except Exception as e:
             QMessageBox.critical(self, "❌ Erreur", f"Erreur : {str(e)}")
             import traceback
             traceback.print_exc()
 
-    def _validate(self):
-        """Valide le formulaire"""
-        errors = []
+    # def _validate(self):
+    #     """Valide le formulaire"""
+    #     errors = []
         
+    #     if not self.nom.text().strip():
+    #         errors.append("❌ Nom / Raison sociale obligatoire")
+        
+    #     if self.type_client.currentText() == "Chauffeur":
+    #         if not self.driver_subscriber_link.currentData():
+    #             errors.append("❌ Un chauffeur doit être lié à un souscripteur")
+    #         if not self.num_permis.text().strip():
+    #             errors.append("❌ N° de permis obligatoire pour un chauffeur")
+        
+    #     return errors
+
+    def _validate(self):
+        errors = []
+
         if not self.nom.text().strip():
             errors.append("❌ Nom / Raison sociale obligatoire")
-        
-        if self.type_client.currentText() == "Chauffeur":
+
+        is_driver_type = self.type_client.currentText() == "Chauffeur"
+        also_driver = self._is_subscriber_also_driver()
+
+        if is_driver_type:
             if not self.driver_subscriber_link.currentData():
                 errors.append("❌ Un chauffeur doit être lié à un souscripteur")
             if not self.num_permis.text().strip():
                 errors.append("❌ N° de permis obligatoire pour un chauffeur")
-        
+
+        if also_driver:
+            # On ne peut pas lier un souscripteur à lui-même dans driver_subscriber_link
+            # donc pas de contrôle sur ce champ ici.
+            if not self.num_permis.text().strip():
+                errors.append("❌ N° de permis obligatoire si le souscripteur est aussi chauffeur")
+
         return errors
 
-    def _get_data(self):
-        """Récupère les données du formulaire"""
-        is_driver = self.type_client.currentText() == "Chauffeur"
+    # def _get_data(self):
+    #     """Récupère les données du formulaire"""
+    #     is_driver = self.type_client.currentText() == "Chauffeur"
         
-        # ✅ Données communes à tous les types
-        data = {
-            # --- SECTION 1: TYPE DE CLIENT ---
-            "type_client": self.type_client.currentText(),
+    #     # ✅ Données communes à tous les types
+    #     data = {
+    #         # --- SECTION 1: TYPE DE CLIENT ---
+    #         "type_client": self.type_client.currentText(),
             
-            # --- SECTION 2: ADMINISTRATION ---
+    #         # --- SECTION 2: ADMINISTRATION ---
+    #         "statut": self.statut.currentText(),
+    #         "nature": self.nature.currentText(),
+    #         "charge_clientele": self.charge_client.text().strip(),
+            
+    #         # --- SECTION 3: IDENTITÉ ---
+    #         "civilite": self.civilite.currentText(),
+    #         "nom": self.nom.text().strip().upper(),
+    #         "prenom": self.prenom.text().strip().title() if self.prenom.isVisible() else "",
+    #         "date_naissance": self.date_naiss.date().toPython() if self.date_naiss.isVisible() else None,
+    #         "nationalite": self.nationalite.currentText().strip(),
+    #         "num_contribuable": self.num_contribuable.text().strip(),
+            
+    #         # --- SECTION 5: COORDONNÉES ---
+    #         "telephone": self.tel.text().strip(),
+    #         "fax": self.fax.text().strip(),
+    #         "email": self.email.text().strip().lower(),
+    #         "adresse": self.adresse.text().strip(),
+    #         "ville": self.ville.currentText().strip(),
+            
+    #         # --- SECTION 6: PERMIS (commun) ---
+    #         "cat_permis": self.cat_permis.currentText() if self.cat_permis.isVisible() else "",
+    #         "num_permis": self.num_permis.text().strip() if self.num_permis.isVisible() else "",
+    #         "date_permis": self.date_permis.date().toPython() if self.date_permis.isVisible() else None,
+            
+    #         # --- SECTION 7: NOTES ---
+    #         "notes": self.notes.text().strip(),
+    #     }
+        
+    #     # ✅ SECTION 4: INFORMATIONS SPÉCIFIQUES
+    #     if not is_driver:
+    #         # Souscripteur
+    #         data.update({
+    #             "code_client": self.subscriber_code.text().strip() if hasattr(self, 'subscriber_code') else "",
+    #             "profession": self.profession.currentText() if hasattr(self, 'profession') and self.profession.isVisible() else "",
+    #             "cat_socio_prof": self.cat_socio_prof.currentText() if hasattr(self, 'cat_socio_prof') and self.cat_socio_prof.isVisible() else "",
+    #         })
+    #     else:
+    #         # ✅ Chauffeur - Générer un code unique avec UUID
+    #         code_chauffeur = self.driver_code.text().strip() if hasattr(self, 'driver_code') else ""
+            
+    #         # Si le code est vide ou "Généré automatiquement", créer un UUID
+    #         if not code_chauffeur or code_chauffeur == "Généré automatiquement":
+    #             # Récupérer les 3 premières lettres du nom pour plus de lisibilité
+    #             nom_prefix = self.nom.text().strip().upper()[:3] if self.nom.text().strip() else "DRV"
+    #             code_chauffeur = f"{nom_prefix}-{uuid.uuid4().hex[:8].upper()}"
+            
+    #         data.update({
+    #             "code_chauffeur": code_chauffeur,
+    #             "specialite": self.driver_specialite.currentText() if hasattr(self, 'driver_specialite') else "",
+    #             "annees_experience": int(self.driver_experience.currentText()) if hasattr(self, 'driver_experience') and self.driver_experience.currentText().isdigit() else 0,
+    #             "subscriber_id": self.driver_subscriber_link.currentData() if hasattr(self, 'driver_subscriber_link') else None
+    #         })
+        
+    #     return data
+
+    def _get_data(self):
+        is_driver_type = self.type_client.currentText() == "Chauffeur"
+        also_driver = self._is_subscriber_also_driver()
+
+        data = {
+            "type_client": self.type_client.currentText(),
             "statut": self.statut.currentText(),
             "nature": self.nature.currentText(),
             "charge_clientele": self.charge_client.text().strip(),
-            
-            # --- SECTION 3: IDENTITÉ ---
             "civilite": self.civilite.currentText(),
             "nom": self.nom.text().strip().upper(),
             "prenom": self.prenom.text().strip().title() if self.prenom.isVisible() else "",
             "date_naissance": self.date_naiss.date().toPython() if self.date_naiss.isVisible() else None,
             "nationalite": self.nationalite.currentText().strip(),
             "num_contribuable": self.num_contribuable.text().strip(),
-            
-            # --- SECTION 5: COORDONNÉES ---
             "telephone": self.tel.text().strip(),
             "fax": self.fax.text().strip(),
             "email": self.email.text().strip().lower(),
             "adresse": self.adresse.text().strip(),
             "ville": self.ville.currentText().strip(),
-            
-            # --- SECTION 6: PERMIS (commun) ---
-            "cat_permis": self.cat_permis.currentText() if self.cat_permis.isVisible() else "",
-            "num_permis": self.num_permis.text().strip() if self.num_permis.isVisible() else "",
-            "date_permis": self.date_permis.date().toPython() if self.date_permis.isVisible() else None,
-            
-            # --- SECTION 7: NOTES ---
+            "cat_permis": self.cat_permis.currentText() if self.permis_container.isVisible() else "",
+            "num_permis": self.num_permis.text().strip() if self.permis_container.isVisible() else "",
+            "date_permis": self.date_permis.date().toPython() if self.permis_container.isVisible() else None,
             "notes": self.notes.text().strip(),
         }
-        
-        # ✅ SECTION 4: INFORMATIONS SPÉCIFIQUES
-        if not is_driver:
-            # Souscripteur
+
+        # --- Spécifique Souscripteur (et pas aussi chauffeur) ---
+        if not is_driver_type:
             data.update({
                 "code_client": self.subscriber_code.text().strip() if hasattr(self, 'subscriber_code') else "",
                 "profession": self.profession.currentText() if hasattr(self, 'profession') and self.profession.isVisible() else "",
                 "cat_socio_prof": self.cat_socio_prof.currentText() if hasattr(self, 'cat_socio_prof') and self.cat_socio_prof.isVisible() else "",
             })
-        else:
-            # ✅ Chauffeur - Générer un code unique avec UUID
+
+        # --- Spécifique Chauffeur (type = chauffeur OU souscripteur aussi chauffeur) ---
+        if is_driver_type or also_driver:
             code_chauffeur = self.driver_code.text().strip() if hasattr(self, 'driver_code') else ""
-            
-            # Si le code est vide ou "Généré automatiquement", créer un UUID
             if not code_chauffeur or code_chauffeur == "Généré automatiquement":
-                # Récupérer les 3 premières lettres du nom pour plus de lisibilité
-                nom_prefix = self.nom.text().strip().upper()[:3] if self.nom.text().strip() else "DRV"
+                nom_prefix = self.nom.text().strip().upper()[:3] or "DRV"
                 code_chauffeur = f"{nom_prefix}-{uuid.uuid4().hex[:8].upper()}"
-            
+
             data.update({
                 "code_chauffeur": code_chauffeur,
                 "specialite": self.driver_specialite.currentText() if hasattr(self, 'driver_specialite') else "",
                 "annees_experience": int(self.driver_experience.currentText()) if hasattr(self, 'driver_experience') and self.driver_experience.currentText().isdigit() else 0,
-                "subscriber_id": self.driver_subscriber_link.currentData() if hasattr(self, 'driver_subscriber_link') else None
+                "subscriber_id": (
+                    self.driver_subscriber_link.currentData()
+                    if is_driver_type and hasattr(self, 'driver_subscriber_link')
+                    else None
+                ),
             })
-        
+
+        # ✅ Marquer le mode "aussi chauffeur" pour le contrôleur
+        data["also_driver"] = also_driver
+
         return data
 
     def _to_qdate(self, dt):

@@ -1,14 +1,133 @@
 # batch_print_manager.py
 """
-Gestionnaire d'impression groupée - Exécute les impressions dans le thread principal
+Gestionnaire d'impression groupée
 """
 
-from PySide6.QtCore import QObject, Signal, QTimer, Qt
-from PySide6.QtWidgets import QApplication, QProgressDialog, QMessageBox
+import os
+import re
+from datetime import datetime
+
+from PySide6.QtCore import QObject, Signal, QThread, QTimer, Qt
+from PySide6.QtWidgets import QApplication, QFileDialog, QProgressDialog, QMessageBox
+
+
+def _get_document_name(doc_type):
+    names = {
+        "vignette": "Vignette",
+        "carte_rose": "Carte Rose",
+        "attestation": "Attestation",
+        "devis": "Devis",
+        "quittance": "Quittance",
+    }
+    return names.get(doc_type, doc_type)
+
+
+class BatchPdfExportWorker(QThread):
+    """Génère les PDF du lot sans bloquer l'interface."""
+
+    progress = Signal(int, int, str)
+    completed = Signal(int, int, bool, object)
+
+    def __init__(self, controller, vehicles, documents, output_dir):
+        super().__init__()
+        self.controller = controller
+        self.vehicles = vehicles
+        self.documents = documents
+        self.output_dir = output_dir
+        self.cancel_requested = False
+
+    def cancel(self):
+        self.cancel_requested = True
+
+    def run(self):
+        success_count = 0
+        errors = []
+        total = len(self.vehicles) * len(self.documents)
+        batch_stamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+
+        for vehicle_index, vehicle in enumerate(self.vehicles):
+            for document_index, doc_type in enumerate(self.documents):
+                if self.cancel_requested:
+                    self.completed.emit(success_count, len(errors), True, errors)
+                    return
+
+                current = vehicle_index * len(self.documents) + document_index + 1
+                vehicle_name = vehicle.get("immatriculation") or "véhicule"
+                document_name = _get_document_name(doc_type)
+                self.progress.emit(
+                    current,
+                    total,
+                    f"Génération de {document_name} pour {vehicle_name}..."
+                )
+
+                try:
+                    output_path = self._get_output_path(
+                        vehicle, doc_type, batch_stamp, current
+                    )
+                    if self._generate_pdf(vehicle, doc_type, output_path):
+                        success_count += 1
+                    else:
+                        raise RuntimeError("Le générateur n'a pas confirmé la création du PDF.")
+                except Exception as error:
+                    message = f"{document_name} — {vehicle_name}: {error}"
+                    print(f"Erreur génération PDF: {message}")
+                    errors.append(message)
+
+        self.completed.emit(success_count, len(errors), False, errors)
+
+    def _get_output_path(self, vehicle, doc_type, batch_stamp, index):
+        immatriculation = str(vehicle.get("immatriculation") or "vehicule")
+        safe_immatriculation = re.sub(r"[^\w.-]+", "_", immatriculation).strip("._")
+        safe_immatriculation = safe_immatriculation or "vehicule"
+        vehicle_id = vehicle.get("id", "sans_id")
+        filename = (
+            f"{doc_type}_{safe_immatriculation}_{vehicle_id}_"
+            f"{batch_stamp}_{index}.pdf"
+        )
+        return os.path.join(self.output_dir, filename)
+
+    def _generate_pdf(self, vehicle, doc_type, output_path):
+        if doc_type == "vignette":
+            from addons.Automobiles.views.vignette_printer import VignettePrinter
+
+            printer = VignettePrinter(vehicle, export_dir=self.output_dir)
+            printer.generate_pdf(output_path)
+        elif doc_type == "carte_rose":
+            from addons.Automobiles.views.carte_rose_printer import CarteRosePrinter
+
+            CarteRosePrinter(vehicle).save_pdf(output_path)
+        elif doc_type == "attestation":
+            from addons.Automobiles.views.attestation_print import AttestationPrinter
+
+            AttestationPrinter(vehicle).save_pdf(output_path)
+        elif doc_type == "devis":
+            required_fields = ("immatriculation", "marque", "modele", "owner")
+            missing_fields = [
+                field for field in required_fields if not vehicle.get(field)
+            ]
+            if missing_fields:
+                raise ValueError(
+                    f"Champs manquants : {', '.join(missing_fields)}"
+                )
+
+            from addons.Automobiles.views.devis_printer import DevisPrinter
+
+            printer = DevisPrinter(vehicle, export_dir=self.output_dir)
+            printer.generate_pdf(output_path, show_progress=False)
+        elif doc_type == "quittance":
+            generator = getattr(self.controller.vehicles, "print_quittance", None)
+            if not callable(generator):
+                raise RuntimeError("Le générateur de quittance n'est pas disponible.")
+            if not generator(vehicle, output_path=output_path):
+                return False
+        else:
+            raise ValueError(f"Type de document inconnu : {doc_type}")
+
+        return os.path.isfile(output_path) and os.path.getsize(output_path) > 0
 
 
 class BatchPrintManager(QObject):
-    """Gestionnaire d'impression groupée - Exécute dans le thread principal"""
+    """Gère l'impression papier et l'export PDF groupés."""
     
     progress = Signal(int, int, str)
     finished = Signal(bool, str)
@@ -26,11 +145,27 @@ class BatchPrintManager(QObject):
         self.is_running = False
         self.is_cancelled = False
         self.progress_dialog = None
+        self.pdf_worker = None
+        self.output_dir = None
     
-    def start_batch_print(self, vehicles_data, selected_documents):
+    def start_batch_print(self, vehicles_data, selected_documents, output_mode="paper"):
         """Démarre l'impression groupée"""
-        if self.is_running:
+        if self.is_running or (self.pdf_worker and self.pdf_worker.isRunning()):
             return
+        if not selected_documents:
+            QMessageBox.warning(self.parent, "Aucun document", "Sélectionnez au moins un document.")
+            return
+
+        self.output_dir = None
+        if output_mode == "pdf":
+            self.output_dir = QFileDialog.getExistingDirectory(
+                self.parent,
+                "Choisir le dossier de destination des PDF",
+                os.path.expanduser("~"),
+                QFileDialog.ShowDirsOnly
+            )
+            if not self.output_dir:
+                return
         
         # Préparer les données complètes des véhicules
         self.vehicles_queue = []
@@ -44,8 +179,11 @@ class BatchPrintManager(QObject):
         if not self.vehicles_queue:
             QMessageBox.warning(self.parent, "Erreur", "Aucun véhicule valide à imprimer")
             return
-        
+
         self.documents_queue = selected_documents
+        if output_mode == "pdf" and not self._confirm_pdf_warnings():
+            return
+
         self.total_items = len(self.vehicles_queue) * len(self.documents_queue)
         self.current_index = 0
         self.success_count = 0
@@ -82,14 +220,141 @@ class BatchPrintManager(QObject):
             }
         """)
         self.progress_dialog.canceled.connect(self.cancel)
-        
-        # Démarrer la première impression
-        QTimer.singleShot(100, self._print_next)
         self.progress_dialog.show()
-    
+
+        if output_mode == "pdf":
+            self.pdf_worker = BatchPdfExportWorker(
+                self.controller,
+                self.vehicles_queue,
+                self.documents_queue,
+                self.output_dir
+            )
+            self.pdf_worker.progress.connect(self._on_pdf_progress)
+            self.pdf_worker.completed.connect(self._on_pdf_completed)
+            self.pdf_worker.finished.connect(self._on_pdf_worker_stopped)
+            self.pdf_worker.finished.connect(self.pdf_worker.deleteLater)
+            self.pdf_worker.start()
+        else:
+            QTimer.singleShot(100, self._print_next)
+
+    def _confirm_pdf_warnings(self):
+        """Regroupe les avertissements qui seraient sinon répétés pour chaque véhicule."""
+        warnings = []
+
+        if "vignette" in self.documents_queue:
+            from addons.Automobiles.views.vignette_printer import VignettePrinter
+
+            try:
+                unpaid_count = sum(
+                    not VignettePrinter(vehicle, export_dir=self.output_dir).is_paid
+                    for vehicle in self.vehicles_queue
+                )
+                zero_stamp_count = sum(
+                    not float(vehicle.get("amt_dta", 0) or 0)
+                    for vehicle in self.vehicles_queue
+                )
+            except (TypeError, ValueError) as error:
+                QMessageBox.critical(
+                    self.parent,
+                    "Vérification du paiement impossible",
+                    f"Impossible de vérifier le statut de paiement : {error}"
+                )
+                return False
+            if unpaid_count:
+                warnings.append(
+                    f"{unpaid_count} véhicule(s) ont un contrat non payé; "
+                    "leur vignette portera le filigrane « NON PAYÉ »."
+                )
+            if zero_stamp_count:
+                warnings.append(
+                    f"{zero_stamp_count} véhicule(s) ont un montant de vignette à zéro."
+                )
+
+        if {"devis", "quittance"}.intersection(self.documents_queue):
+            zero_amount_count = 0
+            invalid_amount_count = 0
+            for vehicle in self.vehicles_queue:
+                try:
+                    amount = float(
+                        vehicle.get("prime_totale", vehicle.get("prime_nette", 0))
+                        or 0
+                    )
+                except (TypeError, ValueError):
+                    invalid_amount_count += 1
+                else:
+                    zero_amount_count += amount == 0
+            if zero_amount_count:
+                warnings.append(
+                    f"{zero_amount_count} véhicule(s) ont une prime à zéro."
+                )
+            if invalid_amount_count:
+                warnings.append(
+                    f"Le montant de la prime est invalide pour "
+                    f"{invalid_amount_count} véhicule(s)."
+                )
+
+        if not warnings:
+            return True
+
+        message = "\n\n".join(warnings) + "\n\nContinuer la génération des PDF ?"
+        return QMessageBox.question(
+            self.parent,
+            "Vérification avant export",
+            message,
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        ) == QMessageBox.Yes
+
+    def _on_pdf_progress(self, current, total, message):
+        if self.progress_dialog:
+            self.progress_dialog.setLabelText(message)
+            self.progress_dialog.setValue(current)
+        self.progress.emit(current, total, message)
+
+    def _on_pdf_completed(self, success_count, error_count, was_cancelled, errors):
+        self.success_count = success_count
+        self.error_count = error_count
+        self.is_cancelled = was_cancelled
+        self.is_running = False
+
+        if self.progress_dialog:
+            self.progress_dialog.close()
+            self.progress_dialog.deleteLater()
+            self.progress_dialog = None
+
+        if was_cancelled:
+            message = (
+                f"Export annulé. {success_count} PDF généré(s), "
+                f"{error_count} erreur(s)."
+            )
+            QMessageBox.information(self.parent, "Export annulé", message)
+        elif error_count:
+            details = "\n".join(errors[:5])
+            if len(errors) > 5:
+                details += f"\n… et {len(errors) - 5} autre(s) erreur(s)."
+            QMessageBox.warning(
+                self.parent,
+                "Export terminé avec des erreurs",
+                f"{success_count} PDF généré(s), {error_count} erreur(s).\n"
+                f"Dossier : {self.output_dir}\n\n{details}"
+            )
+        else:
+            QMessageBox.information(
+                self.parent,
+                "Export terminé",
+                f"{success_count} PDF généré(s).\n\nDossier : {self.output_dir}"
+            )
+
+        self.finished.emit(error_count == 0, self.output_dir or "")
+
+    def _on_pdf_worker_stopped(self):
+        self.pdf_worker = None
+
     def cancel(self):
         """Annule l'impression"""
         self.is_cancelled = True
+        if self.pdf_worker and self.pdf_worker.isRunning():
+            self.pdf_worker.cancel()
         if self.progress_dialog:
             self.progress_dialog.setLabelText("Annulation en cours...")
     
@@ -109,7 +374,7 @@ class BatchPrintManager(QObject):
         
         vehicle = self.vehicles_queue[vehicle_idx]
         doc_type = self.documents_queue[doc_idx]
-        doc_name = self._get_document_name(doc_type)
+        doc_name = _get_document_name(doc_type)
         
         # Mettre à jour la progression
         self.progress_dialog.setValue(self.current_index)
@@ -251,20 +516,8 @@ class BatchPrintManager(QObject):
             print(f"Erreur _get_complete_vehicle_data: {e}")
             return None
     
-    def _get_document_name(self, doc_type):
-        """Retourne le nom lisible du document"""
-        names = {
-            'vignette': 'Vignette',
-            'carte_rose': 'Carte Rose',
-            'attestation': 'Attestation',
-            'devis': 'Devis',
-            'quittance': 'Quittance'
-        }
-        return names.get(doc_type, doc_type)
-    
     def _print_document(self, vehicle_data, doc_type):
         """Imprime un document - exécuté dans le thread principal"""
-        print(f"voici les informations liées au vehicule: {vehicle_data}")
         try:
             if doc_type == 'vignette':
                 self.controller.vehicles.print_vignette(vehicle_data, self.parent)

@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QDialog, QMessageBox, QWidget, QVBoxLayout, QHBoxLayout, 
     QPushButton, QLabel, QTableWidget, QTableWidgetItem, 
     QHeaderView, QFileDialog, QLineEdit, QFrame, QTabWidget,
-    QGraphicsDropShadowEffect, QComboBox, QDateEdit, QGroupBox,
+    QApplication, QComboBox, QDateEdit, QGroupBox,
     QGridLayout, QScrollArea, QMenu, QToolButton, QSplitter,
     QProgressBar, QStatusBar, QCheckBox, QSpinBox
 )
@@ -48,6 +48,9 @@ class VehiculeModuleView(QWidget):
         self._search_timer.timeout.connect(self._apply_search)
         refresh_shortcut = QShortcut(QKeySequence("F5"), self)
         refresh_shortcut.activated.connect(self.refresh_all_data)
+
+        self._vehicles_cache: list = []
+        self._fleets_cache: list = []
         
         # Style moderne avec couleurs douces
         self.table_style = """
@@ -115,7 +118,7 @@ class VehiculeModuleView(QWidget):
         self.setStyleSheet("background: #f7f9fc;")
         
         # En-tête épuré
-        self._create_header()
+        # self._create_header()
         
         # Barre d'outils
         self._create_toolbar()
@@ -126,152 +129,6 @@ class VehiculeModuleView(QWidget):
         # Barre de statut
         self._create_status_bar()
     
-    # def _create_header(self):
-    #     """Crée un en-tête épuré"""
-    #     header = QFrame()
-    #     header.setStyleSheet("""
-    #         QFrame {
-    #             background: #ffffff;
-    #             padding: 12px 24px;
-    #             border-bottom: 1px solid #e8edf2;
-    #         }
-    #     """)
-    #     header.setMinimumHeight(70)
-        
-    #     layout = QHBoxLayout(header)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-        
-    #     # Titre
-    #     title = QLabel("🚗 Gestion du Parc & Flottes")
-    #     title.setStyleSheet("""
-    #         color: #1a202c;
-    #         font-size: 20px;
-    #         font-weight: 700;
-    #         background: transparent;
-    #         border: none;
-    #     """)
-        
-    #     # Statistiques
-    #     stats_layout = QHBoxLayout()
-    #     stats_layout.setSpacing(20)
-        
-    #     self.total_vehicles_label = self._create_stat_label("🚗", "0", "Véhicules")
-    #     self.active_vehicles_label = self._create_stat_label("✅", "0", "Actifs")
-    #     self.total_fleets_label = self._create_stat_label("📁", "0", "Flottes")
-        
-    #     stats_layout.addWidget(self.total_vehicles_label)
-    #     stats_layout.addWidget(self.active_vehicles_label)
-    #     stats_layout.addWidget(self.total_fleets_label)
-        
-    #     layout.addWidget(title)
-    #     layout.addStretch()
-    #     layout.addLayout(stats_layout)
-        
-    #     self.main_layout.addWidget(header)
-    
-    def _create_header(self):
-        """Crée un en-tête épuré"""
-        header = QFrame()
-        header.setStyleSheet("""
-            QFrame {
-                background: #ffffff;
-                padding: 12px 24px;
-                border-bottom: 1px solid #e8edf2;
-            }
-        """)
-        header.setMinimumHeight(70)
-        
-        layout = QHBoxLayout(header)
-        layout.setContentsMargins(0, 0, 0, 0)
-        
-        # ✅ Titre avec icône
-        title_widget = QWidget()
-        title_layout = QHBoxLayout(title_widget)
-        title_layout.setContentsMargins(0, 0, 0, 0)
-        title_layout.setSpacing(12)
-        
-        title_icon = QLabel()
-        title_icon.setPixmap(get_icon_pixmap('car', color='#2d3748', size=28))
-        title_icon.setStyleSheet("background: transparent; border: none;")
-        title_layout.addWidget(title_icon)
-        
-        title = QLabel("Gestion du Parc & Flottes")
-        title.setStyleSheet("""
-            color: #1a202c;
-            font-size: 20px;
-            font-weight: 700;
-            background: transparent;
-            border: none;
-        """)
-        title_layout.addWidget(title)
-        title_layout.addStretch()
-        
-        # Statistiques
-        stats_layout = QHBoxLayout()
-        stats_layout.setSpacing(20)
-        
-        self.total_vehicles_label = self._create_stat_label('car', "0", "Véhicules")
-        self.active_vehicles_label = self._create_stat_label('check_circle', "0", "Actifs")
-        self.total_fleets_label = self._create_stat_label('folder', "0", "Flottes")
-        
-        stats_layout.addWidget(self.total_vehicles_label)
-        stats_layout.addWidget(self.active_vehicles_label)
-        stats_layout.addWidget(self.total_fleets_label)
-        
-        layout.addWidget(title_widget)
-        layout.addStretch()
-        layout.addLayout(stats_layout)
-        
-        self.main_layout.addWidget(header)
-
-    # def _create_stat_label(self, icon, count, label):
-    #     """Crée une étiquette de statistique"""
-    #     container = QFrame()
-    #     container.setStyleSheet("""
-    #         QFrame {
-    #             background: transparent;
-    #             border: none;
-    #             padding: 4px 8px;
-    #         }
-    #     """)
-        
-    #     layout = QHBoxLayout(container)
-    #     layout.setSpacing(8)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-        
-    #     icon_label = QLabel(icon)
-    #     icon_label.setStyleSheet("font-size: 14px; background: transparent; border: none;")
-        
-    #     text_layout = QVBoxLayout()
-    #     text_layout.setSpacing(0)
-        
-    #     count_label = QLabel(count)
-    #     count_label.setStyleSheet("""
-    #         color: #2d3748;
-    #         font-size: 16px;
-    #         font-weight: 700;
-    #         background: transparent;
-    #         border: none;
-    #     """)
-    #     count_label.setObjectName(f"header_{label.lower()}")
-        
-    #     name_label = QLabel(label)
-    #     name_label.setStyleSheet("""
-    #         color: #718096;
-    #         font-size: 10px;
-    #         text-transform: uppercase;
-    #         letter-spacing: 0.5px;
-    #         background: transparent;
-    #         border: none;
-    #     """)
-        
-    #     text_layout.addWidget(count_label)
-    #     text_layout.addWidget(name_label)
-        
-    #     layout.addWidget(icon_label)
-    #     layout.addLayout(text_layout)
-        
-    #     return container
     
     def _create_stat_label(self, icon_name, count, label):
         """Crée une étiquette de statistique avec icône"""
@@ -501,96 +358,6 @@ class VehiculeModuleView(QWidget):
         
         self.main_layout.addWidget(toolbar)
 
-    # def refresh_all_data(self):
-    #     """
-    #     Rafraîchit toutes les données de la vue (véhicules, flottes, statistiques)
-    #     """
-    #     from core.widgets.global_loader import get_global_loader
-        
-    #     # ✅ Désactiver le bouton pendant l'actualisation
-    #     self.btn_refresh.setEnabled(False)
-    #     self.btn_refresh.setText("🔄 Actualisation...")
-        
-    #     loader = get_global_loader()
-    #     loader.show_loading("Actualisation des données du parc...")
-        
-    #     def refresh():
-    #         """Exécute toutes les requêtes de rafraîchissement"""
-    #         results = {}
-            
-    #         # 1. Charger les véhicules
-    #         try:
-    #             vehicles = self.controller.vehicles.get_all_vehicles()
-    #             results['vehicles'] = vehicles
-    #         except Exception as e:
-    #             results['vehicles_error'] = str(e)
-            
-    #         # 2. Charger les flottes
-    #         try:
-    #             fleets = self.controller.fleets.get_all_fleets()
-    #             results['fleets'] = fleets
-    #         except Exception as e:
-    #             results['fleets_error'] = str(e)
-            
-    #         # 3. Charger les statistiques
-    #         try:
-    #             if hasattr(self.controller, 'vehicles'):
-    #                 stats = self.controller.vehicles.get_vehicle_stats()
-    #                 results['stats'] = stats
-    #         except Exception as e:
-    #             results['stats_error'] = str(e)
-            
-    #         return results
-        
-    #     def on_refreshed(results):
-    #         """Callback après le rafraîchissement"""
-    #         loader.hide_loading()
-            
-    #         # Réactiver le bouton
-    #         self.btn_refresh.setEnabled(True)
-    #         self.btn_refresh.setText("🔄 Actualiser")
-            
-    #         # Afficher les résultats
-    #         if 'vehicles' in results:
-    #             self._display_vehicles(results['vehicles'])
-    #             self._update_stats(results['vehicles'])
-    #             self.status_label.setText("✅ Données actualisées")
-    #         elif 'vehicles_error' in results:
-    #             self.status_label.setText(f"❌ Erreur véhicules: {results['vehicles_error']}")
-            
-    #         if 'fleets' in results:
-    #             self._display_fleets(results['fleets'])
-            
-    #         if 'stats' in results:
-    #             self._update_dashboard_stats(results['stats'])
-            
-    #         # Mettre à jour l'heure de dernière mise à jour
-    #         self.last_update_label.setText(f"Dernière mise à jour: {datetime.now().strftime('%H:%M:%S')}")
-            
-    #         # Message de succès
-    #         QMessageBox.information(
-    #             self, 
-    #             "Actualisation", 
-    #             "✅ Toutes les données ont été actualisées avec succès."
-    #         )
-        
-    #     def on_error(error):
-    #         """Callback en cas d'erreur"""
-    #         loader.hide_loading()
-    #         self.btn_refresh.setEnabled(True)
-    #         self.btn_refresh.setText("🔄 Actualiser")
-    #         self.status_label.setText(f"❌ Erreur: {error}")
-    #         QMessageBox.warning(self, "Erreur", f"Erreur lors de l'actualisation: {error}")
-        
-    #     # Exécuter le rafraîchissement
-    #     from core.workers.database_worker import async_query
-    #     async_query.execute(
-    #         refresh,
-    #         on_finished=on_refreshed,
-    #         on_error=on_error,
-    #         show_loader=False
-    #     )
-    
     def refresh_all_data(self):
         """
         Rafraîchit toutes les données de la vue (véhicules, flottes, statistiques)
@@ -697,6 +464,18 @@ class VehiculeModuleView(QWidget):
         self.table_vehicules.setMinimumHeight(400)
         
         layout.addWidget(self.table_vehicules)
+        self._install_context_menu(
+            self.table_vehicules,
+            menu_builder=self._create_vehicle_context_menu,
+            id_getter=lambda row: (
+                self._vehicles_cache[row] if 0 <= row < len(self._vehicles_cache) else None
+            ),
+        )
+
+        self.table_vehicules.cellDoubleClicked.connect(
+            lambda row, _col: self.show_detail_vehicle(self._vehicles_cache[row])
+            if 0 <= row < len(self._vehicles_cache) else None
+        )
     
     def _setup_tab_flottes(self):
         """Configure l'onglet des flottes"""
@@ -716,6 +495,19 @@ class VehiculeModuleView(QWidget):
         self.table_flottes.setMinimumHeight(400)
         
         layout.addWidget(self.table_flottes)
+
+        self._install_context_menu(
+            self.table_flottes,
+            menu_builder=self._create_fleet_context_menu,
+            id_getter=lambda row: (
+                self._fleets_cache[row] if 0 <= row < len(self._fleets_cache) else None
+            ),
+        )
+
+        self.table_flottes.cellDoubleClicked.connect(
+            lambda row, _col: self.handle_fleet_action(self._fleets_cache[row], "view")
+            if 0 <= row < len(self._fleets_cache) else None
+        )
     
     def _setup_tab_stats(self):
         """Configure l'onglet des statistiques"""
@@ -766,54 +558,6 @@ class VehiculeModuleView(QWidget):
         scroll.setWidget(content)
         layout.addWidget(scroll)
     
-    # def _create_stat_card(self, icon, title, value, color):
-    #     """Crée une carte de statistique"""
-    #     card = QFrame()
-    #     card.setStyleSheet(f"""
-    #         QFrame {{
-    #             background: {color}08;
-    #             border: 1px solid {color}20;
-    #             border-radius: 10px;
-    #             padding: 14px;
-    #         }}
-    #     """)
-        
-    #     layout = QHBoxLayout(card)
-    #     layout.setSpacing(14)
-        
-    #     icon_label = QLabel(icon)
-    #     icon_label.setStyleSheet("font-size: 28px; background: transparent; border: none;")
-        
-    #     text_layout = QVBoxLayout()
-    #     text_layout.setSpacing(2)
-        
-    #     value_label = QLabel(value)
-    #     value_label.setStyleSheet(f"""
-    #         font-size: 22px;
-    #         font-weight: 700;
-    #         color: {color};
-    #         background: transparent;
-    #         border: none;
-    #     """)
-    #     value_label.setObjectName(f"stat_{title.lower().replace(' ', '_')}")
-        
-    #     title_label = QLabel(title)
-    #     title_label.setStyleSheet("""
-    #         font-size: 12px;
-    #         color: #718096;
-    #         background: transparent;
-    #         border: none;
-    #     """)
-        
-    #     text_layout.addWidget(value_label)
-    #     text_layout.addWidget(title_label)
-        
-    #     layout.addWidget(icon_label)
-    #     layout.addLayout(text_layout)
-    #     layout.addStretch()
-        
-    #     return card
-
     def _create_stat_card(self, icon_name, title, value, color):
         """Crée une carte de statistique avec icône"""
         card = QFrame()
@@ -1158,6 +902,7 @@ class VehiculeModuleView(QWidget):
     
     def _on_vehicles_loaded(self, vehicles):
         """Callback après chargement des véhicules"""
+        self._vehicles_cache = list(vehicles)
         self._display_vehicles(vehicles)
         self._update_stats(vehicles)
         self.last_update_label.setText(f"Dernière mise à jour: {datetime.now().strftime('%H:%M:%S')}")
@@ -1188,78 +933,7 @@ class VehiculeModuleView(QWidget):
         
         self.table_vehicules.resizeColumnsToContents()
         self._apply_search()
-    
-    # def _set_vehicle_actions(self, row, vehicle):
-    #     """Crée les boutons d'action"""
-    #     container = QWidget()
-    #     layout = QHBoxLayout(container)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-    #     layout.setSpacing(4)
-    #     layout.setAlignment(Qt.AlignCenter)
-        
-    #     # Bouton Voir
-    #     view_btn = QPushButton("👁️")
-    #     view_btn.setFixedSize(32, 32)
-    #     view_btn.setToolTip("Voir les détails")
-    #     view_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: #ebf4ff;
-    #             border-radius: 6px;
-    #             font-size: 13px;
-    #             border: none;
-    #             color: #2d3748;
-    #         }
-    #         QPushButton:hover {
-    #             background: #4299e1;
-    #             color: white;
-    #         }
-    #     """)
-    #     view_btn.clicked.connect(lambda: self.show_detail_vehicle(vehicle))
-        
-    #     # Bouton Modifier
-    #     edit_btn = QPushButton("✏️")
-    #     edit_btn.setFixedSize(32, 32)
-    #     edit_btn.setToolTip("Modifier")
-    #     edit_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: #fefcbf;
-    #             border-radius: 6px;
-    #             font-size: 13px;
-    #             border: none;
-    #             color: #2d3748;
-    #         }
-    #         QPushButton:hover {
-    #             background: #ecc94b;
-    #             color: white;
-    #         }
-    #     """)
-    #     edit_btn.clicked.connect(lambda: self.on_edit_vehicle(vehicle))
-        
-    #     # Bouton Supprimer
-    #     delete_btn = QPushButton("🗑️")
-    #     delete_btn.setFixedSize(32, 32)
-    #     delete_btn.setToolTip("Archiver")
-    #     delete_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: #fed7d7;
-    #             border-radius: 6px;
-    #             font-size: 13px;
-    #             border: none;
-    #             color: #2d3748;
-    #         }
-    #         QPushButton:hover {
-    #             background: #fc8181;
-    #             color: white;
-    #         }
-    #     """)
-    #     delete_btn.clicked.connect(lambda: self.on_delete_vehicle(vehicle))
-        
-    #     layout.addWidget(view_btn)
-    #     layout.addWidget(edit_btn)
-    #     layout.addWidget(delete_btn)
-        
-    #     self.table_vehicules.setCellWidget(row, 6, container)
-    
+   
     def _set_vehicle_actions(self, row, vehicle):
         """Crée les boutons d'action avec icônes"""
         container = QWidget()
@@ -1349,6 +1023,7 @@ class VehiculeModuleView(QWidget):
     
     def _on_fleets_loaded(self, fleets):
         """Callback après chargement des flottes"""
+        self._fleets_cache = list(fleets)
         self._display_fleets(fleets)
     
     def _display_fleets(self, fleets):
@@ -1375,99 +1050,7 @@ class VehiculeModuleView(QWidget):
             self._set_fleet_actions(row, fleet)
         
         self.table_flottes.resizeColumnsToContents()
-    
-    # def _set_fleet_actions(self, row, fleet):
-    #     """Crée les boutons d'action pour une flotte"""
-    #     container = QWidget()
-    #     layout = QHBoxLayout(container)
-    #     layout.setContentsMargins(0, 0, 0, 0)
-    #     layout.setSpacing(4)
-    #     layout.setAlignment(Qt.AlignCenter)
-        
-    #     # Bouton Voir
-    #     view_btn = QPushButton("👁️")
-    #     view_btn.setFixedSize(32, 32)
-    #     view_btn.setToolTip("Voir les détails")
-    #     view_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: #ebf4ff;
-    #             border-radius: 6px;
-    #             font-size: 13px;
-    #             border: none;
-    #             color: #2d3748;
-    #         }
-    #         QPushButton:hover {
-    #             background: #4299e1;
-    #             color: white;
-    #         }
-    #     """)
-    #     view_btn.clicked.connect(lambda: self.handle_fleet_action(fleet, "view"))
-        
-    #     # Bouton Modifier
-    #     edit_btn = QPushButton("✏️")
-    #     edit_btn.setFixedSize(32, 32)
-    #     edit_btn.setToolTip("Modifier")
-    #     edit_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: #fefcbf;
-    #             border-radius: 6px;
-    #             font-size: 13px;
-    #             border: none;
-    #             color: #2d3748;
-    #         }
-    #         QPushButton:hover {
-    #             background: #ecc94b;
-    #             color: white;
-    #         }
-    #     """)
-    #     edit_btn.clicked.connect(lambda: self.handle_fleet_action(fleet, "edit"))
-        
-    #     # Bouton Imprimer
-    #     print_btn = QPushButton("📄")
-    #     print_btn.setFixedSize(32, 32)
-    #     print_btn.setToolTip("Imprimer l'état")
-    #     print_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: #c6f6d5;
-    #             border-radius: 6px;
-    #             font-size: 13px;
-    #             border: none;
-    #             color: #2d3748;
-    #         }
-    #         QPushButton:hover {
-    #             background: #48bb78;
-    #             color: white;
-    #         }
-    #     """)
-    #     print_btn.clicked.connect(lambda: self.on_print_fleet_click(fleet))
-        
-    #     # Bouton Plus
-    #     more_btn = QPushButton("⋯")
-    #     more_btn.setFixedSize(32, 32)
-    #     more_btn.setToolTip("Plus d'actions")
-    #     more_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: #edf2f7;
-    #             border-radius: 6px;
-    #             font-size: 16px;
-    #             font-weight: bold;
-    #             border: none;
-    #             color: #2d3748;
-    #         }
-    #         QPushButton:hover {
-    #             background: #a0aec0;
-    #             color: white;
-    #         }
-    #     """)
-    #     more_btn.clicked.connect(lambda: self._show_fleet_menu(fleet, more_btn))
-        
-    #     layout.addWidget(view_btn)
-    #     layout.addWidget(edit_btn)
-    #     layout.addWidget(print_btn)
-    #     layout.addWidget(more_btn)
-        
-    #     self.table_flottes.setCellWidget(row, 6, container)
-    
+  
     def _set_fleet_actions(self, row, fleet):
         """Crée les boutons d'action pour une flotte avec icônes"""
         container = QWidget()
@@ -1792,7 +1375,123 @@ class VehiculeModuleView(QWidget):
         self.load_vehicles_async()
         self.load_fleets_async()
         self.load_dashboard_stats()
+
+    def _install_context_menu(self, table: QTableWidget, menu_builder, id_getter):
+        """
+        Installe un menu contextuel (clic droit) sur un QTableWidget.
+
+        :param table: Le tableau cible
+        :param menu_builder: callable(row_item) -> QMenu   (construit le menu pour l'objet de la ligne)
+        :param id_getter: callable(row) -> objet métier    (récupère l'objet associé à la ligne depuis self.*)
+        """
+        table.setContextMenuPolicy(Qt.CustomContextMenu)
+
+        def show_menu(pos):
+            index = table.indexAt(pos)
+            if not index.isValid():
+                # Clic droit dans le vide → menu "ajouter"
+                empty_menu = QMenu(table)
+                empty_menu.setStyleSheet(self._menu_style())
+                if table is self.table_vehicules:
+                    act = empty_menu.addAction(get_icon('add', color='#2d3748', size=14), "Ajouter un véhicule")
+                    act.triggered.connect(self.on_add_vehicle_click)
+                else:
+                    act = empty_menu.addAction(get_icon('folder_plus', color='#2d3748', size=14), "Créer une flotte")
+                    act.triggered.connect(self.on_add_fleet_click)
+                empty_menu.exec_(table.viewport().mapToGlobal(pos))
+                return
+
+            row = index.row()
+            obj = id_getter(row)
+            if obj is None:
+                return
+
+            # Sélectionner visuellement la ligne cliquée
+            table.selectRow(row)
+
+            menu = menu_builder(obj)
+            menu.exec_(table.viewport().mapToGlobal(pos))
+
+        table.customContextMenuRequested.connect(show_menu)
+
+    def _menu_style(self) -> str:
+        return """
+            QMenu {
+                background: white;
+                border: 1px solid #e8edf2;
+                border-radius: 8px;
+                padding: 4px;
+            }
+            QMenu::item {
+                padding: 8px 20px;
+                border-radius: 4px;
+            }
+            QMenu::item:selected {
+                background: #ebf4ff;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #e8edf2;
+                margin: 4px 8px;
+            }
+        """
     
+    def _create_vehicle_context_menu(self, vehicle) -> QMenu:
+        """Menu contextuel pour un véhicule."""
+        menu = QMenu(self)
+        menu.setStyleSheet(self._menu_style())
+
+        # --- Consultation ---
+        view_action = menu.addAction(get_icon('eye', color='#2d3748', size=14), "Voir les détails")
+        view_action.triggered.connect(lambda: self.show_detail_vehicle(vehicle))
+
+        edit_action = menu.addAction(get_icon('pen', color='#2d3748', size=14), "Modifier")
+        edit_action.triggered.connect(lambda: self.on_edit_vehicle(vehicle))
+
+        menu.addSeparator()
+
+        # --- Copier ---
+        copy_plate = menu.addAction(get_icon('copy', color='#2d3748', size=14), "Copier la plaque")
+        copy_plate.triggered.connect(
+            lambda: QApplication.clipboard().setText(str(vehicle.immatriculation))
+        )
+
+        menu.addSeparator()
+
+        # --- Zone dangereuse ---
+        delete_action = menu.addAction(
+            get_icon('delete', color='#e53e3e', size=14), "Archiver le véhicule"
+        )
+        delete_action.triggered.connect(lambda: self.on_delete_vehicle(vehicle))
+
+        return menu
+
+
+    def _create_fleet_context_menu(self, fleet) -> QMenu:
+        """Menu contextuel pour une flotte (remplace _create_fleet_actions_menu)."""
+        menu = QMenu(self)
+        menu.setStyleSheet(self._menu_style())
+
+        view_action = menu.addAction(get_icon('eye', color='#2d3748', size=14), "Voir les détails")
+        view_action.triggered.connect(lambda: self.handle_fleet_action(fleet, "view"))
+
+        edit_action = menu.addAction(get_icon('pen', color='#2d3748', size=14), "Modifier")
+        edit_action.triggered.connect(lambda: self.handle_fleet_action(fleet, "edit"))
+
+        print_action = menu.addAction(
+            get_icon('printer', color='#2d3748', size=14), "Imprimer l'état de couverture"
+        )
+        print_action.triggered.connect(lambda: self.on_print_fleet_click(fleet))
+
+        menu.addSeparator()
+
+        copy_code = menu.addAction(get_icon('copy', color='#2d3748', size=14), "Copier le code flotte")
+        copy_code.triggered.connect(
+            lambda: QApplication.clipboard().setText(str(fleet.code_flotte or ""))
+        )
+
+        return menu
+
     def closeEvent(self, event):
         """Nettoie les ressources"""
         self._search_timer.stop()

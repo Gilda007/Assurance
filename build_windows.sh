@@ -32,17 +32,31 @@ die() { echo -e "${RED}✗ $1${NC}"; exit 1; }
 # ============================================================
 section "0/7 · Vérification de l'environnement"
 
-PYTHON=${PYTHON:-python3}
-command -v "$PYTHON" >/dev/null || die "python3 introuvable"
-
-PY_VER=$($PYTHON -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-echo -e "${BLUE}🐍 Python : $($PYTHON --version) [$PY_VER]${NC}"
-
-if ! $PYTHON -m nuitka --version &>/dev/null; then
-    echo -e "${YELLOW}⚠ Nuitka manquant — installation…${NC}"
-    $PYTHON -m pip install --upgrade nuitka ordered-set zstandard >> "$LOG_FILE" 2>&1
+# ─── Détection du Python (venv prioritaire) ───
+if [ -z "${PYTHON:-}" ]; then
+    if [ -n "${VIRTUAL_ENV:-}" ] && [ -x "$VIRTUAL_ENV/bin/python3" ]; then
+        PYTHON="$VIRTUAL_ENV/bin/python3"
+    elif [ -x "$(pwd)/.venv/bin/python3" ]; then
+        PYTHON="$(pwd)/.venv/bin/python3"
+    else
+        PYTHON="python3"
+    fi
 fi
-NUITKA_VER=$($PYTHON -m nuitka --version 2>/dev/null | head -n1)
+export PYTHON
+
+command -v "$PYTHON" >/dev/null || die "python3 introuvable : $PYTHON"
+echo -e "${BLUE}🐍 Python : $("$PYTHON" --version)  ($PYTHON)${NC}"
+
+# Garde-fou : Nuitka doit être installé DANS ce Python
+if ! "$PYTHON" -m nuitka --version &>/dev/null; then
+    echo -e "${RED}[X] Nuitka n'est pas installé dans : $PYTHON${NC}"
+    echo -e "${YELLOW}    Installez-le manuellement (une fois) :${NC}"
+    echo -e "${CYAN}    $PYTHON -m pip install --upgrade nuitka ordered-set zstandard${NC}"
+    echo -e "${YELLOW}    Puis relancez ce script.${NC}"
+    die "Nuitka manquant"
+fi
+
+NUITKA_VER=$("$PYTHON" -m nuitka --version 2>/dev/null | head -n1)
 echo -e "${BLUE}🔨 Nuitka : $NUITKA_VER${NC}"
 
 # Vérif outils système
@@ -156,116 +170,75 @@ echo -e "${GREEN}✓ Cœur compilé : $BINARY ($(du -h "$BINARY" | cut -f1))${NC
 
 
 # ============================================================
-# 4. COMPILATION DES ADDONS EN .so (Option A) — VERSION FINALE
+# 4. COMPILATION DES ADDONS  (déléguée à build_addons.sh)
 # ============================================================
-section "4/7 · Compilation des addons en modules natifs .so"
+section "4/7 · Compilation des addons"
 
 ADDONS_SRC_ABS="$(pwd)/addons"
 DIST_DIR_ABS="$(cd "$(dirname "$DIST_DIR")" && pwd)/$(basename "$DIST_DIR")"
 ADDONS_DEST_ABS="$DIST_DIR_ABS/addons"
-ADDONS_BUILD_ABS="$(pwd)/addons_compiled"
 
 echo -e "${BLUE}  Source addons : $ADDONS_SRC_ABS${NC}"
 echo -e "${BLUE}  Cible         : $ADDONS_DEST_ABS${NC}"
 
-mkdir -p "$ADDONS_DEST_ABS" "$ADDONS_BUILD_ABS"
+mkdir -p "$ADDONS_DEST_ABS"
 
 if [ ! -d "$ADDONS_SRC_ABS" ]; then
     echo -e "${YELLOW}⚠ Dossier addons/ introuvable — étape ignorée${NC}"
 else
-    # --- 4a. Copie propre ---
-    echo -e "${BLUE}📁 Préparation des sources addons…${NC}"
-    for pkg in "$ADDONS_SRC_ABS"/*/; do
-        [ -d "$pkg" ] || continue
-        name=$(basename "$pkg")
-        rsync -a \
-            --exclude='.history' --exclude='__pycache__' \
-            --exclude='*.pyc' --exclude='*.pyo' \
-            --exclude='test_*.py' --exclude='.pytest_cache' \
-            --exclude='*.db' --exclude='*.sqlite' \
-            "$pkg" "$ADDONS_BUILD_ABS/$name/"
-    done
+    echo ""
+    echo -e "${WHITE}Le cœur est compilé. Souhaitez-vous compiler les modules maintenant ?${NC}"
+    echo -e "  ${CYAN}O${NC} / oui  → lance build_addons.sh (compile tous les modules)"
+    echo -e "  ${CYAN}n${NC} / non  → ignore (vous pourrez le faire plus tard)"
+    echo -e "  ${CYAN}a${NC}        → choisir un ou plusieurs modules"
+    printf "Choix [O/n/a] : "
+    read -r ANSWER
+    ANSWER="${ANSWER:-O}"
 
-    # --- 4b. S'assurer que chaque addon est un package valide ---
-    for pkg in "$ADDONS_BUILD_ABS"/*/; do
-        [ -d "$pkg" ] || continue
-        name=$(basename "$pkg")
-        if [ ! -f "$pkg/__init__.py" ]; then
-            echo -e "${YELLOW}  ⚠ $name/__init__.py absent — création${NC}"
-        fi
-    done
-
-    # --- 4c. Compilation de chaque addon (dossier, PAS __init__.py) ---
-    echo -e "${BLUE}🔨 Compilation des addons (10–20 min)…${NC}"
-    FAILED_ADDONS=()
-
-    for pkg in "$ADDONS_BUILD_ABS"/*/; do
-        [ -d "$pkg" ] || continue
-        name=$(basename "$pkg")
-        echo -e "\n${CYAN}  → Addon : $name${NC}"
-
-        BUILD_OUT="$ADDONS_BUILD_ABS/$name/_build"
-        mkdir -p "$BUILD_OUT"
-
-        # IMPORTANT : passer le DOSSIER, pas __init__.py
-        if ! $PYTHON -m nuitka \
-                --module \
-                --assume-yes-for-downloads \
-                --include-package="addons.$name" \
-                --include-package-data="addons.$name" \
-                --enable-plugin=pyside6 \
-                --nofollow-import-to=pytest \
-                --nofollow-import-to=tkinter \
-                --nofollow-import-to=PyQt5 \
-                --nofollow-import-to=PyQt6 \
-                --nofollow-import-to=matplotlib \
-                --output-dir="$BUILD_OUT" \
-                --no-pyi-file \
-                "$pkg" 2>&1 | tee -a "$LOG_FILE" ; then
-            echo -e "${RED}    ✗ Échec Nuitka pour $name${NC}"
-            FAILED_ADDONS+=("$name (nuitka fail)")
-            continue
-        fi
-
-        # Localiser la .so produite
-        SO_FILE=$(find "$BUILD_OUT" -type f -name "*.so" | head -n1)
-        if [ -z "$SO_FILE" ]; then
-            echo -e "${RED}    ✗ Aucune .so dans $BUILD_OUT${NC}"
-            ls -la "$BUILD_OUT" 2>/dev/null
-            FAILED_ADDONS+=("$name (pas de .so)")
-            continue
-        fi
-
-        # --- 4d. Copier .so + données dans le dist ---
-        mkdir -p "$ADDONS_DEST_ABS/$name"
-        cp "$SO_FILE" "$ADDONS_DEST_ABS/$name/__init__.so"
-
-        # Copier toutes les autres .so générées
-        find "$BUILD_OUT" -type f -name "*.so" ! -path "$SO_FILE" \
-            -exec cp {} "$ADDONS_DEST_ABS/$name/" \; 2>/dev/null || true
-
-        # Copier les données non-Python
-        rsync -a \
-            --exclude='*.py' --exclude='__pycache__' \
-            --exclude='.history' --exclude='*.pyc' \
-            --exclude='_build' --exclude='*.db' --exclude='*.sqlite' \
-            "$ADDONS_BUILD_ABS/$name/" "$ADDONS_DEST_ABS/$name/"
-
-        echo -e "${GREEN}    ✓ $name → $(du -h "$ADDONS_DEST_ABS/$name/__init__.so" | cut -f1)${NC}"
-    done
-
-    # --- 4e. Rapport ---
-    if [ ${#FAILED_ADDONS[@]} -gt 0 ]; then
-        echo -e "\n${RED}⚠ Addons non compilés :${NC}"
-        for f in "${FAILED_ADDONS[@]}"; do echo -e "${RED}   • $f${NC}"; done
-    fi
+    case "$ANSWER" in
+        o|O|oui|OUI|y|Y|yes|YES)
+            echo -e "${BLUE}→ Compilation de tous les modules…${NC}"
+            if ! bash "$PROJECT_ROOT/build_addons.sh" all; then
+                die "Échec de build_addons.sh"
+            fi
+            ;;
+        a|A|all|ALL)
+            echo -e "${BLUE}Modules disponibles :${NC}"
+            MODULES=()
+            for pkg in "$ADDONS_SRC_ABS"/*/; do
+                [ -d "$pkg" ] || continue
+                MODULES+=("$(basename "$pkg")")
+                echo -e "  - $(basename "$pkg")"
+            done
+            printf "Modules (séparés par espace) : "
+            read -r SELECTED_MODS
+            if [ -z "$SELECTED_MODS" ]; then
+                echo -e "${YELLOW}Aucun module sélectionné, étape ignorée${NC}"
+            else
+                # shellcheck disable=SC2086
+                if ! bash "$PROJECT_ROOT/build_addons.sh" $SELECTED_MODS; then
+                    die "Échec de build_addons.sh"
+                fi
+            fi
+            ;;
+        n|N|non|NON|no|NO)
+            echo -e "${YELLOW}Modules non compilés. Lancez plus tard :${NC}"
+            echo -e "  ${CYAN}bash build_addons.sh all${NC}"
+            ;;
+        *)
+            echo -e "${YELLOW}Réponse inconnue, étape ignorée${NC}"
+            ;;
+    esac
 fi
 
+# Copier les métadonnées racine dans le dist
 [ -f module_registry.json ] && cp module_registry.json "$DIST_DIR_ABS/"
 [ -f .env ] && cp .env "$DIST_DIR_ABS/" 2>/dev/null || true
 
-echo -e "${GREEN}✓ Addons présents : $(ls -1 "$ADDONS_DEST_ABS" 2>/dev/null | wc -l) module(s)${NC}"
-ls -la "$ADDONS_DEST_ABS" 2>/dev/null | tee -a "$LOG_FILE"
+if [ -d "$ADDONS_DEST_ABS" ]; then
+    echo -e "${GREEN}✓ Addons présents : $(ls -1 "$ADDONS_DEST_ABS" 2>/dev/null | wc -l) module(s)${NC}"
+    ls -la "$ADDONS_DEST_ABS" 2>/dev/null | tee -a "$LOG_FILE"
+fi
 
 # ============================================================
 # 5. VÉRIFICATION DE LA PROTECTION
@@ -286,24 +259,27 @@ if [ "$LEAKED_CORE" -gt 0 ]; then
 fi
 echo -e "${GREEN}✓ Aucun .py du cœur dans le dist${NC}"
 
-# --- 5c. Aucun .py dans les addons (hors données légitimes) ---
-LEAKED_ADDONS=$(find "$ADDONS_DEST" -name "*.py" 2>/dev/null | wc -l)
+# --- 5c. Aucun .py dans les addons ---
+LEAKED_ADDONS=$(find "$ADDONS_DEST_ABS" -name "*.py" 2>/dev/null | wc -l)
 if [ "$LEAKED_ADDONS" -gt 0 ]; then
     echo -e "${RED}✗ $LEAKED_ADDONS fichiers .py exposés dans addons/ !${NC}"
-    find "$ADDONS_DEST" -name "*.py" -exec echo "   • {}" \;
+    find "$ADDONS_DEST_ABS" -name "*.py" -exec echo "   • {}" \;
     exit 1
 fi
 echo -e "${GREEN}✓ Aucun .py dans addons/ (tout est .so)${NC}"
 
-# --- 5d. Chaque addon a bien son .so ---
+# --- 5d. Chaque addon a bien son __init*.so ---
 MISSING_SO=0
-for d in "$ADDONS_DEST"/*/; do
+for d in "$ADDONS_DEST_ABS"/*/; do
     [ -d "$d" ] || continue
     name=$(basename "$d")
-    [ -f "$d/__init__.so" ] || { echo -e "${RED}  ✗ $name/__init__.so manquant${NC}"; MISSING_SO=1; }
+    if ! find "$d" -maxdepth 1 -name "__init*.so" 2>/dev/null | grep -q .; then
+        echo -e "${RED}  ✗ $name/__init*.so manquant${NC}"
+        MISSING_SO=1
+    fi
 done
 [ "$MISSING_SO" -eq 1 ] && die "Certains addons n'ont pas de .so compilé"
-echo -e "${GREEN}✓ Tous les addons ont un __init__.so${NC}"
+echo -e "${GREEN}✓ Tous les addons ont un __init*.so${NC}"
 
 # --- 5e. Pas de code métier lisible via strings ---
 echo -e "${BLUE}🔍 Scan strings du binaire principal…${NC}"

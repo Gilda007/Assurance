@@ -18,6 +18,23 @@ class AttestationPrinter:
                 self.draw_content(painter, printer)
                 painter.end()
 
+    def save_pdf(self, output_path):
+        """Génère l'attestation en PDF sans ouvrir de dialogue d'impression."""
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(output_path)
+        printer.setPageOrientation(QPageLayout.Orientation.Landscape)
+
+        painter = QPainter(printer)
+        if not painter.isActive():
+            raise RuntimeError(f"Impossible de créer le PDF : {output_path}")
+        try:
+            self.draw_content(painter, printer)
+        finally:
+            painter.end()
+
+        return True
+
     # def draw_content(self, painter):
     #     # Police type "Machine à écrire" pour l'administration
     #     font = QFont("Courier New", 11)
@@ -244,4 +261,3 @@ class AttestationPrinter:
             draw_line(160, 106, usage_categorie)
     
      
-

@@ -26,6 +26,23 @@ class CarteRosePrinter:
                 self.draw_content(painter, printer)
                 painter.end()
 
+    def save_pdf(self, output_path):
+        """Génère la Carte Rose en PDF sans ouvrir de dialogue d'impression."""
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setOutputFileName(output_path)
+        printer.setPageOrientation(QPageLayout.Orientation.Landscape)
+
+        painter = QPainter(printer)
+        if not painter.isActive():
+            raise RuntimeError(f"Impossible de créer le PDF : {output_path}")
+        try:
+            self.draw_content(painter, printer)
+        finally:
+            painter.end()
+
+        return True
+
     def draw_content(self, painter, printer):
         """Dessine le contenu de la Carte Rose"""
         # ✅ Obtenir les dimensions de la page en points

@@ -575,6 +575,8 @@ class VehicleDetailView(QWidget):
 
         def on_error(error):
             print(f"Erreur chargement asynchrone contrat: {error}")
+            self._load_contract_data()
+            self._refresh_finances_ui()
 
         async_query.execute(worker, on_finished=on_finished, on_error=on_error, show_loader=False)
 
@@ -598,138 +600,39 @@ class VehicleDetailView(QWidget):
 
     def refresh_financial_data(self):
         """Rafraîchit les données financières et met à jour l'affichage"""
-        # Lancer la version asynchrone pour ne pas bloquer l'UI
         try:
             self.load_contract_data_async()
-            return
-        except Exception:
-            # Si l'async échoue, retomber en synchro
+        except Exception as e:
+            print(f"Erreur lancement du rafraîchissement financier: {e}")
             self._load_contract_data()
-        
-        # Reconstruire l'onglet finances si nécessaire
-        if hasattr(self, 'tab_widget'):
-            # Actualiser le contenu de l'onglet finances en place
-            old_tab = getattr(self, 'finances_tab', None)
-            if old_tab is not None:
-                old_index = self.tab_widget.indexOf(old_tab)
-                if old_index >= 0:
-                    current_index = self.tab_widget.currentIndex()
-
-                    # Créer un nouveau widget finances temporaire pour récupérer
-                    # le layout mis à jour sans modifier la sélection de l'onglet
-                    new_finances = self.create_finances_tab()
-                    new_layout = new_finances.layout()
-                    # Détacher le layout du widget temporaire (si possible)
-                    try:
-                        if new_layout is not None:
-                            new_finances.setLayout(None)
-                    except Exception:
-                        new_layout = None
-
-                    # Supprimer les widgets existants dans l'ancien layout
-                    old_layout = old_tab.layout()
-                    if old_layout is not None:
-                        while old_layout.count():
-                            item = old_layout.takeAt(0)
-                            w = item.widget()
-                            if w is not None:
-                                w.setParent(None)
-                                w.deleteLater()
-
-                    # Si on a un layout prêt, l'affecter à l'onglet existant
-                    if new_layout is not None:
-                        old_tab.setLayout(new_layout)
-                    else:
-                        # Sécurisé : si on n'a pas pu transférer le layout,
-                        # remplacer le widget du tab au même index (dernier recours)
-                        self.tab_widget.removeTab(old_index)
-                        self.finances_tab = new_finances
-                        self.tab_widget.insertTab(old_index, self.finances_tab, "💰 Finances")
-
-                    # Restaurer l'onglet actif pour l'utilisateur
-                    if current_index == old_index:
-                        self.tab_widget.setCurrentIndex(old_index)
-                    else:
-                        max_index = max(0, self.tab_widget.count() - 1)
-                        self.tab_widget.setCurrentIndex(min(current_index, max_index))
-            else:
-                # Aucun onglet connu : créer et insérer à la position 2
-                self.finances_tab = self.create_finances_tab()
-                self.tab_widget.insertTab(2, self.finances_tab, "💰 Finances")
+            self._refresh_finances_ui()
 
     def _refresh_finances_ui(self):
-        """Met à jour les widgets de l'onglet finances en utilisant les données chargées."""
+        """Remplace l'onglet finances avec les données financières rechargées."""
         try:
-            if not hasattr(self, 'finances_tab') or self.finances_tab is None:
+            if not hasattr(self, 'tab_widget'):
                 return
 
-            tab = self.finances_tab
+            old_tab = getattr(self, 'finances_tab', None)
+            old_index = self.tab_widget.indexOf(old_tab) if old_tab else -1
+            if old_index < 0:
+                old_index = min(2, self.tab_widget.count())
+            current_index = self.tab_widget.currentIndex()
+            new_tab = self.create_finances_tab()
 
-            # Supprimer l'ancien layout si présent
-            old_layout = tab.layout()
-            if old_layout is not None:
-                while old_layout.count():
-                    item = old_layout.takeAt(0)
-                    w = item.widget()
-                    if w is not None:
-                        w.setParent(None)
-                        w.deleteLater()
+            if old_tab and self.tab_widget.indexOf(old_tab) >= 0:
+                self.tab_widget.removeTab(old_index)
 
-            # Reconstruire le contenu à partir des données actuelles
-            new_widget = self.create_finances_tab()
-            new_layout = new_widget.layout()
+            self.finances_tab = new_tab
+            self.tab_widget.insertTab(old_index, new_tab, "💰 Finances")
 
-            if new_layout is not None:
-                # Créer un layout propre sur l'onglet et y reparenter les widgets
-                target_layout = QVBoxLayout(tab)
-                try:
-                    while new_layout.count():
-                        item = new_layout.takeAt(0)
-                        # widget
-                        child_w = item.widget()
-                        if child_w is not None:
-                            child_w.setParent(tab)
-                            target_layout.addWidget(child_w)
-                            continue
+            if old_tab:
+                old_tab.deleteLater()
 
-                        # nested layout
-                        child_l = item.layout()
-                        if child_l is not None:
-                            target_layout.addLayout(child_l)
-                            continue
-
-                        # spacer or other
-                        spacer = item.spacerItem()
-                        if spacer is not None:
-                            target_layout.addItem(spacer)
-                            continue
-                except Exception:
-                    # en cas d'erreur, retomber au remplacement complet
-                    try:
-                        idx = self.tab_widget.indexOf(tab)
-                        if idx >= 0:
-                            self.tab_widget.removeTab(idx)
-                            self.finances_tab = new_widget
-                            self.tab_widget.insertTab(idx, self.finances_tab, "💰 Finances")
-                    except Exception:
-                        pass
-                finally:
-                    try:
-                        new_widget.setParent(None)
-                        new_widget.deleteLater()
-                    except Exception:
-                        pass
-            else:
-                # Repli : remplacer complètement le widget dans le QTabWidget
-                idx = self.tab_widget.indexOf(tab)
-                if idx >= 0:
-                    self.tab_widget.removeTab(idx)
-                    self.finances_tab = new_widget
-                    self.tab_widget.insertTab(idx, self.finances_tab, "💰 Finances")
-
-            # Forcer une mise à jour visuelle
-            tab.update()
-            tab.repaint()
+            self.tab_widget.setCurrentIndex(
+                old_index if current_index == old_index else
+                min(current_index, self.tab_widget.count() - 1)
+            )
         except Exception as e:
             print(f"Erreur _refresh_finances_ui: {e}")
 
@@ -1767,8 +1670,8 @@ class VehicleDetailView(QWidget):
         right_details.setSpacing(10)
         
         # Prime brute
-        brut_widget = self.create_detail_row("Prime brute", f"{prime_brute:,.0f}".replace(",", " "), "#ffffff")
-        right_details.addLayout(brut_widget)
+        # brut_widget = self.create_detail_row("Prime brute", f"{prime_brute:,.0f}".replace(",", " "), "#ffffff")
+        # right_details.addLayout(brut_widget)
         
         # Réduction
         reduction_color = "#fbbf24" if reduction > 0 else "#94a3b8"
@@ -5266,8 +5169,8 @@ class VehicleDetailView(QWidget):
         
         # Prime brute
         prime_brute = amounts.get('prime_pure', amounts.get('gross_premium', 0))
-        brut_widget = self._create_detail_row("Prime brute", f"{prime_brute:,.0f}".replace(",", " "), "#ffffff")
-        right_details.addLayout(brut_widget)
+        # brut_widget = self._create_detail_row("Prime brute", f"{prime_brute:,.0f}".replace(",", " "), "#ffffff")
+        # right_details.addLayout(brut_widget)
         
         # Réduction
         reduction = amounts.get('discount', 0)
@@ -6013,32 +5916,16 @@ class VehicleDetailView(QWidget):
                 QMessageBox.warning(self, "Erreur", "Compagnie d'assurance non trouvée")
                 return
             
-            # Vérifier les numéros disponibles
-            from addons.Automobiles.controllers.compagnies_controller import CompagnieController
-            compagnie_ctrl = CompagnieController(self.db_session, self._get_current_user_id())
-            
-            available, total, used = compagnie_ctrl.get_available_numbers(compagnie_id)
-            
-            if not available:
-                QMessageBox.warning(
-                    self,
-                    "Plus de numéros disponibles",
-                    f"⚠️ La plage de numéros de cette compagnie est épuisée !\n\n"
-                    f"📊 Statistiques:\n"
-                    f"   • Total: {total} numéros\n"
-                    f"   • Utilisés: {used}\n"
-                    f"   • Restants: 0\n\n"
-                    f"💡 Solution: Contactez l'administrateur pour étendre la plage\n"
-                    f"   en modifiant les champs 'num_debut' et 'num_fin' de la compagnie."
-                )
-                return
-            
-            # Ouvrir le sélecteur de numéro de police
+            # Le sélecteur permet aussi de saisir un numéro manuellement si
+            # la plage configurée est épuisée ou indisponible.
             from addons.Automobiles.views.police_number_selector import PoliceNumberSelector
             selector = PoliceNumberSelector(self.controller, compagnie_id, self)
             selector.number_selected.connect(
                 lambda num, police_num: self._create_contract_and_payment(
-                    vehicle_id, compagnie_id, num, police_num, montant_verse
+                    vehicle_id,
+                    compagnie_id,
+                    num,
+                    police_num
                 )
             )
             selector.exec()
@@ -6081,7 +5968,6 @@ class VehicleDetailView(QWidget):
                 f"Solde restant : {max(0, reste_a_payer):,.0f} FCFA"
             )
             self.montant_verse.clear()
-            self._load_contract_data()
             self.refresh_financial_data()
         else:
             QMessageBox.warning(self, "Erreur", f"Erreur: {message}")
@@ -6178,27 +6064,44 @@ class VehicleDetailView(QWidget):
     #     else:
     #         QMessageBox.warning(self, "Erreur", f"Erreur lors du paiement: {message}")
 
-    def _create_contract_and_payment(self, vehicle_id, compagnie_id, police_number_attribue, police_number_complet, montant_verse):
+    def _create_contract_and_payment(self, vehicle_id, compagnie_id, police_number_attribue, police_number_complet):
         """Crée le contrat puis valide le paiement"""
+        montant_verse = self._get_montant_verse_value()
+        if montant_verse <= 0:
+            QMessageBox.warning(self, "Erreur", "Veuillez saisir un montant valide")
+            return
         
         # Récupérer les données du véhicule
         prime_nette = int(self.data.get('prime_nette', 0))
         pttc = int(self.data.get('pttc', 0))
-        print(f"voici le montant à payer : {pttc}")
-        prime_brute = float(self.data.get('prime_brute', 0))
+        accessoires = int(self.data.get('accessoires', 0))
+        commission = int(self.data.get('commission_intermediaire', 0))
         user_id = self._get_current_user_id()
+        owner_id = self.data.get('owner_id') or self.data.get('customer_id')
+        if not owner_id:
+            QMessageBox.warning(
+                self,
+                "Erreur",
+                "Le propriétaire du véhicule est introuvable. "
+                "Impossible de créer le contrat."
+            )
+            return
         
         # Créer le contrat via le contrôleur
         contract_data = {
             'vehicle_id': vehicle_id,
             'company_id': compagnie_id,
-            'owner_id': user_id,
+            'owner_id': owner_id,
             'updated_by': user_id,
             'created_by': user_id,
             'numero_police': police_number_complet,
             'numero_police_attribue': police_number_attribue,
             'prime_pure': prime_nette,
+            'accessoires': accessoires,
+            'taxes_totales': pttc - prime_nette - accessoires - commission,
+            'commission_intermediaire': commission,
             'prime_totale_ttc': pttc,
+            'preserve_total': True,
             'montant_paye': 0,
             'statut_paiement': 'NON_PAYE',
             'type_contrat': 'VEHICULE',
@@ -6263,7 +6166,6 @@ class VehicleDetailView(QWidget):
                 f"📄 Document: Une copie du contrat vous sera envoyée par email."
             )
             self.montant_verse.clear()
-            self._load_contract_data()
             self.refresh_financial_data()
             
             # Émettre un signal pour rafraîchir la vue parente

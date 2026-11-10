@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, 
     QFrame, QLineEdit, QTableWidget, QTableWidgetItem, 
     QHeaderView, QMessageBox, QFileDialog, QScrollArea,
-    QSizePolicy, QDialog, QComboBox, QMenu, QTextEdit,
+    QApplication, QDialog, QComboBox, QMenu, QTextEdit,
     QGridLayout, QSplitter, QToolButton, QProgressBar
 )
 from PySide6.QtCore import Qt, QTimer, Signal, QSize, QMargins
@@ -1607,68 +1607,68 @@ class ContactListView(QWidget):
         except Exception as e:
             self.set_status(f"Erreur: {str(e)}", "error")
     
-    def show_context_menu(self, position):
-        """Affiche le menu contextuel"""
-        menu = QMenu()
-        menu.setStyleSheet(f"""
-            QMenu {{
-                background: {self.COLORS['white']};
-                border: 1px solid {self.COLORS['border']};
-                border-radius: 12px;
-                padding: 6px;
-                min-width: 180px;
-            }}
-            QMenu::item {{
-                padding: 10px 20px;
-                border-radius: 8px;
-                font-size: 13px;
-                color: {self.COLORS['dark']};
-            }}
-            QMenu::item:selected {{
-                background: {self.COLORS['primary_light']};
-                color: {self.COLORS['primary']};
-            }}
-            QMenu::separator {{
-                height: 1px;
-                background: {self.COLORS['border']};
-                margin: 4px 12px;
-            }}
-        """)
+    # def show_context_menu(self, position):
+    #     """Affiche le menu contextuel"""
+    #     menu = QMenu()
+    #     menu.setStyleSheet(f"""
+    #         QMenu {{
+    #             background: {self.COLORS['white']};
+    #             border: 1px solid {self.COLORS['border']};
+    #             border-radius: 12px;
+    #             padding: 6px;
+    #             min-width: 180px;
+    #         }}
+    #         QMenu::item {{
+    #             padding: 10px 20px;
+    #             border-radius: 8px;
+    #             font-size: 13px;
+    #             color: {self.COLORS['dark']};
+    #         }}
+    #         QMenu::item:selected {{
+    #             background: {self.COLORS['primary_light']};
+    #             color: {self.COLORS['primary']};
+    #         }}
+    #         QMenu::separator {{
+    #             height: 1px;
+    #             background: {self.COLORS['border']};
+    #             margin: 4px 12px;
+    #         }}
+    #     """)
         
-        item = self.table.itemAt(position)
-        if not item:
-            return
+    #     item = self.table.itemAt(position)
+    #     if not item:
+    #         return
         
-        row = item.row()
-        if row >= len(self.filtered_contacts):
-            return
+    #     row = item.row()
+    #     if row >= len(self.filtered_contacts):
+    #         return
         
-        contact = self.filtered_contacts[row]
+    #     contact = self.filtered_contacts[row]
         
-        view_action = QAction(qta.icon(self.ICONS['eye'], color=self.COLORS['gray']), "Voir les détails", self)
-        view_action.triggered.connect(lambda: self.view_contact(contact))
+    #     view_action = QAction(qta.icon(self.ICONS['eye'], color=self.COLORS['gray']), "Voir les détails", self)
+    #     view_action.triggered.connect(lambda: self.view_contact(contact))
         
-        edit_action = QAction(qta.icon('pen', color=self.COLORS['gray']), "Modifier", self)
-        edit_action.triggered.connect(lambda: self.edit_contact(contact))
+    #     edit_action = QAction(qta.icon('pen', color=self.COLORS['gray']), "Modifier", self)
+    #     edit_action.triggered.connect(lambda: self.edit_contact(contact))
         
-        note_action = QAction(qta.icon(self.COLORS['note_sticky'], color=self.COLORS['gray']), "Ajouter une note", self)
-        note_action.triggered.connect(lambda: self.add_quick_note(contact))
+    #     note_action = QAction(qta.icon(self.COLORS['note_sticky'], color=self.COLORS['gray']), "Ajouter une note", self)
+    #     note_action.triggered.connect(lambda: self.add_quick_note(contact))
         
-        duplicate_action = QAction(qta.icon('copy', color=self.COLORS['gray']), "Dupliquer", self)
-        duplicate_action.triggered.connect(lambda: self.duplicate_single_contact(contact))
+    #     duplicate_action = QAction(qta.icon('copy', color=self.COLORS['gray']), "Dupliquer", self)
+    #     duplicate_action.triggered.connect(lambda: self.duplicate_single_contact(contact))
         
-        delete_action = QAction(qta.icon('trash_can', color=self.COLORS['danger']), "Supprimer", self)
-        delete_action.triggered.connect(lambda: self.delete_contact(contact))
+    #     delete_action = QAction(qta.icon('trash_can', color=self.COLORS['danger']), "Supprimer", self)
+    #     delete_action.triggered.connect(lambda: self.delete_contact(contact))
         
-        menu.addAction(view_action)
-        menu.addAction(edit_action)
-        menu.addSeparator()
-        menu.addAction(note_action)
-        menu.addAction(duplicate_action)
-        menu.addSeparator()
-        menu.addAction(delete_action)
+    #     menu.addAction(view_action)
+    #     menu.addAction(edit_action)
+    #     menu.addSeparator()
+    #     menu.addAction(note_action)
+    #     menu.addAction(duplicate_action)
+    #     menu.addSeparator()
+    #     menu.addAction(delete_action)
         
-        menu.exec_(self.table.viewport().mapToGlobal(position))
+    #     menu.exec_(self.table.viewport().mapToGlobal(position))
     
     def duplicate_single_contact(self, contact):
         """Duplique un contact spécifique"""
@@ -1830,5 +1830,376 @@ class ContactListView(QWidget):
             action.triggered.connect(callback)
             self.addAction(action)
 
+    # def show_context_menu(self, position):
+    #     """Affiche le menu contextuel (clic droit sur une ligne ou dans le vide)."""
+    #     menu = QMenu(self)
+    #     menu.setStyleSheet(f"""
+    #         QMenu {{
+    #             background: {self.COLORS['white']};
+    #             border: 1px solid {self.COLORS['border']};
+    #             border-radius: 12px;
+    #             padding: 6px;
+    #             min-width: 200px;
+    #         }}
+    #         QMenu::item {{
+    #             padding: 10px 20px;
+    #             border-radius: 8px;
+    #             font-size: 13px;
+    #             color: {self.COLORS['dark']};
+    #         }}
+    #         QMenu::item:selected {{
+    #             background: {self.COLORS['primary_light']};
+    #             color: {self.COLORS['primary']};
+    #         }}
+    #         QMenu::item:disabled {{
+    #             color: {self.COLORS['gray']};
+    #         }}
+    #         QMenu::separator {{
+    #             height: 1px;
+    #             background: {self.COLORS['border']};
+    #             margin: 4px 12px;
+    #         }}
+    #     """)
+
+    #     item = self.table.itemAt(position)
+
+    #     # ─────────────────────────────────────────────────────────────
+    #     # CAS 1 : Clic droit dans le vide → menu "Nouveau"
+    #     # ─────────────────────────────────────────────────────────────
+    #     if not item:
+    #         add_action = menu.addAction(
+    #             qta.icon(self.ICONS['plus'], color=self.COLORS['primary']),
+    #             "Nouveau contact",
+    #         )
+    #         add_action.triggered.connect(self.on_add_contact)
+    #         menu.addSeparator()
+    #         refresh_action = menu.addAction(
+    #             qta.icon(self.ICONS['rotate_right'], color=self.COLORS['gray']),
+    #             "Actualiser",
+    #         )
+    #         refresh_action.triggered.connect(self.load_contacts)
+    #         menu.exec_(self.table.viewport().mapToGlobal(position))
+    #         return
+
+    #     row = item.row()
+    #     if row < 0 or row >= len(self.filtered_contacts):
+    #         return
+
+    #     # Sélectionner visuellement la ligne cliquée
+    #     # (ne pas casser une multi-sélection existante qui inclut déjà cette ligne)
+    #     selected_rows = {i.row() for i in self.table.selectedItems()}
+    #     if row not in selected_rows:
+    #         self.table.clearSelection()
+    #         self.table.selectRow(row)
+
+    #     contacts = self.selected_contacts or [self.filtered_contacts[row]]
+
+    #     # ─────────────────────────────────────────────────────────────
+    #     # CAS 2 : Une seule ligne → menu complet
+    #     # ─────────────────────────────────────────────────────────────
+    #     if len(contacts) == 1:
+    #         contact = contacts[0]
+
+    #         view_action = menu.addAction(
+    #             qta.icon(self.ICONS['eye'], color=self.COLORS['gray']),
+    #             "Voir les détails",
+    #         )
+    #         view_action.triggered.connect(lambda: self.view_contact(contact))
+
+    #         edit_action = menu.addAction(
+    #             qta.icon(self.ICONS['pen'], color=self.COLORS['gray']),
+    #             "Modifier",
+    #         )
+    #         edit_action.triggered.connect(lambda: self.edit_contact(contact))
+
+    #         note_action = menu.addAction(
+    #             qta.icon(self.ICONS['note_sticky'], color=self.COLORS['gray']),
+    #             "Ajouter une note",
+    #         )
+    #         note_action.triggered.connect(lambda: self.add_quick_note(contact))
+
+    #         menu.addSeparator()
+
+    #         # ── Sous-menu "Copier" ──
+    #         copy_menu = menu.addMenu(
+    #             qta.icon(self.ICONS['copy'], color=self.COLORS['gray']),
+    #             "Copier",
+    #         )
+    #         copy_phone = copy_menu.addAction("Téléphone")
+    #         copy_phone.triggered.connect(
+    #             lambda: QApplication.clipboard().setText(contact.telephone or "")
+    #         )
+    #         copy_email = copy_menu.addAction("Email")
+    #         copy_email.triggered.connect(
+    #             lambda: QApplication.clipboard().setText(contact.email or "")
+    #         )
+    #         copy_name = copy_menu.addAction("Nom complet")
+    #         copy_name.triggered.connect(
+    #             lambda: QApplication.clipboard().setText(
+    #                 f"{contact.nom or ''} {contact.prenom or ''}".strip()
+    #             )
+    #         )
+
+    #         duplicate_action = menu.addAction(
+    #             qta.icon(self.ICONS['copy'], color=self.COLORS['gray']),
+    #             "Dupliquer",
+    #         )
+    #         duplicate_action.triggered.connect(
+    #             lambda: self.duplicate_single_contact(contact)
+    #         )
+
+    #         menu.addSeparator()
+
+    #         delete_action = menu.addAction(
+    #             qta.icon(self.ICONS['trash_can'], color=self.COLORS['danger']),
+    #             "Supprimer",
+    #         )
+    #         delete_action.triggered.connect(lambda: self.delete_contact(contact))
+
+    #         # Respect des permissions
+    #         role = getattr(self.current_user, 'role', None)
+    #         if role:
+    #             if not SecurityManager.has_permission(role, Permissions.CONTACT_EDIT):
+    #                 edit_action.setEnabled(False)
+    #             if not SecurityManager.has_permission(role, Permissions.CONTACT_DELETE):
+    #                 delete_action.setEnabled(False)
+
+    #     # ─────────────────────────────────────────────────────────────
+    #     # CAS 3 : Plusieurs lignes → menu groupé
+    #     # ─────────────────────────────────────────────────────────────
+    #     else:
+    #         count = len(contacts)
+
+    #         header = menu.addAction(f"📋 {count} contacts sélectionnés")
+    #         header.setEnabled(False)
+    #         menu.addSeparator()
+
+    #         delete_all = menu.addAction(
+    #             qta.icon(self.ICONS['trash_can'], color=self.COLORS['danger']),
+    #             f"Supprimer les {count} contacts",
+    #         )
+    #         delete_all.triggered.connect(self.on_delete_contact)
+
+    #         export_sel = menu.addAction(
+    #             qta.icon(self.ICONS['file_pdf'], color=self.COLORS['gray']),
+    #             "Exporter la sélection en PDF",
+    #         )
+    #         export_sel.triggered.connect(self._export_selection_pdf)
+
+    #         role = getattr(self.current_user, 'role', None)
+    #         if role and not SecurityManager.has_permission(role, Permissions.CONTACT_DELETE):
+    #             delete_all.setEnabled(False)
+
+    #     menu.exec_(self.table.viewport().mapToGlobal(position))
+
+    def show_context_menu(self, position):
+        """Affiche le menu contextuel — reprend exactement les actions de la colonne ACTIONS."""
+        menu = QMenu(self)
+        menu.setStyleSheet(f"""
+            QMenu {{
+                background: {self.COLORS['white']};
+                border: 1px solid {self.COLORS['border']};
+                border-radius: 12px;
+                padding: 6px;
+                min-width: 210px;
+            }}
+            QMenu::item {{
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-size: 13px;
+                color: {self.COLORS['dark']};
+            }}
+            QMenu::item:selected {{
+                background: {self.COLORS['primary_light']};
+                color: {self.COLORS['primary']};
+            }}
+            QMenu::item:disabled {{
+                color: {self.COLORS['gray']};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                background: {self.COLORS['border']};
+                margin: 4px 12px;
+            }}
+        """)
+
+        item = self.table.itemAt(position)
+
+        # ─────────────────────────────────────────────────────────────
+        # CAS 1 : Clic droit dans le vide → menu "Nouveau"
+        # ─────────────────────────────────────────────────────────────
+        if not item:
+            add_action = menu.addAction(
+                qta.icon(self.ICONS['plus'], color=self.COLORS['primary']),
+                "Nouveau contact",
+            )
+            add_action.triggered.connect(self.on_add_contact)
+            menu.addSeparator()
+            refresh_action = menu.addAction(
+                qta.icon(self.ICONS['rotate_right'], color=self.COLORS['gray']),
+                "Actualiser",
+            )
+            refresh_action.triggered.connect(self.load_contacts)
+            menu.exec_(self.table.viewport().mapToGlobal(position))
+            return
+
+        row = item.row()
+        if row < 0 or row >= len(self.filtered_contacts):
+            return
+
+        # Sélectionner la ligne sous le curseur si elle ne l'est pas déjà
+        selected_rows = {i.row() for i in self.table.selectedItems()}
+        if row not in selected_rows:
+            self.table.clearSelection()
+            self.table.selectRow(row)
+
+        contacts = self.selected_contacts or [self.filtered_contacts[row]]
+
+        # Récupération des permissions une seule fois
+        role = getattr(self.current_user, 'role', None)
+        can_edit = not role or SecurityManager.has_permission(role, Permissions.CONTACT_EDIT)
+        can_delete = not role or SecurityManager.has_permission(role, Permissions.CONTACT_DELETE)
+
+        # ─────────────────────────────────────────────────────────────
+        # CAS 2 : Une seule ligne → mêmes 4 actions que la colonne ACTIONS
+        # ─────────────────────────────────────────────────────────────
+        if len(contacts) == 1:
+            contact = contacts[0]
+
+            # ✅ Action 1 : Voir (identique au bouton 👁)
+            view_action = menu.addAction(
+                qta.icon(self.ICONS['eye'], color=self.COLORS['gray']),
+                "Voir les détails",
+            )
+            view_action.triggered.connect(lambda: self.view_contact(contact))
+
+            # ✅ Action 2 : Modifier (identique au bouton ✏️)
+            edit_action = menu.addAction(
+                qta.icon(self.ICONS['pen'], color=self.COLORS['gray']),
+                "Modifier",
+            )
+            edit_action.triggered.connect(lambda: self.edit_contact(contact))
+            edit_action.setEnabled(can_edit)
+
+            # ✅ Action 3 : Note (identique au bouton 📝)
+            note_action = menu.addAction(
+                qta.icon(self.ICONS['note_sticky'], color=self.COLORS['gray']),
+                "Ajouter une note",
+            )
+            note_action.triggered.connect(lambda: self.add_quick_note(contact))
+
+            # ✅ Action 4 : Supprimer (identique au bouton 🗑)
+            delete_action = menu.addAction(
+                qta.icon(self.ICONS['trash_can'], color=self.COLORS['danger']),
+                "Supprimer",
+            )
+            delete_action.triggered.connect(lambda: self.delete_contact(contact))
+            delete_action.setEnabled(can_delete)
+
+            # ── Extras : sous-menu "Plus d'actions" ──
+            menu.addSeparator()
+
+            more_menu = menu.addMenu(
+                qta.icon(self.ICONS['bars'], color=self.COLORS['gray']),
+                "Plus d'actions",
+            )
+
+            duplicate_action = more_menu.addAction(
+                qta.icon(self.ICONS['copy'], color=self.COLORS['gray']),
+                "Dupliquer",
+            )
+            duplicate_action.triggered.connect(
+                lambda: self.duplicate_single_contact(contact)
+            )
+
+            copy_menu = more_menu.addMenu(
+                qta.icon(self.ICONS['copy'], color=self.COLORS['gray']),
+                "Copier",
+            )
+            copy_phone = copy_menu.addAction("Téléphone")
+            copy_phone.triggered.connect(
+                lambda: QApplication.clipboard().setText(contact.telephone or "")
+            )
+            copy_email = copy_menu.addAction("Email")
+            copy_email.triggered.connect(
+                lambda: QApplication.clipboard().setText(contact.email or "")
+            )
+            copy_name = copy_menu.addAction("Nom complet")
+            copy_name.triggered.connect(
+                lambda: QApplication.clipboard().setText(
+                    f"{contact.nom or ''} {contact.prenom or ''}".strip()
+                )
+            )
+
+        # ─────────────────────────────────────────────────────────────
+        # CAS 3 : Plusieurs lignes → actions groupées
+        # ─────────────────────────────────────────────────────────────
+        else:
+            count = len(contacts)
+
+            header = menu.addAction(f"📋 {count} contacts sélectionnés")
+            header.setEnabled(False)
+            menu.addSeparator()
+
+            delete_all = menu.addAction(
+                qta.icon(self.ICONS['trash_can'], color=self.COLORS['danger']),
+                f"Supprimer les {count} contacts",
+            )
+            delete_all.triggered.connect(self.on_delete_contact)
+            delete_all.setEnabled(can_delete)
+
+            export_sel = menu.addAction(
+                qta.icon(self.ICONS['file_pdf'], color=self.COLORS['gray']),
+                "Exporter la sélection en PDF",
+            )
+            export_sel.triggered.connect(self._export_selection_pdf)
+
+        menu.exec_(self.table.viewport().mapToGlobal(position))
+
+    def _export_selection_pdf(self):
+        """Exporte uniquement les contacts sélectionnés en PDF."""
+        if not self.selected_contacts:
+            return
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Exporter la sélection en PDF",
+            f"contacts_selection_{datetime.now().strftime('%Y%m%d')}.pdf",
+            "PDF Files (*.pdf)",
+        )
+        if not path:
+            return
+        try:
+            contacts_data = [{
+                'id': c.id, 'nom': c.nom, 'prenom': c.prenom,
+                'telephone': c.telephone, 'email': c.email,
+                'type': c.type_client, 'nature': c.nature, 'statut': c.statut
+            } for c in self.selected_contacts]
+            stats = {
+                'total': len(contacts_data),
+                'souscripteurs': len([c for c in contacts_data if c.get('type') == "Souscripteur"]),
+                'chauffeurs': len([c for c in contacts_data if c.get('type') == "Chauffeur"]),
+                'actifs': len([c for c in contacts_data if c.get('statut') == "Actif"]),
+            }
+            generate_contact_pdf(path, contacts_data, stats)
+            self.set_status("Export PDF de la sélection réussi", "success")
+        except Exception as e:
+            self.set_status(f"Erreur export: {e}", "error")
+
+    def duplicate_single_contact(self, contact):
+        """Duplique un contact spécifique."""
+        new_data = {
+            'nom': (contact.nom + " (Copie)") if contact.nom else "Copie",
+            'prenom': contact.prenom,
+            'telephone': contact.telephone,
+            'email': contact.email,
+            'type_client': contact.type_client,
+            'nature': contact.nature,
+            'statut': contact.statut,
+        }
+        _new, success, message = self.controller.contacts.create_contact(new_data)
+        if success:
+            self.load_contacts()
+            self.set_status("Contact dupliqué avec succès", "success")
+        else:
+            self.set_status(f"Erreur: {message}", "error")
 
         

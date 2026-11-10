@@ -453,7 +453,6 @@ class VehicleForm(QDialog):
         self.remorque_immat = QLineEdit()
         self.remorque_immat.setPlaceholderText("Immatriculation de la remorque")
         self.remorque_immat.setStyleSheet(field_style)
-        self.remorque_immat.setEnabled(False)
         options_layout.addWidget(self.remorque_immat, 2, 0)
         
         # Matières inflammables
@@ -2399,6 +2398,7 @@ class VehicleForm(QDialog):
                     if valeur_taux > 0:
                         taux_input.setText(f"{valeur_taux}")
                     taux_input.setVisible(True)
+                    taux_input.setEditable(True)
                     
                     if valeur_reduction > 0:
                         montant_taux.setText(f"{valeur_reduction:,.0f} FCFA".replace(",", " "))

@@ -819,6 +819,18 @@ class FleetController:
         
         return f"FLT-{fleet_code}-{year}-{random_num}"
 
+    def search_fleets(self, search_text):
+            if not self.session:
+                print("Erreur : Aucune session DB dans ContactController")
+                return []
+                
+            # On sécurise le pattern de recherche
+            pattern = f"%{search_text}%"
+            
+            return self.session.query(Fleet).filter(
+                Fleet.nom_flotte == search_text,
+            ).limit(10).all()
+
     def get_fleet_contract(self, fleet_id):
         """Récupère le contrat principal d'une flotte"""
         from addons.Automobiles.models.contract_models import Contrat

@@ -443,7 +443,7 @@ Widget de sélection de numéro de police pour un contrat
 """
 
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-                               QPushButton, QFrame, QComboBox, QMessageBox,
+                               QPushButton, QFrame, QComboBox, QLineEdit, QMessageBox,
                                QProgressBar, QGraphicsDropShadowEffect)
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
@@ -452,7 +452,7 @@ from PySide6.QtGui import QColor
 class PoliceNumberSelector(QDialog):
     """Dialogue pour sélectionner/attribuer un numéro de police"""
     
-    number_selected = Signal(int, str)  # numero_police_attribue, numero_police_complet
+    number_selected = Signal(object, str)  # numero_police_attribue, numero_police_complet
     
     def __init__(self, controller, compagnie_id, parent=None):
         super().__init__(parent)
@@ -701,6 +701,35 @@ class PoliceNumberSelector(QDialog):
         selection_layout.addWidget(format_label)
         
         body_layout.addWidget(selection_container)
+
+        manual_number_label = QLabel(
+            "Ou saisir un numéro de police manuellement"
+        )
+        manual_number_label.setStyleSheet(
+            "font-size: 13px; font-weight: 600; color: #1e293b; margin-top: 8px;"
+        )
+        body_layout.addWidget(manual_number_label)
+
+        self.manual_number_input = QLineEdit()
+        self.manual_number_input.setPlaceholderText(
+            "Saisissez le numéro complet de la police"
+        )
+        self.manual_number_input.setStyleSheet("""
+            QLineEdit {
+                background: white;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                padding: 12px 16px;
+                font-size: 14px;
+            }
+            QLineEdit:focus {
+                border-color: #8b5cf6;
+            }
+        """)
+        self.manual_number_input.textChanged.connect(
+            self._update_confirm_state
+        )
+        body_layout.addWidget(self.manual_number_input)
         
         # ========== PRÉVISUALISATION ==========
         preview_frame = QFrame()
@@ -802,10 +831,9 @@ class PoliceNumberSelector(QDialog):
             if not self.compagnie:
                 self.warning_label.setText(
                     "❌ Compagnie non trouvée.\n\n"
-                    "Veuillez sélectionner une compagnie valide."
+                    "Vous pouvez néanmoins saisir un numéro complet manuellement."
                 )
                 self.warning_label.setVisible(True)
-                self.confirm_btn.setEnabled(False)
                 return
             
             # Vérifier que les plages sont définies
@@ -813,10 +841,9 @@ class PoliceNumberSelector(QDialog):
                 self.warning_label.setText(
                     "⚠️ Plage de numéros non définie pour cette compagnie.\n\n"
                     "Veuillez configurer les champs 'Numéro début' et 'Numéro fin' "
-                    "dans les paramètres de la compagnie."
+                    "dans les paramètres de la compagnie, ou saisir un numéro complet."
                 )
                 self.warning_label.setVisible(True)
-                self.confirm_btn.setEnabled(False)
                 return
             
             # Récupérer les numéros disponibles
@@ -899,10 +926,20 @@ class PoliceNumberSelector(QDialog):
                 )
                 self.warning_label.setVisible(True)
                 
+            self._update_confirm_state()
         except Exception as e:
             print(f"Erreur load_numbers: {e}")
-            self.warning_label.setText(f"❌ Erreur de chargement: {str(e)}")
+            self.warning_label.setText(
+                f"❌ Erreur de chargement des numéros: {str(e)}\n\n"
+                "Vous pouvez saisir un numéro complet manuellement."
+            )
             self.warning_label.setVisible(True)
+            self._update_confirm_state()
+
+    def _update_confirm_state(self):
+        manual_number = self.manual_number_input.text().strip()
+        selected_number = self.number_combo.currentData()
+        self.confirm_btn.setEnabled(bool(manual_number or selected_number))
     
     def on_number_selected(self, index):
         """Met à jour la prévisualisation du numéro sélectionné"""
@@ -913,16 +950,26 @@ class PoliceNumberSelector(QDialog):
     
     def confirm_selection(self):
         """Confirme la sélection du numéro"""
-        current_index = self.number_combo.currentIndex()
-        if current_index < 0:
-            return
-        
-        num = self.number_combo.itemData(current_index)
-        if not num:
-            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner un numéro valide")
-            return
-        
-        police_number = self.controller.vehicles.generate_police_number(self.compagnie_id, num)
+        police_number = self.manual_number_input.text().strip()
+        if police_number:
+            numero_attribue = None
+        else:
+            current_index = self.number_combo.currentIndex()
+            numero_attribue = (
+                self.number_combo.itemData(current_index)
+                if current_index >= 0
+                else None
+            )
+            if numero_attribue is None:
+                QMessageBox.warning(
+                    self,
+                    "Erreur",
+                    "Sélectionnez un numéro disponible ou saisissez un numéro complet."
+                )
+                return
+            police_number = self.controller.vehicles.generate_police_number(
+                self.compagnie_id, numero_attribue
+            )
         
         # Confirmation
         reply = QMessageBox.question(
@@ -934,5 +981,5 @@ class PoliceNumberSelector(QDialog):
         )
         
         if reply == QMessageBox.Yes:
-            self.number_selected.emit(num, police_number)
+            self.number_selected.emit(numero_attribue, police_number)
             self.accept()

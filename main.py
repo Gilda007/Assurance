@@ -4,12 +4,12 @@ import numpy as np
 from datetime import datetime, timedelta
 from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, QStackedWidget, 
                                QHBoxLayout, QFrame, QLabel, QPushButton, QSizePolicy, 
-                               QGraphicsDropShadowEffect, QGridLayout, QTableWidget, 
+                               QGraphicsDropShadowEffect, QStackedLayout, QTableWidget, 
                                QTableWidgetItem, QHeaderView, QLineEdit, QProgressBar,
                                QStatusBar, QMenu, QMessageBox, QComboBox, QScrollArea,
                                QSplitter, QGraphicsOpacityEffect)
-from PySide6.QtCore import Q_ARG, QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QSize, QMetaObject, QThread
-from PySide6.QtGui import QFont, QColor, QKeySequence, QShortcut, QPainter, QPen
+from PySide6.QtCore import QRectF, QObject, Qt, Signal, QPropertyAnimation, QEasingCurve, QTimer, QSize, QPointF, QThread, QRect
+from PySide6.QtGui import QFont, QColor, QKeySequence, QShortcut, QPainter, QPen, QPixmap, QPainterPath, QLinearGradient
 from core.database import SessionLocal, engine, Base, init_db
 from core.alerts import AlertManager
 from core.logger import logger
@@ -66,7 +66,6 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
     logger.error(f"Exception non capturée: {error_msg}")
     
     # Afficher une boîte de dialogue d'erreur (optionnel)
-    from PySide6.QtWidgets import QMessageBox
     QMessageBox.critical(None, "Erreur", 
                          f"Une erreur inattendue s'est produite:\n{str(exc_value)}\n\n"
                          f"Consultez les logs pour plus de détails.")
@@ -479,7 +478,6 @@ class CertificateToast(QFrame):
     
     def on_action_clicked(self):
         """Gère le clic sur le bouton d'action"""
-        from PySide6.QtWidgets import QMessageBox
         
         # Ouvrir une boîte de dialogue avec les détails
         details = "\n".join([
@@ -501,7 +499,6 @@ class CertificateToast(QFrame):
             f"Veuillez contacter l'administrateur pour renouveler les certificats."
         )
         self.close_animation()
-
 
 
 class Watchdog(QThread):
@@ -632,6 +629,11 @@ STYLE_SHEET = f"""
         border: none;
         border-radius: 20px;
         margin: 10px 0 10px 10px;
+    }}
+
+    QHBoxLayout#header_layout {{
+        background: {AppColors.SIDEBAR_BG};
+    
     }}
     
     QPushButton#MenuBtn {{
@@ -958,721 +960,6 @@ class ModernChartWidget(QWidget):
         if HAS_PYQTGRAPH:
             self.plot_widget.clear()
 
-# class ModernDashboard(QWidget):
-#     """Dashboard moderne avec graphiques professionnels"""
-    
-#     card_clicked = Signal(str)
-    
-#     def __init__(self, user=None):
-#         super().__init__()
-#         self.user = user
-#         self.setup_ui()
-#         self.init_data()
-#         self.start_realtime_updates()
-    
-#     def setup_ui(self):
-#         # Layout principal avec ScrollArea
-#         main_layout = QVBoxLayout(self)
-#         main_layout.setContentsMargins(0, 0, 0, 0)
-        
-#         # ScrollArea pour tout le contenu
-#         scroll = QScrollArea()
-#         scroll.setWidgetResizable(True)
-#         scroll.setFrameShape(QFrame.NoFrame)
-#         scroll.setStyleSheet("""
-#             QScrollArea {
-#                 background: transparent;
-#                 border: none;
-#             }
-#             QScrollBar:vertical {
-#                 background: #f1f5f9;
-#                 width: 8px;
-#                 border-radius: 4px;
-#             }
-#             QScrollBar::handle:vertical {
-#                 background: #cbd5e1;
-#                 border-radius: 4px;
-#                 min-height: 30px;
-#             }
-#             QScrollBar::handle:vertical:hover {
-#                 background: #94a3b8;
-#             }
-#         """)
-        
-#         # Widget conteneur
-#         container = QWidget()
-#         container.setStyleSheet("background: transparent;")
-#         container_layout = QVBoxLayout(container)
-#         container_layout.setContentsMargins(20, 20, 20, 20)
-#         container_layout.setSpacing(20)
-        
-#         # ==================== EN-TÊTE ====================
-#         header_layout = QHBoxLayout()
-#         welcome_label = QLabel(f"Bonjour, {self.user.username if self.user else 'Utilisateur'}")
-#         welcome_label.setStyleSheet("font-size: 24px; font-weight: 700; color: #1e293b;")
-        
-#         date_label = QLabel(datetime.now().strftime("%A %d %B %Y"))
-#         date_label.setStyleSheet("color: #64748b; font-size: 14px;")
-        
-#         header_layout.addWidget(welcome_label)
-#         header_layout.addStretch()
-#         header_layout.addWidget(date_label)
-#         container_layout.addLayout(header_layout)
-        
-#         # ==================== SECTION 1: CARTES STATISTIQUES ====================
-#         stats_title = QLabel("📊 Indicateurs clés")
-#         stats_title.setStyleSheet("""
-#             font-size: 18px;
-#             font-weight: 600;
-#             color: #1e293b;
-#             margin-bottom: 12px;
-#         """)
-#         container_layout.addWidget(stats_title)
-
-#         self.stats_grid = QGridLayout()
-#         self.stats_grid.setSpacing(16)
-
-#         stats_data = [
-#             {"icon": "🚗", "title": "Véhicules", "value": "156", "color": "#3b82f6"},
-#             {"icon": "📄", "title": "Contrats", "value": "234", "color": "#10b981"},
-#             {"icon": "💰", "title": "Primes", "value": "2.5M", "color": "#f59e0b"},
-#             {"icon": "⚠️", "title": "Sinistres", "value": "3", "color": "#ef4444"},
-#             {"icon": "👥", "title": "Clients", "value": "189", "color": "#8b5cf6"},
-#             {"icon": "📅", "title": "Échéances", "value": "12", "color": "#64748b"}
-#         ]
-
-#         self.stat_cards = []
-#         for i, stat in enumerate(stats_data):
-#             card = self.create_simple_stat_card(stat)
-#             self.stats_grid.addWidget(card, i // 3, i % 3)
-#             self.stat_cards.append(card)
-
-#         container_layout.addLayout(self.stats_grid)
-        
-#         # ==================== SECTION 2: GRAPHIQUES PRINCIPAUX ====================
-#         charts_title = QLabel("📈 Analyses et tendances")
-#         charts_title.setStyleSheet("font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 16px;")
-#         container_layout.addWidget(charts_title)
-        
-#         # Splitter pour les deux graphiques principaux
-#         charts_splitter = QSplitter(Qt.Horizontal)
-#         charts_splitter.setStyleSheet("QSplitter::handle { background: #e2e8f0; width: 1px; margin: 0 10px; }")
-        
-#         # Graphique 1: Évolution des primes (ligne)
-#         chart1_card = self.create_chart_card("📈 Évolution des primes", "line")
-#         charts_splitter.addWidget(chart1_card)
-        
-#         # Graphique 2: Répartition des garanties (barres)
-#         chart2_card = self.create_chart_card("📊 Répartition des garanties", "bar")
-#         charts_splitter.addWidget(chart2_card)
-        
-#         container_layout.addWidget(charts_splitter)
-        
-#         # ==================== SECTION 3: GRAPHIQUES SUPPLÉMENTAIRES ====================
-#         extra_charts_layout = QHBoxLayout()
-#         extra_charts_layout.setSpacing(20)
-        
-#         # Graphique 3: Comparaison annuelle (3D-like)
-#         chart3_card = self.create_chart_card("📊 Comparaison annuelle", "bar")
-#         extra_charts_layout.addWidget(chart3_card)
-        
-#         # Graphique 4: Tendance des sinistres (ligne)
-#         chart4_card = self.create_chart_card("⚠️ Tendance des sinistres", "line")
-#         extra_charts_layout.addWidget(chart4_card)
-        
-#         container_layout.addLayout(extra_charts_layout)
-        
-#         # ==================== SECTION 4: TABLEAU DES ACTIVITÉS ====================
-#         activities_title = QLabel("📋 Dernières activités")
-#         activities_title.setStyleSheet("font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 16px;")
-#         container_layout.addWidget(activities_title)
-        
-#         activities_card = self.create_activities_card()
-#         container_layout.addWidget(activities_card)
-        
-#         # ==================== SECTION 5: INDICATEURS RAPIDES ====================
-#         quick_stats_title = QLabel("⚡ Indicateurs rapides")
-#         quick_stats_title.setStyleSheet("font-size: 18px; font-weight: 700; color: #1e293b; margin-top: 16px;")
-#         container_layout.addWidget(quick_stats_title)
-        
-#         quick_stats_layout = QHBoxLayout()
-#         quick_stats_layout.setSpacing(15)
-        
-#         quick_stats = [
-#             ("📊 Taux d'occupation", "78%", AppColors.PRIMARY),
-#             ("⭐ Satisfaction client", "4.8/5", AppColors.SUCCESS),
-#             ("⚡ Temps de réponse", "< 2h", AppColors.WARNING),
-#             ("🔄 Taux renouvellement", "95%", AppColors.INFO),
-#         ]
-        
-#         for label, value, color in quick_stats:
-#             stat = self.create_quick_stat(label, value, color)
-#             quick_stats_layout.addWidget(stat)
-        
-#         quick_stats_layout.addStretch()
-#         container_layout.addLayout(quick_stats_layout)
-        
-#         scroll.setWidget(container)
-#         main_layout.addWidget(scroll)
-
-#     def create_enhanced_stat_card(self, stat):
-#         """Crée une carte statistique améliorée avec effet moderne"""
-#         card = QFrame()
-#         card.setFixedHeight(140)
-#         card.setCursor(Qt.PointingHandCursor)
-#         card.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {AppColors.CARD_BG};
-#                 border-radius: 20px;
-#                 border: 1px solid {AppColors.BORDER};
-#             }}
-#             QFrame:hover {{
-#                 border-color: {stat['color']};
-#                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-#                     stop:0 white, stop:1 {stat['color']}08);
-#             }}
-#         """)
-        
-#         card.setToolTip(f"Cliquez pour voir les détails des {stat['title']}")
-        
-#         def on_click(event):
-#             self.card_clicked.emit(stat['title'])
-#         card.mousePressEvent = on_click
-        
-#         # Ombre plus élégante
-#         shadow = QGraphicsDropShadowEffect()
-#         shadow.setBlurRadius(20)
-#         shadow.setColor(QColor(0, 0, 0, 25))
-#         shadow.setOffset(0, 4)
-#         card.setGraphicsEffect(shadow)
-        
-#         layout = QVBoxLayout(card)
-#         layout.setContentsMargins(20, 16, 20, 16)
-#         layout.setSpacing(10)
-        
-#         # ========== EN-TÊTE ==========
-#         header_layout = QHBoxLayout()
-#         header_layout.setSpacing(8)
-        
-#         # Icône avec cercle de fond
-#         icon_container = QFrame()
-#         icon_container.setFixedSize(44, 44)
-#         icon_container.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {stat['color']}15;
-#                 border-radius: 14px;
-#             }}
-#         """)
-#         icon_layout = QVBoxLayout(icon_container)
-#         icon_layout.setAlignment(Qt.AlignCenter)
-#         icon_layout.setContentsMargins(0, 0, 0, 0)
-        
-#         icon_label = QLabel(stat['icon'])
-#         icon_label.setStyleSheet(f"font-size: 24px; background: transparent;")
-#         icon_layout.addWidget(icon_label)
-        
-#         header_layout.addWidget(icon_container)
-        
-#         # Valeur et titre
-#         value_title_layout = QVBoxLayout()
-#         value_title_layout.setSpacing(4)
-        
-#         value_label = QLabel(stat['value'])
-#         value_label.setStyleSheet(f"""
-#             font-size: 28px;
-#             font-weight: 800;
-#             color: {stat['color']};
-#             background: transparent;
-#             letter-spacing: -0.5px;
-#         """)
-#         value_label.setObjectName(f"value_{stat['title'].lower().replace(' ', '_')}")
-        
-#         title_label = QLabel(stat['title'])
-#         title_label.setStyleSheet("""
-#             color: #1e293b;
-#             font-size: 14px;
-#             font-weight: 600;
-#             background: transparent;
-#         """)
-        
-#         value_title_layout.addWidget(value_label)
-#         value_title_layout.addWidget(title_label)
-        
-#         header_layout.addLayout(value_title_layout)
-#         header_layout.addStretch()
-        
-#         # Badge de tendance
-#         trend_container = QFrame()
-#         if stat['trend_type'] == "up":
-#             trend_container.setStyleSheet(f"""
-#                 QFrame {{
-#                     background: {AppColors.SUCCESS}15;
-#                     border-radius: 20px;
-#                     padding: 4px 10px;
-#                 }}
-#             """)
-#             trend_layout = QHBoxLayout(trend_container)
-#             trend_layout.setSpacing(4)
-#             trend_layout.setContentsMargins(8, 4, 8, 4)
-            
-#             trend_icon = QLabel("▲")
-#             trend_icon.setStyleSheet(f"color: {AppColors.SUCCESS}; font-size: 11px; font-weight: bold;")
-            
-#             trend_label = QLabel(stat['trend'])
-#             trend_label.setStyleSheet(f"color: {AppColors.SUCCESS}; font-size: 12px; font-weight: 700;")
-            
-#             trend_layout.addWidget(trend_icon)
-#             trend_layout.addWidget(trend_label)
-            
-#         elif stat['trend_type'] == "down":
-#             trend_container.setStyleSheet(f"""
-#                 QFrame {{
-#                     background: {AppColors.DANGER}15;
-#                     border-radius: 20px;
-#                     padding: 4px 10px;
-#                 }}
-#             """)
-#             trend_layout = QHBoxLayout(trend_container)
-#             trend_layout.setSpacing(4)
-#             trend_layout.setContentsMargins(8, 4, 8, 4)
-            
-#             trend_icon = QLabel("▼")
-#             trend_icon.setStyleSheet(f"color: {AppColors.DANGER}; font-size: 11px; font-weight: bold;")
-            
-#             trend_label = QLabel(stat['trend'])
-#             trend_label.setStyleSheet(f"color: {AppColors.DANGER}; font-size: 12px; font-weight: 700;")
-            
-#             trend_layout.addWidget(trend_icon)
-#             trend_layout.addWidget(trend_label)
-            
-#         else:
-#             trend_container.setStyleSheet(f"""
-#                 QFrame {{
-#                     background: {AppColors.SECONDARY}15;
-#                     border-radius: 20px;
-#                     padding: 4px 10px;
-#                 }}
-#             """)
-#             trend_layout = QHBoxLayout(trend_container)
-#             trend_layout.setSpacing(4)
-#             trend_layout.setContentsMargins(8, 4, 8, 4)
-            
-#             trend_label = QLabel(stat['trend'])
-#             trend_label.setStyleSheet(f"color: {AppColors.SECONDARY}; font-size: 12px; font-weight: 700;")
-            
-#             trend_layout.addWidget(trend_label)
-        
-#         header_layout.addWidget(trend_container)
-        
-#         layout.addLayout(header_layout)
-        
-#         # ========== PIED DE CARTE ==========
-#         footer_layout = QHBoxLayout()
-#         footer_layout.setContentsMargins(0, 4, 0, 0)
-        
-#         # Sous-titre
-#         subtitle_label = QLabel(stat['subtitle'])
-#         subtitle_label.setStyleSheet("""
-#             color: #64748b;
-#             font-size: 11px;
-#             font-weight: 500;
-#             background: transparent;
-#         """)
-        
-#         # Lien "Voir détails"
-#         detail_link = QLabel("🔍 Détails")
-#         detail_link.setStyleSheet(f"""
-#             color: {stat['color']};
-#             font-size: 11px;
-#             font-weight: 600;
-#             background: transparent;
-#             text-decoration: underline;
-#         """)
-#         detail_link.setCursor(Qt.PointingHandCursor)
-#         detail_link.mousePressEvent = lambda e: self.card_clicked.emit(stat['title'])
-        
-#         footer_layout.addWidget(subtitle_label)
-#         footer_layout.addStretch()
-#         footer_layout.addWidget(detail_link)
-        
-#         layout.addLayout(footer_layout)
-        
-#         # Barre de progression miniature (optionnelle)
-#         progress_bar = QFrame()
-#         progress_bar.setFixedHeight(3)
-#         progress_bar.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {AppColors.BORDER};
-#                 border-radius: 2px;
-#             }}
-#         """)
-        
-#         progress_fill = QFrame()
-#         progress_fill.setFixedHeight(3)
-#         progress_fill.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {stat['color']};
-#                 border-radius: 2px;
-#             }}
-#         """)
-        
-#         # Largeur aléatoire pour la démo (à remplacer par des données réelles)
-#         progress_width = random.randint(30, 90)
-#         progress_fill.setFixedWidth(progress_width)
-        
-#         progress_layout = QHBoxLayout(progress_bar)
-#         progress_layout.setContentsMargins(0, 0, 0, 0)
-#         progress_layout.addWidget(progress_fill)
-#         progress_layout.addStretch()
-        
-#         layout.addWidget(progress_bar)
-        
-#         return card
-    
-#     def create_stat_card(self, icon, title, value, color, trend, subtitle):
-#         """Crée une carte statistique"""
-#         card = QFrame()
-#         card.setFixedHeight(130)
-#         card.setCursor(Qt.PointingHandCursor)
-#         card.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {AppColors.CARD_BG};
-#                 border-radius: 16px;
-#                 border: 1px solid {AppColors.BORDER};
-#             }}
-#             QFrame:hover {{
-#                 border-color: {color};
-#                 background: #f8fafc;
-#             }}
-#         """)
-        
-#         card.setToolTip(f"Cliquez pour voir les détails des {title}")
-        
-#         def on_click(event):
-#             self.card_clicked.emit(title)
-#         card.mousePressEvent = on_click
-        
-#         shadow = QGraphicsDropShadowEffect()
-#         shadow.setBlurRadius(15)
-#         shadow.setColor(QColor(0, 0, 0, 30))
-#         shadow.setOffset(0, 2)
-#         card.setGraphicsEffect(shadow)
-        
-#         layout = QVBoxLayout(card)
-#         layout.setContentsMargins(20, 15, 20, 15)
-#         layout.setSpacing(8)
-        
-#         header = QHBoxLayout()
-#         icon_label = QLabel(icon)
-#         icon_label.setStyleSheet("font-size: 28px;")
-#         header.addWidget(icon_label)
-#         header.addStretch()
-        
-#         value_label = QLabel(value)
-#         value_label.setStyleSheet(f"font-size: 28px; font-weight: 800; color: {color};")
-#         value_label.setObjectName(f"value_{title.lower().replace(' ', '_')}")
-        
-#         title_label = QLabel(title)
-#         title_label.setStyleSheet("color: #64748b; font-size: 13px; font-weight: 500;")
-        
-#         trend_label = QLabel(trend)
-#         if '+' in trend:
-#             trend_label.setStyleSheet("color: #10b981; font-size: 11px;")
-#             trend_label.setText(f"▲ {trend}")
-#         elif '-' in trend:
-#             trend_label.setStyleSheet("color: #ef4444; font-size: 11px;")
-#             trend_label.setText(f"▼ {trend}")
-#         else:
-#             trend_label.setStyleSheet("color: #64748b; font-size: 11px;")
-        
-#         subtitle_label = QLabel(subtitle)
-#         subtitle_label.setStyleSheet("color: #94a3b8; font-size: 10px;")
-        
-#         layout.addLayout(header)
-#         layout.addWidget(value_label)
-#         layout.addWidget(title_label)
-#         layout.addWidget(trend_label)
-#         layout.addWidget(subtitle_label)
-        
-#         return card
-    
-#     def create_chart_card(self, title, chart_type="line"):
-#         """Crée une carte avec graphique"""
-#         card = QFrame()
-#         card.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {AppColors.CARD_BG};
-#                 border-radius: 16px;
-#                 border: 1px solid {AppColors.BORDER};
-#             }}
-#         """)
-        
-#         shadow = QGraphicsDropShadowEffect()
-#         shadow.setBlurRadius(15)
-#         shadow.setColor(QColor(0, 0, 0, 30))
-#         shadow.setOffset(0, 2)
-#         card.setGraphicsEffect(shadow)
-        
-#         layout = QVBoxLayout(card)
-#         layout.setContentsMargins(20, 15, 20, 15)
-#         layout.setSpacing(12)
-        
-#         # Titre
-#         title_label = QLabel(title)
-#         title_label.setStyleSheet("font-weight: 700; font-size: 15px;")
-#         layout.addWidget(title_label)
-        
-#         # Sélecteur de période (pour certains graphiques)
-#         period_combo = QComboBox()
-#         period_combo.addItems(["6 derniers mois", "12 derniers mois", "24 derniers mois"])
-#         period_combo.setStyleSheet("font-size: 11px; padding: 2px 4px; max-width: 120px;")
-#         period_combo.currentTextChanged.connect(lambda: self.update_chart_data(chart_type))
-#         layout.addWidget(period_combo)
-        
-#         # Widget de graphique
-#         chart_widget = ModernChartWidget()
-#         layout.addWidget(chart_widget)
-        
-#         # Stocker le widget pour mise à jour
-#         if not hasattr(self, 'chart_widgets'):
-#             self.chart_widgets = []
-#         self.chart_widgets.append((chart_widget, chart_type, title))
-        
-#         # Initialiser avec des données
-#         self.init_chart_data(chart_widget, chart_type, title)
-        
-#         return card
-    
-#     def init_chart_data(self, chart_widget, chart_type, title):
-#         """Initialise les données du graphique"""
-#         if chart_type == "line":
-#             # Données pour graphique en ligne
-#             months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
-#             values = [125, 138, 152, 162, 175, 185, 192, 198, 205, 212, 218, 225]
-#             chart_widget.create_line_chart(values[:6], months[:6], title, "Mois", "Montant (k FCFA)")
-        
-#         elif chart_type == "bar":
-#             # Données pour graphique à barres
-#             categories = ['RC', 'Vol', 'Incendie', 'Bris', 'DTA', 'IPT']
-#             values = [45, 25, 15, 10, 3, 2]
-#             chart_widget.create_bar_chart(values, categories, title, "Garanties", "Souscriptions (%)")
-    
-#     def update_chart_data(self, chart_type):
-#         """Met à jour les données des graphiques"""
-#         # Simuler une mise à jour
-#         for chart_widget, c_type, title in getattr(self, 'chart_widgets', []):
-#             if c_type == chart_type:
-#                 new_values = [random.randint(100, 250) for _ in range(6)]
-#                 months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun']
-#                 chart_widget.create_line_chart(new_values, months, title, "Mois", "Montant (k FCFA)")
-    
-#     def create_activities_card(self):
-#         """Crée une carte avec le tableau des activités"""
-#         card = QFrame()
-#         card.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {AppColors.CARD_BG};
-#                 border-radius: 16px;
-#                 border: 1px solid {AppColors.BORDER};
-#             }}
-#         """)
-        
-#         shadow = QGraphicsDropShadowEffect()
-#         shadow.setBlurRadius(15)
-#         shadow.setColor(QColor(0, 0, 0, 30))
-#         shadow.setOffset(0, 2)
-#         card.setGraphicsEffect(shadow)
-        
-#         layout = QVBoxLayout(card)
-#         layout.setContentsMargins(20, 15, 20, 15)
-#         layout.setSpacing(12)
-        
-#         self.activities_table = QTableWidget(0, 3)
-#         self.activities_table.setHorizontalHeaderLabels(["Heure", "Action", "Utilisateur"])
-#         self.activities_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeToContents)
-#         self.activities_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.Stretch)
-#         self.activities_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeToContents)
-#         self.activities_table.setShowGrid(False)
-#         self.activities_table.setAlternatingRowColors(True)
-#         self.activities_table.setFixedHeight(250)
-        
-#         activities = [
-#             ("10:30", "🚗 Nouveau véhicule enregistré (LT 123 AB)", "Admin"),
-#             ("09:45", "📄 Contrat #12345 renouvelé", "Agent Dupont"),
-#             ("09:15", "💰 Paiement reçu de 250 000 FCFA", "Agent Martin"),
-#             ("08:30", "👥 Nouveau client enregistré", "Admin"),
-#             ("Hier 16:20", "⚠️ Sinistre #789 déclaré", "Agent Sophie"),
-#         ]
-        
-#         for time, action, user in activities:
-#             row = self.activities_table.rowCount()
-#             self.activities_table.insertRow(row)
-#             self.activities_table.setItem(row, 0, QTableWidgetItem(time))
-#             self.activities_table.setItem(row, 1, QTableWidgetItem(action))
-#             self.activities_table.setItem(row, 2, QTableWidgetItem(user))
-        
-#         layout.addWidget(self.activities_table)
-        
-#         return card
-    
-#     def create_simple_stat_card(self, stat):
-#         """Crée une carte statistique simple et propre"""
-#         card = QFrame()
-#         card.setFixedHeight(110)
-#         card.setCursor(Qt.PointingHandCursor)
-#         card.setStyleSheet(f"""
-#             QFrame {{
-#                 background: white;
-#                 border-radius: 16px;
-#                 border: 1px solid #e2e8f0;
-#             }}
-#             QFrame:hover {{
-#                 border-color: {stat['color']};
-#             }}
-#         """)
-        
-#         layout = QHBoxLayout(card)
-#         layout.setContentsMargins(20, 0, 20, 0)
-#         layout.setSpacing(16)
-        
-#         # Icône
-#         icon_label = QLabel(stat['icon'])
-#         icon_label.setFixedSize(48, 48)
-#         icon_label.setAlignment(Qt.AlignCenter)
-#         icon_label.setStyleSheet(f"""
-#             font-size: 28px;
-#             background: {stat['color']}10;
-#             border-radius: 12px;
-#         """)
-        
-#         # Infos
-#         info_layout = QVBoxLayout()
-#         info_layout.setSpacing(4)
-        
-#         value_label = QLabel(stat['value'])
-#         value_label.setStyleSheet(f"""
-#             font-size: 28px;
-#             font-weight: 700;
-#             color: {stat['color']};
-#         """)
-        
-#         title_label = QLabel(stat['title'])
-#         title_label.setStyleSheet("color: #64748b; font-size: 13px;")
-        
-#         info_layout.addWidget(value_label)
-#         info_layout.addWidget(title_label)
-        
-#         layout.addWidget(icon_label)
-#         layout.addLayout(info_layout)
-#         layout.addStretch()
-        
-#         return card
-    
-#     def create_quick_stat(self, label, value, color):
-#         """Crée un indicateur rapide"""
-#         widget = QFrame()
-#         widget.setStyleSheet(f"""
-#             QFrame {{
-#                 background: {AppColors.CARD_BG};
-#                 border-radius: 12px;
-#                 border: 1px solid {AppColors.BORDER};
-#                 padding: 8px 16px;
-#             }}
-#         """)
-        
-#         layout = QHBoxLayout(widget)
-#         layout.setSpacing(10)
-        
-#         label_lbl = QLabel(label)
-#         label_lbl.setStyleSheet("color: #64748b; font-size: 12px;")
-        
-#         value_lbl = QLabel(value)
-#         value_lbl.setStyleSheet(f"color: {color}; font-size: 16px; font-weight: 700;")
-        
-#         layout.addWidget(label_lbl)
-#         layout.addWidget(value_lbl)
-        
-#         return widget
-    
-#     def init_data(self):
-#         """Initialise les données"""
-#         pass
-    
-#     def update_stats(self):
-#         """Met à jour les statistiques"""
-#         values = ["178", "245", "2.8M", "2", "201", "8"]
-#         for i, (card, title) in enumerate(self.stat_cards):
-#             for child in card.findChildren(QLabel):
-#                 if child.objectName().startswith("value_"):
-#                     child.setText(values[i])
-    
-#     def start_realtime_updates(self):
-#         """Démarre les mises à jour en temps réel"""
-#         self.timer = QTimer()
-#         self.timer.timeout.connect(self.update_activities)
-#         self.timer.start(30000)
-    
-#     def refresh_stats(self):
-#         """Rafraîchit les statistiques avec animation"""
-#         self.status_bar.showMessage("Actualisation des statistiques...", 2000)
-        
-#         # Simuler de nouvelles valeurs (à remplacer par des appels BD)
-#         new_values = [
-#             str(random.randint(150, 180)),
-#             str(random.randint(220, 260)),
-#             f"{random.randint(2, 4)}.{random.randint(0, 9)}M",
-#             str(random.randint(1, 6)),
-#             str(random.randint(180, 220)),
-#             str(random.randint(8, 18))
-#         ]
-        
-#         for i, (card, title) in enumerate(self.stat_cards):
-#             # Animer la mise à jour
-#             for child in card.findChildren(QLabel):
-#                 if child.objectName().startswith("value_"):
-#                     old_text = child.text()
-#                     child.setText(new_values[i])
-                    
-#                     # Animation de changement de couleur
-#                     child.setStyleSheet(f"""
-#                         font-size: 28px;
-#                         font-weight: 800;
-#                         color: {AppColors.SUCCESS};
-#                         background: transparent;
-#                         transition: color 0.3s;
-#                     """)
-                    
-#                     # Retour à la couleur normale après 500ms
-#                     QTimer.singleShot(500, lambda c=child, t=title: self.reset_card_color(c, t))
-        
-#         # Mettre à jour la tendance
-#         self.status_bar.showMessage("Statistiques mises à jour", 2000)
-
-#     def reset_card_color(self, label, title):
-#         """Remet la couleur d'origine de la carte"""
-#         # Récupérer la couleur d'origine
-#         for stat in self.stats_data:
-#             if stat['title'] == title:
-#                 label.setStyleSheet(f"""
-#                     font-size: 28px;
-#                     font-weight: 800;
-#                     color: {stat['color']};
-#                     background: transparent;
-#                     letter-spacing: -0.5px;
-#                 """)
-#                 break
-
-#     def update_activities(self):
-#         """Ajoute une nouvelle activité périodiquement"""
-#         current_time = datetime.now().strftime("%H:%M")
-#         self.activities_table.insertRow(0)
-#         self.activities_table.setItem(0, 0, QTableWidgetItem(current_time))
-#         self.activities_table.setItem(0, 1, QTableWidgetItem("🔄 Mise à jour automatique des données"))
-#         self.activities_table.setItem(0, 2, QTableWidgetItem("Système"))
-        
-#         while self.activities_table.rowCount() > 10:
-#             self.activities_table.removeRow(10)
-
 # ═══════════════════════════════════════════════════════════════════
 # DASHBOARD V2.0 - COCKPIT INTELLIGENT
 # ═══════════════════════════════════════════════════════════════════
@@ -1705,8 +992,6 @@ class SparklineWidget(QWidget):
         step_x = (w - 2 * padding) / (len(self.data) - 1)
         
         # Construire le chemin
-        from PySide6.QtGui import QPainterPath, QLinearGradient
-        from PySide6.QtCore import QPointF
         
         path = QPainterPath()
         points = []
@@ -1764,7 +1049,6 @@ class DonutChartWidget(QWidget):
         rect = self.rect()
         
         # Rectangle pour le donut
-        from PySide6.QtCore import QRectF
         donut_rect = QRectF(
             (w - size) / 2,
             (h - size) / 2 - 10,
@@ -1795,8 +1079,6 @@ class DonutChartWidget(QWidget):
         painter.setPen(QColor("#1e293b"))
         font = QFont("Segoe UI", 16, QFont.Bold)
         painter.setFont(font)
-        
-        from PySide6.QtCore import QRect
         text_rect = QRect(0, int(h / 2) - 25, w, 30)
         painter.drawText(text_rect, Qt.AlignCenter, self.center_text)
         
@@ -1891,1141 +1173,431 @@ class AlertBanner(QFrame):
         layout.addWidget(close)
 
 
+# ============================================================
+# NOUVELLES CLASSES POUR LE CARROUSEL (DESIGN LANDING PAGE)
+# ==========================================================
+# ============================================================
+# PAGE 1 : AutoAssure (Clair, Bleu)
+# ============================================================
+
+class PageAutoAssure(QWidget):
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.bg_pixmap = QPixmap("assets/hero_1.jpg")
+        
+        overlay = QWidget(self)
+        overlay.setStyleSheet("background: transparent;")
+        content_layout = QHBoxLayout(overlay)
+        content_layout.setContentsMargins(60, 40, 40, 40)
+        
+        left = QVBoxLayout()
+        left.setSpacing(20)
+        
+        badge = QLabel("✨ NOUVEAUTÉ: LA GESTION INTELLIGENTE DE PARC")
+        badge.setStyleSheet(
+            "background: rgba(255,255,255,0.1); color: #cbd5e1; "
+            "border: 1px solid #475569; font-size: 11px; font-weight: 600; "
+            "padding: 6px 12px; border-radius: 15px;"
+        )
+        badge.setFixedWidth(380)
+        left.addWidget(badge)
+
+        title = QLabel("L'intelligence au service\nde votre parc automobile\net de vos assurances.")
+        title.setStyleSheet("font-size: 38px; font-weight: 800; color: #ffffff;")
+        left.addWidget(title)
+
+        subtitle = QLabel(
+            "Gérez vos polices, suivez vos sinistres en temps réel, "
+            "collaborez avec des experts et optimisez la performance "
+            "de vos véhicules au quotidien."
+        )
+        subtitle.setStyleSheet(
+            "font-size: 15px; color: #cbd5e1; "
+            "background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;"
+        )
+        subtitle.setWordWrap(True)
+        left.addWidget(subtitle)
+
+        # Features
+        features_layout = QVBoxLayout()
+        features_layout.setSpacing(5)
+        features = [
+            "✓ Synchronisation en temps réel avec les experts",
+            "✓ Tableaux de bord personnalisables",
+            "✓ Sécurité et conformité garanties",
+        ]
+        for feature in features:
+            lbl = QLabel(feature)
+            lbl.setStyleSheet(
+                "font-size: 13px; color: #cbd5e1; "
+                "background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px;"
+            )
+            features_layout.addWidget(lbl)
+        left.addLayout(features_layout)
+        left.addSpacing(10)
+
+        btn_layout = QHBoxLayout()
+        btn1 = QPushButton("Demander une démo")
+        btn1.setStyleSheet(
+            "background: #2563eb; color: white; padding: 12px 24px; "
+            "border-radius: 8px; font-weight: 600; border: none;"
+        )
+        btn2 = QPushButton("Découvrir nos solutions ▶")
+        btn2.setStyleSheet(
+            "background: transparent; color: #ffffff; padding: 12px 24px; "
+            "border-radius: 8px; font-weight: 600; border: 2px solid #ffffff;"
+        )
+        btn_layout.addWidget(btn1)
+        btn_layout.addWidget(btn2)
+        btn_layout.addStretch()
+        left.addLayout(btn_layout)
+
+        stats = QLabel("⭐ Plus de 12 450 polices actives")
+        stats.setStyleSheet(
+            "font-size: 14px; font-weight: 600; color: #cbd5e1; "
+            "background: rgba(0,0,0,0.5); padding: 5px 10px; "
+            "border-radius: 5px; margin-top: 20px;"
+        )
+        left.addWidget(stats)
+        left.addStretch()
+
+        content_layout.addLayout(left, 1)
+        content_layout.addStretch(1)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(overlay)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        if not self.bg_pixmap.isNull():
+            scaled = self.bg_pixmap.scaled(
+                self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation
+            )
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+
+            # ✅ Dégradé sombre comme les autres pages (#0f172a)
+            gradient = QLinearGradient(0, 0, self.width(), 0)
+            gradient.setColorAt(0.0, QColor(15, 23, 42, 240))   # opaque à gauche
+            gradient.setColorAt(0.6, QColor(15, 23, 42, 150))   # semi-transparent
+            gradient.setColorAt(1.0, QColor(15, 23, 42, 0))     # transparent à droite
+            painter.fillRect(self.rect(), gradient)
+        painter.end()
+
+
+# ============================================================
+# PAGE 2 : DriveGuard (Sombre, Doré)
+# ============================================================
+class PageDriveGuard(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.bg_pixmap = QPixmap("assets/hero_2.jpg")
+        
+        overlay = QWidget(self)
+        overlay.setStyleSheet("background: transparent;")
+        content_layout = QHBoxLayout(overlay)
+        content_layout.setContentsMargins(60, 40, 40, 40)
+        
+        left = QVBoxLayout()
+        left.setSpacing(20)
+        
+        badge = QLabel("✨ DIGITAL-FIRST COVERAGE")
+        badge.setStyleSheet("background: rgba(255,255,255,0.1); color: #cbd5e1; border: 1px solid #475569; font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 15px;")
+        badge.setFixedWidth(220)
+        left.addWidget(badge)
+
+        title = QLabel("The Smarter Way to\nProtect Your Drive.")
+        title.setStyleSheet("font-size: 42px; font-weight: 800; color: #fcd34d;")
+        left.addWidget(title)
+
+        subtitle = QLabel("Get back on the road faster with stress-free car insurance and seamless, digital claims management. File, track, and resolve in minutes—all from your phone.")
+        subtitle.setStyleSheet("font-size: 15px; color: #cbd5e1; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;")
+        subtitle.setWordWrap(True)
+        left.addWidget(subtitle)
+
+        # ✅ NOUVEAU : Bloc de features
+        features_layout = QVBoxLayout()
+        features_layout.setSpacing(5)
+        features = [
+            "✓ Digital claims in under 5 minutes",
+            "✓ 24/7 roadside assistance included",
+            "✓ Real-time policy tracking",
+        ]
+        for feature in features:
+            lbl = QLabel(feature)
+            lbl.setStyleSheet("font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px;")
+            features_layout.addWidget(lbl)
+        left.addLayout(features_layout)
+        left.addSpacing(10)
+
+        btn_layout = QHBoxLayout()
+        btn1 = QPushButton("Get a Free Quote →")
+        btn1.setStyleSheet("background: #fcd34d; color: #0f172a; padding: 12px 24px; border-radius: 20px; font-weight: 700; border: none;")
+        btn2 = QPushButton("File or Track a Claim")
+        btn2.setStyleSheet("background: transparent; color: white; padding: 12px 24px; border-radius: 20px; font-weight: 600; border: 1px solid white;")
+        btn_layout.addWidget(btn1); btn_layout.addWidget(btn2); btn_layout.addStretch()
+        left.addLayout(btn_layout)
+
+        stats = QLabel("⭐ 4.8/5 Rated by Drivers | 24/7 Rapid Claims Support")
+        stats.setStyleSheet("font-size: 13px; font-weight: 600; color: #cbd5e1; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; margin-top: 20px;")
+        left.addWidget(stats)
+        left.addStretch()
+
+        content_layout.addLayout(left, 1)
+        content_layout.addStretch(1)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(overlay)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        if not self.bg_pixmap.isNull():
+            scaled = self.bg_pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+
+            # Dégradé sombre
+            gradient = QLinearGradient(0, 0, self.width(), 0)
+            gradient.setColorAt(0.0, QColor(15, 23, 42, 240)) # Opaque à gauche (#0f172a)
+            gradient.setColorAt(0.6, QColor(15, 23, 42, 150))
+            gradient.setColorAt(1.0, QColor(15, 23, 42, 0))
+            painter.fillRect(self.rect(), gradient)
+        painter.end()
+
+
+# ============================================================
+# PAGE 3 : Nexus (Bleu Néon, Tech)
+# ============================================================
+class PageNexus(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.bg_pixmap = QPixmap("assets/hero_3.jpg")
+        
+        overlay = QWidget(self)
+        overlay.setStyleSheet("background: transparent;")
+        content_layout = QHBoxLayout(overlay)
+        content_layout.setContentsMargins(60, 40, 40, 40)
+        
+        left = QVBoxLayout()
+        left.setSpacing(20)
+        
+        badge = QLabel("● NEXT-GEN AUTO INSURANCE")
+        badge.setStyleSheet("background: rgba(0,0,0,0.5); color: #2dd4bf; border: 1px solid #2dd4bf; font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 15px;")
+        badge.setFixedWidth(240)
+        left.addWidget(badge)
+
+        title = QLabel("The Future of Coverage.\nIntelligent & Instant.")
+        title.setStyleSheet("font-size: 40px; font-weight: 800; color: #a78bfa;")
+        left.addWidget(title)
+
+        subtitle = QLabel("Protect your drive with 24/7 connected coverage and AI-driven claims management. Experience automated crash detection, real-time safety insights, and instant claims resolution.")
+        subtitle.setStyleSheet("font-size: 15px; color: #94a3b8; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;")
+        subtitle.setWordWrap(True)
+        left.addWidget(subtitle)
+
+        # ✅ NOUVEAU : Bloc de features
+        features_layout = QVBoxLayout()
+        features_layout.setSpacing(5)
+        features = [
+            "✓ AI-powered instant claims",
+            "✓ Automated crash detection",
+            "✓ Telematics & safety insights",
+        ]
+        for feature in features:
+            lbl = QLabel(feature)
+            lbl.setStyleSheet("font-size: 13px; color: #94a3b8; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px;")
+            features_layout.addWidget(lbl)
+        left.addLayout(features_layout)
+        left.addSpacing(10)
+
+        btn_layout = QHBoxLayout()
+        btn1 = QPushButton("GET A QUOTE")
+        btn1.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2dd4bf, stop:1 #a78bfa); color: #050b14; padding: 12px 24px; border-radius: 20px; font-weight: 800; border: none;")
+        btn2 = QPushButton("FILE OR TRACK CLAIM")
+        btn2.setStyleSheet("background: transparent; color: #2dd4bf; padding: 12px 24px; border-radius: 20px; font-weight: 700; border: 1px solid #2dd4bf;")
+        btn_layout.addWidget(btn1); btn_layout.addWidget(btn2); btn_layout.addStretch()
+        left.addLayout(btn_layout)
+
+        stats = QLabel("⏱ INSTANT CLAIMS (Avg. 3-Minute Approval) | 📡 TELEMATICS ACTIVE")
+        stats.setStyleSheet("font-size: 12px; font-weight: 600; color: #94a3b8; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; margin-top: 20px;")
+        left.addWidget(stats)
+        left.addStretch()
+
+        content_layout.addLayout(left, 1)
+        content_layout.addStretch(1)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(overlay)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        if not self.bg_pixmap.isNull():
+            scaled = self.bg_pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+
+            # Dégradé sombre (bleu nuit)
+            gradient = QLinearGradient(0, 0, self.width(), 0)
+            gradient.setColorAt(0.0, QColor(5, 11, 20, 240)) # #050b14
+            gradient.setColorAt(0.6, QColor(5, 11, 20, 150))
+            gradient.setColorAt(1.0, QColor(5, 11, 20, 0))
+            painter.fillRect(self.rect(), gradient)
+        painter.end()
+
+
+# ============================================================
+# PAGE 4 : AutoAssure (Français, Orange)
+# ============================================================
+class PageAutoAssureOrange(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+        self.bg_pixmap = QPixmap("assets/hero_4.jpg")
+        
+        overlay = QWidget(self)
+        overlay.setStyleSheet("background: transparent;")
+        content_layout = QHBoxLayout(overlay)
+        content_layout.setContentsMargins(60, 40, 40, 40)
+        
+        left = QVBoxLayout()
+        left.setSpacing(20)
+        
+        badge = QLabel("ASSURANCE AUTO")
+        badge.setStyleSheet("background: rgba(51, 65, 85, 0.9); color: #cbd5e1; font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 15px;")
+        badge.setFixedWidth(150)
+        left.addWidget(badge)
+
+        title = QLabel("Un accrochage ?\nOn s'occupe de\ntout, sans stress.")
+        title.setStyleSheet("font-size: 40px; font-weight: 800; color: #fb923c;")
+        left.addWidget(title)
+
+        subtitle = QLabel("Déclarez votre sinistre en 3 clics et laissez nos experts gérer. Reprenez la route l'esprit tranquille.")
+        subtitle.setStyleSheet("font-size: 15px; color: #cbd5e1; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px;")
+        subtitle.setWordWrap(True)
+        left.addWidget(subtitle)
+
+        # ✅ NOUVEAU : Bloc de features
+        features_layout = QVBoxLayout()
+        features_layout.setSpacing(5)
+        features = [
+            "✓ Déclaration de sinistre en 3 clics",
+            "✓ Prise en charge par nos experts",
+            "✓ Suivi en temps réel de votre dossier",
+        ]
+        for feature in features:
+            lbl = QLabel(feature)
+            lbl.setStyleSheet("font-size: 13px; color: #cbd5e1; background: rgba(0,0,0,0.4); padding: 4px 8px; border-radius: 4px;")
+            features_layout.addWidget(lbl)
+        left.addLayout(features_layout)
+        left.addSpacing(10)
+
+        btn_layout = QHBoxLayout()
+        btn1 = QPushButton("Déclarer un sinistre ↗")
+        btn1.setStyleSheet("background: #fb923c; color: white; padding: 12px 24px; border-radius: 20px; font-weight: 700; border: none;")
+        btn2 = QPushButton("Estimer mon assurance")
+        btn2.setStyleSheet("background: transparent; color: white; padding: 12px 24px; border-radius: 20px; font-weight: 600; border: 1px solid white;")
+        btn_layout.addWidget(btn1); btn_layout.addWidget(btn2); btn_layout.addStretch()
+        left.addLayout(btn_layout)
+        left.addStretch()
+
+        content_layout.addLayout(left, 1)
+        content_layout.addStretch(1)
+        
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.addWidget(overlay)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        if not self.bg_pixmap.isNull():
+            scaled = self.bg_pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            x = (self.width() - scaled.width()) // 2
+            y = (self.height() - scaled.height()) // 2
+            painter.drawPixmap(x, y, scaled)
+
+            # Dégradé sombre
+            gradient = QLinearGradient(0, 0, self.width(), 0)
+            gradient.setColorAt(0.0, QColor(15, 23, 42, 240)) # #0f172a
+            gradient.setColorAt(0.6, QColor(15, 23, 42, 150))
+            gradient.setColorAt(1.0, QColor(15, 23, 42, 0))
+            painter.fillRect(self.rect(), gradient)
+        painter.end()
+
+
+class HeroSection(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet("background: transparent;")
+        
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+        
+        self.stack = QStackedWidget()
+        self.stack.setStyleSheet("background: transparent;")
+        
+        self.stack.addWidget(PageAutoAssure())
+        self.stack.addWidget(PageDriveGuard())
+        self.stack.addWidget(PageNexus())
+        self.stack.addWidget(PageAutoAssureOrange())
+        
+        self.main_layout.addWidget(self.stack)
+        
+        self.dots_layout = QHBoxLayout()
+        self.dots_layout.setAlignment(Qt.AlignCenter)
+        self.dots_layout.setSpacing(10)
+        self.dots_layout.setContentsMargins(0, 10, 0, 10)
+        
+        self.dots = []
+        for i in range(4):
+            dot = QLabel()
+            dot.setFixedSize(10, 10)
+            dot.setStyleSheet("background: #cbd5e1; border-radius: 5px;")
+            self.dots.append(dot)
+            self.dots_layout.addWidget(dot)
+            
+        self.main_layout.addLayout(self.dots_layout)
+        
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.next_page)
+        self.timer.start(5000)
+        
+        self.current_index = 0
+        self.update_dots()
+
+    def next_page(self):
+        self.current_index = (self.current_index + 1) % self.stack.count()
+        self.stack.setCurrentIndex(self.current_index)
+        self.update_dots()
+
+    def update_dots(self):
+        for i, dot in enumerate(self.dots):
+            if i == self.current_index:
+                dot.setStyleSheet("background: #2563eb; border-radius: 5px;")
+            else:
+                dot.setStyleSheet("background: #cbd5e1; border-radius: 5px;")
+
+
 class ModernDashboard(QWidget):
-    """Dashboard V2.0 — Cockpit intelligent avec animations et alertes"""
-    
-    card_clicked = Signal(str)
-    
     def __init__(self, user=None):
         super().__init__()
         self.user = user
-        self._cards = []  # Pour animations d'entrée
-        self._refresh_count = 0
-        self.setup_ui()
-        self.init_data()
-        self.start_realtime_updates()
-        # Animation d'entrée progressive
-        QTimer.singleShot(100, self.animate_entrance)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # LAYOUT PRINCIPAL
-    # ═══════════════════════════════════════════════════════════════
-    def setup_ui(self):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
         
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.NoFrame)
-        scroll.setStyleSheet("""
-            QScrollArea { background: #f1f5f9; border: none; }
-            QScrollBar:vertical {
-                background: transparent; width: 10px; margin: 0;
-            }
-            QScrollBar::handle:vertical {
-                background: #cbd5e1; border-radius: 5px; min-height: 40px;
-                margin: 4px;
-            }
-            QScrollBar::handle:vertical:hover { background: #94a3b8; }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
-        """)
-        
-        container = QWidget()
-        container.setStyleSheet("background: #f1f5f9;")
-        self.container_layout = QVBoxLayout(container)
-        self.container_layout.setContentsMargins(24, 20, 24, 24)
-        self.container_layout.setSpacing(16)
-        
-        # ─── 1. HEADER CONTEXTUEL ───
-        self.container_layout.addWidget(self.create_contextual_header())
-        
-        # ─── 2. BANDEAU D'ALERTES ───
-        self.alert_banner = AlertBanner([
-            "5 contrats expirent dans 7 jours",
-            "2 sinistres en attente de validation",
-            "1 client VIP sans contact depuis 30j"
-        ])
-        self.alert_banner.dismissed.connect(lambda: self.alert_banner.hide())
-        self.container_layout.addWidget(self.alert_banner)
-        
-        # ─── 3. FILTRES + ACTIONS ───
-        self.container_layout.addWidget(self.create_filter_bar())
-        
-        # ─── 4. KPI CARDS AVEC SPARKLINES ───
-        self.container_layout.addWidget(self.create_kpi_row())
-        
-        # ─── 5. GRAPHIQUES PRINCIPAUX ───
-        self.container_layout.addWidget(self.create_section_title(
-            "📈 Analyses et tendances",
-            subtitle="Données actualisées il y a 2 min",
-            has_refresh=True
-        ))
-        
-        charts_row = QHBoxLayout()
-        charts_row.setSpacing(16)
-        charts_row.addWidget(self.create_chart_card_advanced(
-            "Évolution et Prévision des Primes", "line_forecast", stretch=2
-        ), 2)
-        charts_row.addWidget(self.create_chart_card_advanced(
-            "Répartition des Garanties", "stacked_bar", stretch=2
-        ), 2)
-        charts_row.addWidget(self.create_chart_card_advanced(
-            "Profil Clients", "donut", stretch=1
-        ), 1)
-        self.container_layout.addLayout(charts_row)
-        
-        # ─── 6. PRÉVISIONS + ACTIONS INTELLIGENTES ───
-        pred_actions_row = QHBoxLayout()
-        pred_actions_row.setSpacing(16)
-        pred_actions_row.addWidget(self.create_predictions_card(), 3)
-        pred_actions_row.addWidget(self.create_smart_actions_card(), 2)
-        self.container_layout.addLayout(pred_actions_row)
-        
-        # ─── 7. PERFORMANCE TECHNIQUE ───
-        self.container_layout.addWidget(self.create_section_title(
-            "⚙️ Performance Technique",
-            subtitle="Monitoring temps réel",
-        ))
-        self.container_layout.addLayout(self.create_perf_row())
-        
-        # ─── 8. MONITORING CHARTS ───
-        monitor_row = QHBoxLayout()
-        monitor_row.setSpacing(16)
-        monitor_row.addWidget(self.create_monitor_chart("DB Connector Latency", "line"))
-        monitor_row.addWidget(self.create_monitor_chart("Erreurs en temps réel", "scatter"))
-        monitor_row.addWidget(self.create_activity_timeline())
-        self.container_layout.addLayout(monitor_row)
-        
-        self.container_layout.addStretch()
-        scroll.setWidget(container)
-        main_layout.addWidget(scroll)
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 1. HEADER CONTEXTUEL
-    # ═══════════════════════════════════════════════════════════════
-    def create_contextual_header(self):
-        frame = QFrame()
-        frame.setStyleSheet("background: transparent;")
-        layout = QHBoxLayout(frame)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
-        
-        # Salutation contextuelle
-        hour = datetime.now().hour
-        if hour < 12:
-            greeting = "Bonjour"
-            emoji = "☀️"
-        elif hour < 18:
-            greeting = "Bon après-midi"
-            emoji = "🌤️"
-        else:
-            greeting = "Bonsoir"
-            emoji = "🌙"
-        
-        username = self.user.username if self.user else "Utilisateur"
-        
-        greeting_lbl = QLabel(f"{greeting}, {username} {emoji}")
-        greeting_lbl.setStyleSheet("""
-            font-size: 22px;
-            font-weight: 800;
-            color: #0f172a;
-            background: transparent;
-        """)
-        layout.addWidget(greeting_lbl)
-        
-        # Sous-titre
-        sub = QLabel("Voici votre briefing du jour")
-        sub.setStyleSheet("color: #64748b; font-size: 13px; background: transparent;")
-        layout.addWidget(sub, 0, Qt.AlignBottom)
-        
-        layout.addStretch()
-        
-        # Badge "Système OK"
-        status_badge = QLabel("●  Système opérationnel")
-        status_badge.setStyleSheet("""
-            background: #dcfce7;
-            color: #166534;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        """)
-        layout.addWidget(status_badge)
-        
-        # Bouton refresh global
-        refresh_btn = QPushButton("🔄  Actualiser")
-        refresh_btn.setCursor(Qt.PointingHandCursor)
-        refresh_btn.setToolTip("Actualiser toutes les données (F5)")
-        refresh_btn.setStyleSheet("""
-            QPushButton {
-                background: white;
-                color: #1e293b;
-                border: 1px solid #e2e8f0;
-                border-radius: 8px;
-                padding: 8px 14px;
-                font-size: 12px;
-                font-weight: 600;
-            }
-            QPushButton:hover { background: #f8fafc; border-color: #cbd5e1; }
-            QPushButton:pressed { background: #f1f5f9; }
-        """)
-        refresh_btn.clicked.connect(self.refresh_all)
-        layout.addWidget(refresh_btn)
-        
-        return frame
-    
-    # ═══════════════════════════════════════════════════════════════
-    # TITRE DE SECTION AMÉLIORÉ
-    # ═══════════════════════════════════════════════════════════════
-    def create_section_title(self, title, subtitle="", has_refresh=False):
-        frame = QFrame()
-        frame.setStyleSheet("background: transparent;")
-        layout = QHBoxLayout(frame)
-        layout.setContentsMargins(0, 8, 0, 0)
-        layout.setSpacing(10)
-        
-        title_lbl = QLabel(title)
-        title_lbl.setStyleSheet("""
-            font-size: 16px;
-            font-weight: 800;
-            color: #0f172a;
-            background: transparent;
-        """)
-        layout.addWidget(title_lbl)
-        
-        if subtitle:
-            sub = QLabel(subtitle)
-            sub.setStyleSheet("color: #94a3b8; font-size: 11px; background: transparent;")
-            layout.addWidget(sub, 0, Qt.AlignBottom)
-        
-        layout.addStretch()
-        
-        if has_refresh:
-            small_refresh = QPushButton("🔄")
-            small_refresh.setFixedSize(28, 28)
-            small_refresh.setCursor(Qt.PointingHandCursor)
-            small_refresh.setToolTip("Actualiser cette section")
-            small_refresh.setStyleSheet("""
-                QPushButton {
-                    background: white;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 6px;
-                    font-size: 12px;
-                }
-                QPushButton:hover { background: #f8fafc; }
-            """)
-            layout.addWidget(small_refresh)
-        
-        return frame
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 3. FILTRES + ACTIONS
-    # ═══════════════════════════════════════════════════════════════
-    def create_filter_bar(self):
-        frame = QFrame()
-        frame.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 12px;
-                border: 1px solid #e2e8f0;
-            }
-        """)
-        layout = QHBoxLayout(frame)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(14)
-        
-        def make_filter(label_text, items, icon):
-            box = QVBoxLayout()
-            box.setSpacing(4)
-            lbl = QLabel(f"{icon} {label_text}")
-            lbl.setStyleSheet("color: #64748b; font-size: 11px; font-weight: 600;")
-            combo = QComboBox()
-            combo.addItems(items)
-            combo.setStyleSheet("""
-                QComboBox {
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
-                    border-radius: 8px;
-                    padding: 7px 12px;
-                    font-size: 12px;
-                    color: #1e293b;
-                    min-width: 170px;
-                }
-                QComboBox:hover { border-color: #3b82f6; background: white; }
-                QComboBox::drop-down { border: none; width: 24px; }
-                QComboBox::down-arrow {
-                    image: none;
-                    border-left: 4px solid transparent;
-                    border-right: 4px solid transparent;
-                    border-top: 5px solid #64748b;
-                    margin-right: 8px;
-                }
-            """)
-            box.addWidget(lbl)
-            box.addWidget(combo)
-            return box
-        
-        layout.addLayout(make_filter("Période", 
-            ["Derniers 6 mois", "Mois dernier", "30 jours", "Année"], "📅"))
-        layout.addLayout(make_filter("Type de Contrat", 
-            ["Tous", "Auto", "Habitation", "Santé"], "📋"))
-        layout.addLayout(make_filter("Segment Client", 
-            ["Tous", "Fidélisé", "Nouveau", "VIP"], "👥"))
-        
-        layout.addStretch()
-        
-        # Bouton Nouveau Contrat
-        btn_new = QPushButton("  ➕  Nouveau Contrat")
-        btn_new.setCursor(Qt.PointingHandCursor)
-        btn_new.setToolTip("Créer un nouveau contrat (Ctrl+N)")
-        btn_new.setStyleSheet("""
-            QPushButton {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #3b82f6, stop:1 #2563eb);
-                color: white;
-                border: none;
-                border-radius: 10px;
-                padding: 11px 20px;
-                font-size: 13px;
-                font-weight: 700;
-            }
-            QPushButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #2563eb, stop:1 #1d4ed8);
-            }
-            QPushButton:pressed { padding-top: 12px; padding-bottom: 10px; }
-        """)
-        layout.addWidget(btn_new)
-        
-        # Bouton Signaler Sinistre
-        btn_sin = QPushButton("  🔔  Signaler un Sinistre")
-        btn_sin.setCursor(Qt.PointingHandCursor)
-        btn_sin.setToolTip("Déclarer un nouveau sinistre")
-        btn_sin.setStyleSheet("""
-            QPushButton {
-                background: #dbeafe;
-                color: #1e40af;
-                border: 1px solid #bfdbfe;
-                border-radius: 10px;
-                padding: 11px 20px;
-                font-size: 13px;
-                font-weight: 700;
-            }
-            QPushButton:hover { background: #bfdbfe; }
-            QPushButton:pressed { padding-top: 12px; padding-bottom: 10px; }
-        """)
-        layout.addWidget(btn_sin)
-        
-        return frame
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 4. KPI CARDS AVEC SPARKLINES
-    # ═══════════════════════════════════════════════════════════════
-    # def create_kpi_row(self):
-    #     layout = QHBoxLayout()
-    #     layout.setSpacing(12)
-        
-    #     kpis = [
-    #         {"icon": "🚗", "value": "3", "title": "Véhicules",
-    #          "trend": "+1", "percent": "+50%", "trend_type": "up",
-    #          "sparkline": [1, 2, 2, 3, 3, 3, 4, 3, 3, 3],
-    #          "color": "#3b82f6"},
-    #         {"icon": "📄", "value": "16", "title": "Contrats",
-    #          "trend": "+2", "percent": "+14%", "trend_type": "up",
-    #          "sparkline": [10, 11, 12, 13, 14, 14, 15, 15, 16, 16],
-    #          "color": "#10b981"},
-    #         {"icon": "👥", "value": "189", "title": "Clients",
-    #          "trend": "+5", "percent": "+2.7%", "trend_type": "up",
-    #          "sparkline": [170, 175, 178, 180, 182, 184, 185, 186, 188, 189],
-    #          "color": "#8b5cf6"},
-    #         {"icon": "💰", "value": "€1.2M", "title": "Primes",
-    #          "trend": "+€8.4k", "percent": "+0.7%", "trend_type": "up",
-    #          "sparkline": [1000, 1050, 1080, 1100, 1120, 1150, 1160, 1170, 1180, 1200],
-    #          "color": "#3b82f6"},
-    #         {"icon": "⚠️", "value": "17", "title": "Sinistres",
-    #          "trend": "-3", "percent": "-15%", "trend_type": "down",
-    #          "sparkline": [25, 24, 22, 21, 20, 19, 19, 18, 17, 17],
-    #          "color": "#f59e0b"},
-    #         {"icon": "📅", "value": "12", "title": "Échéances",
-    #          "trend": "5", "percent": "critiques", "trend_type": "danger",
-    #          "sparkline": [8, 9, 10, 10, 11, 11, 12, 12, 12, 12],
-    #          "color": "#ef4444"},
-    #     ]
-        
-    #     for kpi in kpis:
-    #         card = self.create_kpi_card_with_sparkline(kpi)
-    #         layout.addWidget(card)
-    #         self._cards.append(card)
-        
-    #     return layout
-    
-    def create_kpi_row(self):
-        """Crée la rangée de KPI cards avec sparklines"""
-        # ✅ Envelopper dans un QWidget pour pouvoir utiliser addWidget
-        wrapper = QWidget()
-        wrapper.setStyleSheet("background: transparent;")
-        layout = QHBoxLayout(wrapper)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(12)
-        
-        kpis = [
-            {"icon": "🚗", "value": "3", "title": "Véhicules",
-            "trend": "+1", "percent": "+50%", "trend_type": "up",
-            "sparkline": [1, 2, 2, 3, 3, 3, 4, 3, 3, 3],
-            "color": "#3b82f6"},
-            {"icon": "📄", "value": "16", "title": "Contrats",
-            "trend": "+2", "percent": "+14%", "trend_type": "up",
-            "sparkline": [10, 11, 12, 13, 14, 14, 15, 15, 16, 16],
-            "color": "#10b981"},
-            {"icon": "👥", "value": "189", "title": "Clients",
-            "trend": "+5", "percent": "+2.7%", "trend_type": "up",
-            "sparkline": [170, 175, 178, 180, 182, 184, 185, 186, 188, 189],
-            "color": "#8b5cf6"},
-            {"icon": "💰", "value": "€1.2M", "title": "Primes",
-            "trend": "+€8.4k", "percent": "+0.7%", "trend_type": "up",
-            "sparkline": [1000, 1050, 1080, 1100, 1120, 1150, 1160, 1170, 1180, 1200],
-            "color": "#3b82f6"},
-            {"icon": "⚠️", "value": "17", "title": "Sinistres",
-            "trend": "-3", "percent": "-15%", "trend_type": "down",
-            "sparkline": [25, 24, 22, 21, 20, 19, 19, 18, 17, 17],
-            "color": "#f59e0b"},
-            {"icon": "📅", "value": "12", "title": "Échéances",
-            "trend": "5", "percent": "critiques", "trend_type": "danger",
-            "sparkline": [8, 9, 10, 10, 11, 11, 12, 12, 12, 12],
-            "color": "#ef4444"},
-        ]
-        
-        for kpi in kpis:
-            card = self.create_kpi_card_with_sparkline(kpi)
-            layout.addWidget(card)
-            self._cards.append(card)
-        
-        return wrapper  # ✅ Retourne un QWidget maintenant
-
-    def create_kpi_card_with_sparkline(self, kpi):
-        card = QFrame()
-        card.setCursor(Qt.PointingHandCursor)
-        card.setMinimumHeight(130)
-        card.setStyleSheet(f"""
-            QFrame {{
-                background: white;
-                border-radius: 14px;
-                border: 1px solid #e2e8f0;
-            }}
-            QFrame:hover {{
-                border-color: {kpi['color']};
-            }}
-        """)
-        
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setColor(QColor(0, 0, 0, 15))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(14, 12, 14, 10)
-        layout.setSpacing(6)
-        
-        # Ligne 1 : icône + tendance
-        top = QHBoxLayout()
-        top.setSpacing(8)
-        
-        icon_lbl = QLabel(kpi['icon'])
-        icon_lbl.setFixedSize(32, 32)
-        icon_lbl.setAlignment(Qt.AlignCenter)
-        icon_lbl.setStyleSheet(f"""
-            font-size: 16px;
-            background: {kpi['color']}15;
-            border-radius: 9px;
-        """)
-        top.addWidget(icon_lbl)
-        top.addStretch()
-        
-        # Badge tendance
-        if kpi['trend_type'] == 'up':
-            badge_color, badge_bg, arrow = "#10b981", "#dcfce7", "↑"
-        elif kpi['trend_type'] == 'down':
-            badge_color, badge_bg, arrow = "#10b981", "#dcfce7", "↓"
-        else:
-            badge_color, badge_bg, arrow = "#ef4444", "#fee2e2", "!"
-        
-        badge = QLabel(f"{arrow} {kpi['percent']}")
-        badge.setStyleSheet(f"""
-            background: {badge_bg};
-            color: {badge_color};
-            border-radius: 8px;
-            padding: 3px 7px;
-            font-size: 10px;
-            font-weight: 700;
-        """)
-        top.addWidget(badge)
-        
-        layout.addLayout(top)
-        
-        # Ligne 2 : valeur
-        value_lbl = QLabel(kpi['value'])
-        value_lbl.setStyleSheet(f"""
-            font-size: 24px;
-            font-weight: 800;
-            color: {kpi['color']};
-            background: transparent;
-        """)
-        layout.addWidget(value_lbl)
-        
-        # Ligne 3 : titre + sparkline
-        bottom = QHBoxLayout()
-        bottom.setSpacing(6)
-        
-        title_lbl = QLabel(kpi['title'])
-        title_lbl.setStyleSheet("color: #64748b; font-size: 11px; font-weight: 600;")
-        bottom.addWidget(title_lbl)
-        bottom.addStretch()
-        
-        # Sparkline
-        sparkline = SparklineWidget(kpi['sparkline'], kpi['color'])
-        sparkline.setFixedWidth(70)
-        bottom.addWidget(sparkline)
-        
-        layout.addLayout(bottom)
-        
-        return card
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 5. CHART CARDS
-    # ═══════════════════════════════════════════════════════════════
-    def create_chart_card_advanced(self, title, chart_type="line", stretch=1):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 14px;
-                border: 1px solid #e2e8f0;
-            }
-        """)
-        
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setColor(QColor(0, 0, 0, 15))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 14, 16, 14)
-        layout.setSpacing(10)
-        
-        header = QHBoxLayout()
-        title_lbl = QLabel(title)
-        title_lbl.setStyleSheet("font-weight: 700; font-size: 13px; color: #0f172a;")
-        header.addWidget(title_lbl)
-        header.addStretch()
-        
-        if chart_type == "line_forecast":
-            badge = QLabel("🧠 IA Prédictive")
-            badge.setStyleSheet("""
-                background: linear-gradient(135deg, #eff6ff, #dbeafe);
-                color: #1e40af;
-                border-radius: 10px;
-                padding: 4px 10px;
-                font-size: 10px;
-                font-weight: 700;
-            """)
-            header.addWidget(badge)
-        
-        layout.addLayout(header)
-        
-        if chart_type == "donut":
-            # Utiliser le widget custom
-            donut = DonutChartWidget(
-                data=[70.1, 29.9],
-                colors=["#1e40af", "#f59e0b"],
-                center_text="210"
-            )
-            layout.addWidget(donut)
-            
-            # Légende
-            legend_layout = QVBoxLayout()
-            legend_layout.setSpacing(6)
-            for color, label, value in [
-                ("#1e40af", "Nouveaux", "147 (70.1%)"),
-                ("#f59e0b", "Fidélisés", "63 (29.9%)"),
-            ]:
-                item = QHBoxLayout()
-                dot = QLabel()
-                dot.setFixedSize(10, 10)
-                dot.setStyleSheet(f"background: {color}; border-radius: 5px;")
-                lbl = QLabel(label)
-                lbl.setStyleSheet("color: #1e293b; font-size: 11px; font-weight: 600;")
-                val = QLabel(value)
-                val.setStyleSheet("color: #64748b; font-size: 10px;")
-                item.addWidget(dot)
-                item.addWidget(lbl)
-                item.addStretch()
-                item.addWidget(val)
-                legend_layout.addLayout(item)
-            
-            layout.addLayout(legend_layout)
-        
-        elif HAS_PYQTGRAPH:
-            chart_widget = self.create_pyqtgraph_chart(chart_type)
-            chart_widget.setMinimumHeight(220)
-            layout.addWidget(chart_widget)
-        
-        return card
-    
-    def create_pyqtgraph_chart(self, chart_type):
-        plot = pg.PlotWidget()
-        plot.setBackground('w')
-        plot.showGrid(x=True, y=True, alpha=0.15)
-        plot.getAxis('left').setPen(pg.mkPen('#e2e8f0'))
-        plot.getAxis('bottom').setPen(pg.mkPen('#e2e8f0'))
-        plot.getAxis('left').setTextPen(pg.mkPen('#94a3b8'))
-        plot.getAxis('bottom').setTextPen(pg.mkPen('#94a3b8'))
-        
-        if chart_type == "line_forecast":
-            months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 'Jul', 'Aoû', 'Sep']
-            values = [138, 145, 152, 160, 168, 175, 182, 188, 195]
-            
-            # Historique
-            plot.plot(range(0, 7), values[:7],
-                      pen=pg.mkPen('#3b82f6', width=2.5),
-                      symbol='o', symbolSize=7,
-                      symbolBrush='#3b82f6', symbolPen='w')
-            
-            # Prévision
-            plot.plot(range(6, 9), values[6:],
-                      pen=pg.mkPen('#3b82f6', width=2.5, style=Qt.DashLine),
-                      symbol='o', symbolSize=7,
-                      symbolBrush='#93c5fd', symbolPen='w')
-            
-            # Zone prévision
-            region = pg.LinearRegionItem(values=(6, 9),
-                                          brush=(59, 130, 246, 25),
-                                          movable=False)
-            plot.addItem(region)
-            
-            # Annotations
-            for i, m in [(2, 'Mar'), (4, 'Mai'), (7, 'Aoû')]:
-                text = pg.TextItem(f"<b>{m}</b>, €{values[i]}k",
-                                    color='#1e293b', anchor=(0.5, 1.3))
-                text.setPos(i, values[i])
-                plot.addItem(text)
-            
-            plot.setLabel('left', 'Primes (€k)', color='#64748b')
-            plot.setLabel('bottom', 'Mois', color='#64748b')
-            plot.setXRange(-0.5, 8.5)
-            ax = plot.getAxis('bottom')
-            ax.setTicks([[(i, m) for i, m in enumerate(months)]])
-        
-        elif chart_type == "stacked_bar":
-            categories = ['RC', 'Vol', 'Incendie', 'Bris', 'DTA', 'IPT']
-            high_premium = [40, 25, 16, 17, 5, 0]
-            standard = [25, 15, 12, 10, 3, 2]
-            
-            x = np.arange(len(categories))
-            bg1 = pg.BarGraphItem(x=x, height=standard, width=0.55,
-                                   brush='#93c5fd', pen=None)
-            bg2 = pg.BarGraphItem(x=x, height=high_premium, width=0.55,
-                                   y0=standard, brush='#1e40af', pen=None)
-            plot.addItem(bg1)
-            plot.addItem(bg2)
-            
-            for i, (c, hp) in enumerate(zip(categories, high_premium)):
-                if hp > 0:
-                    text = pg.TextItem(f"<b>{hp}</b>", color='#1e293b',
-                                        anchor=(0.5, 1.5))
-                    text.setPos(i, standard[i] + hp)
-                    plot.addItem(text)
-            
-            plot.setLabel('left', 'Souscriptions (%)', color='#64748b')
-            plot.setLabel('bottom', 'Garanties', color='#64748b')
-            ax = plot.getAxis('bottom')
-            ax.setTicks([[(i, c) for i, c in enumerate(categories)]])
-        
-        return plot
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 6. PRÉVISIONS
-    # ═══════════════════════════════════════════════════════════════
-    def create_predictions_card(self):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 14px;
-                border: 1px solid #e2e8f0;
-            }
-        """)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setColor(QColor(0, 0, 0, 15))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(12)
-        
-        title = QLabel("🔮 Prévisions & Tendances")
-        title.setStyleSheet("font-weight: 700; font-size: 14px; color: #0f172a;")
-        layout.addWidget(title)
-        
-        subtitle = QLabel("Chiffre d'affaires trimestriel estimé")
-        subtitle.setStyleSheet("color: #64748b; font-size: 11px;")
-        layout.addWidget(subtitle)
-        
-        if HAS_PYQTGRAPH:
-            mini_plot = pg.PlotWidget()
-            mini_plot.setBackground('w')
-            mini_plot.setMaximumHeight(140)
-            mini_plot.hideAxis('left')
-            mini_plot.showGrid(x=True, y=True, alpha=0.1)
-            
-            months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai']
-            values = [120, 145, 175, 195, 220]
-            mini_plot.plot(range(5), values,
-                            pen=pg.mkPen('#3b82f6', width=2.5),
-                            symbol='o', symbolSize=8,
-                            symbolBrush='#3b82f6', symbolPen='w')
-            
-            # Zone projetée
-            region = pg.LinearRegionItem(values=(2, 5),
-                                          brush=(59, 130, 246, 20),
-                                          movable=False)
-            mini_plot.addItem(region)
-            
-            mini_plot.getAxis('bottom').setTicks([[(i, m) for i, m in enumerate(months)]])
-            mini_plot.getAxis('bottom').setTextPen(pg.mkPen('#94a3b8'))
-            layout.addWidget(mini_plot)
-        
-        # Statistiques
-        stats_row = QHBoxLayout()
-        for label, value, color in [
-            ("Croissance", "+18.5%", "#10b981"),
-            ("Prévision Q4", "€245k", "#3b82f6"),
-            ("Confiance", "94%", "#8b5cf6"),
-        ]:
-            stat = QVBoxLayout()
-            stat.setSpacing(2)
-            v = QLabel(value)
-            v.setStyleSheet(f"color: {color}; font-size: 16px; font-weight: 800;")
-            l = QLabel(label)
-            l.setStyleSheet("color: #64748b; font-size: 10px;")
-            stat.addWidget(v)
-            stat.addWidget(l)
-            stats_row.addLayout(stat)
-            stats_row.addStretch()
-        
-        layout.addLayout(stats_row)
-        return card
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 7. ACTIONS INTELLIGENTES (checklist)
-    # ═══════════════════════════════════════════════════════════════
-    def create_smart_actions_card(self):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 14px;
-                border: 1px solid #e2e8f0;
-            }
-        """)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setColor(QColor(0, 0, 0, 15))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(20, 16, 20, 16)
-        layout.setSpacing(10)
-        
-        # Header avec badge
-        header = QHBoxLayout()
-        title = QLabel("✅ Actions Prioritaires")
-        title.setStyleSheet("font-weight: 700; font-size: 14px; color: #0f172a;")
-        header.addWidget(title)
-        header.addStretch()
-        
-        badge = QLabel("3")
-        badge.setFixedSize(22, 22)
-        badge.setAlignment(Qt.AlignCenter)
-        badge.setStyleSheet("""
-            background: #ef4444;
-            color: white;
-            border-radius: 11px;
-            font-size: 11px;
-            font-weight: 700;
-        """)
-        header.addWidget(badge)
-        layout.addLayout(header)
-        
-        actions = [
-            ("🔴", "Contacter 5 clients pour renouvellement", "Aujourd'hui", "#fef2f2", "#ef4444"),
-            ("🟡", "Valider 2 sinistres en attente", "Cette semaine", "#fffbeb", "#f59e0b"),
-            ("🟢", "Relancer 10 leads fidélisation", "Cette semaine", "#f0fdf4", "#10b981"),
-            ("🔵", "Préparer rapport mensuel", "Vendredi", "#eff6ff", "#3b82f6"),
-        ]
-        
-        for dot, text, deadline, bg, color in actions:
-            item = QFrame()
-            item.setCursor(Qt.PointingHandCursor)
-            item.setStyleSheet(f"""
-                QFrame {{
-                    background: {bg};
-                    border-radius: 10px;
-                    border-left: 3px solid {color};
-                }}
-                QFrame:hover {{
-                    background: white;
-                    border: 1px solid {color};
-                    border-left: 3px solid {color};
-                }}
-            """)
-            item_layout = QHBoxLayout(item)
-            item_layout.setContentsMargins(12, 8, 12, 8)
-            item_layout.setSpacing(10)
-            
-            # Checkbox visuelle
-            check = QLabel("○")
-            check.setStyleSheet(f"color: {color}; font-size: 16px; font-weight: 700;")
-            check.setFixedWidth(18)
-            item_layout.addWidget(check)
-            
-            # Texte
-            text_layout = QVBoxLayout()
-            text_layout.setSpacing(2)
-            t = QLabel(text)
-            t.setStyleSheet("color: #1e293b; font-size: 12px; font-weight: 600;")
-            t.setWordWrap(True)
-            d = QLabel(f"⏱ {deadline}")
-            d.setStyleSheet("color: #94a3b8; font-size: 10px;")
-            text_layout.addWidget(t)
-            text_layout.addWidget(d)
-            item_layout.addLayout(text_layout, 1)
-            
-            layout.addWidget(item)
-        
-        return card
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 8. PERFORMANCE TECHNIQUE
-    # ═══════════════════════════════════════════════════════════════
-    def create_perf_row(self):
-        layout = QHBoxLayout()
-        layout.setSpacing(12)
-        
-        perf_data = [
-            {"icon": "🔄", "title": "Temps de disponibilité", "value": "99.98%",
-             "progress": 99.98, "subtitle": "Dernières 24h",
-             "color": "#10b981", "indicator": "green"},
-            {"icon": "⚡", "title": "Temps de réponse avg", "value": "152 ms",
-             "progress": 85, "subtitle": "Dernières 24h",
-             "color": "#3b82f6", "indicator": "green"},
-            {"icon": "🛡️", "title": "Taux d'erreurs", "value": "0.05%",
-             "progress": 5, "subtitle": "Dernières 24h",
-             "color": "#f59e0b", "indicator": "yellow"},
-            {"icon": "💾", "title": "Temps requête DB avg", "value": "30 ms",
-             "progress": 92, "subtitle": "Dernières 24h",
-             "color": "#10b981", "indicator": "green"},
-        ]
-        
-        for pd in perf_data:
-            layout.addWidget(self.create_perf_card(pd))
-        
-        return layout
-    
-    def create_perf_card(self, data):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 14px;
-                border: 1px solid #e2e8f0;
-            }
-        """)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(8)
-        shadow.setColor(QColor(0, 0, 0, 12))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 14, 16, 12)
-        layout.setSpacing(8)
-        
-        # Top row
-        top = QHBoxLayout()
-        icon_lbl = QLabel(data['icon'])
-        icon_lbl.setFixedSize(36, 36)
-        icon_lbl.setAlignment(Qt.AlignCenter)
-        icon_lbl.setStyleSheet(f"""
-            font-size: 18px;
-            background: {data['color']}15;
-            border-radius: 10px;
-        """)
-        top.addWidget(icon_lbl)
-        top.addStretch()
-        
-        led = QLabel("●")
-        led_color = "#10b981" if data['indicator'] == 'green' else "#f59e0b"
-        led.setStyleSheet(f"color: {led_color}; font-size: 14px;")
-        top.addWidget(led, 0, Qt.AlignTop)
-        
-        layout.addLayout(top)
-        
-        # Titre
-        title_lbl = QLabel(data['title'])
-        title_lbl.setStyleSheet("color: #64748b; font-size: 11px; font-weight: 600;")
-        layout.addWidget(title_lbl)
-        
-        # Valeur
-        value_lbl = QLabel(data['value'])
-        value_lbl.setStyleSheet(f"""
-            font-size: 20px;
-            font-weight: 800;
-            color: {data['color']};
-        """)
-        layout.addWidget(value_lbl)
-        
-        # Progress bar
-        progress = QProgressBar()
-        progress.setRange(0, 100)
-        progress.setValue(int(data['progress']))
-        progress.setTextVisible(False)
-        progress.setFixedHeight(4)
-        progress.setStyleSheet(f"""
-            QProgressBar {{
-                background: #f1f5f9;
-                border: none;
-                border-radius: 2px;
-            }}
-            QProgressBar::chunk {{
-                background: {data['color']};
-                border-radius: 2px;
-            }}
-        """)
-        layout.addWidget(progress)
-        
-        # Subtitle
-        sub_lbl = QLabel(data['subtitle'])
-        sub_lbl.setStyleSheet("color: #94a3b8; font-size: 10px;")
-        layout.addWidget(sub_lbl)
-        
-        return card
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 9. MONITORING CHARTS
-    # ═══════════════════════════════════════════════════════════════
-    def create_monitor_chart(self, title, chart_type="line"):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 14px;
-                border: 1px solid #e2e8f0;
-            }
-        """)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(8)
-        shadow.setColor(QColor(0, 0, 0, 12))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(8)
-        
-        title_lbl = QLabel(title)
-        title_lbl.setStyleSheet("font-weight: 700; font-size: 12px; color: #0f172a;")
-        layout.addWidget(title_lbl)
-        
-        if HAS_PYQTGRAPH:
-            plot = pg.PlotWidget()
-            plot.setBackground('w')
-            plot.setMaximumHeight(130)
-            plot.showGrid(x=True, y=True, alpha=0.15)
-            plot.getAxis('left').setTextPen(pg.mkPen('#94a3b8'))
-            plot.getAxis('bottom').setTextPen(pg.mkPen('#94a3b8'))
-            plot.getAxis('left').setPen(pg.mkPen('#e2e8f0'))
-            plot.getAxis('bottom').setPen(pg.mkPen('#e2e8f0'))
-            
-            if chart_type == "line":
-                x = np.linspace(0, 70, 50)
-                y = 150 + 30 * np.sin(x / 5) + np.random.normal(0, 8, 50)
-                plot.plot(x, y, pen=pg.mkPen('#3b82f6', width=2))
-                
-                # Zone d'alerte
-                region = pg.LinearRegionItem(values=(0, 200),
-                                              brush=(239, 68, 68, 15),
-                                              movable=False,
-                                              orientation='horizontal')
-                plot.addItem(region)
-                
-                plot.setLabel('left', 'ms', color='#64748b')
-            
-            elif chart_type == "scatter":
-                x = np.arange(5)
-                y = [120, 60, 15, 30, 25]
-                labels = ['Core API', 'Auth', 'DB', 'Report', 'API']
-                
-                plot.plot(x, y, pen=pg.mkPen('#3b82f6', width=1.5),
-                          symbol='o', symbolSize=8,
-                          symbolBrush='#3b82f6', symbolPen='w')
-                
-                # Points d'erreur
-                plot.plot([1, 3], [60, 30], pen=None,
-                          symbol='o', symbolSize=11,
-                          symbolBrush='#ef4444', symbolPen='w')
-                
-                plot.setLabel('left', 'Erreurs', color='#64748b')
-                ax = plot.getAxis('bottom')
-                ax.setTicks([[(i, l) for i, l in enumerate(labels)]])
-            
-            layout.addWidget(plot)
-        
-        return card
-    
-    # ═══════════════════════════════════════════════════════════════
-    # 10. TIMELINE D'ACTIVITÉ LIVE
-    # ═══════════════════════════════════════════════════════════════
-    def create_activity_timeline(self):
-        card = QFrame()
-        card.setStyleSheet("""
-            QFrame {
-                background: white;
-                border-radius: 14px;
-                border: 1px solid #e2e8f0;
-            }
-        """)
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(8)
-        shadow.setColor(QColor(0, 0, 0, 12))
-        shadow.setOffset(0, 2)
-        card.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout(card)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(8)
-        
-        # Header avec indicateur live
-        header = QHBoxLayout()
-        title = QLabel("📡 Activité en direct")
-        title.setStyleSheet("font-weight: 700; font-size: 12px; color: #0f172a;")
-        header.addWidget(title)
-        header.addStretch()
-        
-        live = QLabel("● LIVE")
-        live.setStyleSheet("""
-            color: #ef4444;
-            font-size: 10px;
-            font-weight: 700;
-        """)
-        header.addWidget(live)
-        layout.addLayout(header)
-        
-        # Timeline
-        self.timeline_layout = QVBoxLayout()
-        self.timeline_layout.setSpacing(6)
-        
-        activities = [
-            ("🟢", "Nouveau contrat signé", "il y a 2 min", "#10b981"),
-            ("🔵", "Paiement reçu: €1,250", "il y a 8 min", "#3b82f6"),
-            ("🟡", "Sinistre déclaré", "il y a 15 min", "#f59e0b"),
-            ("🟢", "Client ajouté", "il y a 22 min", "#10b981"),
-        ]
-        
-        for dot, text, time, color in activities:
-            item = QHBoxLayout()
-            item.setSpacing(8)
-            
-            d = QLabel(dot)
-            d.setStyleSheet(f"color: {color}; font-size: 10px;")
-            d.setFixedWidth(14)
-            item.addWidget(d)
-            
-            t = QLabel(text)
-            t.setStyleSheet("color: #1e293b; font-size: 11px; font-weight: 500;")
-            item.addWidget(t, 1)
-            
-            tm = QLabel(time)
-            tm.setStyleSheet("color: #94a3b8; font-size: 10px;")
-            item.addWidget(tm)
-            
-            self.timeline_layout.addLayout(item)
-        
-        layout.addLayout(self.timeline_layout)
-        layout.addStretch()
-        
-        return card
-    
-    # ═══════════════════════════════════════════════════════════════
-    # DONNÉES & MISE À JOUR
-    # ═══════════════════════════════════════════════════════════════
-    def init_data(self):
-        pass
-    
-    def start_realtime_updates(self):
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.refresh_stats)
-        self.timer.start(30000)
-    
-    def refresh_stats(self):
-        self._refresh_count += 1
-        # Simuler une mise à jour de la timeline
-        if hasattr(self, 'timeline_layout') and self.timeline_layout.count() > 0:
-            # Ajouter une nouvelle activité en haut
-            new_item = QHBoxLayout()
-            new_item.setSpacing(8)
-            
-            d = QLabel("🟢")
-            d.setStyleSheet("color: #10b981; font-size: 10px;")
-            d.setFixedWidth(14)
-            new_item.addWidget(d)
-            
-            t = QLabel("Mise à jour automatique")
-            t.setStyleSheet("color: #1e293b; font-size: 11px; font-weight: 500;")
-            new_item.addWidget(t, 1)
-            
-            tm = QLabel("à l'instant")
-            tm.setStyleSheet("color: #94a3b8; font-size: 10px;")
-            new_item.addWidget(tm)
-            
-            self.timeline_layout.insertLayout(0, new_item)
-            
-            # Limiter à 6 entrées
-            while self.timeline_layout.count() > 6:
-                item = self.timeline_layout.takeAt(self.timeline_layout.count() - 1)
-                if item:
-                    # Nettoyer le layout
-                    while item.count():
-                        child = item.takeAt(0)
-                        if child.widget():
-                            child.widget().deleteLater()
-    
-    def refresh_all(self):
-        """Rafraîchit tout le dashboard"""
-        self.refresh_stats()
-        if hasattr(self, 'parent') and self.parent():
-            # Notifier via statusbar si disponible
-            pass
-    
-    def animate_entrance(self):
-        """Animation d'entrée progressive des cartes"""
-        for i, card in enumerate(self._cards):
-            effect = QGraphicsOpacityEffect()
-            card.setGraphicsEffect(effect)
-            
-            anim = QPropertyAnimation(effect, b"opacity")
-            anim.setDuration(400)
-            anim.setStartValue(0)
-            anim.setEndValue(1)
-            anim.setEasingCurve(QEasingCurve.Type.OutCubic)
-            
-            QTimer.singleShot(i * 60, anim.start)
-            # Garder une référence pour éviter le garbage collection
-            card._anim = anim
+        self.hero = HeroSection()
+        main_layout.addWidget(self.hero)
 
 
 class AnimatedSidebar(QFrame):
@@ -3305,180 +1877,6 @@ class AnimatedSidebar(QFrame):
             }
         """)
         layout.addWidget(self.logout_btn)
-
-    # def toggle_sidebar(self):
-    #     self.collapsed = not self.collapsed
-    #     target_width = self.collapsed_width if self.collapsed else self.expanded_width
-
-    #     # ✅ ANIMATION SUR LA LARGEUR FIXE
-    #     self.animation.setStartValue(self.width())
-    #     self.animation.setEndValue(target_width)
-    #     self.animation.start()
-        
-    #     # ✅ Mettre à jour la largeur fixe APRÈS l'animation
-    #     self.animation.finished.connect(lambda: self.setFixedWidth(target_width))
-
-    #     # ✅ Logo switch avec icône depuis icons
-        
-    #     if self.collapsed:
-    #         # Mode réduit : seulement l'icône voiture
-    #         self.logo_icon.setPixmap(get_icon_pixmap('car', color='white', size=36))
-    #         self.logo_icon.setVisible(True)
-    #         self.logo_text.setVisible(False)
-    #         self.logo_text.setStyleSheet("""
-    #             color: white;
-    #             padding: 16px 0px;
-    #             margin: 0px;
-    #             background: rgba(255,255,255,0.04);
-    #             border: none;
-    #             border-radius: 0px;
-    #         """)
-    #     else:
-    #         # Mode étendu : LOMETA + icône voiture (affichée via un QLabel séparé ou un layout)
-    #         # Option 1: Utiliser un layout horizontal pour le logo
-    #         # On va recréer le layout du logo pour avoir texte + icône
-            
-    #         # Nettoyer le layout existant du logo
-    #         if hasattr(self, 'logo_layout'):
-    #             # Supprimer l'ancien layout
-    #             while self.logo_layout.count():
-    #                 item = self.logo_layout.takeAt(0)
-    #                 if item.widget():
-    #                     item.widget().deleteLater()
-    #             # On garde le même widget
-    #         else:
-    #             # Créer un widget conteneur pour le logo
-    #             self.logo_widget = QWidget()
-    #             self.logo_layout = QHBoxLayout(self.logo_widget)
-    #             self.logo_layout.setContentsMargins(12, 8, 12, 8)
-    #             self.logo_layout.setSpacing(8)
-    #             self.logo_layout.setAlignment(Qt.AlignCenter)
-            
-    #         # Créer l'icône voiture
-    #         car_icon = QLabel()
-    #         car_icon.setPixmap(get_icon_pixmap('car', color='white', size=24))
-            
-    #         # Créer le texte
-    #         text_label = QLabel("LOMETA")
-    #         text_label.setStyleSheet("""
-    #             color: white;
-    #             font-size: 20px;
-    #             font-weight: 700;
-    #             background: transparent;
-    #             border: none;
-    #             letter-spacing: 1px;
-    #         """)
-            
-    #         # Ajouter au layout
-    #         self.logo_layout.addWidget(car_icon)
-    #         self.logo_layout.addWidget(text_label)
-            
-    #         # Remplacer le logo_text par logo_widget
-    #         # On doit d'abord trouver l'index du logo_text dans le layout parent
-    #         parent_layout = self.layout()
-    #         if parent_layout:
-    #             index = parent_layout.indexOf(self.logo_text)
-    #             if index != -1:
-    #                 # Supprimer l'ancien logo_label
-    #                 self.logo_text.deleteLater()
-    #                 # Insérer le nouveau widget
-    #                 parent_layout.insertWidget(index, self.logo_widget)
-    #                 self.logo_widget.setStyleSheet("""
-    #                     background: rgba(255,255,255,0.04);
-    #                     border: none;
-    #                     border-radius: 0px;
-    #                 """)
-
-    #     # Menu text - ne garder que l'icône quand réduit
-    #     for btn in self.menu_buttons:
-    #         if hasattr(btn, 'original_text'):
-    #             btn.setText(btn.icon_only if self.collapsed else btn.original_text)
-    #             # ✅ Centrer l'icône quand réduit
-    #             if self.collapsed:
-    #                 btn.setStyleSheet("""
-    #                     QPushButton#MenuBtn {
-    #                         color: #cbd5f5;
-    #                         background: transparent;
-    #                         border: none;
-    #                         border-radius: 0px;
-    #                         padding: 10px 0px;
-    #                         text-align: center;
-    #                         font-size: 18px;
-    #                         margin: 0px;
-    #                     }
-    #                     QPushButton#MenuBtn:hover {
-    #                         background: rgba(255,255,255,0.08);
-    #                         color: white;
-    #                         border-left: 3px solid #3b82f6;
-    #                         padding-left: 0px;
-    #                     }
-    #                     QPushButton#MenuBtn:checked {
-    #                         background: #3b82f6;
-    #                         color: white;
-    #                         border-left: 3px solid #2563eb;
-    #                         padding-left: 0px;
-    #                     }
-    #                 """)
-    #             else:
-    #                 btn.setStyleSheet("""
-    #                     QPushButton#MenuBtn {
-    #                         color: #cbd5f5;
-    #                         background: transparent;
-    #                         border: none;
-    #                         border-radius: 0px;
-    #                         padding: 10px 12px;
-    #                         text-align: left;
-    #                         font-size: 14px;
-    #                         margin: 0px;
-    #                     }
-    #                     QPushButton#MenuBtn:hover {
-    #                         background: rgba(255,255,255,0.08);
-    #                         color: white;
-    #                         border-left: 3px solid #3b82f6;
-    #                         padding-left: 9px;
-    #                     }
-    #                     QPushButton#MenuBtn:checked {
-    #                         background: #3b82f6;
-    #                         color: white;
-    #                         border-left: 3px solid #2563eb;
-    #                         padding-left: 9px;
-    #                     }
-    #                 """)
-
-    #     # Cacher/montrer les éléments quand réduit
-    #     self.user_name.setVisible(not self.collapsed)
-    #     self.user_role.setVisible(not self.collapsed)
-    #     self.status_label.setVisible(not self.collapsed)
-        
-    #     # ✅ Réduire l'avatar quand la sidebar est réduite
-    #     if self.collapsed:
-    #         self.user_avatar.setFixedSize(36, 36)
-    #         self.user_avatar.setStyleSheet("""
-    #             font-size: 16px;
-    #             font-weight: bold;
-    #             color: white;
-    #             background: qlineargradient(
-    #                 x1:0, y1:0, x2:1, y2:1,
-    #                 stop:0 #3b82f6,
-    #                 stop:1 #6366f1
-    #             );
-    #             border-radius: 18px;
-    #             border: none;
-    #         """)
-    #     else:
-    #         self.user_avatar.setFixedSize(48, 48)
-    #         self.user_avatar.setStyleSheet("""
-    #             font-size: 20px;
-    #             font-weight: bold;
-    #             color: white;
-    #             background: qlineargradient(
-    #                 x1:0, y1:0, x2:1, y2:1,
-    #                 stop:0 #3b82f6,
-    #                 stop:1 #6366f1
-    #             );
-    #             border-radius: 24px;
-    #             border: none;
-    #         """)
 
     def toggle_sidebar(self):
         self.collapsed = not self.collapsed
@@ -3903,7 +2301,7 @@ class MainWindow(QMainWindow):
         print("=" * 60)
         print("🔍 DIAGNOSTIC DE L'ENVIRONNEMENT")
         print("=" * 60)
-        print(f"Mode compilé : {getattr(sys, 'frozen', False)}")
+        print(f"Mode compilé : {getattr(sys, 'frozen', True)}")
         print(f"Executable : {sys.executable}")
         print(f"Dossier exe : {Config.get_app_dir()}")
         print(f"Dossier addons : {Config.get_addons_dir()}")
@@ -3934,257 +2332,24 @@ class MainWindow(QMainWindow):
         
         print("=" * 60)
 
-    # def setup_header(self):
-    #     self.header = QFrame()
-    #     self.header.setObjectName("Header")
-    #     self.header.setFixedHeight(70)
-    #     self.header.setStyleSheet("""
-    #         QFrame#Header {
-    #             background: #ffffff;
-    #             border: none;
-    #             border-radius: 0px;
-    #             margin: 0px;
-    #             padding: 0px;
-    #             border-bottom: 1px solid #e2e8f0;
-    #         }
-    #     """)
-        
-    #     header_layout = QHBoxLayout(self.header)
-    #     header_layout.setContentsMargins(16, 0, 16, 0)  # ✅ Marges internes réduites
-    #     header_layout.setSpacing(12)
-        
-    #     # ========== PARTIE GAUCHE ==========
-    #     # Bouton Home
-    #     self.home_btn = QPushButton("🏠")
-    #     self.home_btn.setFixedSize(36, 36)
-    #     self.home_btn.setCursor(Qt.PointingHandCursor)
-    #     self.home_btn.setToolTip("Accueil (Ctrl+D)")
-    #     self.home_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: transparent;
-    #             border: none;
-    #             border-radius: 8px;
-    #             font-size: 18px;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #         QPushButton:hover {
-    #             background: #f1f5f9;
-    #         }
-    #     """)
-    #     self.home_btn.clicked.connect(self.go_to_dashboard)
-    #     header_layout.addWidget(self.home_btn)
-        
-    #     # Titre de la page
-    #     self.page_title = QLabel("Tableau de Bord")
-    #     self.page_title.setObjectName("PageTitle")
-    #     self.page_title.setStyleSheet("""
-    #         QLabel#PageTitle {
-    #             font-size: 20px;
-    #             font-weight: 700;
-    #             color: #0f172a;
-    #             background: transparent;
-    #             border: none;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #     """)
-    #     header_layout.addWidget(self.page_title)
-        
-    #     header_layout.addStretch()
-        
-    #     # ========== PARTIE CENTRALE ==========
-    #     # Barre de recherche
-    #     self.search_bar = QLineEdit()
-    #     self.search_bar.setObjectName("SearchBar")
-    #     self.search_bar.setPlaceholderText("🔍 Rechercher un véhicule, client, contrat...")
-    #     self.search_bar.setMinimumWidth(350)
-    #     self.search_bar.setStyleSheet("""
-    #         QLineEdit#SearchBar {
-    #             background: #f1f5f9;
-    #             border: none;
-    #             border-radius: 8px;
-    #             padding: 8px 16px;
-    #             font-size: 13px;
-    #             margin: 0px;
-    #         }
-    #         QLineEdit#SearchBar:focus {
-    #             background: white;
-    #             border: 1px solid #3b82f6;
-    #         }
-    #     """)
-    #     self.search_bar.returnPressed.connect(self.handle_search)
-    #     header_layout.addWidget(self.search_bar)
-        
-    #     header_layout.addStretch()
-        
-    #     # ========== PARTIE DROITE ==========
-    #     # Bouton notifications
-    #     self.notif_btn = QPushButton("🔔")
-    #     self.notif_btn.setFixedSize(36, 36)
-    #     self.notif_btn.setCursor(Qt.PointingHandCursor)
-    #     self.notif_btn.setToolTip("Notifications")
-    #     self.notif_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: transparent;
-    #             border: none;
-    #             border-radius: 8px;
-    #             font-size: 18px;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #         QPushButton:hover {
-    #             background: #f1f5f9;
-    #         }
-    #     """)
-    #     self.notif_btn.clicked.connect(self.show_notifications)
-    #     header_layout.addWidget(self.notif_btn)
-
-    #     # Bouton certificats
-    #     self.certificate_btn = QPushButton("🔔")
-    #     self.certificate_btn.setFixedSize(40, 40)
-    #     self.certificate_btn.setCursor(Qt.PointingHandCursor)
-    #     self.certificate_btn.setToolTip("Notifications des certificats")
-    #     self.certificate_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: transparent;
-    #             border: none;
-    #             border-radius: 8px;
-    #             font-size: 20px;
-    #             margin: 0px;
-    #             padding: 0px;
-    #             position: relative;
-    #         }
-    #         QPushButton:hover {
-    #             background: rgba(0,0,0,0.05);
-    #         }
-    #     """)
-    #     self.certificate_btn.clicked.connect(self.show_certificate_notifications)
-    #     header_layout.addWidget(self.certificate_btn)
-
-    #     # Badge de notification
-    #     self.notif_badge = QLabel()
-    #     self.notif_badge.setFixedSize(20, 20)
-    #     self.notif_badge.setAlignment(Qt.AlignCenter)
-    #     self.notif_badge.setStyleSheet("""
-    #         QLabel {
-    #             background: #ef4444;
-    #             color: white;
-    #             border-radius: 10px;
-    #             font-size: 10px;
-    #             font-weight: 700;
-    #             border: 2px solid white;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #     """)
-    #     self.notif_badge.hide()
-        
-    #     # Positionner le badge sur le bouton
-    #     self.notif_badge.setParent(self.notif_btn)
-    #     self.notif_badge.move(22, -2)
-        
-    #     # Bouton aide
-    #     self.help_btn = QPushButton("❓")
-    #     self.help_btn.setFixedSize(36, 36)
-    #     self.help_btn.setCursor(Qt.PointingHandCursor)
-    #     self.help_btn.setToolTip("Aide (F1)")
-    #     self.help_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: transparent;
-    #             border: none;
-    #             border-radius: 8px;
-    #             font-size: 16px;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #         QPushButton:hover {
-    #             background: #f1f5f9;
-    #         }
-    #     """)
-    #     self.help_btn.clicked.connect(self.show_help)
-    #     header_layout.addWidget(self.help_btn)
-        
-    #     # Bouton plein écran
-    #     self.fullscreen_btn = QPushButton("⛶")
-    #     self.fullscreen_btn.setFixedSize(36, 36)
-    #     self.fullscreen_btn.setCursor(Qt.PointingHandCursor)
-    #     self.fullscreen_btn.setToolTip("Plein écran (F11)")
-    #     self.fullscreen_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: transparent;
-    #             border: none;
-    #             border-radius: 8px;
-    #             font-size: 16px;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #         QPushButton:hover {
-    #             background: #f1f5f9;
-    #         }
-    #     """)
-    #     self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
-    #     header_layout.addWidget(self.fullscreen_btn)
-        
-    #     # Avatar utilisateur
-    #     self.user_avatar = QLabel()
-    #     self.user_avatar.setFixedSize(36, 36)
-    #     self.user_avatar.setAlignment(Qt.AlignCenter)
-    #     self.user_avatar.setCursor(Qt.PointingHandCursor)
-    #     self.user_avatar.setToolTip("Profil utilisateur")
-    #     self.user_avatar.setStyleSheet("""
-    #         QLabel {
-    #             background: #3b82f6;
-    #             color: white;
-    #             font-weight: bold;
-    #             border-radius: 18px;
-    #             font-size: 14px;
-    #             border: none;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #     """)
-    #     self.user_avatar.mousePressEvent = self.show_user_menu
-    #     header_layout.addWidget(self.user_avatar)
-
-    #     # ✅ Bouton de changement de thème
-    #     self.theme_btn = QPushButton("🌓")
-    #     self.theme_btn.setFixedSize(36, 36)
-    #     self.theme_btn.setCursor(Qt.PointingHandCursor)
-    #     self.theme_btn.setToolTip("Changer de thème (Ctrl+T)")
-    #     self.theme_btn.setStyleSheet("""
-    #         QPushButton {
-    #             background: transparent;
-    #             border: none;
-    #             border-radius: 8px;
-    #             font-size: 16px;
-    #             margin: 0px;
-    #             padding: 0px;
-    #         }
-    #         QPushButton:hover {
-    #             background: #f1f5f9;
-    #         }
-    #     """)
-    #     self.theme_btn.clicked.connect(self.toggle_theme)
-    #     header_layout.addWidget(self.theme_btn)
-
     def setup_header(self):
         
         self.header = QFrame()
         self.header.setObjectName("Header")
-        self.header.setFixedHeight(70)
+        self.header.setFixedHeight(60)
         self.header.setStyleSheet("""
             QFrame#Header {
-                background: #ffffff;
+                background: #1e293b;
                 border: none;
                 border-radius: 0px;
                 margin: 0px;
                 padding: 0px;
-                border-bottom: 1px solid #e2e8f0;
+                border-bottom: 1px solid #1e293b;
             }
         """)
         
         header_layout = QHBoxLayout(self.header)
+        header_layout
         header_layout.setContentsMargins(16, 0, 16, 0)
         header_layout.setSpacing(12)
         
@@ -4194,7 +2359,7 @@ class MainWindow(QMainWindow):
         self.home_btn.setFixedSize(36, 36)
         self.home_btn.setCursor(Qt.PointingHandCursor)
         self.home_btn.setToolTip("Accueil (Ctrl+D)")
-        self.home_btn.setIcon(get_icon('home', color='#64748b', size=20))
+        self.home_btn.setIcon(get_icon('home', color='#cbd5e1', size=20))
         self.home_btn.setIconSize(QSize(20, 20))
         self.home_btn.setStyleSheet("""
             QPushButton {
@@ -4205,27 +2370,13 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }
             QPushButton:hover {
-                background: #f1f5f9;
+                background: #1e293b;
             }
         """)
         self.home_btn.clicked.connect(self.go_to_dashboard)
         header_layout.addWidget(self.home_btn)
-        
-        # Titre de la page
-        self.page_title = QLabel("Tableau de Bord")
-        self.page_title.setObjectName("PageTitle")
-        self.page_title.setStyleSheet("""
-            QLabel#PageTitle {
-                font-size: 20px;
-                font-weight: 700;
-                color: #0f172a;
-                background: transparent;
-                border: none;
-                margin: 0px;
-                padding: 0px;
-            }
-        """)
-        header_layout.addWidget(self.page_title)
+
+        header_layout.addWidget(self.create_contextual_header())
         
         header_layout.addStretch()
         
@@ -4271,7 +2422,7 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }
             QPushButton:hover {
-                background: #f1f5f9;
+                background: #1e293b;
             }
         """)
         self.theme_btn.clicked.connect(self.toggle_theme)
@@ -4285,7 +2436,7 @@ class MainWindow(QMainWindow):
         self.notif_btn.setFixedSize(36, 36)
         self.notif_btn.setCursor(Qt.PointingHandCursor)
         self.notif_btn.setToolTip("Notifications")
-        self.notif_btn.setIcon(get_icon('bell', color='#64748b', size=20))
+        self.notif_btn.setIcon(get_icon('bell', color='#cbd5e1', size=20))
         self.notif_btn.setIconSize(QSize(20, 20))
         self.notif_btn.setStyleSheet("""
             QPushButton {
@@ -4307,7 +2458,7 @@ class MainWindow(QMainWindow):
         self.certificate_btn.setFixedSize(36, 36)
         self.certificate_btn.setCursor(Qt.PointingHandCursor)
         self.certificate_btn.setToolTip("Notifications des certificats")
-        self.certificate_btn.setIcon(get_icon('certificate', color='#64748b', size=20))
+        self.certificate_btn.setIcon(get_icon('certificate', color='#cbd5e1', size=20))
         self.certificate_btn.setIconSize(QSize(20, 20))
         self.certificate_btn.setStyleSheet("""
             QPushButton {
@@ -4319,7 +2470,7 @@ class MainWindow(QMainWindow):
                 position: relative;
             }
             QPushButton:hover {
-                background: rgba(0,0,0,0.05);
+                background: #1e293b;
             }
         """)
         self.certificate_btn.clicked.connect(self.show_certificate_notifications)
@@ -4352,7 +2503,7 @@ class MainWindow(QMainWindow):
         self.help_btn.setFixedSize(36, 36)
         self.help_btn.setCursor(Qt.PointingHandCursor)
         self.help_btn.setToolTip("Aide (F1)")
-        self.help_btn.setIcon(get_icon('help', color='#64748b', size=20))
+        self.help_btn.setIcon(get_icon('help', color='#cbd5e1', size=20))
         self.help_btn.setIconSize(QSize(20, 20))
         self.help_btn.setStyleSheet("""
             QPushButton {
@@ -4363,7 +2514,7 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }
             QPushButton:hover {
-                background: #f1f5f9;
+                background: #1e293b;
             }
         """)
         self.help_btn.clicked.connect(self.show_help)
@@ -4374,7 +2525,7 @@ class MainWindow(QMainWindow):
         self.fullscreen_btn.setFixedSize(36, 36)
         self.fullscreen_btn.setCursor(Qt.PointingHandCursor)
         self.fullscreen_btn.setToolTip("Plein écran (F11)")
-        self.fullscreen_btn.setIcon(get_icon('fullscreen', color='#64748b', size=20))
+        self.fullscreen_btn.setIcon(get_icon('fullscreen', color='#cbd5e1', size=20))
         self.fullscreen_btn.setIconSize(QSize(20, 20))
         self.fullscreen_btn.setStyleSheet("""
             QPushButton {
@@ -4385,7 +2536,7 @@ class MainWindow(QMainWindow):
                 padding: 0px;
             }
             QPushButton:hover {
-                background: #f1f5f9;
+                background: #1e293b;
             }
         """)
         self.fullscreen_btn.clicked.connect(self.toggle_fullscreen)
@@ -4414,10 +2565,21 @@ class MainWindow(QMainWindow):
 
     def setup_statusbar(self):
         self.status_bar = QStatusBar()
+        self.status_bar.setStyleSheet(f"""
+            QStatusBar {{
+                background-color: {AppColors.SIDEBAR_HOVER};
+                color: #f8fafc;
+                border: none;
+            }}
+            QStatusBar::item {{
+                border: none;
+            }}
+        """)
         self.setStatusBar(self.status_bar)
         
         # Horloge
         self.clock_label = QLabel()
+        self.clock_label.setStyleSheet("color: #f8fafc; background: transparent;")
         self.update_clock()
         self.status_bar.addPermanentWidget(self.clock_label)
         
@@ -4447,25 +2609,127 @@ class MainWindow(QMainWindow):
     def update_clock(self):
         self.clock_label.setText(datetime.now().strftime("%d/%m/%Y %H:%M:%S"))
 
-    # def update_theme_button_icon(self):
-    #     """
-    #     Met à jour l'icône du bouton de thème en fonction du thème actuel
-    #     """
+    def create_contextual_header(self):
+        frame = QFrame()
+        frame.setStyleSheet("background: transparent;")
+        layout = QHBoxLayout(frame)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(12)
         
-    #     current_theme = self.theme_manager.get_current_theme()
+        # Salutation contextuelle
+        hour = datetime.now().hour
+        if hour < 12:
+            greeting = "Bonjour"
+            emoji = "☀️"
+        elif hour < 18:
+            greeting = "Bon après-midi"
+            emoji = "🌤️"
+        else:
+            greeting = "Bonsoir"
+            emoji = "🌙"
         
-    #     if current_theme.value == "light":
-    #         # Thème clair -> icône lune pour passer en sombre
-    #         icon = get_icon('moon', color='#64748b', size=20)
-    #         self.theme_btn.setToolTip("Passer au thème sombre (Ctrl+T)")
-    #     else:
-    #         # Thème sombre -> icône soleil pour passer en clair
-    #         icon = get_icon('sun', color='#fbbf24', size=20)
-    #         self.theme_btn.setToolTip("Passer au thème clair (Ctrl+T)")
+        username = self.user.username if self.user else "Utilisateur"
         
-    #     self.theme_btn.setIcon(icon)
-    #     self.theme_btn.setIconSize(QSize(20, 20))
+        greeting_lbl = QLabel(f"{greeting}, {username} {emoji}")
+        greeting_lbl.setStyleSheet("""
+            font-size: 22px;
+            font-weight: 800;
+            color: #cbd5e1;
+            background: transparent;
+        """)
+        layout.addWidget(greeting_lbl)
+        
+        layout.addStretch()
+        
+        # Badge "Système OK"
+        # status_badge = QLabel("●  Système opérationnel")
+        # status_badge.setStyleSheet("""
+        #     background: #dcfce7;
+        #     color: #166534;
+        #     padding: 6px 14px;
+        #     border-radius: 20px;
+        #     font-size: 11px;
+        #     font-weight: 600;
+        # """)
+        # layout.addWidget(status_badge)
+        
+        return frame
+
+    def create_activity_timeline(self):
+        card = QFrame()
+        card.setStyleSheet("""
+            QFrame {
+                background: white;
+                border-radius: 14px;
+                border: 1px solid #e2e8f0;
+            }
+        """)
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(8)
+        shadow.setColor(QColor(0, 0, 0, 12))
+        shadow.setOffset(0, 2)
+        card.setGraphicsEffect(shadow)
+        
+        layout = QVBoxLayout(card)
+        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setSpacing(8)
+        
+        # Header avec indicateur live
+        header = QHBoxLayout()
+        
+        live = QLabel("● LIVE")
+        live.setStyleSheet("""
+            color: #ef4444;
+            font-size: 10px;
+            font-weight: 700;
+        """)
+        header.addWidget(live)
+        
+        layout.addLayout(self.timeline_layout)
+        layout.addStretch()
+        
+        return card
     
+    def refresh_stats(self):
+        self._refresh_count += 1
+        # Simuler une mise à jour de la timeline
+        if hasattr(self, 'timeline_layout') and self.timeline_layout.count() > 0:
+            # Ajouter une nouvelle activité en haut
+            new_item = QHBoxLayout()
+            new_item.setSpacing(8)
+            
+            d = QLabel("🟢")
+            d.setStyleSheet("color: #10b981; font-size: 10px;")
+            d.setFixedWidth(14)
+            new_item.addWidget(d)
+            
+            t = QLabel("Mise à jour automatique")
+            t.setStyleSheet("color: #1e293b; font-size: 11px; font-weight: 500;")
+            new_item.addWidget(t, 1)
+            
+            tm = QLabel("à l'instant")
+            tm.setStyleSheet("color: #94a3b8; font-size: 10px;")
+            new_item.addWidget(tm)
+            
+            self.timeline_layout.insertLayout(0, new_item)
+            
+            # Limiter à 6 entrées
+            while self.timeline_layout.count() > 6:
+                item = self.timeline_layout.takeAt(self.timeline_layout.count() - 1)
+                if item:
+                    # Nettoyer le layout
+                    while item.count():
+                        child = item.takeAt(0)
+                        if child.widget():
+                            child.widget().deleteLater()
+
+    def refresh_all(self):
+        """Rafraîchit tout le dashboard"""
+        self.refresh_stats()
+        if hasattr(self, 'parent') and self.parent():
+            # Notifier via statusbar si disponible
+            pass
+
     def show_certificate_notifications(self):
         """Affiche le menu déroulant des notifications"""
         if not hasattr(self, '_last_certificate_statuses') or not self._last_certificate_statuses:
@@ -4770,7 +3034,7 @@ class MainWindow(QMainWindow):
         """Retourne au tableau de bord"""
         if self.content_area.currentWidget() != self.dashboard:
             self.content_area.setCurrentWidget(self.dashboard)
-            self.page_title.setText("Tableau de Bord")
+            # self.page_title.setText("Tableau de Bord")
             self.sidebar.set_active_module(self.dashboard)
             self.status_bar.showMessage("Retour au tableau de bord", 2000)
     
@@ -4838,7 +3102,7 @@ class MainWindow(QMainWindow):
         if self.content_area.currentWidget() == widget:
             return
         
-        self.page_title.setText(title)
+        # self.page_title.setText(title)
         
         if self.content_area.indexOf(widget) == -1:
             self.content_area.addWidget(widget)
@@ -5159,7 +3423,7 @@ class MainWindow(QMainWindow):
             return server_parts > local_parts
         except (ValueError, AttributeError):
             return server_version != local_version
-    
+
 
 class AppController:
     """Contrôleur principal"""
@@ -5267,3 +3531,5 @@ if __name__ == "__main__":
     
     controller = AppController()
     sys.exit(app.exec())
+
+

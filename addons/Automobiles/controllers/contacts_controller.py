@@ -704,3 +704,123 @@ class ContactController:
 
     def count_by_type(self, client_type):
         return self.db.query(Contact).filter(Contact.nature == client_type).count()
+    
+    def get_driver_by_subscriber(self, subscriber_id: int):
+        """Récupère le Driver associé à un Contact (s'il existe)."""
+        try:
+            from addons.Automobiles.models.driver_models import Driver
+            return self.db.query(Driver).filter(Driver.subscriber_id == subscriber_id).first()
+        except Exception as e:
+            print(f"❌ Erreur get_driver_by_subscriber({subscriber_id}): {e}")
+            return None
+
+
+    def create_or_update_contact(self, data: dict, contact_id: int = None):
+        """
+        Crée ou met à jour un Contact.
+        Si `data['also_driver']` est True, crée (ou met à jour) aussi un Driver
+        lié à ce Contact, dans une transaction atomique.
+
+        Args:
+            data: dictionnaire du formulaire (inclut la clé 'also_driver' si présente)
+            contact_id: ID du contact à mettre à jour (None = création)
+
+        Returns:
+            (contact, success: bool, message: str)
+        """
+        also_driver = data.pop("also_driver", False)
+
+        # On garde une copie propre des données pour le driver
+        base_data = dict(data)
+
+        try:
+            # ─────────────────────────────────────────────
+            # 1. Créer / mettre à jour le Contact
+            # ─────────────────────────────────────────────
+            if contact_id:
+                contact, ok, msg = self.update_contact(contact_id, base_data)
+            else:
+                contact, ok, msg = self.create_contact(base_data)
+
+            if not ok or not contact:
+                return None, False, msg or "Erreur création/maj contact"
+
+            # ─────────────────────────────────────────────
+            # 2. Gérer le Driver associé (si demandé)
+            # ─────────────────────────────────────────────
+            if also_driver:
+                # Préparer les données chauffeur
+                driver_data = {
+                    k: v for k, v in base_data.items()
+                    if k in (
+                        "nom", "prenom", "telephone", "email", "adresse", "ville",
+                        "date_naissance", "nationalite", "num_permis", "cat_permis",
+                        "date_permis", "code_chauffeur", "specialite",
+                        "annees_experience",
+                    )
+                }
+                driver_data["subscriber_id"] = contact.id
+                driver_data["type_client"] = "Chauffeur"
+
+                # Génération du code chauffeur si absent
+                if not driver_data.get("code_chauffeur"):
+                    nom_prefix = (contact.nom or "DRV")[:3].upper()
+                    import uuid
+                    driver_data["code_chauffeur"] = f"{nom_prefix}-{uuid.uuid4().hex[:8].upper()}"
+
+                # Chercher un Driver existant lié à ce contact
+                existing = self.get_driver_by_subscriber(contact.id)
+
+                if existing:
+                    drv, ok_drv, msg_drv = self.update_driver(existing.id, driver_data)
+                else:
+                    drv, ok_drv, msg_drv = self.create_driver(driver_data)
+
+                if not ok_drv:
+                    # ⚠️ Le contact est créé mais le driver a échoué.
+                    # On ne rollback pas le contact (l'utilisateur perdrait sa saisie),
+                    # mais on remonte un message clair.
+                    return contact, True, (
+                        f"Souscripteur enregistré, mais création du chauffeur échouée : {msg_drv}"
+                    )
+
+            # ─────────────────────────────────────────────
+            # 3. Gérer la suppression du Driver si on décoche
+            # ─────────────────────────────────────────────
+            elif contact_id:
+                # L'utilisateur a décoché "aussi chauffeur" → on supprime le Driver associé
+                existing = self.get_driver_by_subscriber(contact.id)
+                if existing:
+                    try:
+                        self.db.delete(existing)
+                        self.db.commit()
+                        print(f"🗑️ Driver {existing.id} supprimé (case décochée)")
+                    except Exception as e:
+                        self.db.rollback()
+                        print(f"⚠️ Impossible de supprimer le Driver : {e}")
+
+            # ─────────────────────────────────────────────
+            # 4. Invalider les caches
+            # ─────────────────────────────────────────────
+            query_cache.invalidate('contacts_all')
+            query_cache.invalidate('all_contacts_drivers')
+            query_cache.invalidate('drivers_all')
+
+            # Message final personnalisé
+            final_msg = "Souscripteur enregistré"
+            if also_driver:
+                final_msg = "Souscripteur et chauffeur enregistrés avec succès"
+            elif contact_id:
+                final_msg = "Contact mis à jour avec succès"
+            else:
+                final_msg = "Contact créé avec succès"
+
+            return contact, True, final_msg
+
+        except Exception as e:
+            self.db.rollback()
+            print(f"--- ERREUR create_or_update_contact ---")
+            print(f"Détails : {str(e)}")
+            import traceback
+            traceback.print_exc()
+            return None, False, f"Erreur technique : {str(e)}"

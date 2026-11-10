@@ -70,26 +70,101 @@ class VehicleType(str, Enum):
     CYCLOMOTEUR = "TV13"
 
 
+# class VehicleUsage(str, Enum):
+#     """Usage du véhicule (section 4.5)"""
+#     PROMENADE_AFFAIRE = "UV01"
+#     TRANSPORT_PROPRE = "UV02"
+#     TRANSPORT_PRIVE_VOYAGEURS = "UV03"
+#     TRANSPORT_PUBLIC_MARCHANDISES = "UV04"
+#     TRANSPORT_PUBLIC_VOYAGEURS = "UV05"
+#     AUTO_ECOLE = "UV06"
+#     LOCATION = "UV07"
+#     SPECIAL = "UV08"
+#     ENGIN_CHANTIER = "UV09"
+#     DEUX_TROIS_ROUES = "UV10"
+
 class VehicleUsage(str, Enum):
-    """Usage du véhicule (section 4.5)"""
-    PROMENADE_AFFAIRE = "UV01"
-    TRANSPORT_PROPRE = "UV02"
-    TRANSPORT_PRIVE_VOYAGEURS = "UV03"
-    TRANSPORT_PUBLIC_MARCHANDISES = "UV04"
-    TRANSPORT_PUBLIC_VOYAGEURS = "UV05"
-    AUTO_ECOLE = "UV06"
-    LOCATION = "UV07"
-    SPECIAL = "UV08"
-    ENGIN_CHANTIER = "UV09"
-    DEUX_TROIS_ROUES = "UV10"
+    """Usage du véhicule (section 4.5 — codes ASAC)"""
+
+    # ── UV001 : Usage privé ──────────────────────────────────
+    PROMENADE_AFFAIRES = "UV001"
+
+    # ── UV2xx : Transport privé ──────────────────────────────
+    TRANSPORT_PRIVE_MARCHANDISES = "UV201"
+    TRANSPORT_PRIVE_PRODUITS = "UV202"
+    VEHICULE_UTILITAIRE = "UV203"
+    VEHICULE_UTILITAIRE_AUTRE_CARROSSERIE = "UV204"
+
+    # ── UV3xx : Commercial / Transport public ────────────────
+    COMMERCIAL = "UV301"
+    REMORQUE = "UV302"
+    TRACTEUR = "UV303"
+    TRANSPORT_PUBLIC_MARCHANDISES = "UV304"
+    TRANSPORT_PUBLIC_PRODUITS = "UV305"
+
+    # ── UV6xx : Garage ───────────────────────────────────────
+    WW_GARAGE = "UV601"
+
+    # ── UV7xx : Auto-école ───────────────────────────────────
+    AUTO_ECOLE = "UV701"
+    AVEC_DOUBLE_COMMANDE = "UV702"
+    SANS_DOUBLE_COMMANDE = "UV703"
+    VEHICULE_TOURISME_AVEC_DOUBLE_COMMANDE = "UV704"
+    VEHICULE_TOURISME_SANS_DOUBLE_COMMANDE = "UV705"
+    VEHICULE_UTILITAIRE_AVEC_DOUBLE_COMMANDE = "UV706"
+    VEHICULE_UTILITAIRE_SANS_DOUBLE_COMMANDE = "UV707"
+
+    # ── UV8xx : Location ─────────────────────────────────────
+    LOCATION = "UV801"
+
+    # ── UV9xx : Engins / Travaux ─────────────────────────────
+    ENGIN_CHANTIER = "UV901"
+    ENGIN_PORTUAIRE_MANUTENTION = "UV902"
+    TRACTEUR_AGRICOLE_NORMAL = "UV903"
+    TRACTEUR_AGRICOLE_SPECIAL = "UV904"
+    TRAVAUX_DE_CHANTIERS = "UV905"
+    TRAVAUX_EN_AERODROMES = "UV906"
+    VEHICULE_TRACTION_AVIONS = "UV907"
+
+    # ── UV10x : Véhicules spéciaux ───────────────────────────
+    AMBULANCE = "UV101"
+    CORBILLARD = "UV102"
+    FOURGON_FUNERAIRE = "UV103"
+    RAMASSAGE_PRODUITS = "UV104"
+    TRAVAUX_AGRICOLES_FORESTIERS = "UV105"
+    VEHICULE_COLLECTIVITE_PUBLIQUE = "UV106"
+
+    # ── UV4x : Transport de personnes ────────────────────────
+    TRANSPORT_PUBLIC_PERSONNES = "UV4A01"
+    TRANSPORT_PASSAGERS_ONEREUX = "UV4B01"
+    TRANSPORT_PUBLIC_VOYAGEURS = "UV4B02"
+    TRANSPORT_ELEVES = "UV4C01"
+    TRANSPORT_PERSONNEL = "UV4C02"
+    TRANSPORT_PRIVE_ELEVES = "UV4C03"
+
+    # ── UV5x : Deux roues ────────────────────────────────────
+    DEUX_ROUES_PERSONNEL_PRIVE = "UV5A01"
+    DEUX_ROUES_COMMERCIAL = "UV5B01"
+    MOTO_TAXI = "UV5B02"
+
+
+# class VehicleEnergy(str, Enum):
+#     """Énergie du véhicule (section 4.6)"""
+#     ESSENCE = "SEES"
+#     DIESEL = "SEDI"
+#     ELECTRIQUE = "SEEL"
+#     HYBRIDE = "SEHY"
 
 
 class VehicleEnergy(str, Enum):
-    """Énergie du véhicule (section 4.6)"""
-    ESSENCE = "SEES"
-    DIESEL = "SEDI"
-    ELECTRIQUE = "SEEL"
-    HYBRIDE = "SEHY"
+    """Énergie du véhicule (section 4.6 — codes ASAC)"""
+
+    ESSENCE       = "SEES"
+    DIESEL        = "SEDI"
+    ELECTRIQUE    = "SEEL"   # ✅ Tarif appliqué : Diesel
+    HYBRIDE       = "SEHY"
+    HYBRIDE_ESSENCE = "SEHY-ES"  # ✅ Tarif appliqué : Essence
+    HYBRIDE_DIESEL  = "SEHY-DI"  # ✅ Tarif appliqué : Diesel
 
 
 class CirculationZone(str, Enum):

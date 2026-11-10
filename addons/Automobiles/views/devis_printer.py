@@ -49,7 +49,6 @@ class DevisPrinter:
         self.vehicle_data = vehicle_data
         self.company_name = company_name
         self.export_dir = export_dir or os.path.expanduser("~/Documents/Devis_Assurance")
-        print(f"voici les données du véhicule: {self.vehicle_data}")
         
         # Créer le dossier d'export
         os.makedirs(self.export_dir, exist_ok=True)
@@ -663,4 +662,3 @@ class DevisPrinter:
         layout.addLayout(btn_layout)
         
         dialog.exec_()
-

@@ -30,11 +30,15 @@ class ContractController:
     def create_contract(self, data: Dict, user_id: int) -> Tuple[bool, Optional[Contrat], str]:
         """Crée un nouveau contrat"""
         try:
-            numero_police = self._generate_police_number(data.get('company_id'))
+            numero_police = (
+                data.get('numero_police')
+                or self._generate_police_number(data.get('company_id'))
+            )
             ip_local, ip_public = self._get_ips()
             
             nouveau_contrat = Contrat(
                 numero_police=numero_police,
+                numero_police_attribue=data.get('numero_police_attribue'),
                 owner_id=data.get('owner_id'),
                 company_id=data.get('company_id'),
                 vehicle_id=data.get('vehicle_id'),
@@ -52,8 +56,10 @@ class ContractController:
                 last_ip=ip_local
             )
             
-            # Recalculer les totaux
-            nouveau_contrat = self._recalculate_totals(nouveau_contrat)
+            # Certains contrats de véhicule reprennent un PTTC déjà calculé
+            # et enregistré sur le véhicule.
+            if not data.get('preserve_total', False):
+                nouveau_contrat = self._recalculate_totals(nouveau_contrat)
             
             self.db.add(nouveau_contrat)
             self.db.commit()
