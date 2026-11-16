@@ -37,7 +37,7 @@ class DevisPrinter:
     MARGIN_LEFT = 40
     MARGIN_RIGHT = 40
     
-    def __init__(self, vehicle_data, export_dir=None, company_name="AMS ASSURANCES"):
+    def __init__(self, vehicle_data, export_dir=None, company_name="DEVIS ASSURANCE"):
         """
         Initialise l'imprimeur de devis
         

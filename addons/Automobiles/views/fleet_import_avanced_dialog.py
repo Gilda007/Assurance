@@ -645,7 +645,7 @@ def build_vehicle_import_payload(vehicle, owner_id, compagny_id, fleet_id, curre
     categorie_value = (vehicle.get('categorie') or 'VP').strip() or 'VP'
     genre_value = (vehicle.get('genre') or 'GV04').strip() or 'GV04'
     type_value = (vehicle.get('type_vehicule') or 'TV10').strip() or 'TV10'
-    usage_value = (vehicle.get('usage') or 'UV01').strip() or 'UV01'
+    usage_value = (vehicle.get('usage') or 'UV001').strip() or 'UV001'
     energie_value = (vehicle.get('energie') or 'SEE').strip() or 'SEE'
 
     #  Récupérer les valeurs de prime depuis le véhicule (déjÃ  extraites du fichier)

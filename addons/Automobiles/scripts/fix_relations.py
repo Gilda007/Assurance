@@ -59,7 +59,7 @@ def migrate():
                 category=getattr(old, 'categorie', 'VP10'),
                 genre=getattr(old, 'genre', 'GV04'),
                 type=getattr(old, 'type_vehicule', 'TV10'),
-                usage=getattr(old, 'usage', 'UV01'),
+                usage=getattr(old, 'usage', 'UV001'),
                 energy=getattr(old, 'energie', 'SEE'),
                 circulation_zone=getattr(old, 'zone', 'ZA')
             )

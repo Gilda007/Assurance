@@ -87,7 +87,7 @@ class VehicleUsage(str, Enum):
     """Usage du véhicule (section 4.5 — codes ASAC)"""
 
     # ── UV001 : Usage privé ──────────────────────────────────
-    PROMENADE_AFFAIRES = "UV001"
+    PROMENADE_AFFAIRES = "UV01"
 
     # ── UV2xx : Transport privé ──────────────────────────────
     TRANSPORT_PRIVE_MARCHANDISES = "UV201"

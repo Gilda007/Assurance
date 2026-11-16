@@ -1909,9 +1909,9 @@ class ContactForm(QDialog):
             # ✅ Cas chauffeur pur (type_client == "Chauffeur")
             if self.type_client.currentText() == "Chauffeur":
                 if self.mode == "edit" and self.contact_data:
-                    result = self.controller.drivers.update_driver(self.contact_data.id, data)
+                    result = self.controller.contacts.update_driver(self.contact_data.id, data)
                 else:
-                    result = self.controller.drivers.create_driver(data)
+                    result = self.controller.contacts.create_driver(data)
             else:
                 # ✅ Cas souscripteur (avec ou sans case "aussi chauffeur")
                 result = self.controller.contacts.create_or_update_contact(
@@ -2128,13 +2128,14 @@ class ContactForm(QDialog):
         Exemple: CL-DUP-7F3A2B1C
         """
         import uuid
+        from datetime import datetime
         
         # Récupérer les premières lettres du nom si disponible
         nom = self.nom.text().strip().upper() if hasattr(self, 'nom') and self.nom.text().strip() else "CLT"
         prefix = nom[:3] if len(nom) >= 3 else nom + "XX"
         
         # Générer un UUID court (8 premiers caractères)
-        short_uuid = uuid.uuid4().hex[:8].upper()
+        short_uuid = datetime.now().strftime('%Y%m%d%H%M%S')
         
         return f"CL-{prefix}-{short_uuid}"
 
@@ -2146,13 +2147,13 @@ class ContactForm(QDialog):
         Exemple: DRV-DUP-7F3A2B1C
         """
         import uuid
-        
+        from datetime import datetime
         # Récupérer les premières lettres du nom si disponible
         nom = self.nom.text().strip().upper() if hasattr(self, 'nom') and self.nom.text().strip() else "DRV"
         prefix = nom[:3] if len(nom) >= 3 else nom + "XX"
         
         # Générer un UUID court (8 premiers caractères)
-        short_uuid = uuid.uuid4().hex[:8].upper()
+        short_uuid = datetime.now().strftime('%Y%m%d%H%M%S')
         
         return f"DRV-{prefix}-{short_uuid}"
 

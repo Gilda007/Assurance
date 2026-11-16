@@ -6,7 +6,8 @@ Style professionnel - Version compacte (1 page)
 """
 
 import os
-from datetime import datetime
+from datetime import date, datetime
+from xml.sax.saxutils import escape
 from PySide6.QtWidgets import QMessageBox, QFileDialog
 from PySide6.QtCore import Qt
 from reportlab.lib import colors
@@ -254,9 +255,9 @@ class QuittanceGenerator:
         if output_path is None:
             output_path = os.path.join(
                 tempfile.gettempdir(),
-                f"quittance_{self.contract.get('numero_police', 'temp')}.pdf"
+                f"condition_particulière_{self.contract.get('numero_police', 'temp')}.pdf"
             )
-        
+        print(f"voici les informations du véhicule issues du dictionnaire créé dans le controleur: {self.vehicle}")
         doc = SimpleDocTemplate(
             output_path,
             pagesize=A4,
@@ -264,7 +265,7 @@ class QuittanceGenerator:
             leftMargin=12*mm,
             topMargin=10*mm,
             bottomMargin=10*mm,
-            title=f"Quittance - {self.vehicle.get('immatriculation', '')}",
+            title=f"Condition_particulière - {self.vehicle.get('immatriculation', '')}",
             author="Automobiles ASAC"
         )
         
@@ -466,103 +467,113 @@ class QuittanceGenerator:
 
     def _build_insured_info_combined(self):
         """
-        Construit une zone unique contenant les 3 sections:
-        1. Dates du contrat
-        2. Informations de l'assuré
-        3. Informations du véhicule
+        Construit le premier tableau en trois colonnes: client, véhicule et contrat.
         """
         elements = []
-        
-        # === Récupérer les données ===
-        
-        # Dates
-        date_debut = self.contract.get('date_debut')
-        date_fin = self.contract.get('date_fin')
-        
-        if isinstance(date_debut, datetime):
-            date_debut_str = date_debut.strftime("%d/%m/%Y")
-        else:
-            date_debut_str = str(date_debut) if date_debut else ""
-        
-        if isinstance(date_fin, datetime):
-            date_fin_str = date_fin.strftime("%d/%m/%Y")
-        else:
-            date_fin_str = str(date_fin) if date_fin else ""
-        
-        duree = self.contract.get('duree', '365 Jours')
-        
-        # Assuré
-        nom_complet = self.vehicle.get('owner', '') or f"{self.owner.get('nom', '')} {self.owner.get('prenom', '')}".strip()
-        phone = self.vehicle.get('owner_phone', '') or self.owner.get('telephone', '')
-        email = self.vehicle.get('owner_email', '') or self.owner.get('email', '')
-        address = self.vehicle.get('owner_address', '') or self.owner.get('adresse', '')
-        city = self.vehicle.get('owner_city', '') or self.owner.get('ville', '')
-        adresse = f"{address} {city}".strip() if address or city else ''
-        
-        # Véhicule
-        immatriculation = self.vehicle.get('immatriculation', '')
-        marque = self.vehicle.get('marque', '')
-        modele = self.vehicle.get('modele', '')
-        usage = self.vehicle.get('usage', '')
-        places = self.vehicle.get('places', '')
-        date_mec = self.vehicle.get('date_mise_circulation', '')
-        puissance = self.vehicle.get('puissance_fiscale', '')
-        chassis = self.vehicle.get('chassis', '')
-        vehicle_text = f"{marque} {modele}".strip() or '—'
-        
-        # ✅ Zone unique avec les 3 sections
-        combined_data = [
-            # === SECTION 1: Dates ===
-            [
-                Paragraph(f"<b>Effet:</b> {date_debut_str}", self.styles['value']),
-                Paragraph(f"<b>Expiration:</b> {date_fin_str}", self.styles['value']),
-                Paragraph(f"<b>Durée:</b> {duree}", self.styles['value'])
-            ],
-            # === SECTION 2: Assuré ===
-            [
-                Paragraph(f"<b>Assuré:</b> {nom_complet or '—'}", self.styles['value']),
-                Paragraph(f"<b>Adresse:</b> {adresse or '—'}", self.styles['value']),
-                "",
-            ],
-            [
-                Paragraph(f"<b>Tél:</b> {phone or '—'}", self.styles['value']),
-                Paragraph(f"<b>Email:</b> {email or '—'}", self.styles['value']),
-                "",
-            ],
-            # === SECTION 3: Véhicule ===
-            [
-                Paragraph(f"<b>Véhicule:</b> {vehicle_text} - {immatriculation or '—'}", self.styles['value']),
-                Paragraph(f"<b>Usage:</b> {usage or '—'}", self.styles['value']),
-                Paragraph(f"<b>MEC:</b> {date_mec or '—'}", self.styles['value'])
-            ],
-            [
-                Paragraph(f"<b>Places:</b> {places or '—'}", self.styles['value']),
-                Paragraph(f"<b>Puissance:</b> {puissance or '—'} CV", self.styles['value']),
-                Paragraph(f"<b>Châssis:</b> {chassis or '—'}", self.styles['value'])
-            ]
+
+        def display_value(value):
+            if value is None or value == "":
+                return "—"
+            if isinstance(value, (date, datetime)):
+                return value.strftime("%d/%m/%Y")
+            return escape(str(value))
+
+        def info_paragraph(label, value):
+            return Paragraph(
+                f"<b>{escape(label)}:</b> {display_value(value)}",
+                self.styles['value']
+            )
+
+        owner_name = self.vehicle.get('owner') or " ".join(
+            part for part in (
+                self.owner.get('nom', ''),
+                self.owner.get('prenom', ''),
+            ) if part
+        )
+        owner_address = self.vehicle.get('owner_address') or self.owner.get('adresse', '')
+        owner_city = self.vehicle.get('owner_city') or self.owner.get('ville', '')
+        address = " ".join(part for part in (owner_address, owner_city) if part)
+
+        client_fields = [
+            ("Client / assuré", owner_name),
+            ("Code client", self.owner.get('code_client') or self.vehicle.get('owner_code')),
+            ("Adresse", address),
+            ("Téléphone", self.vehicle.get('owner_phone') or self.owner.get('telephone')),
+            ("Email", self.vehicle.get('owner_email') or self.owner.get('email')),
+            ("Profession", self.owner.get('profession') or self.vehicle.get('owner_profession')),
+            ("Activité", self.owner.get('activite') or self.vehicle.get('owner_activite')),
+            ("N° contribuable", self.owner.get('num_contribuable')),
         ]
-        
-        combined_table = Table(combined_data, colWidths=[6*cm, 6*cm, 6*cm])
+
+        vehicle_label = " ".join(
+            part for part in (
+                self.vehicle.get('marque', ''),
+                self.vehicle.get('modele', ''),
+            ) if part
+        )
+        vehicle_fields = [
+            ("Immatriculation", self.vehicle.get('immatriculation')),
+            ("Véhicule", vehicle_label),
+            ("Châssis", self.vehicle.get('chassis')),
+            ("Catégorie", self.vehicle.get('categorie')),
+            ("Genre", self.vehicle.get('genre')),
+            ("Usage", self.vehicle.get('usage')),
+            ("Énergie", self.vehicle.get('energie')),
+            ("Mise en circulation", self.vehicle.get('date_mise_circulation')),
+            ("Puissance fiscale", (
+                f"{self.vehicle.get('puissance_fiscale')} CV"
+                if self.vehicle.get('puissance_fiscale') not in (None, "")
+                else None
+            )),
+            ("Places", self.vehicle.get('places')),
+        ]
+
+        contract_fields = [
+            ("N° police", self.contract.get('numero_police')),
+            ("Produit", self.contract.get('produit')),
+            ("Code tarif", self.contract.get('code_tarif')),
+            ("Code assuré", self.contract.get('code_assure')),
+            ("Date d'effet", self.contract.get('date_debut')),
+            ("Date d'expiration", self.contract.get('date_fin')),
+            ("Durée", self.contract.get('duree')),
+            ("Apporteur", self.contract.get('apporteur')),
+            ("Reconduction", self.contract.get('tacite_reconduction')),
+        ]
+
+        column_headers = ("CLIENT / ASSURÉ", "VÉHICULE", "CONTRAT")
+        column_fields = (client_fields, vehicle_fields, contract_fields)
+        column_width = 6 * cm
+        combined_data = [[
+            Paragraph(header, self.styles['cell_bold'])
+            for header in column_headers
+        ]]
+        combined_data.append([
+            Table(
+                [[info_paragraph(label, value)] for label, value in fields],
+                colWidths=[column_width - 8 * mm],
+                style=TableStyle([
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ])
+            )
+            for fields in column_fields
+        ])
+
+        combined_table = Table(combined_data, colWidths=[column_width] * 3)
         combined_table.setStyle(TableStyle([
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
-            ('FONTSIZE', (0, 0), (-1, -1), 8),
-            # ✅ Fond alterné pour les sections
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f7fafc')),  # Dates
-            ('BACKGROUND', (0, 1), (-1, 2), colors.HexColor('#ffffff')),  # Assuré
-            ('BACKGROUND', (0, 3), (-1, 4), colors.HexColor('#f7fafc')),  # Véhicule
-            # ✅ Bordures
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor(self.COLORS['primary'])),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#ffffff')),
             ('BOX', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
             ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
-            # ✅ Padding
             ('TOPPADDING', (0, 0), (-1, -1), 6),
             ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('LEFTPADDING', (0, 0), (-1, -1), 10),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-            # ✅ Fusion des cellules pour les lignes vides
-            ('SPAN', (2, 1), (2, 2)),  # Fusion de la colonne 3 pour l'adresse
-            ('SPAN', (2, 3), (2, 4)),  # Fusion de la colonne 3 pour le véhicule
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
         ]))
         elements.append(combined_table)
         
@@ -912,7 +923,7 @@ def generate_quittance_from_vehicle(vehicle, parent=None):
             output_path, _ = QFileDialog.getSaveFileName(
                 parent,
                 "Enregistrer la quittance",
-                f"quittance_{vehicle_dict.get('immatriculation', 'temp')}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                f"condition_particulière_{vehicle_dict.get('immatriculation', 'temp')}_{datetime.now().strftime('%Y%m%d')}.pdf",
                 "PDF Files (*.pdf)"
             )
             if not output_path:

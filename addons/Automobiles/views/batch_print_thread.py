@@ -179,7 +179,7 @@ class BatchPrintThread(QThread):
             'carte_rose': 'Carte Rose',
             'attestation': 'Attestation',
             'devis': 'Devis',
-            'quittance': 'Quittance'
+            'quittance': 'Condition Particulière'
         }
         return names.get(doc_type, doc_type)
 

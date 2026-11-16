@@ -16,13 +16,65 @@ from PySide6.QtCore import Qt, QThread, Signal, QDateTime, QSettings, QTimer, QU
 from PySide6.QtGui import QColor, QFont, QDesktopServices, QIcon
 from PySide6.QtTextToSpeech import QTextToSpeech
 from PySide6.QtCore import QLocale  # Ajoutez cet import
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import sys
 import subprocess
 import platform
 import json
 import os
 import re
+
+
+ASAC_VALID_USAGE_CODES = (
+    "UV001", "UV201", "UV202", "UV203", "UV204",
+    "UV301", "UV302", "UV303", "UV304", "UV305",
+    "UV601", "UV701", "UV702", "UV703", "UV704", "UV705", "UV706", "UV707",
+    "UV801", "UV901", "UV902", "UV903", "UV904", "UV905", "UV906", "UV907",
+    "UV101", "UV102", "UV103", "UV104", "UV105", "UV106",
+    "UV4A01", "UV4B01", "UV4B02", "UV4C01", "UV4C02", "UV4C03",
+    "UV5A01", "UV5B01", "UV5B02",
+)
+
+ASAC_SENSITIVE_FIELDS = {
+    "password", "token", "app_key", "app_id", "authorization", "x-app-id", "set-cookie"
+}
+
+
+def _normalize_asac_usage(usage):
+    value = str(usage or "UV001").strip().upper()
+    return "UV001" if value == "UV01" else value
+
+
+def _normalize_asac_date(value, default=None):
+    if isinstance(value, datetime):
+        return value.strftime("%Y-%m-%d")
+    if isinstance(value, date):
+        return value.strftime("%Y-%m-%d")
+    if isinstance(value, str):
+        raw = value.strip()
+        if raw:
+            for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%d-%m-%Y", "%Y%m%d"):
+                try:
+                    return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+                except ValueError:
+                    continue
+    if isinstance(default, (datetime, date)):
+        return default.strftime("%Y-%m-%d")
+    if default is not None:
+        return str(default)
+    return datetime.now().strftime("%Y-%m-%d")
+
+
+def _redact_sensitive_fields(value):
+    if isinstance(value, dict):
+        return {
+            key: "[REDACTED]" if str(key).lower() in ASAC_SENSITIVE_FIELDS
+            else _redact_sensitive_fields(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_redact_sensitive_fields(item) for item in value]
+    return value
 
 
 # ============================================================================
@@ -342,7 +394,7 @@ class ExportWorker(QThread):
             print(f"   📛 Nom: {token_name}")
             print(f"   🏢 Application: {application_key_name}")
             print(f"   ⏰ Expire: {expires_at}")
-            print(f"   🔑 Token: {token[:30]}...{token[-20:] if len(token) > 50 else token}")
+            print("   🔑 Token: [REDACTED]")
             
             # Émettre le token pour l'affichage
             self.token_received.emit({
@@ -422,7 +474,9 @@ class ExportWorker(QThread):
                 if isinstance(vehicle_date_debut, datetime):
                     vehicle_date = vehicle_date_debut.date()
                 elif isinstance(vehicle_date_debut, str):
-                    vehicle_date = datetime.strptime(vehicle_date_debut, "%Y-%m-%d").date()
+                    vehicle_date = datetime.strptime(
+                        _normalize_asac_date(vehicle_date_debut), "%Y-%m-%d"
+                    ).date()
                 else:
                     vehicle_date = vehicle_date_debut
                 if vehicle_date >= today:
@@ -438,7 +492,9 @@ class ExportWorker(QThread):
                 if isinstance(vehicle_date_fin, datetime):
                     vehicle_date = vehicle_date_fin.date()
                 elif isinstance(vehicle_date_fin, str):
-                    vehicle_date = datetime.strptime(vehicle_date_fin, "%Y-%m-%d").date()
+                    vehicle_date = datetime.strptime(
+                        _normalize_asac_date(vehicle_date_fin), "%Y-%m-%d"
+                    ).date()
                 else:
                     vehicle_date = vehicle_date_fin
                 if vehicle_date >= today:
@@ -458,6 +514,8 @@ class ExportWorker(QThread):
             first_registration = first_registration.strftime("%Y-%m-%d")
         elif hasattr(first_registration, 'strftime'):
             first_registration = first_registration.strftime("%Y-%m-%d")
+        else:
+            first_registration = _normalize_asac_date(first_registration, default=date_debut)
         
         # ✅ Numéro d'immatriculation
         licence_plate = vehicle.get("immatriculation", "").replace(" ", "").upper()
@@ -513,7 +571,7 @@ class ExportWorker(QThread):
         vehicle_type = self._get_vehicle_type(vehicle.get("type_vehicule", "TV10"))
         
         # ✅ Usage ASAC
-        vehicle_usage = self._get_vehicle_usage(vehicle.get("usage", "UV01"))
+        vehicle_usage = self._get_vehicle_usage(vehicle.get("usage", "UV001"))
         
         # ✅ Énergie ASAC
         vehicle_energy = self._get_vehicle_energy(vehicle.get("energie", "SEE"))
@@ -596,28 +654,7 @@ class ExportWorker(QThread):
 
     def _normalize_date(self, value, default=None):
         """Normalise une date en format YYYY-MM-DD"""
-        if isinstance(value, datetime):
-            return value.strftime("%Y-%m-%d")
-
-        if isinstance(value, str):
-            raw = value.strip()
-            if not raw:
-                value = default
-            else:
-                for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y", "%d-%m-%Y", "%Y%m%d"):
-                    try:
-                        return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
-                    except ValueError:
-                        continue
-                if re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
-                    return raw
-                value = default
-
-        if isinstance(default, datetime):
-            return default.strftime("%Y-%m-%d")
-        if isinstance(default, str):
-            return default
-        return datetime.now().strftime("%Y-%m-%d")
+        return _normalize_asac_date(value, default)
 
     def _parse_int(self, value, fallback=0):
         try:
@@ -652,12 +689,12 @@ class ExportWorker(QThread):
         log_text += f"📍 URL: {url}\n"
         log_text += f"\n📋 HEADERS:\n"
         for key, value in headers.items():
-            if key in ["Authorization", "X-App-Id"] and len(value) > 10:
-                log_text += f"   {key}: {value[:10]}...{value[-5:]}\n"
+            if key.lower() in ASAC_SENSITIVE_FIELDS or key.lower() == "x-app-id":
+                log_text += f"   {key}: [REDACTED]\n"
             else:
                 log_text += f"   {key}: {value}\n"
         log_text += f"\n📦 BODY:\n"
-        log_text += json.dumps(payload, indent=2, ensure_ascii=False)
+        log_text += json.dumps(_redact_sensitive_fields(payload), indent=2, ensure_ascii=False)
         log_text += f"\n{'='*60}\n"
         
         self.logs.append(log_text)
@@ -670,15 +707,14 @@ class ExportWorker(QThread):
         log_text += f"📥 {response_type}\n"
         log_text += f"{'='*60}\n"
         log_text += f"📊 Status Code: {response.status_code}\n"
-        log_text += f"📋 Headers: {dict(response.headers)}\n"
+        safe_headers = {
+            key: "[REDACTED]" if key.lower() in ASAC_SENSITIVE_FIELDS else value
+            for key, value in response.headers.items()
+        }
+        log_text += f"📋 Headers: {safe_headers}\n"
         try:
-            response_json = response.json()
+            response_json = _redact_sensitive_fields(response.json())
             log_text += f"\n📦 BODY:\n"
-            # Masquer le token partiellement pour la sécurité
-            if isinstance(response_json, dict) and "token" in response_json:
-                token = response_json["token"]
-                if len(token) > 20:
-                    response_json["token"] = f"{token[:15]}...{token[-10:]}"
             log_text += json.dumps(response_json, indent=2, ensure_ascii=False)
         except:
             log_text += f"\n📦 BODY (texte): {response.text[:500]}\n"
@@ -742,24 +778,7 @@ class ExportWorker(QThread):
 
     def _get_vehicle_usage(self, usage):
         """Convertit l'usage en code standard ASAC"""
-        mapping = {
-            "UV01": "UV01",
-            "UV02": "UV02",
-            "UV03": "UV03",
-            "UV04": "UV04",
-            "UV05": "UV05",
-            "UV06": "UV06",
-            "UV07": "UV07",
-            "UV08": "UV08",
-            "UV09": "UV09",
-            "UV10": "UV10"
-        }
-        return mapping.get(str(usage).strip(), "UV01")
-
-    def _get_vehicle_usage(self, usage):
-        """Convertit l'usage en code standard"""
-        mapping = {"UV01": "UV01", "UV02": "UV02", "UV03": "UV03", "UP01": "UP01", "UP02": "UP02"}
-        return mapping.get(str(usage).upper(), "UV01")
+        return _normalize_asac_usage(usage)
 
     def _get_vehicle_energy(self, energy):
         """Convertit l'énergie en code standard ASAC"""
@@ -1346,7 +1365,7 @@ class AsacDataValidator:
     VALID_CATEGORIES = ["01", "02", "03", "04"]
     VALID_GENRES = ["GV04", "GV05", "GV06", "GP01", "GP02"]
     VALID_TYPES = ["TV10", "TV20", "TV30", "TC10", "TC20"]
-    VALID_USAGES = ["UV01", "UV02", "UV03", "UP01", "UP02"]
+    VALID_USAGES = list(ASAC_VALID_USAGE_CODES)
     VALID_ZONES = ["A", "B", "C", "D"]
     
     @classmethod
@@ -2505,7 +2524,7 @@ class AsacManager(QDialog):
         elif vehicle_energy == "Diesel":
             vehicle_energy = "DIESEL"
         
-        vehicle_usage = self.vehicle_data.get("usage", "UV01")
+        vehicle_usage = _normalize_asac_usage(self.vehicle_data.get("usage", "UV001"))
         print(f"Amount RC: {int(self.vehicle_data.get('amt_rc', 0))}")
         
         # Construire la requête selon le format exact
@@ -2520,8 +2539,11 @@ class AsacManager(QDialog):
                     # "rc": int(self.vehicle_data.get("amt_rc", 0)) or 63784,
                     "rc": int(self.vehicle_data.get("amt_rc", 0)),
                     "police_number": self.vehicle_data.get("numero_police", f"POL-{datetime.now().year}-{self.vehicle_data.get('id', '00000')}"),
-                    "starts_at": datetime.now().strftime("%Y-%m-%d"),
-                    "ends_at": str(self.vehicle_data.get("date_fin", (datetime.now().replace(year=datetime.now().year+1)).strftime("%Y-%m-%d"))),
+                    "starts_at": _normalize_asac_date(datetime.now()),
+                    "ends_at": _normalize_asac_date(
+                        self.vehicle_data.get("date_fin"),
+                        default=datetime.now().date() + timedelta(days=365),
+                    ),
                     "customer_name": self.vehicle_data.get("owner", ""),
                     "customer_phone": self.vehicle_data.get("phone", ""),
                     "customer_email": self.vehicle_data.get("email", ""),

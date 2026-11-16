@@ -17,7 +17,7 @@ def _get_document_name(doc_type):
         "carte_rose": "Carte Rose",
         "attestation": "Attestation",
         "devis": "Devis",
-        "quittance": "Quittance",
+        "quittance": "Condition Particulière",
     }
     return names.get(doc_type, doc_type)
 
@@ -80,8 +80,9 @@ class BatchPdfExportWorker(QThread):
         safe_immatriculation = re.sub(r"[^\w.-]+", "_", immatriculation).strip("._")
         safe_immatriculation = safe_immatriculation or "vehicule"
         vehicle_id = vehicle.get("id", "sans_id")
+        prefix_file_name = "condition_particuliere" if doc_type == "quittance" else doc_type
         filename = (
-            f"{doc_type}_{safe_immatriculation}_{vehicle_id}_"
+            f"{prefix_file_name}_{safe_immatriculation}_{vehicle_id}_"
             f"{batch_stamp}_{index}.pdf"
         )
         return os.path.join(self.output_dir, filename)
@@ -518,6 +519,7 @@ class BatchPrintManager(QObject):
     
     def _print_document(self, vehicle_data, doc_type):
         """Imprime un document - exécuté dans le thread principal"""
+        print(f"voici les données passées dans les conditions particulières: {vehicle_data}")
         try:
             if doc_type == 'vignette':
                 self.controller.vehicles.print_vignette(vehicle_data, self.parent)

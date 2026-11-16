@@ -1001,7 +1001,7 @@ class ContactListView(QWidget):
             self.set_status(f"{count} contact(s) chargé(s)", "success")
             
         except Exception as e:
-            self.set_status(f"Erreur: {str(e)}", "error")
+            # self.set_status(f"Erreur: {str(e)}", "error")
             logger.error(f"Erreur chargement contacts: {e}")
             import traceback
             traceback.print_exc()
@@ -1199,7 +1199,7 @@ class ContactListView(QWidget):
         self.filtered_contacts = filtered
         self.display_contacts()
         self.update_statistics()
-        self.set_status(f"{len(filtered)} contact(s) trouvé(s)", "info")
+        # self.set_status(f"{len(filtered)} contact(s) trouvé(s)", "info")
 
     def _matches_search(self, entry, search_text):
         """Vérifie si l'entrée correspond à la recherche"""
@@ -1241,9 +1241,9 @@ class ContactListView(QWidget):
             contact, success, message = self.controller.contacts.create_contact(data)
             if success:
                 self.load_contacts()
-                self.set_status("Contact ajouté avec succès", "success")
-            else:
-                self.set_status(f"Erreur: {message}", "error")
+                # self.set_status("Contact ajouté avec succès", "success")
+            # else:
+            #     # self.set_status(f"Erreur: {message}", "error")
     
     def on_edit_contact(self):
         """Modifie un contact"""
@@ -1258,7 +1258,7 @@ class ContactListView(QWidget):
             if dialog.exec_():
                 self.load_contacts()
                 self.contact_updated.emit()
-                self.set_status("Contact modifié avec succès", "success")
+                # self.set_status("Contact modifié avec succès", "success")
     
     def view_contact(self, contact):
         """Voir les détails d'un contact"""
@@ -1281,7 +1281,7 @@ class ContactListView(QWidget):
         if msg.exec() == QMessageBox.Yes:
             if self.controller.contacts.delete_contact(contact.id):
                 self.load_contacts()
-                self.set_status("Contact supprimé", "success")
+                # self.set_status("Contact supprimé", "success")
     
     def on_delete_contact(self):
         """Supprime plusieurs contacts"""
@@ -1311,7 +1311,7 @@ class ContactListView(QWidget):
                     success_count += 1
             
             self.load_contacts()
-            self.set_status(f"{success_count} contact(s) supprimé(s)", "success")
+            # self.set_status(f"{success_count} contact(s) supprimé(s)", "success")
     
     def duplicate_contact(self):
         """Duplique un contact"""
@@ -1331,7 +1331,7 @@ class ContactListView(QWidget):
             contact, success, message = self.controller.contacts.create_contact(new_data)
             if success:
                 self.load_contacts()
-                self.set_status("Contact dupliqué avec succès", "success")
+                # self.set_status("Contact dupliqué avec succès", "success")
     
     def import_contacts(self):
         """Importe des contacts"""
@@ -1340,12 +1340,12 @@ class ContactListView(QWidget):
             "", "CSV Files (*.csv);;Excel Files (*.xlsx *.xls)"
         )
         if path:
-            try:
+            # try:
                 count = self.controller.contacts.import_from_file(path)
                 self.load_contacts()
-                self.set_status(f"{count} contact(s) importé(s)", "success")
-            except Exception as e:
-                self.set_status(f"Erreur d'import: {str(e)}", "error")
+                # self.set_status(f"{count} contact(s) importé(s)", "success")
+            # except Exception as e:
+                # self.set_status(f"Erreur d'import: {str(e)}", "error")
     
     def add_quick_note(self, contact):
         """Ajoute une note rapide"""
@@ -1435,7 +1435,7 @@ class ContactListView(QWidget):
                     contact_id=contact.id,
                     details=note
                 )
-                self.set_status("Note ajoutée avec succès", "success")
+                # self.set_status("Note ajoutée avec succès", "success")
                 dialog.accept()
             else:
                 QMessageBox.warning(dialog, "Attention", "Veuillez écrire une note.")
@@ -1471,7 +1471,7 @@ class ContactListView(QWidget):
                             c.id, c.nom or "", c.prenom or "", c.telephone or "",
                             c.email or "", c.type_client or "", c.nature or "", c.statut or "Actif"
                         ])
-                self.set_status("Export CSV réussi", "success")
+                # self.set_status("Export CSV réussi", "success")
             except Exception as e:
                 self.set_status(f"Erreur export: {str(e)}", "error")
     
@@ -1483,7 +1483,7 @@ class ContactListView(QWidget):
             "PDF Files (*.pdf)"
         )
         if path:
-            try:
+            # try:
                 contacts_data = [{
                     'id': c.id, 'nom': c.nom, 'prenom': c.prenom,
                     'telephone': c.telephone, 'email': c.email,
@@ -1499,113 +1499,113 @@ class ContactListView(QWidget):
                 
                 generate_contact_pdf(path, contacts_data, stats)
                 self.set_status("Export PDF réussi", "success")
-            except Exception as e:
-                self.set_status(f"Erreur export: {str(e)}", "error")
+            # except Exception as e:
+                # self.set_status(f"Erreur export: {str(e)}", "error")
     
     def show_audit_logs(self):
         """Affiche les logs d'audit"""
-        try:
-            logs = self.controller.contacts.get_audit_logs()
-            if not logs:
-                QMessageBox.information(self, "Audit", "Aucun historique disponible")
-                return
-            
-            dialog = QDialog(self)
-            dialog.setWindowTitle("📜 Journal d'audit")
-            dialog.resize(1000, 600)
-            dialog.setStyleSheet(f"""
-                QDialog {{
-                    background: {self.COLORS['white']};
-                }}
-            """)
-            
-            layout = QVBoxLayout(dialog)
-            layout.setSpacing(16)
-            layout.setContentsMargins(24, 24, 24, 24)
-            
-            title_widget = QWidget()
-            title_layout = QHBoxLayout(title_widget)
-            title_layout.setContentsMargins(0, 0, 0, 0)
-            title_layout.setSpacing(12)
-            
-            icon_label = QLabel()
-            icon_label.setPixmap(qta.icon(self.ICONS['clipboard_list'], color=self.COLORS['primary']).pixmap(28, 28))
-            title_layout.addWidget(icon_label)
-            
-            title = QLabel("Journal d'audit")
-            title.setStyleSheet(f"""
-                font-size: 20px;
-                font-weight: 700;
-                color: {self.COLORS['dark']};
-                background: transparent;
+        # try:
+        logs = self.controller.contacts.get_audit_logs()
+        if not logs:
+            QMessageBox.information(self, "Audit", "Aucun historique disponible")
+            return
+        
+        dialog = QDialog(self)
+        dialog.setWindowTitle("📜 Journal d'audit")
+        dialog.resize(1000, 600)
+        dialog.setStyleSheet(f"""
+            QDialog {{
+                background: {self.COLORS['white']};
+            }}
+        """)
+        
+        layout = QVBoxLayout(dialog)
+        layout.setSpacing(16)
+        layout.setContentsMargins(24, 24, 24, 24)
+        
+        title_widget = QWidget()
+        title_layout = QHBoxLayout(title_widget)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(12)
+        
+        icon_label = QLabel()
+        icon_label.setPixmap(qta.icon(self.ICONS['clipboard_list'], color=self.COLORS['primary']).pixmap(28, 28))
+        title_layout.addWidget(icon_label)
+        
+        title = QLabel("Journal d'audit")
+        title.setStyleSheet(f"""
+            font-size: 20px;
+            font-weight: 700;
+            color: {self.COLORS['dark']};
+            background: transparent;
+            border: none;
+        """)
+        title_layout.addWidget(title)
+        title_layout.addStretch()
+        layout.addWidget(title_widget)
+        
+        table = QTableWidget()
+        table.setColumnCount(4)
+        table.setHorizontalHeaderLabels(["Date", "Action", "Utilisateur", "Détails"])
+        table.setAlternatingRowColors(True)
+        table.setSelectionBehavior(QTableWidget.SelectRows)
+        table.setShowGrid(False)
+        table.verticalHeader().setVisible(False)
+        table.setStyleSheet(f"""
+            QTableWidget {{
+                border: 1px solid {self.COLORS['border']};
+                border-radius: 12px;
+            }}
+            QHeaderView::section {{
+                background: {self.COLORS['gray_light']};
+                padding: 12px 16px;
+                font-weight: 600;
+                color: {self.COLORS['gray']};
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-size: 11px;
+            }}
+            QTableWidget::item {{
+                padding: 12px 16px;
+            }}
+        """)
+        
+        table.setRowCount(len(logs))
+        for i, log in enumerate(logs):
+            date_str = log.created_at.strftime("%d/%m/%Y %H:%M:%S") if log.created_at else "—"
+            table.setItem(i, 0, QTableWidgetItem(date_str))
+            table.setItem(i, 1, QTableWidgetItem(log.action or "—"))
+            table.setItem(i, 2, QTableWidgetItem(f"ID: {log.user_id or '?'}"))
+            table.setItem(i, 3, QTableWidgetItem(log.details or "—"))
+        
+        table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        table.setColumnWidth(0, 170)
+        table.setColumnWidth(1, 140)
+        table.setColumnWidth(2, 100)
+        
+        layout.addWidget(table)
+        
+        btn_close = QPushButton("Fermer")
+        btn_close.setStyleSheet(f"""
+            QPushButton {{
+                background: {self.COLORS['primary']};
+                color: white;
                 border: none;
-            """)
-            title_layout.addWidget(title)
-            title_layout.addStretch()
-            layout.addWidget(title_widget)
-            
-            table = QTableWidget()
-            table.setColumnCount(4)
-            table.setHorizontalHeaderLabels(["Date", "Action", "Utilisateur", "Détails"])
-            table.setAlternatingRowColors(True)
-            table.setSelectionBehavior(QTableWidget.SelectRows)
-            table.setShowGrid(False)
-            table.verticalHeader().setVisible(False)
-            table.setStyleSheet(f"""
-                QTableWidget {{
-                    border: 1px solid {self.COLORS['border']};
-                    border-radius: 12px;
-                }}
-                QHeaderView::section {{
-                    background: {self.COLORS['gray_light']};
-                    padding: 12px 16px;
-                    font-weight: 600;
-                    color: {self.COLORS['gray']};
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    font-size: 11px;
-                }}
-                QTableWidget::item {{
-                    padding: 12px 16px;
-                }}
-            """)
-            
-            table.setRowCount(len(logs))
-            for i, log in enumerate(logs):
-                date_str = log.created_at.strftime("%d/%m/%Y %H:%M:%S") if log.created_at else "—"
-                table.setItem(i, 0, QTableWidgetItem(date_str))
-                table.setItem(i, 1, QTableWidgetItem(log.action or "—"))
-                table.setItem(i, 2, QTableWidgetItem(f"ID: {log.user_id or '?'}"))
-                table.setItem(i, 3, QTableWidgetItem(log.details or "—"))
-            
-            table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
-            table.setColumnWidth(0, 170)
-            table.setColumnWidth(1, 140)
-            table.setColumnWidth(2, 100)
-            
-            layout.addWidget(table)
-            
-            btn_close = QPushButton("Fermer")
-            btn_close.setStyleSheet(f"""
-                QPushButton {{
-                    background: {self.COLORS['primary']};
-                    color: white;
-                    border: none;
-                    border-radius: 10px;
-                    padding: 12px;
-                    font-weight: 600;
-                    font-size: 14px;
-                }}
-                QPushButton:hover {{
-                    background: {self._darken_color(self.COLORS['primary'], 0.1)};
-                }}
-            """)
-            btn_close.clicked.connect(dialog.accept)
-            layout.addWidget(btn_close)
-            
-            dialog.exec_()
-        except Exception as e:
-            self.set_status(f"Erreur: {str(e)}", "error")
+                border-radius: 10px;
+                padding: 12px;
+                font-weight: 600;
+                font-size: 14px;
+            }}
+            QPushButton:hover {{
+                background: {self._darken_color(self.COLORS['primary'], 0.1)};
+            }}
+        """)
+        btn_close.clicked.connect(dialog.accept)
+        layout.addWidget(btn_close)
+        
+        dialog.exec_()
+        # except Exception as e:
+            # self.set_status(f"Erreur: {str(e)}", "error")
     
     # def show_context_menu(self, position):
     #     """Affiche le menu contextuel"""
@@ -1670,21 +1670,21 @@ class ContactListView(QWidget):
         
     #     menu.exec_(self.table.viewport().mapToGlobal(position))
     
-    def duplicate_single_contact(self, contact):
-        """Duplique un contact spécifique"""
-        new_data = {
-            'nom': contact.nom + " (Copie)" if contact.nom else "Copie",
-            'prenom': contact.prenom,
-            'telephone': contact.telephone,
-            'email': contact.email,
-            'type_client': contact.type_client,
-            'nature': contact.nature,
-            'statut': contact.statut
-        }
-        contact, success, message = self.controller.contacts.create_contact(new_data)
-        if success:
-            self.load_contacts()
-            self.set_status("Contact dupliqué avec succès", "success")
+    # def duplicate_single_contact(self, contact):
+    #     """Duplique un contact spécifique"""
+    #     new_data = {
+    #         'nom': contact.nom + " (Copie)" if contact.nom else "Copie",
+    #         'prenom': contact.prenom,
+    #         'telephone': contact.telephone,
+    #         'email': contact.email,
+    #         'type_client': contact.type_client,
+    #         'nature': contact.nature,
+    #         'statut': contact.statut
+    #     }
+    #     contact, success, message = self.controller.contacts.create_contact(new_data)
+    #     if success:
+    #         self.load_contacts()
+    #         self.set_status("Contact dupliqué avec succès", "success")
     
     # ============================================================
     # UTILITAIRES
@@ -1751,8 +1751,8 @@ class ContactListView(QWidget):
             border: none;
         """)
         
-        if msg_type != "error":
-            QTimer.singleShot(3000, self._reset_status)
+        # if msg_type != "error":
+        #     QTimer.singleShot(3000, self._reset_status)
 
     def _reset_status(self):
         """Réinitialise le statut"""
@@ -1829,168 +1829,6 @@ class ContactListView(QWidget):
             action.setShortcut(key)
             action.triggered.connect(callback)
             self.addAction(action)
-
-    # def show_context_menu(self, position):
-    #     """Affiche le menu contextuel (clic droit sur une ligne ou dans le vide)."""
-    #     menu = QMenu(self)
-    #     menu.setStyleSheet(f"""
-    #         QMenu {{
-    #             background: {self.COLORS['white']};
-    #             border: 1px solid {self.COLORS['border']};
-    #             border-radius: 12px;
-    #             padding: 6px;
-    #             min-width: 200px;
-    #         }}
-    #         QMenu::item {{
-    #             padding: 10px 20px;
-    #             border-radius: 8px;
-    #             font-size: 13px;
-    #             color: {self.COLORS['dark']};
-    #         }}
-    #         QMenu::item:selected {{
-    #             background: {self.COLORS['primary_light']};
-    #             color: {self.COLORS['primary']};
-    #         }}
-    #         QMenu::item:disabled {{
-    #             color: {self.COLORS['gray']};
-    #         }}
-    #         QMenu::separator {{
-    #             height: 1px;
-    #             background: {self.COLORS['border']};
-    #             margin: 4px 12px;
-    #         }}
-    #     """)
-
-    #     item = self.table.itemAt(position)
-
-    #     # ─────────────────────────────────────────────────────────────
-    #     # CAS 1 : Clic droit dans le vide → menu "Nouveau"
-    #     # ─────────────────────────────────────────────────────────────
-    #     if not item:
-    #         add_action = menu.addAction(
-    #             qta.icon(self.ICONS['plus'], color=self.COLORS['primary']),
-    #             "Nouveau contact",
-    #         )
-    #         add_action.triggered.connect(self.on_add_contact)
-    #         menu.addSeparator()
-    #         refresh_action = menu.addAction(
-    #             qta.icon(self.ICONS['rotate_right'], color=self.COLORS['gray']),
-    #             "Actualiser",
-    #         )
-    #         refresh_action.triggered.connect(self.load_contacts)
-    #         menu.exec_(self.table.viewport().mapToGlobal(position))
-    #         return
-
-    #     row = item.row()
-    #     if row < 0 or row >= len(self.filtered_contacts):
-    #         return
-
-    #     # Sélectionner visuellement la ligne cliquée
-    #     # (ne pas casser une multi-sélection existante qui inclut déjà cette ligne)
-    #     selected_rows = {i.row() for i in self.table.selectedItems()}
-    #     if row not in selected_rows:
-    #         self.table.clearSelection()
-    #         self.table.selectRow(row)
-
-    #     contacts = self.selected_contacts or [self.filtered_contacts[row]]
-
-    #     # ─────────────────────────────────────────────────────────────
-    #     # CAS 2 : Une seule ligne → menu complet
-    #     # ─────────────────────────────────────────────────────────────
-    #     if len(contacts) == 1:
-    #         contact = contacts[0]
-
-    #         view_action = menu.addAction(
-    #             qta.icon(self.ICONS['eye'], color=self.COLORS['gray']),
-    #             "Voir les détails",
-    #         )
-    #         view_action.triggered.connect(lambda: self.view_contact(contact))
-
-    #         edit_action = menu.addAction(
-    #             qta.icon(self.ICONS['pen'], color=self.COLORS['gray']),
-    #             "Modifier",
-    #         )
-    #         edit_action.triggered.connect(lambda: self.edit_contact(contact))
-
-    #         note_action = menu.addAction(
-    #             qta.icon(self.ICONS['note_sticky'], color=self.COLORS['gray']),
-    #             "Ajouter une note",
-    #         )
-    #         note_action.triggered.connect(lambda: self.add_quick_note(contact))
-
-    #         menu.addSeparator()
-
-    #         # ── Sous-menu "Copier" ──
-    #         copy_menu = menu.addMenu(
-    #             qta.icon(self.ICONS['copy'], color=self.COLORS['gray']),
-    #             "Copier",
-    #         )
-    #         copy_phone = copy_menu.addAction("Téléphone")
-    #         copy_phone.triggered.connect(
-    #             lambda: QApplication.clipboard().setText(contact.telephone or "")
-    #         )
-    #         copy_email = copy_menu.addAction("Email")
-    #         copy_email.triggered.connect(
-    #             lambda: QApplication.clipboard().setText(contact.email or "")
-    #         )
-    #         copy_name = copy_menu.addAction("Nom complet")
-    #         copy_name.triggered.connect(
-    #             lambda: QApplication.clipboard().setText(
-    #                 f"{contact.nom or ''} {contact.prenom or ''}".strip()
-    #             )
-    #         )
-
-    #         duplicate_action = menu.addAction(
-    #             qta.icon(self.ICONS['copy'], color=self.COLORS['gray']),
-    #             "Dupliquer",
-    #         )
-    #         duplicate_action.triggered.connect(
-    #             lambda: self.duplicate_single_contact(contact)
-    #         )
-
-    #         menu.addSeparator()
-
-    #         delete_action = menu.addAction(
-    #             qta.icon(self.ICONS['trash_can'], color=self.COLORS['danger']),
-    #             "Supprimer",
-    #         )
-    #         delete_action.triggered.connect(lambda: self.delete_contact(contact))
-
-    #         # Respect des permissions
-    #         role = getattr(self.current_user, 'role', None)
-    #         if role:
-    #             if not SecurityManager.has_permission(role, Permissions.CONTACT_EDIT):
-    #                 edit_action.setEnabled(False)
-    #             if not SecurityManager.has_permission(role, Permissions.CONTACT_DELETE):
-    #                 delete_action.setEnabled(False)
-
-    #     # ─────────────────────────────────────────────────────────────
-    #     # CAS 3 : Plusieurs lignes → menu groupé
-    #     # ─────────────────────────────────────────────────────────────
-    #     else:
-    #         count = len(contacts)
-
-    #         header = menu.addAction(f"📋 {count} contacts sélectionnés")
-    #         header.setEnabled(False)
-    #         menu.addSeparator()
-
-    #         delete_all = menu.addAction(
-    #             qta.icon(self.ICONS['trash_can'], color=self.COLORS['danger']),
-    #             f"Supprimer les {count} contacts",
-    #         )
-    #         delete_all.triggered.connect(self.on_delete_contact)
-
-    #         export_sel = menu.addAction(
-    #             qta.icon(self.ICONS['file_pdf'], color=self.COLORS['gray']),
-    #             "Exporter la sélection en PDF",
-    #         )
-    #         export_sel.triggered.connect(self._export_selection_pdf)
-
-    #         role = getattr(self.current_user, 'role', None)
-    #         if role and not SecurityManager.has_permission(role, Permissions.CONTACT_DELETE):
-    #             delete_all.setEnabled(False)
-
-    #     menu.exec_(self.table.viewport().mapToGlobal(position))
 
     def show_context_menu(self, position):
         """Affiche le menu contextuel — reprend exactement les actions de la colonne ACTIONS."""

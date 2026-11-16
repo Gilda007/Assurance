@@ -2158,6 +2158,36 @@ class ContactDetailView(QDialog):
             selected_documents = dialog.get_selected_documents()
             if selected_documents:
                 mode_dialog = QMessageBox(self)
+                mode_dialog.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #ffffff;
+                        color: #1e293b;
+                    }
+                    QMessageBox QLabel {
+                        background-color: transparent;
+                        color: #1e293b;
+                        font-size: 13px;
+                    }
+                    QMessageBox QPushButton {
+                        background-color: #f1f5f9;
+                        color: #475569;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 8px 18px;
+                        font-weight: 600;
+                        min-width: 80px;
+                    }
+                    QMessageBox QPushButton:hover {
+                        background-color: #e2e8f0;
+                    }
+                    QMessageBox QPushButton:default {
+                        background-color: #3b82f6;
+                        color: #ffffff;
+                    }
+                    QMessageBox QPushButton:default:hover {
+                        background-color: #2563eb;
+                    }
+                """)
                 mode_dialog.setWindowTitle("Mode de sortie")
                 mode_dialog.setText("Comment souhaitez-vous traiter les documents sélectionnés ?")
                 pdf_button = mode_dialog.addButton(

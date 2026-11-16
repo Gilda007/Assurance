@@ -1647,6 +1647,7 @@ class VehicleController:
                 owner_prenom = ''
             
             # ✅ Construire owner_data pour le générateur
+            print(f"voici les données du client: {vehicle_data}")
             owner_data = {
                 'nom': owner_name,
                 'prenom': owner_prenom,
@@ -1690,6 +1691,8 @@ class VehicleController:
                 'duree': '365 Jours',
                 'apporteur': 'TH',
                 'tacite_reconduction': 'Sans Tacite Reconduction',
+                'code_tarif': vehicle_data.get('code_tarif', ''),
+                'code_assure': vehicle_data.get('code_assure', ''),
                 'prime_nette': vehicle_data.get('prime_nette', 0),
                 'accessoires': vehicle_data.get('accessoires', 0),
                 'asac': vehicle_data.get('fichier_asac', 0),
@@ -1709,7 +1712,10 @@ class VehicleController:
                 'immatriculation': vehicle_data.get('immatriculation', ''),
                 'marque': vehicle_data.get('marque', ''),
                 'modele': vehicle_data.get('modele', ''),
+                'categorie': vehicle_data.get('categorie', ''),
+                'genre': vehicle_data.get('genre', ''),
                 'usage': vehicle_data.get('usage', 'CAT 01'),
+                'energie': vehicle_data.get('energie', ''),
                 'places': vehicle_data.get('places', 5),
                 'date_mise_circulation': vehicle_data.get('date_mise_circulation', ''),
                 'chassis': vehicle_data.get('chassis', ''),
@@ -1738,7 +1744,7 @@ class VehicleController:
                 output_path, _ = QFileDialog.getSaveFileName(
                     parent_widget,
                     "Enregistrer la quittance",
-                    os.path.join(export_dir, f"quittance_{vehicle_data.get('immatriculation', 'temp')}_{datetime.now().strftime('%Y%m%d')}.pdf"),
+                    os.path.join(export_dir, f"Condition_particuliere_{vehicle_data.get('immatriculation', 'temp')}_{datetime.now().strftime('%Y%m%d')}.pdf"),
                     "PDF Files (*.pdf)"
                 )
                 if not output_path:
@@ -1750,13 +1756,45 @@ class VehicleController:
             # 8. Message de succès
             if parent_widget:
                 from PySide6.QtWidgets import QMessageBox
-                QMessageBox.information(
-                    parent_widget,
-                    "Succès",
+                msg = QMessageBox(parent_widget)
+                msg.setIcon(QMessageBox.Information)
+                msg.setWindowTitle("Succès")
+                msg.setText(
                     f"La quittance a été générée avec succès !\n\n"
                     f"Fichier : {os.path.basename(file_path)}\n"
                     f"Emplacement : {os.path.dirname(file_path)}"
                 )
+                msg.setStyleSheet("""
+                    QMessageBox {
+                        background-color: #ffffff;
+                        color: #1e293b;
+                    }
+                    QMessageBox QLabel {
+                        background-color: transparent;
+                        color: #1e293b;
+                        font-size: 13px;
+                    }
+                    QMessageBox QPushButton {
+                        background-color: #f1f5f9;
+                        color: #475569;
+                        border: none;
+                        border-radius: 8px;
+                        padding: 8px 18px;
+                        font-weight: 600;
+                        min-width: 80px;
+                    }
+                    QMessageBox QPushButton:hover {
+                        background-color: #e2e8f0;
+                    }
+                    QMessageBox QPushButton:default {
+                        background-color: #3b82f6;
+                        color: #ffffff;
+                    }
+                    QMessageBox QPushButton:default:hover {
+                        background-color: #2563eb;
+                    }
+                """)
+                msg.exec()
             
             return True
             
@@ -2642,6 +2680,7 @@ class VehicleController:
                 owner = vehicle.owner
                 owner_name = f"{getattr(owner, 'nom', '')} {getattr(owner, 'prenom', '')}".strip()
                 owner_phone = self.format_phone_number(getattr(owner, 'telephone', 'N/A'))
+                owner_client_code = getattr(owner, 'code_client', 'N/A')
                 owner_email = getattr(owner, 'email', 'N/A')
                 owner_city = getattr(owner, 'ville', 'Yaoundé')
 
@@ -2665,10 +2704,10 @@ class VehicleController:
             if vehicle.driver:
                 driver = vehicle.driver
                 driver_name = getattr(driver, 'driver_name', 'N/A')
-                driver_birth = driver.date_naissance.strftime('%Y/%m/%d') if driver.date_naissance else "N/A"
+                driver_birth = driver.date_naissance.strftime('%Y-%m-%d') if driver.date_naissance else "N/A"
                 driver_licence = getattr(driver, 'num_permis', 'N/A')
                 driver_category = getattr(driver, 'cat_permis', 'N/A')
-                driver_issued_at = driver.date_permis.strftime('%Y/%m/%d') if driver.date_permis else "N/A"
+                driver_issued_at = driver.date_permis.strftime('%Y-%m-%d') if driver.date_permis else "N/A"
 
             # ============================================================
             # 6. CLASSIFICATION ASAC
@@ -2781,6 +2820,7 @@ class VehicleController:
                 'owner_id': getattr(vehicle, 'owner_id', None),
                 'compagny': compagny_name,
                 'compagny_id': getattr(vehicle, 'compagny_id', None),
+                'code_client': owner_client_code,
                 'phone': owner_phone,
                 'email': owner_email,
                 'city': owner_city,

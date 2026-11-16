@@ -18,7 +18,7 @@ class BatchPrintDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("📄 Impression groupée - Sélection des documents")
-        self.setMinimumSize(500, 400)
+        self.setMinimumSize(800, 700)
         self.setModal(True)
         self.setup_ui()
     
@@ -26,6 +26,28 @@ class BatchPrintDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
+
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #ffffff;
+                color: #1e293b;
+            }
+            QLabel {
+                background-color: transparent;
+                color: #1e293b;
+            }
+            QGroupBox {
+                background-color: #f8fafc;
+                color: #1e293b;
+            }
+            QCheckBox {
+                background-color: transparent;
+                color: #1e293b;
+            }
+            QPushButton {
+                color: #1e293b;
+            }
+    """)
         
         # En-tête
         header = QLabel("🔖 Sélectionnez les documents à imprimer")

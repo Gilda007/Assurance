@@ -237,8 +237,8 @@ async def create_production(
             police_number=cert.police_number,
             insured_name=cert.insured_name,
             insured_phone=cert.insured_phone,
-            starts_at=cert.starts_at.strftime("%d/%m/%Y"),
-            ends_at=cert.ends_at.strftime("%d/%m/%Y")
+            starts_at=cert.starts_at.strftime("%d-%m-%Y"),
+            ends_at=cert.ends_at.strftime("%d-%m-%Y")
         ))
     
     production_response = ProductionResponseSchema(
@@ -250,7 +250,7 @@ async def create_production(
         download_link=f"/api/v1/productions/{db_production.reference}/download",
         certificates=cert_responses,
         created_at=now,
-        formatted_created_at=now.strftime("%d/%m/%Y %H:%M")
+        formatted_created_at=now.strftime("%d-%m-%Y %H:%M")
     )
     
     logger.info(f"✅ Production créée avec succès: {production_ref} ({len(certificates)} attestations)")

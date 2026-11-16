@@ -103,7 +103,7 @@ class LometaDataProvider:
             "ends_at": ends_at.isoformat(),
             
             # Souscripteur
-            "customer_name": full_name,
+            "customer_namee": full_name,
             "customer_phone": phone,
             "customer_email": getattr(contact, 'email', '') or "",
             "customer_postal_code": getattr(contact, 'adresse', '') or "",
@@ -134,7 +134,7 @@ class LometaDataProvider:
             "vehicle_category": self._get_category_code(getattr(vehicle, 'categorie', 'VP')),
             "vehicle_genre": self._get_genre_code(getattr(vehicle, 'categorie', 'VP')),
             "vehicle_type": self._get_type_code(getattr(vehicle, 'categorie', 'VP')),
-            "vehicule_usage": self._get_usage_code(getattr(vehicle, 'usage', 'Particulier')),
+            "vehicule_usage": getattr(vehicle, 'usage', 'Particulier'),
             "vehicle_energy": self._get_energy_code(getattr(vehicle, 'energie', 'Essence')),
             "nb_of_seats": getattr(vehicle, 'places', 5),
             "fiscal_power": int(getattr(vehicle, 'usage', 5)) if str(getattr(vehicle, 'usage', '5')).isdigit() else 5,
@@ -190,10 +190,10 @@ class LometaDataProvider:
         mapping = {"VP": "TV10", "VL": "TV10", "VU": "TV11", "PL": "TV11"}
         return mapping.get(categorie, "TV10")
 
-    def _get_usage_code(self, usage: str) -> str:
-        """Retourne le code usage ASAC (UV01 à UV10)"""
-        mapping = {"Particulier": "UV01", "Professionnel": "UV02", "Mixte": "UV01"}
-        return mapping.get(usage, "UV01")
+    # def _get_usage_code(self, usage: str) -> str:
+    #     """Retourne le code usage ASAC (UV01 à UV10)"""
+    #     mapping = {"Particulier": "UV01", "Professionnel": "UV02", "Mixte": "UV01"}
+    #     return mapping.get(usage, "UV01")
 
     def _get_energy_code(self, energie: str) -> str:
         """Retourne le code énergie ASAC (SEES, SEDI, SEEL, SEHY)"""
